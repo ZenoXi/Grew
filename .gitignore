@@ -1,0 +1,7 @@
+*
+!*.c
+!*.h
+!*.cpp
+!*.hpp
+!.gitignore
+!Video player test 2/
