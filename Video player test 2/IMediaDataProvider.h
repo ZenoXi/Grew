@@ -26,6 +26,7 @@ class IMediaDataProvider
 {
 protected:
     bool _initializing = false;
+    bool _initFailed = false;
     bool _started = false;
     bool _loading = false;
 
@@ -62,6 +63,7 @@ public:
     // STATUS
 public:
     bool Initializing();
+    bool InitFailed();
     // Seeking/changing stream
     bool Loading();
     Duration BufferedDuration();

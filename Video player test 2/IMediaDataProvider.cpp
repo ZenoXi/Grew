@@ -5,6 +5,11 @@ bool IMediaDataProvider::Initializing()
     return _initializing;
 }
 
+bool IMediaDataProvider::InitFailed()
+{
+    return _initFailed;
+}
+
 bool IMediaDataProvider::Loading()
 {
     return _loading;
