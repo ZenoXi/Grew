@@ -32,6 +32,39 @@ Duration IMediaDataProvider::_BufferedDuration(MediaData& mediaData)
     return mediaData.lastPts > mediaData.lastDts ? mediaData.lastPts.GetTime(NANOSECONDS) : mediaData.lastDts.GetTime(NANOSECONDS);
 }
 
+Duration IMediaDataProvider::MediaDuration()
+{
+    Duration finalDuration = 0;
+    if (_videoData.currentStream != -1)
+    {
+        int64_t startTime = _videoData.streams[_videoData.currentStream].startTime;
+        int64_t duration = _videoData.streams[_videoData.currentStream].duration;
+        if (startTime + duration > finalDuration)
+        {
+            finalDuration = startTime + duration;
+        }
+    }
+    if (_audioData.currentStream != -1)
+    {
+        int64_t startTime = _audioData.streams[_audioData.currentStream].startTime;
+        int64_t duration = _audioData.streams[_audioData.currentStream].duration;
+        if (startTime + duration > finalDuration)
+        {
+            finalDuration = startTime + duration;
+        }
+    }
+    if (_subtitleData.currentStream != -1)
+    {
+        int64_t startTime = _subtitleData.streams[_subtitleData.currentStream].startTime;
+        int64_t duration = _subtitleData.streams[_subtitleData.currentStream].duration;
+        if (startTime + duration > finalDuration)
+        {
+            finalDuration = startTime + duration;
+        }
+    }
+    return finalDuration;
+}
+
 void IMediaDataProvider::Seek(TimePoint time)
 {
     _Seek(time);

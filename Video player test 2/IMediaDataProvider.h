@@ -25,9 +25,9 @@ struct MediaData
 class IMediaDataProvider
 {
 protected:
-    bool _initializing;
-    std::thread _initializationThread;
-    bool _loading;
+    bool _initializing = false;
+    bool _started = false;
+    bool _loading = false;
 
     //std::vector<MediaStream> _videoStreams;
     //std::vector<MediaStream> _audioStreams;
@@ -36,7 +36,7 @@ protected:
     //int _currentAudioStream;
     //int _currentSubtitleStream;
 
-private:
+protected:
     MediaData _videoData;
     MediaData _audioData;
     MediaData _subtitleData;
@@ -52,11 +52,11 @@ private:
     //std::mutex _m_subtitlePackets;
 
 public:
-    IMediaDataProvider();
-    virtual ~IMediaDataProvider();
+    IMediaDataProvider() {};
+    virtual ~IMediaDataProvider() {};
 
-protected:
-    virtual void _Initialize() = 0;
+public:
+    virtual void Start() = 0;
 
 
     // STATUS
@@ -67,6 +67,11 @@ public:
     Duration BufferedDuration();
 private:
     Duration _BufferedDuration(MediaData& packetData);
+
+
+    // METADATA
+public:
+    Duration MediaDuration();
 
 
     // STREAM CONTROL
