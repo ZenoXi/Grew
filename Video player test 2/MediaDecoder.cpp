@@ -15,7 +15,7 @@
 #undef min
 #undef max
 
-int64_t MetadataDurationToMicroseconds(std::string data);
+int64_t MetadataDurationToMicrosecondsOld(std::string data);
 
 // ////////// //
 // FRAME_DATA //
@@ -989,7 +989,6 @@ void MediaDecoder::ExtractStreams()
         {
             std::cout << "[" << t->key << "]: \"" << t->value << "\"\n";
         }
-        std::cout << std::endl;
 
         if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
         {
@@ -1005,6 +1004,7 @@ void MediaDecoder::ExtractStreams()
             vStream.height = stream->codecpar->height;
             //vStream.framerate = stream->r_frame_rate;
             _videoStreams.push_back(vStream);
+            std::cout << "[VIDEO]" << std::endl;
         }
         else if (stream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO)
         {
@@ -1019,6 +1019,7 @@ void MediaDecoder::ExtractStreams()
             aStream.channels = stream->codecpar->channels;
             aStream.sampleRate = stream->codecpar->sample_rate;
             _audioStreams.push_back(aStream);
+            std::cout << "[AUDIO]" << std::endl;
         }
         else if (stream->codecpar->codec_type == AVMEDIA_TYPE_SUBTITLE)
         {
@@ -1030,16 +1031,22 @@ void MediaDecoder::ExtractStreams()
             sStream.startTime = stream->start_time;
             sStream.duration = stream->duration;
             _subtitleStreams.push_back(sStream);
+            std::cout << "[SUBTITLE]" << std::endl;
         }
         else if (stream->codecpar->codec_type == AVMEDIA_TYPE_ATTACHMENT)
         {
+            std::cout << "[ATTACHMENT]" << std::endl;
         }
         else if (stream->codecpar->codec_type == AVMEDIA_TYPE_DATA)
         {
+            std::cout << "[DATA]" << std::endl;
         }
         else if (stream->codecpar->codec_type == AVMEDIA_TYPE_UNKNOWN)
         {
+            std::cout << "[UNKNOWN]" << std::endl;
         }
+
+        std::cout << std::endl;
     }
 
     if (!_videoStreams.empty()) _currentVideoStream = 0;
@@ -1072,7 +1079,7 @@ void MediaDecoder::FindMissingStreamData()
             {
                 if (stream.duration == 0 || stream.duration == AV_NOPTS_VALUE)
                 {
-                    stream.duration = av_rescale_q(MetadataDurationToMicroseconds(it.second), { 1, AV_TIME_BASE }, stream.timeBase);
+                    stream.duration = av_rescale_q(MetadataDurationToMicrosecondsOld(it.second), { 1, AV_TIME_BASE }, stream.timeBase);
                 }
             }
         }
@@ -1106,7 +1113,7 @@ void MediaDecoder::FindMissingStreamData()
             {
                 if (stream.duration == 0 || stream.duration == AV_NOPTS_VALUE)
                 {
-                    stream.duration = av_rescale_q(MetadataDurationToMicroseconds(it.second), { 1, AV_TIME_BASE }, stream.timeBase);
+                    stream.duration = av_rescale_q(MetadataDurationToMicrosecondsOld(it.second), { 1, AV_TIME_BASE }, stream.timeBase);
                 }
             }
         }
@@ -1140,7 +1147,7 @@ void MediaDecoder::FindMissingStreamData()
             {
                 if (stream.duration == 0 || stream.duration == AV_NOPTS_VALUE)
                 {
-                    stream.duration = av_rescale_q(MetadataDurationToMicroseconds(it.second), { 1, AV_TIME_BASE }, stream.timeBase);
+                    stream.duration = av_rescale_q(MetadataDurationToMicrosecondsOld(it.second), { 1, AV_TIME_BASE }, stream.timeBase);
                 }
             }
         }
@@ -1361,17 +1368,17 @@ void MediaDecoder::CalculateMissingStreamData(bool full)
     {
         PacketHolder holder = { packet };
 
-        if (packet->stream_index == 0)
-        {
-            int k = 0;
-            std::cout << packet->pts << " | " << packet->dts;
-            if (packet->flags & AV_PKT_FLAG_KEY)
-            {
-                std::cout << " (KEY)";
-                k++;
-            }
-            std::cout << std::endl;
-        }
+        //if (packet->stream_index == 0)
+        //{
+        //    int k = 0;
+        //    std::cout << packet->pts << " | " << packet->dts;
+        //    if (packet->flags & AV_PKT_FLAG_KEY)
+        //    {
+        //        std::cout << " (KEY)";
+        //        k++;
+        //    }
+        //    std::cout << std::endl;
+        //}
 
         // Check if all decoders have gathered missing data
         bool done = true;
@@ -1386,7 +1393,7 @@ void MediaDecoder::CalculateMissingStreamData(bool full)
                 }
             }
         }
-        //if (done) break; // UNCOMMENT ///////////////////////////////////////////////////////////////////////
+        if (done) break; // UNCOMMENT ///////////////////////////////////////////////////////////////////////
 
         int index = packet->stream_index;
         if (!streamDecoders[index]) continue;
@@ -1394,7 +1401,7 @@ void MediaDecoder::CalculateMissingStreamData(bool full)
         streamDecoders[index]->ExtractInfoFromPacket(packet);
 
         // Only decode until necessary data is extracted
-        //if (streamDecoders[index]->frameDataGathered) continue; // UNCOMMENT /////////////////////////////////
+        if (streamDecoders[index]->frameDataGathered) continue; // UNCOMMENT /////////////////////////////////
 
         int response = avcodec_send_packet(streamDecoders[index]->codecContext, packet);
         if (response < 0)
@@ -1852,7 +1859,7 @@ void MediaDecoder::AudioPacketDecoder()
     avcodec_free_context(&avc_context_audio);
 }
 
-int64_t MetadataDurationToMicroseconds(std::string data)
+int64_t MetadataDurationToMicrosecondsOld(std::string data)
 {
     int64_t time = 0;
 
