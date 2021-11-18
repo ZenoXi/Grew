@@ -126,7 +126,7 @@ std::vector<std::string> IMediaDataProvider::_GetAvailableStreams(MediaData& med
     streams.reserve(mediaData.streams.size());
     for (auto& stream : mediaData.streams)
     {
-        streams.push_back(stream.name);
+        streams.push_back("");
     }
     return streams;
 }

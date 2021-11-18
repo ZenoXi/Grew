@@ -9,6 +9,7 @@ extern "C"
 }
 
 #include <string>
+#include <vector>
 #include <stdexcept>
 
 enum class MediaStreamType
@@ -18,14 +19,21 @@ enum class MediaStreamType
     AUDIO,
     SUBTITLE,
     ATTACHMENT,
-    DATA
+    DATA,
+    UNKNOWN
+};
+
+struct MediaMetadataPair
+{
+    std::string key;
+    std::string value;
 };
 
 class MediaStream : public ISerializable
 {
     AVCodecParameters* _params;
 public:
-    std::string name;
+    std::vector<MediaMetadataPair> metadata;
     int index;
     int packetCount;
     int64_t startTime;
@@ -144,7 +152,7 @@ public:
     void ResetFields()
     {
         index = 0;
-        name = "";
+        metadata.clear();
         packetCount = 0;
         startTime = AV_NOPTS_VALUE;
         duration = AV_NOPTS_VALUE;
@@ -159,7 +167,7 @@ public:
     void CopyFields(const MediaStream& other)
     {
         index = other.index;
-        name = other.name;
+        metadata = other.metadata;
         packetCount = other.packetCount;
         startTime = other.startTime;
         duration = other.duration;
@@ -189,19 +197,51 @@ private:
 
     SerializedData _SerializeRemainingFields() const
     {
+        /// <summary>
+        /// serialized 'metadata' contains, in order:
+        /// X - a 64 bit number, vector element count
+        /// X times:
+        ///     N - a 64 bit number, string character count
+        ///     a N byte length data block of the string data
+        ///     M - a 64 bit number, string character count
+        ///     a M byte length data block of the string data
+        /// </summary>
+        size_t metadataSize = sizeof(size_t);
+        for (size_t i = 0; i < metadata.size(); i++)
+        {
+            metadataSize += sizeof(size_t);
+            metadataSize += metadata[i].key.length();
+            metadataSize += sizeof(size_t);
+            metadataSize += metadata[i].value.length();
+        }
+
         size_t thisSize = sizeof(*this);
-        size_t fieldSize = thisSize - sizeof(_params) - sizeof(name);
-        size_t totalSize = fieldSize + sizeof(size_t) + name.length();
+        size_t fieldSize = thisSize - sizeof(_params) - sizeof(metadata);
+        size_t totalSize = fieldSize + metadataSize;
         auto bytes = std::make_unique<uchar[]>(totalSize);
         size_t memPos = 0;
 
-        std::copy_n((uchar*)this + sizeof(_params) + sizeof(name), fieldSize, bytes.get() + memPos);
+        std::copy_n((uchar*)this + sizeof(_params) + sizeof(metadata), fieldSize, bytes.get() + memPos);
         memPos += fieldSize;
-        size_t nameLength = name.length();
-        std::copy_n((uchar*)&nameLength, sizeof(nameLength), bytes.get() + memPos);
-        memPos += sizeof(nameLength);
-        std::copy_n((uchar*)name.data(), nameLength, bytes.get() + memPos);
-        memPos += nameLength;
+        // Serialize 'metadata'
+        size_t metadataCount = metadata.size();
+        std::copy_n((uchar*)&metadataCount, sizeof(metadataCount), bytes.get() + memPos);
+        memPos += sizeof(metadataCount);
+        for (size_t i = 0; i < metadata.size(); i++)
+        {
+            // Key
+            size_t keyLength = metadata[i].key.length();
+            std::copy_n((uchar*)&keyLength, sizeof(keyLength), bytes.get() + memPos);
+            memPos += sizeof(keyLength);
+            std::copy_n((uchar*)metadata[i].key.data(), keyLength, bytes.get() + memPos);
+            memPos += keyLength;
+            // Value
+            size_t valueLength = metadata[i].key.length();
+            std::copy_n((uchar*)&valueLength, sizeof(valueLength), bytes.get() + memPos);
+            memPos += sizeof(valueLength);
+            std::copy_n((uchar*)metadata[i].key.data(), valueLength, bytes.get() + memPos);
+            memPos += valueLength;
+        }
 
         return { totalSize, bytes };
     }
@@ -243,7 +283,7 @@ private:
     size_t _DeserializeRemainingFields(uchar* data, size_t dataSize)
     {
         size_t thisSize = sizeof(*this);
-        size_t fieldSize = thisSize - sizeof(_params) - sizeof(name);
+        size_t fieldSize = thisSize - sizeof(_params) - sizeof(metadata);
         size_t memPos = 0;
 
         // Create a copy of current fields in case deserialization fails
@@ -252,14 +292,32 @@ private:
 
         try
         {
-            _SafeCopy(data, memPos, (uchar*)this + sizeof(_params) + sizeof(name), fieldSize, dataSize);
+            _SafeCopy(data, memPos, (uchar*)this + sizeof(_params) + sizeof(metadata), fieldSize, dataSize);
             memPos += fieldSize;
-            size_t nameLength;
-            _SafeCopy(data, memPos, (uchar*)&nameLength, sizeof(nameLength), dataSize);
-            memPos += sizeof(nameLength);
-            name.resize(nameLength);
-            _SafeCopy(data, memPos, (uchar*)name.data(), nameLength, dataSize);
-            memPos += nameLength;
+            // Deserialize 'metadata'
+            metadata.clear();
+            size_t metadataCount;
+            _SafeCopy(data, memPos, (uchar*)&metadataCount, sizeof(metadataCount), dataSize);
+            memPos += sizeof(metadataCount);
+            for (size_t i = 0; i < metadataCount; i++)
+            {
+                MediaMetadataPair pair;
+                // Key
+                size_t keyLength;
+                _SafeCopy(data, memPos, (uchar*)&keyLength, sizeof(keyLength), dataSize);
+                memPos += sizeof(keyLength);
+                pair.key.resize(keyLength);
+                _SafeCopy(data, memPos, (uchar*)pair.key.data(), keyLength, dataSize);
+                memPos += keyLength;
+                // Value
+                size_t valueLength;
+                _SafeCopy(data, memPos, (uchar*)&valueLength, sizeof(valueLength), dataSize);
+                memPos += sizeof(valueLength);
+                pair.key.resize(valueLength);
+                _SafeCopy(data, memPos, (uchar*)pair.key.data(), valueLength, dataSize);
+                memPos += valueLength;
+                metadata.push_back(pair);
+            }
         }
         catch (std::out_of_range)
         {
