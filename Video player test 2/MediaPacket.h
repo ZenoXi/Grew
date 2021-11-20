@@ -14,9 +14,10 @@ class MediaPacket : public ISerializable
 {
     AVPacket* _packet = nullptr;
 public:
-    bool last = 0;
+    bool last = false;
+    bool flush = false;
 
-    MediaPacket() {}
+    MediaPacket(bool flush = false) : flush(flush) {}
     // Takes over ownership of the packet
     MediaPacket(AVPacket* packet)
     {
