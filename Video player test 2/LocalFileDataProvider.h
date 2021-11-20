@@ -22,12 +22,13 @@ private:
     void _Initialize();
 public:
     void Start();
+    void Stop();
 
 protected:
     void _Seek(TimePoint time);
-    void _SetVideoStream(int index);
-    void _SetAudioStream(int index);
-    void _SetSubtitleStream(int index);
+    void _SetVideoStream(int index, TimePoint time);
+    void _SetAudioStream(int index, TimePoint time);
+    void _SetSubtitleStream(int index, TimePoint time);
 private:
     void _ReadPackets();
 };

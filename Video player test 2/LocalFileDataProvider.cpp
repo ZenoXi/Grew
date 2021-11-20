@@ -14,6 +14,7 @@ struct StreamChangeDesc
 {
     int streamIndex;
     MediaData* mediaDataPtr;
+    TimePoint time;
 };
 
 LocalFileDataProvider::LocalFileDataProvider(std::string filename) : _filename(filename)
@@ -30,16 +31,27 @@ LocalFileDataProvider::LocalFileDataProvider(std::string filename) : _filename(f
 
 LocalFileDataProvider::~LocalFileDataProvider()
 {
-
+    Stop();
+    avformat_close_input(&_avfContext);
+    avformat_free_context(_avfContext);
 }
 
 void LocalFileDataProvider::Start()
 {
     _packetThreadController.Set("seek", (int64_t)-1);
-    _packetThreadController.Set("stream", StreamChangeDesc{ -1, nullptr });
+    _packetThreadController.Set("stream", StreamChangeDesc{ -1, nullptr, 0 });
     _packetThreadController.Set("stop", false);
     _packetThreadController.Set("eof", false);
     _packetReadingThread = std::thread(&LocalFileDataProvider::_ReadPackets, this);
+}
+
+void LocalFileDataProvider::Stop()
+{
+    _packetThreadController.Set("stop", true);
+    if (_packetReadingThread.joinable())
+    {
+        _packetReadingThread.join();
+    }
 }
 
 void LocalFileDataProvider::_Seek(TimePoint time)
@@ -47,19 +59,19 @@ void LocalFileDataProvider::_Seek(TimePoint time)
     _packetThreadController.Set("seek", time.GetTime());
 }
 
-void LocalFileDataProvider::_SetVideoStream(int index)
+void LocalFileDataProvider::_SetVideoStream(int index, TimePoint time)
 {
-
+    _packetThreadController.Set("stream", StreamChangeDesc{ index, &_videoData, time });
 }
 
-void LocalFileDataProvider::_SetAudioStream(int index)
+void LocalFileDataProvider::_SetAudioStream(int index, TimePoint time)
 {
-
+    _packetThreadController.Set("stream", StreamChangeDesc{ index, &_audioData, time });
 }
 
-void LocalFileDataProvider::_SetSubtitleStream(int index)
+void LocalFileDataProvider::_SetSubtitleStream(int index, TimePoint time)
 {
-
+    _packetThreadController.Set("stream", StreamChangeDesc{ index, &_subtitleData, time });
 }
 
 void LocalFileDataProvider::_Initialize()
@@ -98,7 +110,6 @@ void LocalFileDataProvider::_ReadPackets()
 {
     AVPacket* packet = av_packet_alloc();
     bool eof = false;
-    int64_t packetSize = 0;
 
     while (!_packetThreadController.Get<bool>("stop"))
     {
@@ -125,6 +136,21 @@ void LocalFileDataProvider::_ReadPackets()
             _ClearVideoPackets();
             _ClearAudioPackets();
             _ClearSubtitlePackets();
+
+            // Send flush packets
+            _videoData.packets.push_back(MediaPacket(true));
+            _audioData.packets.push_back(MediaPacket(true));
+            _subtitleData.packets.push_back(MediaPacket(true));
+        }
+
+        // Change stream
+        StreamChangeDesc newStream = _packetThreadController.Get<StreamChangeDesc>("stream");
+        if (newStream.mediaDataPtr)
+        {
+            _packetThreadController.Set("stream", StreamChangeDesc{ -1, nullptr, 0 });
+            newStream.mediaDataPtr->currentStream = newStream.streamIndex;
+            _packetThreadController.Set("seek", newStream.time.GetTime());
+            continue;
         }
 
         // Read audio and video packets

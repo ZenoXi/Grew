@@ -62,6 +62,7 @@ public:
 
 public:
     virtual void Start() = 0;
+    virtual void Stop() = 0;
 
 
     // STATUS
@@ -86,22 +87,25 @@ public:
     // Returns a MediaStream object if a stream at the index exists, nullptr otherwise.
     // Valid index can be acquired from GetAvailableVideoStreams().
     // index of -1 selects the default stream.
-    std::unique_ptr<MediaStream> SetVideoStream(int index = -1);
+    // time: where to continue playback after stream change.
+    std::unique_ptr<MediaStream> SetVideoStream(int index = -1, TimePoint time = 0);
     // Returns a MediaStream object if a stream at the index exists, nullptr otherwise.
     // Valid index can be acquired from GetAvailableAudioStreams().
     // index of -1 selects the default stream.
-    std::unique_ptr<MediaStream> SetAudioStream(int index = -1);
+    // time: where to continue playback after stream change.
+    std::unique_ptr<MediaStream> SetAudioStream(int index = -1, TimePoint time = 0);
     // Returns a MediaStream object if a stream at the index exists, nullptr otherwise.
     // Valid index can be acquired from GetAvailableSubtitleStreams().
     // index of -1 selects the default stream.
-    std::unique_ptr<MediaStream> SetSubtitleStream(int index = -1);
+    // time: where to continue playback after stream change.
+    std::unique_ptr<MediaStream> SetSubtitleStream(int index = -1, TimePoint time = 0);
 private:
     std::unique_ptr<MediaStream> _SetStream(MediaData& mediaData, int& index);
 protected:
     virtual void _Seek(TimePoint time) = 0;
-    virtual void _SetVideoStream(int index) = 0;
-    virtual void _SetAudioStream(int index) = 0;
-    virtual void _SetSubtitleStream(int index) = 0;
+    virtual void _SetVideoStream(int index, TimePoint time) = 0;
+    virtual void _SetAudioStream(int index, TimePoint time) = 0;
+    virtual void _SetSubtitleStream(int index, TimePoint time) = 0;
 
 
     // MEDIA DATA
@@ -121,7 +125,7 @@ public:
     MediaPacket GetVideoPacket();
     MediaPacket GetAudioPacket();
     MediaPacket GetSubtitlePacket();
-private:
+protected:
     size_t _PacketCount(const MediaData& mediaData) const;
     MediaPacket _GetPacket(MediaData& mediaData);
 
@@ -134,7 +138,6 @@ protected:
     void _ClearVideoPackets();
     void _ClearAudioPackets();
     void _ClearSubtitlePackets();
-private:
     void _AddPacket(MediaData& mediaData, MediaPacket packet);
     void _ClearPackets(MediaData& mediaData);
 

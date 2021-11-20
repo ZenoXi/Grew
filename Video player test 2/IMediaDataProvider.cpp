@@ -75,24 +75,24 @@ void IMediaDataProvider::Seek(TimePoint time)
     _Seek(time);
 }
 
-std::unique_ptr<MediaStream> IMediaDataProvider::SetVideoStream(int index)
+std::unique_ptr<MediaStream> IMediaDataProvider::SetVideoStream(int index, TimePoint time)
 {
     auto stream = _SetStream(_videoData, index);
-    if (stream) _SetVideoStream(index);
+    if (stream) _SetVideoStream(index, time);
     return stream;
 }
 
-std::unique_ptr<MediaStream> IMediaDataProvider::SetAudioStream(int index)
+std::unique_ptr<MediaStream> IMediaDataProvider::SetAudioStream(int index, TimePoint time)
 {
     auto stream = _SetStream(_videoData, index);
-    if (stream) _SetAudioStream(index);
+    if (stream) _SetAudioStream(index, time);
     return stream;
 }
 
-std::unique_ptr<MediaStream> IMediaDataProvider::SetSubtitleStream(int index)
+std::unique_ptr<MediaStream> IMediaDataProvider::SetSubtitleStream(int index, TimePoint time)
 {
     auto stream = _SetStream(_videoData, index);
-    if (stream) _SetSubtitleStream(index);
+    if (stream) _SetSubtitleStream(index, time);
     return stream;
 }
 
@@ -170,7 +170,7 @@ MediaPacket IMediaDataProvider::_GetPacket(MediaData& mediaData)
     std::unique_lock<std::mutex> lock(mediaData.mtx);
     if (mediaData.currentPacket >= mediaData.packets.size())
     {
-        return nullptr;
+        return MediaPacket();
     }
     else
     {
@@ -213,8 +213,11 @@ void IMediaDataProvider::_ClearSubtitlePackets()
 void IMediaDataProvider::_AddPacket(MediaData& mediaData, MediaPacket packet)
 {
     std::unique_lock<std::mutex> lock(mediaData.mtx);
-    if (packet.GetPacket()->pts > mediaData.lastPts) mediaData.lastPts = packet.GetPacket()->pts;
-    if (packet.GetPacket()->dts > mediaData.lastDts) mediaData.lastDts = packet.GetPacket()->dts;
+    if (!packet.flush)
+    {
+        if (packet.GetPacket()->pts > mediaData.lastPts) mediaData.lastPts = packet.GetPacket()->pts;
+        if (packet.GetPacket()->dts > mediaData.lastDts) mediaData.lastDts = packet.GetPacket()->dts;
+    }
     mediaData.packets.push_back(std::move(packet));
 }
 
@@ -222,4 +225,7 @@ void IMediaDataProvider::_ClearPackets(MediaData& mediaData)
 {
     std::unique_lock<std::mutex> lock(mediaData.mtx);
     mediaData.packets.clear();
+    mediaData.lastPts = TimePoint::Min();
+    mediaData.lastDts = TimePoint::Min();
+    mediaData.currentPacket = -1;
 }
