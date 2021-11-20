@@ -14,5 +14,7 @@ public:
     virtual bool Paused() const = 0;
     virtual void SetVolume(float volume) = 0;
     virtual void SetBalance(float balance) = 0;
-    virtual int64_t CurrentTime() = 0;
+    virtual int64_t CurrentTime() const = 0;
+    virtual int64_t BufferLength() const = 0;
+    virtual int64_t BufferEndTime() const = 0;
 };

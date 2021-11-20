@@ -58,7 +58,7 @@ class XAudio2_AudioOutputAdapter : public IAudioOutputAdapter
     WAVEFORMATEX _wfx = { 0 };
     int64_t _audioBufferLength = 0;
     int64_t _currentSampleTimestamp = 0;
-    TimePoint _audioBufferEnd = 0;
+    int64_t _audioBufferEnd = 0;
     int _audioFramesBuffered = 0;
 
     int _channelCount = 0;
@@ -183,8 +183,18 @@ public:
         SetVolume(_volume);
     }
 
-    int64_t CurrentTime()
+    int64_t CurrentTime() const
     {
         return _currentSampleTimestamp;
+    }
+
+    int64_t BufferLength() const
+    {
+        return _audioBufferLength;
+    }
+
+    int64_t BufferEndTime() const
+    {
+        return _audioBufferEnd;
     }
 };
