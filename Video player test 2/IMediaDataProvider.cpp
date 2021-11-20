@@ -203,6 +203,7 @@ MediaPacket IMediaDataProvider::_GetPacket(MediaData& mediaData)
     {
         MediaPacket copy;
         copy.Deserialize(mediaData.packets[mediaData.currentPacket++].Serialize());
+        mediaData.currentPacket++;
         return copy;
     }
 }
