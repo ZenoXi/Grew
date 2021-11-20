@@ -15,6 +15,11 @@ bool IMediaDecoder::PacketQueueFull() const
     return _packets.size() >= _MAX_PACKET_QUEUE_SIZE;
 }
 
+size_t IMediaDecoder::PacketQueueSize() const
+{
+    return _packets.size();
+}
+
 void IMediaDecoder::AddPacket(MediaPacket packet)
 {
     std::lock_guard<std::mutex> lock(_m_packets);

@@ -35,6 +35,7 @@ public:
     virtual ~IMediaDecoder();
 
     bool PacketQueueFull() const;
+    size_t PacketQueueSize() const;
     void AddPacket(MediaPacket packet);
     size_t FrameCount() const;
     std::unique_ptr<IMediaFrame> GetFrame();
