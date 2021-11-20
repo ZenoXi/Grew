@@ -15,7 +15,7 @@ namespace ztime
     extern TimePoint Game();
 }
 
-enum TimeUnits : long long
+enum TimeUnits : int64_t
 {
     NANOSECONDS  = 1,
     MICROSECONDS = 1000,
@@ -27,10 +27,10 @@ enum TimeUnits : long long
 
 class Duration
 {
-    long long int _d;
+    int64_t _d;
 public:
     Duration() : _d(0) {}
-    Duration(long long int duration, TimeUnits u = MICROSECONDS) : _d(duration * u) {}
+    Duration(int64_t duration, TimeUnits u = MICROSECONDS) : _d(duration * u) {}
     Duration(const Duration& d)
     {
         _d = d.GetDuration(NANOSECONDS);
@@ -56,11 +56,11 @@ public:
         return Duration(_d - d.GetDuration(NANOSECONDS), NANOSECONDS);
     }
 
-    long long int GetDuration(TimeUnits u = MICROSECONDS) const
+    int64_t GetDuration(TimeUnits u = MICROSECONDS) const
     {
         return _d / u;
     }
-    void SetDuration(long long int duration, TimeUnits u = MICROSECONDS)
+    void SetDuration(int64_t duration, TimeUnits u = MICROSECONDS)
     {
         _d = duration * u;
     }
@@ -78,10 +78,10 @@ public:
 
 class TimePoint
 {
-    long long int _t;
+    int64_t _t;
 public:
     TimePoint() : _t(0) {}
-    TimePoint(long long int time, TimeUnits u = MICROSECONDS) : _t(time * u) {}
+    TimePoint(int64_t time, TimeUnits u = MICROSECONDS) : _t(time * u) {}
     TimePoint(const TimePoint& tp)
     {
         _t = tp.GetTime(NANOSECONDS);
@@ -107,11 +107,11 @@ public:
         return _t - d.GetDuration(NANOSECONDS);
     }
 
-    long long int GetTime(TimeUnits u = MICROSECONDS) const
+    int64_t GetTime(TimeUnits u = MICROSECONDS) const
     {
         return _t / u;
     }
-    void SetTime(long long int time, TimeUnits u = MICROSECONDS)
+    void SetTime(int64_t time, TimeUnits u = MICROSECONDS)
     {
         _t = time * u;
     }
