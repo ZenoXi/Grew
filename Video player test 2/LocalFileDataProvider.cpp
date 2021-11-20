@@ -103,6 +103,10 @@ void LocalFileDataProvider::_Initialize()
     _dataStreams = std::move(fprocessor.dataStreams);
     _unknownStreams = std::move(fprocessor.unknownStreams);
 
+    if (!_videoData.streams.empty()) _videoData.currentStream = 0;
+    if (!_audioData.streams.empty()) _audioData.currentStream = 0;
+    if (!_subtitleData.streams.empty()) _subtitleData.currentStream = 0;
+
     _initializing = false;
 }
 
@@ -162,19 +166,23 @@ void LocalFileDataProvider::_ReadPackets()
                 _packetThreadController.Set("eof", false);
             }
 
-            if (packet->stream_index == _videoData.streams[_videoData.currentStream].index)
+            int videoStreamIndex = _videoData.currentStream != -1 ? _videoData.streams[_videoData.currentStream].index : -1;
+            int audioStreamIndex = _audioData.currentStream != -1 ? _audioData.streams[_audioData.currentStream].index : -1;
+            int subtitleStreamIndex = _subtitleData.currentStream != -1 ? _subtitleData.streams[_subtitleData.currentStream].index : -1;
+
+            if (packet->stream_index == videoStreamIndex)
             {
                 std::unique_lock<std::mutex> lock(_videoData.mtx);
                 _videoData.packets.push_back(MediaPacket(packet));
                 packet = av_packet_alloc();
             }
-            else if (packet->stream_index == _audioData.streams[_audioData.currentStream].index)
+            else if (packet->stream_index == audioStreamIndex)
             {
                 std::unique_lock<std::mutex> lock(_audioData.mtx);
                 _audioData.packets.push_back(MediaPacket(packet));
                 packet = av_packet_alloc();
             }
-            else if (packet->stream_index == _subtitleData.streams[_subtitleData.currentStream].index)
+            else if (packet->stream_index == subtitleStreamIndex)
             {
                 std::unique_lock<std::mutex> lock(_subtitleData.mtx);
                 _subtitleData.packets.push_back(MediaPacket(packet));
