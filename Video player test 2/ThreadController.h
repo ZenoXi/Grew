@@ -103,7 +103,7 @@ public:
     T Get(std::string key)
     {
         _mutex.lock();
-        T val = 0;
+        T val = T();
         auto it = _values.find(key);
         if (it != _values.end())
         {
