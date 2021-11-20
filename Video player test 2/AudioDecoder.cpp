@@ -21,6 +21,7 @@ AudioDecoder::AudioDecoder(const MediaStream& stream)
 
     // placeholder until global options are implemented
     _MAX_FRAME_QUEUE_SIZE = 100;
+    _MAX_PACKET_QUEUE_SIZE = 500;
 }
 
 AudioDecoder::~AudioDecoder()

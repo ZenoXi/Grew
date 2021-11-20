@@ -24,6 +24,7 @@ protected:
     std::mutex _m_frames;
 
     size_t _MAX_FRAME_QUEUE_SIZE;
+    size_t _MAX_PACKET_QUEUE_SIZE;
 
     bool _decoderThreadStop;
     bool _decoderThreadFlush;
@@ -33,6 +34,7 @@ public:
     IMediaDecoder();
     virtual ~IMediaDecoder();
 
+    bool PacketQueueFull() const;
     void AddPacket(MediaPacket packet);
     size_t FrameCount() const;
     std::unique_ptr<IMediaFrame> GetFrame();
