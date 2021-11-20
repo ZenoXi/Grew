@@ -101,6 +101,12 @@ public:
     std::unique_ptr<MediaStream> SetSubtitleStream(int index = -1, TimePoint time = 0);
 private:
     std::unique_ptr<MediaStream> _SetStream(MediaData& mediaData, int& index);
+public:
+    std::unique_ptr<MediaStream> CurrentVideoStream();
+    std::unique_ptr<MediaStream> CurrentAudioStream();
+    std::unique_ptr<MediaStream> CurrentSubtitleStream();
+protected:
+    std::unique_ptr<MediaStream> _CurrentStream(MediaData& mediaData);
 protected:
     virtual void _Seek(TimePoint time) = 0;
     virtual void _SetVideoStream(int index, TimePoint time) = 0;

@@ -98,10 +98,37 @@ std::unique_ptr<MediaStream> IMediaDataProvider::SetSubtitleStream(int index, Ti
 
 std::unique_ptr<MediaStream> IMediaDataProvider::_SetStream(MediaData& mediaData, int& index)
 {
-    if (index == -1) index = 0; // -1 means default stream
+    if (index == -1) index = 0; // -1 means default (first) stream
     if (index < -1) return nullptr;
     if (index >= mediaData.streams.size()) return nullptr;
     return std::make_unique<MediaStream>(mediaData.streams[index]);
+}
+
+std::unique_ptr<MediaStream> IMediaDataProvider::CurrentVideoStream()
+{
+    return _CurrentStream(_videoData);
+}
+
+std::unique_ptr<MediaStream> IMediaDataProvider::CurrentAudioStream()
+{
+    return _CurrentStream(_audioData);
+}
+
+std::unique_ptr<MediaStream> IMediaDataProvider::CurrentSubtitleStream()
+{
+    return _CurrentStream(_subtitleData);
+}
+
+std::unique_ptr<MediaStream> IMediaDataProvider::_CurrentStream(MediaData& mediaData)
+{
+    if (mediaData.currentStream != -1)
+    {
+        return std::make_unique<MediaStream>(mediaData.streams[mediaData.currentStream]);
+    }
+    else
+    {
+        return nullptr;
+    }
 }
 
 std::vector<std::string> IMediaDataProvider::GetAvailableVideoStreams()
