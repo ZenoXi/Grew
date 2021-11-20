@@ -15,7 +15,7 @@
 #include "FileDialog.h"
 #include "DisplayWindow.h"
 #include "MediaDecoder.h"
-#include "MediaPlayer.h"
+#include "MediaPlayerOld.h"
 #include "App.h"
 
 #include "Event.h"

@@ -1,8 +1,8 @@
-#include "MediaPlayer.h"
+#include "MediaPlayerOld.h"
 
 #include <iostream>
 
-MediaPlayer::MediaPlayer(std::string ip, USHORT port) : _currentFrame(0, 0, -1), _skippedFrame(0, 0, -1), _voiceCallback(_audioBufferLength)
+MediaPlayerOld::MediaPlayerOld(std::string ip, USHORT port) : _currentFrame(0, 0, -1), _skippedFrame(0, 0, -1), _voiceCallback(_audioBufferLength)
 {
     _mode = PlaybackMode::CLIENT;
     //_clientBuffering = false;
@@ -68,7 +68,7 @@ MediaPlayer::MediaPlayer(std::string ip, USHORT port) : _currentFrame(0, 0, -1),
     ztime::clock[CLOCK_GAME].Stop();
 }
 
-MediaPlayer::MediaPlayer(USHORT port, std::string filename) : _currentFrame(0, 0, -1), _skippedFrame(0, 0, -1), _voiceCallback(_audioBufferLength)
+MediaPlayerOld::MediaPlayerOld(USHORT port, std::string filename) : _currentFrame(0, 0, -1), _skippedFrame(0, 0, -1), _voiceCallback(_audioBufferLength)
 {
     // Init decoder
     if (port == 0)
@@ -152,7 +152,7 @@ MediaPlayer::MediaPlayer(USHORT port, std::string filename) : _currentFrame(0, 0
     ztime::clock[CLOCK_GAME].Stop();
 }
 
-MediaPlayer::MediaPlayer(PlaybackMode mode, std::string filename) : _currentFrame(0, 0, -1), _skippedFrame(0, 0, -1), _voiceCallback(_audioBufferLength)
+MediaPlayerOld::MediaPlayerOld(PlaybackMode mode, std::string filename) : _currentFrame(0, 0, -1), _skippedFrame(0, 0, -1), _voiceCallback(_audioBufferLength)
 {
     _mode = mode;
     _network = NetworkInterface::Instance();
@@ -268,7 +268,7 @@ MediaPlayer::MediaPlayer(PlaybackMode mode, std::string filename) : _currentFram
 //    return _initializing;
 //}
 
-void MediaPlayer::Update(double timeLimit)
+void MediaPlayerOld::Update(double timeLimit)
 {
     Clock frameTimer = Clock();
 
@@ -674,7 +674,7 @@ void MediaPlayer::Update(double timeLimit)
     }
 }
 
-void MediaPlayer::Play(bool echo)
+void MediaPlayerOld::Play(bool echo)
 {
     if (!Paused()) return;
     if (!_loading && !_waiting)
@@ -695,7 +695,7 @@ void MediaPlayer::Play(bool echo)
     }
 }
 
-void MediaPlayer::Pause(bool echo)
+void MediaPlayerOld::Pause(bool echo)
 {
     if (Paused()) return;
     if (!_loading && !_waiting)
@@ -717,7 +717,7 @@ void MediaPlayer::Pause(bool echo)
     }
 }
 
-void MediaPlayer::Seek(TimePoint position, bool echo)
+void MediaPlayerOld::Seek(TimePoint position, bool echo)
 {
     if (position.GetTime() < 0) position.SetTime(0);
     if (position.GetTime() > GetDuration().GetDuration()) position.SetTime(GetDuration().GetDuration());
@@ -748,7 +748,7 @@ void MediaPlayer::Seek(TimePoint position, bool echo)
     _loading = true;
 }
 
-void MediaPlayer::SetVolume(float volume)
+void MediaPlayerOld::SetVolume(float volume)
 {
     if (volume > 1.0f) volume = 1.0f;
     if (volume < 0.0f) volume = 0.0f;
@@ -756,37 +756,37 @@ void MediaPlayer::SetVolume(float volume)
     _sourceVoice->SetVolume(volume);
 }
 
-bool MediaPlayer::Paused()
+bool MediaPlayerOld::Paused()
 {
     return _paused;
 }
 
-Duration MediaPlayer::GetDuration()
+Duration MediaPlayerOld::GetDuration()
 {
     return _decoder->GetDuration();
 }
 
-float MediaPlayer::GetVolume()
+float MediaPlayerOld::GetVolume()
 {
     return _volume;
 }
 
-bool MediaPlayer::Buffering()
+bool MediaPlayerOld::Buffering()
 {
     return _decoder->Buffering();
 }
 
-bool MediaPlayer::Loading()
+bool MediaPlayerOld::Loading()
 {
     return _loading;
 }
 
-Duration MediaPlayer::GetBufferedDuration()
+Duration MediaPlayerOld::GetBufferedDuration()
 {
     return _decoder->GetPacketBufferedDuration();
 }
 
-const FrameData* MediaPlayer::GetCurrentFrame()
+const FrameData* MediaPlayerOld::GetCurrentFrame()
 {
     return &_currentFrame;
 }

@@ -39,7 +39,7 @@ public:
     void OnVoiceError(void* pBufferContext, HRESULT Error) {}
 };
 
-class MediaPlayer
+class MediaPlayerOld
 {
     MediaDecoder* _decoder;
     NetworkInterface* _network;
@@ -70,10 +70,10 @@ class MediaPlayer
     int _audioFramesBuffered = 0;
 
 public:
-    MediaPlayer(std::string ip, USHORT port);
-    MediaPlayer(USHORT port, std::string filename);
-    MediaPlayer(PlaybackMode mode, std::string filename = "");
-    ~MediaPlayer() {};
+    MediaPlayerOld(std::string ip, USHORT port);
+    MediaPlayerOld(USHORT port, std::string filename);
+    MediaPlayerOld(PlaybackMode mode, std::string filename = "");
+    ~MediaPlayerOld() {};
 
     // Controls
     void Update(double timeLimit = 0.01666666);

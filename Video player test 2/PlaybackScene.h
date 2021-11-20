@@ -2,7 +2,7 @@
 
 #include "Scene.h"
 
-#include "MediaPlayer.h"
+#include "MediaPlayerOld.h"
 
 #include "ComponentBase.h"
 #include "Panel.h"
@@ -22,7 +22,7 @@ struct PlaybackSceneOptions : public SceneOptionsBase
 
 class PlaybackScene : public Scene
 {
-    MediaPlayer* _player = nullptr;
+    MediaPlayerOld* _player = nullptr;
 
     Panel* _controlBar = nullptr;
     SeekBar* _seekBar = nullptr;

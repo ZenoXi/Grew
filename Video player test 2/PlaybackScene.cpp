@@ -36,7 +36,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     }
 
     // Initialize player
-    _player = new MediaPlayer(opt.mode, opt.fileName);
+    _player = new MediaPlayerOld(opt.mode, opt.fileName);
     //if (opt.mode == PlaybackMode::CLIENT)
     //{
     //    _player = new MediaPlayer(opt.ip, opt.port);
