@@ -189,7 +189,7 @@ public:
         _lastSyncTime = _currentSystemTime;
     }
 
-    TimePoint Now()
+    TimePoint Now() const
     {
         return _currentTime;
     }
@@ -199,7 +199,7 @@ public:
         _speed = speed;
     }
 
-    double GetSpeed()
+    double GetSpeed() const
     {
         return _speed;
     }
@@ -224,7 +224,7 @@ public:
         _paused = true;
     }
 
-    bool Paused()
+    bool Paused() const
     {
         return _paused;
     }
