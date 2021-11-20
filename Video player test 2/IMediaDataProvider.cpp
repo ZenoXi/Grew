@@ -96,12 +96,11 @@ std::unique_ptr<MediaStream> IMediaDataProvider::SetSubtitleStream(int index)
     return stream;
 }
 
-std::unique_ptr<MediaStream> IMediaDataProvider::_SetStream(MediaData& mediaData, int index)
+std::unique_ptr<MediaStream> IMediaDataProvider::_SetStream(MediaData& mediaData, int& index)
 {
     if (index == -1) index = 0; // -1 means default stream
     if (index < -1) return nullptr;
     if (index >= mediaData.streams.size()) return nullptr;
-    mediaData.currentStream = index;
     return std::make_unique<MediaStream>(mediaData.streams[index]);
 }
 
@@ -196,10 +195,31 @@ void IMediaDataProvider::_AddSubtitlePacket(MediaPacket packet)
     _AddPacket(_subtitleData, std::move(packet));
 }
 
+void IMediaDataProvider::_ClearVideoPackets()
+{
+    _ClearPackets(_videoData);
+}
+
+void IMediaDataProvider::_ClearAudioPackets()
+{
+    _ClearPackets(_audioData);
+}
+
+void IMediaDataProvider::_ClearSubtitlePackets()
+{
+    _ClearPackets(_subtitleData);
+}
+
 void IMediaDataProvider::_AddPacket(MediaData& mediaData, MediaPacket packet)
 {
     std::unique_lock<std::mutex> lock(mediaData.mtx);
     if (packet.GetPacket()->pts > mediaData.lastPts) mediaData.lastPts = packet.GetPacket()->pts;
     if (packet.GetPacket()->dts > mediaData.lastDts) mediaData.lastDts = packet.GetPacket()->dts;
     mediaData.packets.push_back(std::move(packet));
+}
+
+void IMediaDataProvider::_ClearPackets(MediaData& mediaData)
+{
+    std::unique_lock<std::mutex> lock(mediaData.mtx);
+    mediaData.packets.clear();
 }

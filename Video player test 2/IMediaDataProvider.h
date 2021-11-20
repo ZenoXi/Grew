@@ -41,6 +41,10 @@ protected:
     MediaData _videoData;
     MediaData _audioData;
     MediaData _subtitleData;
+    std::vector<MediaStream> _attachmentStreams;
+    std::vector<MediaStream> _dataStreams;
+    std::vector<MediaStream> _unknownStreams;
+
 
     //std::vector<MediaPacket> _videoPackets;
     //std::vector<MediaPacket> _audioPackets;
@@ -92,7 +96,7 @@ public:
     // index of -1 selects the default stream.
     std::unique_ptr<MediaStream> SetSubtitleStream(int index = -1);
 private:
-    std::unique_ptr<MediaStream> _SetStream(MediaData& mediaData, int index = -1);
+    std::unique_ptr<MediaStream> _SetStream(MediaData& mediaData, int& index);
 protected:
     virtual void _Seek(TimePoint time) = 0;
     virtual void _SetVideoStream(int index) = 0;
@@ -122,12 +126,16 @@ private:
     MediaPacket _GetPacket(MediaData& mediaData);
 
 
-    // PACKET INPUT
+    // PACKET MANIPULATION
 protected:
     void _AddVideoPacket(MediaPacket packet);
     void _AddAudioPacket(MediaPacket packet);
     void _AddSubtitlePacket(MediaPacket packet);
+    void _ClearVideoPackets();
+    void _ClearAudioPackets();
+    void _ClearSubtitlePackets();
 private:
     void _AddPacket(MediaData& mediaData, MediaPacket packet);
+    void _ClearPackets(MediaData& mediaData);
 
 };
