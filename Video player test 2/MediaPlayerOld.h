@@ -6,7 +6,7 @@
 #pragma comment( lib,"xaudio2.lib" )
 #include <xaudio2.h>
 
-class VoiceCallback : public IXAudio2VoiceCallback
+class VoiceCallbackOld : public IXAudio2VoiceCallback
 {
 public:
     struct BufferEndContext
@@ -18,8 +18,8 @@ public:
 private:
     long long& _audioBufferLength;
 public:
-    VoiceCallback(long long& audioBufferLengthRef) : _audioBufferLength(audioBufferLengthRef) {}
-    ~VoiceCallback() {}
+    VoiceCallbackOld(long long& audioBufferLengthRef) : _audioBufferLength(audioBufferLengthRef) {}
+    ~VoiceCallbackOld() {}
 
     void OnBufferEnd(void* pBufferContext)
     {
@@ -63,7 +63,7 @@ class MediaPlayerOld
     IXAudio2* _XAudio2 = nullptr;
     IXAudio2MasteringVoice* _masterVoice = nullptr;
     IXAudio2SourceVoice* _sourceVoice = nullptr;
-    VoiceCallback _voiceCallback;
+    VoiceCallbackOld _voiceCallback;
     WAVEFORMATEX _wfx = { 0 };
     long long _audioBufferLength = 0;
     TimePoint _audioBufferEnd = 0;
