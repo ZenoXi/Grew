@@ -4,6 +4,11 @@
 
 #include "MediaPlayerOld.h"
 
+#include "MediaPlayer.h"
+#include "LocalFileDataProvider.h"
+#include "XAudio2_AudioOutputAdapter.h"
+#include "IVideoOutputAdapter.h"
+
 #include "ComponentBase.h"
 #include "Panel.h"
 #include "BottomControlPanel.h"
@@ -29,6 +34,12 @@ class PlaybackScene : public Scene
     VolumeSlider* _volumeSlider = nullptr;
     PlayButton* _playButton = nullptr;
     BottomControlPanel* _bottomControlPanel = nullptr;
+
+    LocalFileDataProvider* _dataProvider = nullptr;
+    IAudioOutputAdapter* _audioAdapter = nullptr;
+    IVideoOutputAdapter* _videoAdapter = nullptr;
+    MediaPlayer* _mediaPlayer = nullptr;
+
 
 public:
     PlaybackScene();
