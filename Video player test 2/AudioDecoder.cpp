@@ -6,16 +6,23 @@ extern "C"
 #include <libavcodec/avcodec.h>
 }
 
-int16_t ConvertU8Sample(uint8_t* data);
-int16_t ConvertS16Sample(uint8_t* data);
-int16_t ConvertS32Sample(uint8_t* data);
-int16_t ConvertFLTSample(uint8_t* data);
-int16_t ConvertDBLSample(uint8_t* data);
-int16_t ConvertU8PlanarSample(uint8_t* data);
-int16_t ConvertS16PlanarSample(uint8_t* data);
-int16_t ConvertS32PlanarSample(uint8_t* data);
-int16_t ConvertFLTPlanarSample(uint8_t* data);
-int16_t ConvertDBLPlanarSample(uint8_t* data);
+struct AudioChunkData
+{
+    AVFrame* frame;
+    char* outputData;
+    int bytesPerSample;
+};
+
+void ConvertU8Chunk(AudioChunkData data);
+void ConvertS16Chunk(AudioChunkData data);
+void ConvertS32Chunk(AudioChunkData data);
+void ConvertFLTChunk(AudioChunkData data);
+void ConvertDBLChunk(AudioChunkData data);
+void ConvertU8PlanarChunk(AudioChunkData data);
+void ConvertS16PlanarChunk(AudioChunkData data);
+void ConvertS32PlanarChunk(AudioChunkData data);
+void ConvertFLTPlanarChunk(AudioChunkData data);
+void ConvertDBLPlanarChunk(AudioChunkData data);
 
 AudioDecoder::AudioDecoder(const MediaStream& stream)
 {
@@ -54,43 +61,43 @@ void AudioDecoder::_DecoderThread()
         exit(1);
     }
 
-    int16_t(*convertSample)(uint8_t*) = nullptr;
+    void(*convertChunk)(AudioChunkData) = nullptr;
     switch (_codecContext->sample_fmt)
     {
     case AV_SAMPLE_FMT_U8:
-        convertSample = &ConvertU8Sample;
+        convertChunk = &ConvertU8Chunk;
         break;
     case AV_SAMPLE_FMT_S16:
-        convertSample = &ConvertS16Sample;
+        convertChunk = &ConvertS16Chunk;
         break;
     case AV_SAMPLE_FMT_S32:
-        convertSample = &ConvertS32Sample;
+        convertChunk = &ConvertS32Chunk;
         break;
     case AV_SAMPLE_FMT_FLT:
-        convertSample = &ConvertFLTSample;
+        convertChunk = &ConvertFLTChunk;
         break;
     case AV_SAMPLE_FMT_DBL:
-        convertSample = &ConvertDBLSample;
+        convertChunk = &ConvertDBLChunk;
         break;
     case AV_SAMPLE_FMT_U8P:
-        convertSample = &ConvertU8PlanarSample;
+        convertChunk = &ConvertU8PlanarChunk;
         break;
     case AV_SAMPLE_FMT_S16P:
-        convertSample = &ConvertS16PlanarSample;
+        convertChunk = &ConvertS16PlanarChunk;
         break;
     case AV_SAMPLE_FMT_S32P:
-        convertSample = &ConvertS32PlanarSample;
+        convertChunk = &ConvertS32PlanarChunk;
         break;
     case AV_SAMPLE_FMT_FLTP:
-        convertSample = &ConvertFLTPlanarSample;
+        convertChunk = &ConvertFLTPlanarChunk;
         break;
     case AV_SAMPLE_FMT_DBLP:
-        convertSample = &ConvertDBLPlanarSample;
+        convertChunk = &ConvertDBLPlanarChunk;
         break;
     default:
         break;
     }
-    if (!convertSample) return;
+    if (!convertChunk) return;
 
     AVFrame* frame = av_frame_alloc();
 
@@ -151,21 +158,12 @@ void AudioDecoder::_DecoderThread()
         // The format accepted by XAudio is signed 16 bit, hence the 2 (bytes) at the end
         int chunkSize = frame->nb_samples * frame->channels * 2;
         char* audioData = new char[chunkSize];
-        int curPos = 0;
 
-        // Convert each sample
-        for (int i = 0; i < frame->nb_samples; i++)
-        {
-            for (int ch = 0; ch < _codecContext->channels; ch++)
-            {
-                int16_t value = convertSample(frame->data[ch] + bytesPerSample * i);
-                *(int16_t*)(audioData + curPos) = value;
-                curPos += 2;
-            }
-        }
+        // Convert chunk
+        convertChunk({ frame, audioData, bytesPerSample });
 
+        // Create AudioFrame
         long long int timestamp = av_rescale_q(frame->pts, _timebase, { 1, AV_TIME_BASE });
-
         AudioFrame* af = new AudioFrame(frame->nb_samples, frame->channels, frame->sample_rate, timestamp);
         af->SetBytes(audioData);
 
@@ -180,61 +178,90 @@ void AudioDecoder::_DecoderThread()
     av_frame_free(&frame);
 }
 
-int16_t ConvertU8Sample(uint8_t* data)
+void ConvertU8Chunk(AudioChunkData data)
 {
-    return 0;
+    return;
 }
 
-int16_t ConvertS16Sample(uint8_t* data)
+void ConvertS16Chunk(AudioChunkData data)
 {
-    return 0;
+    std::copy_n(
+        data.frame->data[0],
+        data.frame->nb_samples * data.frame->channels * 2,
+        data.outputData
+    );
 }
 
-int16_t ConvertS32Sample(uint8_t* data)
+void ConvertS32Chunk(AudioChunkData data)
 {
-    return 0;
+    return;
 }
 
-int16_t ConvertFLTSample(uint8_t* data)
+void ConvertFLTChunk(AudioChunkData data)
 {
-    float val = *(float*)(data);
-    if (val < -1.0f) val = -1.0f;
-    else if (val > 1.0f) val = 1.0f;
-    return (int16_t)(val * 32767.0f);
+    //float val = *(float*)(data);
+    //if (val < -1.0f) val = -1.0f;
+    //else if (val > 1.0f) val = 1.0f;
+    //return (int16_t)(val * 32767.0f);
 }
 
-int16_t ConvertDBLSample(uint8_t* data)
+void ConvertDBLChunk(AudioChunkData data)
 {
-    double val = *(double*)(data);
-    if (val < -1.0) val = -1.0;
-    else if (val > 1.0) val = 1.0;
-    return (int16_t)(val * 32767.0);
+    //double val = *(double*)(data);
+    //if (val < -1.0) val = -1.0;
+    //else if (val > 1.0) val = 1.0;
+    //return (int16_t)(val * 32767.0);
 }
 
-int16_t ConvertU8PlanarSample(uint8_t* data)
+void ConvertU8PlanarChunk(AudioChunkData data)
 {
-    return 0;
+    return;
 }
 
-int16_t ConvertS16PlanarSample(uint8_t* data)
+void ConvertS16PlanarChunk(AudioChunkData data)
 {
-    return 0;
+    return;
 }
 
-int16_t ConvertS32PlanarSample(uint8_t* data)
+void ConvertS32PlanarChunk(AudioChunkData data)
 {
-    return 0;
+    return;
 }
 
-int16_t ConvertFLTPlanarSample(uint8_t* data)
+void ConvertFLTPlanarChunk(AudioChunkData data)
 {
-    float val = *(float*)(data);
-    if (val < -1.0f) val = -1.0f;
-    else if (val > 1.0f) val = 1.0f;
-    return (int16_t)(val * 32767.0f);
+    int curPos = 0;
+    for (int i = 0; i < data.frame->nb_samples; i++)
+    {
+        for (int ch = 0; ch < data.frame->channels; ch++)
+        {
+            float val = *(float*)(data.frame->data[ch] + data.bytesPerSample * i);
+            if (val < -1.0f) val = -1.0f;
+            else if (val > 1.0f) val = 1.0f;
+            int16_t value = (int16_t)(val * 32767.0f);
+            *(int16_t*)(data.outputData + curPos) = value;
+            curPos += 2;
+        }
+    }
+    //float val = *(float*)(data);
+    //if (val < -1.0f) val = -1.0f;
+    //else if (val > 1.0f) val = 1.0f;
+    //return (int16_t)(val * 32767.0f);
 }
 
-int16_t ConvertDBLPlanarSample(uint8_t* data)
+void ConvertDBLPlanarChunk(AudioChunkData data)
 {
-    return 0;
+    int curPos = 0;
+    for (int i = 0; i < data.frame->nb_samples; i++)
+    {
+        for (int ch = 0; ch < data.frame->channels; ch++)
+        {
+            double val = *(double*)(data.frame->data[ch] + data.bytesPerSample * i);
+            if (val < -1.0) val = -1.0;
+            else if (val > 1.0) val = 1.0;
+            int16_t value = (int16_t)(val * 32767.0f);
+            *(int16_t*)(data.outputData + curPos) = value;
+            curPos += 2;
+        }
+    }
 }
