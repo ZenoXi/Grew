@@ -103,6 +103,15 @@ void LocalFileDataProvider::_Initialize()
     _dataStreams = std::move(fprocessor.dataStreams);
     _unknownStreams = std::move(fprocessor.unknownStreams);
 
+    // Reset file handle
+    avformat_close_input(&_avfContext);
+    if (avformat_open_input(&_avfContext, _filename.c_str(), NULL, NULL) != 0)
+    {
+        _initFailed = true;
+        _initializing = false;
+        return;
+    }
+
     if (!_videoData.streams.empty()) _videoData.currentStream = 0;
     if (!_audioData.streams.empty()) _audioData.currentStream = 0;
     if (!_subtitleData.streams.empty()) _subtitleData.currentStream = 0;
