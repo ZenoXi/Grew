@@ -26,9 +26,11 @@ protected:
     size_t _MAX_FRAME_QUEUE_SIZE;
     size_t _MAX_PACKET_QUEUE_SIZE;
 
-    bool _decoderThreadStop;
-    bool _decoderThreadFlush;
+    bool _decoderThreadStop = false;
+    bool _decoderThreadFlush = false;
     std::thread _decoderThread;
+
+    AVRational _timebase;
 
 public:
     IMediaDecoder();
