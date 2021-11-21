@@ -41,7 +41,7 @@ enum class PacketSource
     REMOTE
 };
 
-struct PixelData
+struct PixelDataOld
 {
     uchar R, G, B;
 };
@@ -64,8 +64,8 @@ public:
     const uchar* GetBytes() const;
     void SetBytes(const uchar* bytes);
     void ClearBytes();
-    PixelData GetPixel(int x, int y) const;
-    void SetPixel(int x, int y, PixelData pixel);
+    PixelDataOld GetPixel(int x, int y) const;
+    void SetPixel(int x, int y, PixelDataOld pixel);
     int GetWidth() const;
     int GetHeight() const;
     long long int GetTimestamp() const;

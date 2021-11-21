@@ -100,7 +100,7 @@ void FrameData::ClearBytes()
     memset(_bytes, 0, _width * _height * 4);
 }
 
-PixelData FrameData::GetPixel(int x, int y) const
+PixelDataOld FrameData::GetPixel(int x, int y) const
 {
     int index = y * _width * 4 + x * 4;
     return
@@ -111,7 +111,7 @@ PixelData FrameData::GetPixel(int x, int y) const
     };
 }
 
-void FrameData::SetPixel(int x, int y, PixelData pixel)
+void FrameData::SetPixel(int x, int y, PixelDataOld pixel)
 {
     int index = y * _width * 4 + x * 4;
     _bytes[index] = pixel.B;
