@@ -18,7 +18,7 @@ struct MediaData
     std::vector<MediaPacket> packets;
     TimePoint lastPts = TimePoint::Min();
     TimePoint lastDts = TimePoint::Min();
-    int currentPacket = -1;
+    int currentPacket = 0;
     std::mutex mtx;
 };
 

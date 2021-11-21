@@ -203,7 +203,6 @@ MediaPacket IMediaDataProvider::_GetPacket(MediaData& mediaData)
     {
         MediaPacket copy;
         copy.Deserialize(mediaData.packets[mediaData.currentPacket++].Serialize());
-        mediaData.currentPacket++;
         return copy;
     }
 }
@@ -255,5 +254,5 @@ void IMediaDataProvider::_ClearPackets(MediaData& mediaData)
     mediaData.packets.clear();
     mediaData.lastPts = TimePoint::Min();
     mediaData.lastDts = TimePoint::Min();
-    mediaData.currentPacket = -1;
+    mediaData.currentPacket = 0;
 }
