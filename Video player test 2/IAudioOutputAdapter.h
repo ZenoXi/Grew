@@ -17,4 +17,5 @@ public:
     virtual int64_t CurrentTime() const = 0;
     virtual int64_t BufferLength() const = 0;
     virtual int64_t BufferEndTime() const = 0;
+    virtual int64_t TimeSinceLastBufferStart() = 0;
 };

@@ -20,10 +20,18 @@ public:
 private:
     int64_t& _audioBufferLength;
     int64_t& _currentSampleTimestamp;
+    TimePoint& _bufferStartTime;
+    Clock& _clock;
 public:
-    VoiceCallback(int64_t& audioBufferLengthRef, int64_t& currentSampleTimestamp)
-      : _audioBufferLength(audioBufferLengthRef),
-        _currentSampleTimestamp(currentSampleTimestamp)
+    VoiceCallback(
+        int64_t& audioBufferLengthRef,
+        int64_t& currentSampleTimestamp,
+        TimePoint& bufferStartTime,
+        Clock& clock
+    ) : _audioBufferLength(audioBufferLengthRef),
+        _currentSampleTimestamp(currentSampleTimestamp),
+        _bufferStartTime(bufferStartTime),
+        _clock(clock)
     {}
     ~VoiceCallback() {}
 
@@ -39,6 +47,9 @@ public:
     {
         auto ctx = (BufferContext*)pBufferContext;
         _currentSampleTimestamp = ctx->timestamp;
+        _clock.Update();
+        _bufferStartTime = _clock.Now();
+        
     }
 
     //Unused methods are stubs
@@ -56,10 +67,13 @@ class XAudio2_AudioOutputAdapter : public IAudioOutputAdapter
     IXAudio2SourceVoice* _sourceVoice = nullptr;
     VoiceCallback _voiceCallback;
     WAVEFORMATEX _wfx = { 0 };
-    int64_t _audioBufferLength = 0;
     int64_t _currentSampleTimestamp = 0;
+    int64_t _audioBufferLength = 0;
     int64_t _audioBufferEnd = 0;
     int _audioFramesBuffered = 0;
+
+    Clock _clock;
+    TimePoint _bufferStartTime = 0;
 
     int _channelCount = 0;
     int _sampleRate = 0;
@@ -71,7 +85,7 @@ class XAudio2_AudioOutputAdapter : public IAudioOutputAdapter
 
 public:
     XAudio2_AudioOutputAdapter(int channelCount, int sampleRate)
-      : _voiceCallback(_audioBufferLength, _currentSampleTimestamp),
+      : _voiceCallback(_audioBufferLength, _currentSampleTimestamp, _bufferStartTime, _clock),
         _channelCount(channelCount),
         _sampleRate(sampleRate)
     {
@@ -89,7 +103,9 @@ public:
         _wfx.wBitsPerSample = 2 * 8;
 
         hr = _XAudio2->CreateSourceVoice(&_sourceVoice, &_wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO, &_voiceCallback, NULL, NULL);
-        SetVolume(0.5f);
+        SetVolume(0.1f);
+
+        _clock = Clock();
     }
     ~XAudio2_AudioOutputAdapter()
     {
@@ -196,5 +212,11 @@ public:
     int64_t BufferEndTime() const
     {
         return _audioBufferEnd;
+    }
+
+    int64_t TimeSinceLastBufferStart()
+    {
+        _clock.Update();
+        return (_clock.Now() - _bufferStartTime).GetDuration();
     }
 };
