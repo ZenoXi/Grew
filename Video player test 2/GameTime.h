@@ -30,7 +30,7 @@ class Duration
     int64_t _d;
 public:
     Duration() : _d(0) {}
-    Duration(int64_t duration, TimeUnits u = MICROSECONDS) : _d(duration * u) {}
+    Duration(int64_t duration, TimeUnits u = NANOSECONDS) : _d(duration * u) {}
     Duration(const Duration& d)
     {
         _d = d.GetDuration(NANOSECONDS);
@@ -49,11 +49,11 @@ public:
     }
     Duration operator+(const Duration& d)
     {
-        return Duration(_d + d.GetDuration(NANOSECONDS), NANOSECONDS);
+        return _d + d.GetDuration(NANOSECONDS);
     }
     Duration operator-(const Duration& d)
     {
-        return Duration(_d - d.GetDuration(NANOSECONDS), NANOSECONDS);
+        return _d - d.GetDuration(NANOSECONDS);
     }
 
     int64_t GetDuration(TimeUnits u = MICROSECONDS) const
@@ -81,7 +81,7 @@ class TimePoint
     int64_t _t;
 public:
     TimePoint() : _t(0) {}
-    TimePoint(int64_t time, TimeUnits u = MICROSECONDS) : _t(time * u) {}
+    TimePoint(int64_t time, TimeUnits u = NANOSECONDS) : _t(time * u) {}
     TimePoint(const TimePoint& tp)
     {
         _t = tp.GetTime(NANOSECONDS);
@@ -257,55 +257,55 @@ enum ClockType
 
 inline bool operator< (const Duration& d1, const Duration& d2)
 {
-    return d1.GetDuration() < d2.GetDuration();
+    return d1.GetDuration(NANOSECONDS) < d2.GetDuration(NANOSECONDS);
 }
 
 inline bool operator> (const Duration& d1, const Duration& d2)
 {
-    return d1.GetDuration() > d2.GetDuration();
+    return d1.GetDuration(NANOSECONDS) > d2.GetDuration(NANOSECONDS);
 }
 
 inline bool operator<= (const Duration& d1, const Duration& d2)
 {
-    return d1.GetDuration() <= d2.GetDuration();
+    return d1.GetDuration(NANOSECONDS) <= d2.GetDuration(NANOSECONDS);
 }
 
 inline bool operator>= (const Duration& d1, const Duration& d2)
 {
-    return d1.GetDuration() >= d2.GetDuration();
+    return d1.GetDuration(NANOSECONDS) >= d2.GetDuration(NANOSECONDS);
 }
 
 inline bool operator== (const Duration& d1, const Duration& d2)
 {
-    return d1.GetDuration() == d2.GetDuration();
+    return d1.GetDuration(NANOSECONDS) == d2.GetDuration(NANOSECONDS);
 }
 
 inline Duration operator- (const TimePoint& t1, const TimePoint& t2)
 {
-    return t1.GetTime() - t2.GetTime();
+    return t1.GetTime(NANOSECONDS) - t2.GetTime(NANOSECONDS);
 }
 
 inline bool operator< (const TimePoint& t1, const TimePoint& t2)
 {
-    return t1.GetTime() < t2.GetTime();
+    return t1.GetTime(NANOSECONDS) < t2.GetTime(NANOSECONDS);
 }
 
 inline bool operator> (const TimePoint& t1, const TimePoint& t2)
 {
-    return t1.GetTime() > t2.GetTime();
+    return t1.GetTime(NANOSECONDS) > t2.GetTime(NANOSECONDS);
 }
 
 inline bool operator<= (const TimePoint& t1, const TimePoint& t2)
 {
-    return t1.GetTime() <= t2.GetTime();
+    return t1.GetTime(NANOSECONDS) <= t2.GetTime(NANOSECONDS);
 }
 
 inline bool operator>= (const TimePoint& t1, const TimePoint& t2)
 {
-    return t1.GetTime() >= t2.GetTime();
+    return t1.GetTime(NANOSECONDS) >= t2.GetTime(NANOSECONDS);
 }
 
 inline bool operator== (const TimePoint& t1, const TimePoint& t2)
 {
-    return t1.GetTime() == t2.GetTime();
+    return t1.GetTime(NANOSECONDS) == t2.GetTime(NANOSECONDS);
 }
