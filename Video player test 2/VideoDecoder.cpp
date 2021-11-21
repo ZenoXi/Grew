@@ -14,13 +14,21 @@ VideoDecoder::VideoDecoder(const MediaStream& stream)
     avcodec_parameters_to_context(_codecContext, stream.GetParams());
     avcodec_open2(_codecContext, codec, NULL);
 
+    _timebase = stream.timeBase;
+
     // placeholder until global options are implemented
     _MAX_FRAME_QUEUE_SIZE = 15;
     _MAX_PACKET_QUEUE_SIZE = 100;
+
+    // Start decoding thread
+    _decoderThread = std::thread(&VideoDecoder::_DecoderThread, this);
 }
 
 VideoDecoder::~VideoDecoder()
 {
+    _decoderThreadStop = true;
+    if (_decoderThread.joinable())
+        _decoderThread.join();
     avcodec_close(_codecContext);
     avcodec_free_context(&_codecContext);
 }
@@ -106,8 +114,7 @@ void VideoDecoder::_DecoderThread()
         }
         sws_scale(swsContext, frame->data, frame->linesize, 0, frame->height, dest, destLinesize);
 
-        AVRational timebase = _codecContext->time_base;
-        long long int timestamp = av_rescale_q(frame->pts, timebase, { 1, AV_TIME_BASE });
+        long long int timestamp = av_rescale_q(frame->pts, _timebase, { 1, AV_TIME_BASE });
 
         VideoFrame* vf = new VideoFrame(frame->width, frame->height, timestamp);
         vf->SetBytes(data);
