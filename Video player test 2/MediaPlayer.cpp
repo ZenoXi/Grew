@@ -42,6 +42,7 @@ bool MediaPlayer::_PassPacket(IMediaDecoder* decoder, MediaPacket packet)
     if (packet.flush)
     {
         decoder->Flush();
+        StopTimer();
         return true;
     }
 
@@ -94,11 +95,11 @@ void MediaPlayer::Update(double timeLimit)
     {
         if (TimeExceeded(funcTimer, timeLimit)) break;
 
-        if (!_nextVideoFrame)
+        if (_videoDecoder && !_nextVideoFrame)
         {
             _nextVideoFrame.reset((VideoFrame*)(_videoDecoder->GetFrame().release()));
         }
-        if (!_nextAudioFrame)
+        if (_audioDecoder && !_nextAudioFrame)
         {
             _nextAudioFrame.reset((AudioFrame*)(_audioDecoder->GetFrame().release()));
         }
