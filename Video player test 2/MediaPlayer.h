@@ -29,6 +29,7 @@ class MediaPlayer
 
     bool _lagging = false;
     bool _buffering = false;
+    bool _skipping = false;
 
 public:
     MediaPlayer(
@@ -45,6 +46,7 @@ public:
 
     void StartTimer();
     void StopTimer();
+    void SetTimerPosition(TimePoint time);
     TimePoint TimerPosition() const;
     void SetVolume(float volume);
     void SetBalance(float balance);
@@ -53,4 +55,6 @@ public:
     bool Lagging() const;
     // Packets are not being provided fast enough
     bool Buffering() const;
+    // Frames are being skipped to catch up to the timer (usually after seeking/changing streams)
+    bool Skipping() const;
 };

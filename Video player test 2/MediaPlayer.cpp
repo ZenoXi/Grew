@@ -95,6 +95,7 @@ void MediaPlayer::Update(double timeLimit)
     {
         if (TimeExceeded(funcTimer, timeLimit)) break;
 
+        // Get next frames
         if (_videoDecoder && !_nextVideoFrame)
         {
             _nextVideoFrame.reset((VideoFrame*)(_videoDecoder->GetFrame().release()));
@@ -104,6 +105,7 @@ void MediaPlayer::Update(double timeLimit)
             _nextAudioFrame.reset((AudioFrame*)(_audioDecoder->GetFrame().release()));
         }
 
+        // Switch to new frames
         bool frameAdvanced = false;
         if (_nextVideoFrame)
         {
@@ -124,7 +126,16 @@ void MediaPlayer::Update(double timeLimit)
                 frameAdvanced = true;
             }
         }
-        if (!frameAdvanced) break;
+
+        if (frameAdvanced)
+        {
+            _skipping = true;
+        }
+        else
+        {
+            _skipping = false;
+            break;
+        }
     }
 }
 
@@ -146,6 +157,11 @@ void MediaPlayer::StopTimer()
         _playbackTimer.Stop();
         _audioOutputAdapter->Pause();
     }
+}
+
+void MediaPlayer::SetTimerPosition(TimePoint time)
+{
+    _playbackTimer.SetTime(time);
 }
 
 TimePoint MediaPlayer::TimerPosition() const
@@ -171,4 +187,9 @@ bool MediaPlayer::Lagging() const
 bool MediaPlayer::Buffering() const
 {
     return _buffering;
+}
+
+bool MediaPlayer::Skipping() const
+{
+    return _skipping;
 }
