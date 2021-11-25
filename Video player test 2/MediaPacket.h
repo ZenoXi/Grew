@@ -98,6 +98,7 @@ public:
         if (usedBytes1 == 0) return 0;
         size_t usedBytes2 = _DeserializeRemainingFields(data.Bytes() + usedBytes1, data.Size() - usedBytes1);
         // It's ok if extra data is missing, only the packet is mandatory
+        // if (usedBytes2 == 0) return 0; <- Not necessary
 
         return usedBytes1 + usedBytes2;
     }
@@ -178,14 +179,17 @@ private:
             _SafeCopy(data, memPos, packet->data, packet->size, dataSize);
             memPos += packet->size;
 
-            sideData = (AVPacketSideData*)av_mallocz(avpsdSize * packet->side_data_elems);
-            for (int i = 0; i < packet->side_data_elems; i++)
+            if (packet->side_data_elems > 0)
             {
-                _SafeCopy(data, memPos, (uchar*)&sideData[i], avpsdSize, dataSize);
-                memPos += avpsdSize;
-                sideData[i].data = (uint8_t*)av_malloc(sideData[i].size);
-                _SafeCopy(data, memPos, sideData[i].data, sideData[i].size, dataSize);
-                memPos += sideData[i].size;
+                sideData = (AVPacketSideData*)av_mallocz(avpsdSize * packet->side_data_elems);
+                for (int i = 0; i < packet->side_data_elems; i++)
+                {
+                    _SafeCopy(data, memPos, (uchar*)&sideData[i], avpsdSize, dataSize);
+                    memPos += avpsdSize;
+                    sideData[i].data = (uint8_t*)av_malloc(sideData[i].size);
+                    _SafeCopy(data, memPos, sideData[i].data, sideData[i].size, dataSize);
+                    memPos += sideData[i].size;
+                }
             }
             packet->side_data = sideData;
             packet->buf = nullptr;
@@ -228,10 +232,12 @@ private:
     {
         size_t thisSize = sizeof(*this);
         size_t fieldSize = thisSize - sizeof(_packet);
-
+        
         try
         {
+            AVPacket* copy = _packet;
             _SafeCopy(data, 0, (uchar*)this + sizeof(_packet), fieldSize, dataSize);
+            _packet = copy;
         }
         catch (std::out_of_range)
         {
