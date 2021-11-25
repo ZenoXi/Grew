@@ -8,22 +8,23 @@
 #include <thread>
 #include <mutex>
 
-struct MediaData
-{
-    // Stream data
-    std::vector<MediaStream> streams;
-    int currentStream = -1;
-
-    // Packet data
-    std::vector<MediaPacket> packets;
-    TimePoint lastPts = TimePoint::Min();
-    TimePoint lastDts = TimePoint::Min();
-    int currentPacket = 0;
-    std::mutex mtx;
-};
-
 class IMediaDataProvider
 {
+public:
+    struct MediaData
+    {
+        // Stream data
+        std::vector<MediaStream> streams;
+        int currentStream = -1;
+
+        // Packet data
+        std::vector<MediaPacket> packets;
+        TimePoint lastPts = TimePoint::Min();
+        TimePoint lastDts = TimePoint::Min();
+        int currentPacket = 0;
+        std::mutex mtx;
+    };
+
 protected:
     bool _initializing = false;
     bool _initFailed = false;
@@ -100,7 +101,7 @@ public:
     // time: where to continue playback after stream change.
     std::unique_ptr<MediaStream> SetSubtitleStream(int index = -1, TimePoint time = 0);
 private:
-    std::unique_ptr<MediaStream> _SetStream(MediaData& mediaData, int& index);
+    std::unique_ptr<MediaStream> _SetStream(MediaData& mediaData, int index);
 public:
     std::unique_ptr<MediaStream> CurrentVideoStream();
     std::unique_ptr<MediaStream> CurrentAudioStream();

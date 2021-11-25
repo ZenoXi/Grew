@@ -13,7 +13,7 @@ extern "C"
 struct StreamChangeDesc
 {
     int streamIndex;
-    MediaData* mediaDataPtr;
+    IMediaDataProvider::MediaData* mediaDataPtr;
     TimePoint time;
 };
 
