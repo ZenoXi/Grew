@@ -131,9 +131,13 @@ public:
     MediaPacket GetVideoPacket();
     MediaPacket GetAudioPacket();
     MediaPacket GetSubtitlePacket();
+    bool FlushVideoPacketNext();
+    bool FlushAudioPacketNext();
+    bool FlushSubtitlePacketNext();
 protected:
     size_t _PacketCount(const MediaData& mediaData) const;
     MediaPacket _GetPacket(MediaData& mediaData);
+    bool _FlushPacketNext(MediaData& mediaData);
 
 
     // PACKET MANIPULATION

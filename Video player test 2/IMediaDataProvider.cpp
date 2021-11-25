@@ -207,6 +207,34 @@ MediaPacket IMediaDataProvider::_GetPacket(MediaData& mediaData)
     }
 }
 
+bool IMediaDataProvider::FlushVideoPacketNext()
+{
+    return _FlushPacketNext(_videoData);
+}
+
+bool IMediaDataProvider::FlushAudioPacketNext()
+{
+    return _FlushPacketNext(_audioData);
+}
+
+bool IMediaDataProvider::FlushSubtitlePacketNext()
+{
+    return _FlushPacketNext(_subtitleData);
+}
+
+bool IMediaDataProvider::_FlushPacketNext(MediaData& mediaData)
+{
+    std::unique_lock<std::mutex> lock(mediaData.mtx);
+    if (mediaData.currentPacket >= mediaData.packets.size())
+    {
+        return false;
+    }
+    else
+    {
+        return mediaData.packets[mediaData.currentPacket].flush;
+    }
+}
+
 void IMediaDataProvider::_AddVideoPacket(MediaPacket packet)
 {
     _AddPacket(_videoData, std::move(packet));
@@ -240,7 +268,7 @@ void IMediaDataProvider::_ClearSubtitlePackets()
 void IMediaDataProvider::_AddPacket(MediaData& mediaData, MediaPacket packet)
 {
     std::unique_lock<std::mutex> lock(mediaData.mtx);
-    if (!packet.flush)
+    if (!packet.flush && packet.Valid())
     {
         if (packet.GetPacket()->pts > mediaData.lastPts) mediaData.lastPts = packet.GetPacket()->pts;
         if (packet.GetPacket()->dts > mediaData.lastDts) mediaData.lastDts = packet.GetPacket()->dts;
