@@ -8,6 +8,7 @@
 #include "LocalFileDataProvider.h"
 #include "XAudio2_AudioOutputAdapter.h"
 #include "IVideoOutputAdapter.h"
+#include "BasePlaybackController.h"
 
 #include "ComponentBase.h"
 #include "Panel.h"
@@ -39,7 +40,7 @@ class PlaybackScene : public Scene
     IAudioOutputAdapter* _audioAdapter = nullptr;
     IVideoOutputAdapter* _videoAdapter = nullptr;
     MediaPlayer* _mediaPlayer = nullptr;
-
+    BasePlaybackController* _controller = nullptr;
 
 public:
     PlaybackScene();

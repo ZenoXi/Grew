@@ -3,6 +3,7 @@
 #include "IAudioOutputAdapter.h"
 
 #include "GameTime.h"
+#include "FixedQueue.h"
 
 #pragma comment( lib,"xaudio2.lib" )
 #include <xaudio2.h>
@@ -14,41 +15,58 @@ public:
     {
         int64_t timestamp;
         int64_t sampleDuration;
+        int64_t correction;
         void* data;
     };
 
+    struct Refs
+    {
+        int64_t& _audioBufferLength;
+        int64_t& _currentSampleTimestamp;
+        Clock& _playbackTimer;
+        int64_t& _playbackOffset;
+        int64_t& _offsetCorrection;
+    };
+
 private:
-    int64_t& _audioBufferLength;
-    int64_t& _currentSampleTimestamp;
-    Clock& _playbackTimer;
-    int64_t& _playbackOffset;
+    const size_t _QUEUE_SIZE = 30;
+    FixedQueue<int64_t> _offsetQueue;
+    int64_t _offsetSum;
+
+    Refs _refs;
 public:
-    VoiceCallback(
-        int64_t& audioBufferLengthRef,
-        int64_t& currentSampleTimestamp,
-        Clock& clock,
-        int64_t& playbackOffset
-    ) : _audioBufferLength(audioBufferLengthRef),
-        _currentSampleTimestamp(currentSampleTimestamp),
-        _playbackTimer(clock),
-        _playbackOffset(playbackOffset)
+    VoiceCallback(Refs refs)
+        : _refs(refs),
+        _offsetQueue(_QUEUE_SIZE),
+        _offsetSum(0)
     {}
     ~VoiceCallback() {}
+    void Reset()
+    {
+        _offsetQueue.Fill(0);
+        _offsetSum = 0;
+    }
 
     void OnBufferEnd(void* pBufferContext)
     {
         auto ctx = (BufferContext*)pBufferContext;
         delete ctx->data;
-        _audioBufferLength -= ctx->sampleDuration;
+        _refs._audioBufferLength -= ctx->sampleDuration;
         delete ctx;
     }
 
     void OnBufferStart(void* pBufferContext)
     {
         auto ctx = (BufferContext*)pBufferContext;
-        _currentSampleTimestamp = ctx->timestamp;
-        _playbackTimer.Update();
-        _playbackOffset = _currentSampleTimestamp - _playbackTimer.Now().GetTime();
+        _refs._currentSampleTimestamp = ctx->timestamp;
+        _refs._playbackTimer.Update();
+        int64_t offset = ctx->timestamp - _refs._playbackTimer.Now().GetTime();
+        _offsetSum += offset;
+        _offsetSum -= _offsetQueue.Front();
+        _offsetQueue.Push(offset);
+        _refs._playbackOffset = _offsetSum / (int64_t)_QUEUE_SIZE;
+        // Remove correction offset
+        _refs._offsetCorrection -= ctx->correction;
     }
 
     //Unused methods are stubs
@@ -72,8 +90,16 @@ class XAudio2_AudioOutputAdapter : public IAudioOutputAdapter
     int _audioFramesBuffered = 0;
 
     Clock _playbackTimer;
+    // Time from timer to audio timestamp
+    // Positive - audio ahead
+    // Negative - audio behind
     int64_t _playbackOffset = 0;
     int64_t _offsetTolerance = 1000; // In microseconds
+    // Pending offset correction
+    // Positive - audio behind (some audio will be cut)
+    // Negative - audio ahead (silent padding will be added)
+    int64_t _offsetCorrection = 0;
+    size_t _cyclesSinceLastCorrection = 0;
 
     int _channelCount = 0;
     int _sampleRate = 0;
@@ -85,7 +111,13 @@ class XAudio2_AudioOutputAdapter : public IAudioOutputAdapter
 
 public:
     XAudio2_AudioOutputAdapter(int channelCount, int sampleRate)
-      : _voiceCallback(_audioBufferLength, _currentSampleTimestamp, _playbackTimer, _playbackOffset),
+        : _voiceCallback({
+            _audioBufferLength,
+            _currentSampleTimestamp,
+            _playbackTimer,
+            _playbackOffset,
+            _offsetCorrection
+        }),
         _channelCount(channelCount),
         _sampleRate(sampleRate)
     {
@@ -113,6 +145,16 @@ public:
             _sourceVoice->DestroyVoice();
         }
 
+       _wfx = { 0 };
+       _currentSampleTimestamp = 0;
+       _audioBufferLength = 0;
+       _audioBufferEnd = 0;
+       _audioFramesBuffered = 0;
+
+       _playbackOffset = 0;
+       _offsetCorrection = 0;
+       _cyclesSinceLastCorrection = 0;
+
         _channelCount = channelCount;
         _sampleRate = sampleRate;
 
@@ -133,26 +175,64 @@ public:
 
     void AddRawData(const AudioFrame& frame)
     {
+        _cyclesSinceLastCorrection++;
+
+        int64_t currentOffset = _playbackOffset + _offsetCorrection;
+        int64_t samplesToCut = 0;
+
         // Audio is ahead
-        if (_playbackOffset > _offsetTolerance)
+        if (currentOffset > _offsetTolerance && _cyclesSinceLastCorrection >= 60)
         {
-            // Yeah no :^)
+            _cyclesSinceLastCorrection = 0;
+
+            // Add a silent chunk
+            size_t sampleCount = (currentOffset * (int64_t)frame.GetSampleRate()) / (int64_t)1000000;
+            size_t chunkSize = sampleCount * frame.GetChannelCount() * 2;
+
+            //18,446,744,073,709,551,615
+            //   614,891,469,123,651,500
+
+            char* dataBytes = new char[chunkSize]();
+            XAUDIO2_BUFFER buffer = { 0 };
+            buffer.AudioBytes = chunkSize;
+            buffer.pAudioData = (BYTE*)dataBytes;
+            buffer.Flags = XAUDIO2_END_OF_STREAM;
+
+            // Setup callback
+            VoiceCallback::BufferContext* bCtx = new VoiceCallback::BufferContext();
+            bCtx->timestamp = frame.GetTimestamp();
+            bCtx->sampleDuration = currentOffset;
+            bCtx->data = dataBytes; // Callback will delete this pointer after finishing playback
+            int64_t correction = -currentOffset;
+            bCtx->correction = correction;
+            // Add correction offset
+            _offsetCorrection += correction;
+            buffer.pContext = bCtx;
+
+            _sourceVoice->SubmitSourceBuffer(&buffer);
+
+            std::cout << "[XAudio2_AudioOuptutAdapter] SYNC: Added silent chunk of length " << currentOffset << std::endl;
         }
-        // Actually fuck this synchronization altogether.
-        // The solutions are too stupidly complex for the likelihood of this problem
-        // and the desync can be fixed by just seeking.
-        // Maybe later if this becomes a problem. </rant>
+        // Audio is behind
+        else if (currentOffset < -_offsetTolerance && _cyclesSinceLastCorrection >= 60)
+        {
+            _cyclesSinceLastCorrection = 0;
 
-        _audioBufferEnd = frame.GetTimestamp() + (1000000LL * frame.GetSampleCount()) / frame.GetSampleRate();
-        _audioFramesBuffered++;
+            samplesToCut = (-currentOffset * (int64_t)frame.GetSampleRate()) / (int64_t)1000000;
+        }
 
-        int64_t sampleDuration = (1000000LL * frame.GetSampleCount()) / frame.GetSampleRate();
+        if (samplesToCut > frame.GetSampleCount())
+        {
+            samplesToCut = frame.GetSampleCount();
+        }
+        int64_t sampleDuration = ((int64_t)1000000 * (frame.GetSampleCount() - samplesToCut)) / frame.GetSampleRate();
+        size_t cutBytes = samplesToCut * frame.GetChannelCount() * 2;
 
         WaveHeader header = frame.GetHeader();
-        char* dataBytes = new char[header.subChunk2Size];
-        memcpy(dataBytes, frame.GetBytes(), header.subChunk2Size);
+        char* dataBytes = new char[header.subChunk2Size - cutBytes];
+        memcpy(dataBytes, frame.GetBytes(), header.subChunk2Size - cutBytes);
         XAUDIO2_BUFFER buffer = { 0 };
-        buffer.AudioBytes = header.subChunk2Size;
+        buffer.AudioBytes = header.subChunk2Size - cutBytes;
         buffer.pAudioData = (BYTE*)dataBytes;
         buffer.Flags = XAUDIO2_END_OF_STREAM;
 
@@ -161,10 +241,22 @@ public:
         bCtx->timestamp = frame.GetTimestamp();
         bCtx->sampleDuration = sampleDuration;
         bCtx->data = dataBytes; // Callback will delete this pointer after finishing playback
+        int64_t correction = (samplesToCut * (int64_t)1000000) / frame.GetSampleRate();
+        bCtx->correction = correction;
+        // Add correction offset
+        _offsetCorrection += correction;
         buffer.pContext = bCtx;
+
+        if (correction != 0)
+        {
+            std::cout << "[XAudio2_AudioOuptutAdapter] SYNC: Cut chunk of length " << correction << std::endl;
+        }
 
         _sourceVoice->SubmitSourceBuffer(&buffer);
         _audioBufferLength += sampleDuration;
+
+        _audioBufferEnd = frame.GetTimestamp() + sampleDuration;
+        _audioFramesBuffered++;
     }
 
     void Play()

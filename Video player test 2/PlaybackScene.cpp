@@ -10,7 +10,7 @@ bool spaceClicked = false;
 
 bool ButtonPressed(bool& buttonClicked, int vkCode)
 {
-    if (GetKeyState(vkCode) & 0x8000)
+    if (GetAsyncKeyState(vkCode) & 0x8000)
     {
         if (!buttonClicked)
         {
@@ -202,6 +202,17 @@ void PlaybackScene::_Update()
     //    _seekBar->SetBufferedDuration(bDuration);
     //}
 
+    
+
+    if (_controller)
+    {
+        _controller->Update();
+
+        if (ButtonPressed(rightClicked, VK_RIGHT))
+        {
+            _controller->Seek(_controller->CurrentTime() + Duration(5, SECONDS));
+        }
+    }
     if (_mediaPlayer)
     {
         _mediaPlayer->Update();
@@ -221,9 +232,7 @@ void PlaybackScene::_Update()
                 std::unique_ptr<IVideoOutputAdapter>(_videoAdapter),
                 std::unique_ptr<IAudioOutputAdapter>(_audioAdapter)
             );
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            _mediaPlayer->StartTimer();
+            _controller = new BasePlaybackController(_mediaPlayer, _dataProvider);
         }
     }
 
