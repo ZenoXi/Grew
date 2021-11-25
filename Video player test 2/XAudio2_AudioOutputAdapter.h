@@ -20,18 +20,18 @@ public:
 private:
     int64_t& _audioBufferLength;
     int64_t& _currentSampleTimestamp;
-    TimePoint& _bufferStartTime;
-    Clock& _clock;
+    Clock& _playbackTimer;
+    int64_t& _playbackOffset;
 public:
     VoiceCallback(
         int64_t& audioBufferLengthRef,
         int64_t& currentSampleTimestamp,
-        TimePoint& bufferStartTime,
-        Clock& clock
+        Clock& clock,
+        int64_t& playbackOffset
     ) : _audioBufferLength(audioBufferLengthRef),
         _currentSampleTimestamp(currentSampleTimestamp),
-        _bufferStartTime(bufferStartTime),
-        _clock(clock)
+        _playbackTimer(clock),
+        _playbackOffset(playbackOffset)
     {}
     ~VoiceCallback() {}
 
@@ -47,9 +47,8 @@ public:
     {
         auto ctx = (BufferContext*)pBufferContext;
         _currentSampleTimestamp = ctx->timestamp;
-        _clock.Update();
-        _bufferStartTime = _clock.Now();
-        
+        _playbackTimer.Update();
+        _playbackOffset = _currentSampleTimestamp - _playbackTimer.Now().GetTime();
     }
 
     //Unused methods are stubs
@@ -72,20 +71,21 @@ class XAudio2_AudioOutputAdapter : public IAudioOutputAdapter
     int64_t _audioBufferEnd = 0;
     int _audioFramesBuffered = 0;
 
-    Clock _clock;
-    TimePoint _bufferStartTime = 0;
+    Clock _playbackTimer;
+    int64_t _playbackOffset = 0;
+    int64_t _offsetTolerance = 1000; // In microseconds
 
     int _channelCount = 0;
     int _sampleRate = 0;
 
-    float _volume = 0.0f;
+    float _volume = 0.05f;
     float _balance = 0.0f;
 
     bool _paused = true;
 
 public:
     XAudio2_AudioOutputAdapter(int channelCount, int sampleRate)
-      : _voiceCallback(_audioBufferLength, _currentSampleTimestamp, _bufferStartTime, _clock),
+      : _voiceCallback(_audioBufferLength, _currentSampleTimestamp, _playbackTimer, _playbackOffset),
         _channelCount(channelCount),
         _sampleRate(sampleRate)
     {
@@ -95,17 +95,7 @@ public:
         hr = XAudio2Create(&_XAudio2, 0, XAUDIO2_USE_DEFAULT_PROCESSOR);
         hr = _XAudio2->CreateMasteringVoice(&_masterVoice);
 
-        _wfx.wFormatTag = 1;
-        _wfx.nChannels = _channelCount;
-        _wfx.nSamplesPerSec = _sampleRate;
-        _wfx.nAvgBytesPerSec = _wfx.nChannels * _wfx.nSamplesPerSec * 2;
-        _wfx.nBlockAlign = _wfx.nChannels * 2;
-        _wfx.wBitsPerSample = 2 * 8;
-
-        hr = _XAudio2->CreateSourceVoice(&_sourceVoice, &_wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO, &_voiceCallback, NULL, NULL);
-        SetVolume(0.1f);
-
-        _clock = Clock();
+        Reset(channelCount, sampleRate);
     }
     ~XAudio2_AudioOutputAdapter()
     {
@@ -113,8 +103,46 @@ public:
         CoUninitialize();
     }
 
+    void Reset(int channelCount, int sampleRate)
+    {
+        Pause();
+
+        if (_sourceVoice)
+        {
+            _sourceVoice->FlushSourceBuffers();
+            _sourceVoice->DestroyVoice();
+        }
+
+        _channelCount = channelCount;
+        _sampleRate = sampleRate;
+
+        _wfx.wFormatTag = 1;
+        _wfx.nChannels = _channelCount;
+        _wfx.nSamplesPerSec = _sampleRate;
+        _wfx.nAvgBytesPerSec = _wfx.nChannels * _wfx.nSamplesPerSec * 2;
+        _wfx.nBlockAlign = _wfx.nChannels * 2;
+        _wfx.wBitsPerSample = 2 * 8;
+
+        HRESULT hr;
+        hr = _XAudio2->CreateSourceVoice(&_sourceVoice, &_wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO, &_voiceCallback, NULL, NULL);
+        SetVolume(_volume);
+
+        _playbackTimer = Clock();
+        _playbackTimer.Stop();
+    }
+
     void AddRawData(const AudioFrame& frame)
     {
+        // Audio is ahead
+        if (_playbackOffset > _offsetTolerance)
+        {
+            // Yeah no :^)
+        }
+        // Actually fuck this synchronization altogether.
+        // The solutions are too stupidly complex for the likelihood of this problem
+        // and the desync can be fixed by just seeking.
+        // Maybe later if this becomes a problem. </rant>
+
         _audioBufferEnd = frame.GetTimestamp() + (1000000LL * frame.GetSampleCount()) / frame.GetSampleRate();
         _audioFramesBuffered++;
 
@@ -144,6 +172,8 @@ public:
         if (_paused)
         {
             _sourceVoice->Start();
+            _playbackTimer.Update();
+            _playbackTimer.Start();
             _paused = false;
         }
     }
@@ -153,6 +183,8 @@ public:
         if (!_paused)
         {
             _sourceVoice->Stop();
+            _playbackTimer.Update();
+            _playbackTimer.Stop();
             _paused = true;
         }
     }
@@ -199,9 +231,16 @@ public:
         SetVolume(_volume);
     }
 
-    int64_t CurrentTime() const
+    int64_t CurrentTime()
     {
-        return _currentSampleTimestamp;
+        _playbackTimer.Update();
+        return _playbackTimer.Now().GetTime();
+    }
+
+    void SetTime(int64_t time)
+    {
+        _playbackTimer.Update();
+        _playbackTimer.SetTime(TimePoint(time, MICROSECONDS));
     }
 
     int64_t BufferLength() const
@@ -212,11 +251,5 @@ public:
     int64_t BufferEndTime() const
     {
         return _audioBufferEnd;
-    }
-
-    int64_t TimeSinceLastBufferStart()
-    {
-        _clock.Update();
-        return (_clock.Now() - _bufferStartTime).GetDuration();
     }
 };
