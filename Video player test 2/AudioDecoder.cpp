@@ -113,6 +113,7 @@ void AudioDecoder::_DecoderThread()
             while (avcodec_receive_frame(_codecContext, frame) != AVERROR_EOF);
             avcodec_flush_buffers(_codecContext);
 
+            ClearPackets();
             ClearFrames();
             _decoderThreadFlush = false;
             discontinuity = true;

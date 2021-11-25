@@ -56,6 +56,7 @@ void VideoDecoder::_DecoderThread()
             avcodec_flush_buffers(_codecContext);
 
             ClearFrames();
+            ClearPackets();
             _decoderThreadFlush = false;
             discontinuity = true;
             continue;
