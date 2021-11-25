@@ -33,7 +33,9 @@ public:
         other._packet = nullptr;
 
         last = other.last;
+        flush = other.flush;
         other.last = 0;
+        other.flush = 0;
     }
     MediaPacket& operator=(MediaPacket&& other) noexcept
     {
@@ -43,7 +45,9 @@ public:
             other._packet = nullptr;
 
             last = other.last;
+            flush = other.flush;
             other.last = 0;
+            other.flush = 0;
         }
         return *this;
     }
@@ -113,6 +117,7 @@ private:
             _packet = nullptr;
         }
         last = 0;
+        flush = 0;
     }
 
     SerializedData _SerializeAVPacket() const
