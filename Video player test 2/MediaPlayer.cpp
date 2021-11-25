@@ -43,6 +43,7 @@ int MediaPlayer::_PassPacket(IMediaDecoder* decoder, MediaPacket packet)
     // Flush packet
     if (packet.flush)
     {
+        std::cout << "Flush started\n";
         decoder->Flush();
         _recovering = true;
         _recovered = false;
@@ -134,24 +135,32 @@ void MediaPlayer::Update(double timeLimit)
             if (_nextVideoFrame->GetTimestamp() <= _playbackTimer.Now().GetTime())
             {
                 _currentVideoFrame.reset(_nextVideoFrame.release());
-                _videoOutputAdapter->SetVideoData(*_currentVideoFrame);
+                if (!_recovering) // Prevent ugly fast forwarding after seeking
+                {
+                    _videoOutputAdapter->SetVideoData(*_currentVideoFrame);
+                }
                 frameAdvanced = true;
             }
         }
         if (_nextAudioFrame)
         {
-            // Reset audio playback
-            if (_nextAudioFrame->First())
-            {
-                _audioOutputAdapter->Reset(_nextAudioFrame->GetChannelCount(), _nextAudioFrame->GetSampleRate());
-                _audioOutputAdapter->SetTime(_playbackTimer.Now().GetTime());
-            }
-
-            // Audio frames are buffered for up to 500ms
+            // Audio frames are buffered for ~500ms
             if (_nextAudioFrame->GetTimestamp() <= (_playbackTimer.Now() + Duration(500, MILLISECONDS)).GetTime())
             {
+                // Reset audio playback
+                if (_nextAudioFrame->First())
+                {
+                    std::cout << "Audio reset" << std::endl;
+                    _audioOutputAdapter->Reset(_nextAudioFrame->GetChannelCount(), _nextAudioFrame->GetSampleRate());
+                    _audioOutputAdapter->SetTime(_playbackTimer.Now().GetTime());
+                }
+
                 _currentAudioFrame.reset(_nextAudioFrame.release());
-                _audioOutputAdapter->AddRawData(*_currentAudioFrame);
+                // Skip late audio frames
+                if (_currentAudioFrame->GetTimestamp() + _currentAudioFrame->CalculateDuration().GetDuration() >= _playbackTimer.Now().GetTime())
+                {
+                    _audioOutputAdapter->AddRawData(*_currentAudioFrame);
+                }
                 frameAdvanced = true;
             }
         }
@@ -161,6 +170,7 @@ void MediaPlayer::Update(double timeLimit)
             {
                 _recovering = false;
                 _recovered = true;
+                std::cout << "Recovered\n";
             }
             break;
         }

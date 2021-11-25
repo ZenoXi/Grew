@@ -75,17 +75,23 @@ public:
 
     SerializedData Serialize() const
     {
-        if (!_packet) return { };
+        SerializedData packetBytes;
+        SerializedData otherBytes;
+        if (_packet)
+        {
+            packetBytes = _SerializeAVPacket();
+        }
+        otherBytes = _SerializeRemainingFields();
 
-        SerializedData packetBytes = _SerializeAVPacket();
-        SerializedData otherBytes = _SerializeRemainingFields();
-
-        size_t totalSize = 0;
+        // First byte indicates wether '_packet' exists or not
+        size_t totalSize = 1;
         totalSize += packetBytes.Size();
         totalSize += otherBytes.Size();
         auto bytes = std::make_unique<uchar[]>(totalSize);
         size_t memPos = 0;
 
+        std::fill_n(bytes.get() + memPos, 1, _packet ? (uchar)1 : (uchar)0);
+        memPos += 1;
         std::copy_n(packetBytes.Bytes(), packetBytes.Size(), bytes.get() + memPos);
         memPos += packetBytes.Size();
         std::copy_n(otherBytes.Bytes(), otherBytes.Size(), bytes.get() + memPos);
@@ -98,11 +104,17 @@ public:
     {
         _Reset();
 
-        size_t usedBytes1 = _DeserializeAVPacket(data.Bytes(), data.Size());
-        if (usedBytes1 == 0) return 0;
-        size_t usedBytes2 = _DeserializeRemainingFields(data.Bytes() + usedBytes1, data.Size() - usedBytes1);
-        // It's ok if extra data is missing, only the packet is mandatory
-        // if (usedBytes2 == 0) return 0; <- Not necessary
+        uchar packetExists;
+        _SafeCopy(data.Bytes(), 0, &packetExists, 1, data.Size());
+
+        size_t usedBytes1 = 0;
+        size_t usedBytes2 = 0;
+
+        if (packetExists == 1)
+        {
+            usedBytes1 = _DeserializeAVPacket(data.Bytes() + 1, data.Size() - 1);
+        }
+        usedBytes2 = _DeserializeRemainingFields(data.Bytes() + 1 + usedBytes1, data.Size() - 1 - usedBytes1);
 
         return usedBytes1 + usedBytes2;
     }
