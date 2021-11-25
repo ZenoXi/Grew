@@ -46,6 +46,7 @@ void BasePlaybackController::SetBalance(float balance)
 void BasePlaybackController::Seek(TimePoint time)
 {
     _player->StopTimer();
+    _player->SetTimerPosition(time);
     _dataProvider->Seek(time);
     _loading = true;
 }
