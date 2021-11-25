@@ -78,28 +78,27 @@ void IMediaDataProvider::Seek(TimePoint time)
 std::unique_ptr<MediaStream> IMediaDataProvider::SetVideoStream(int index, TimePoint time)
 {
     auto stream = _SetStream(_videoData, index);
-    if (stream) _SetVideoStream(index, time);
+    if (stream || index == -1) _SetVideoStream(index, time);
     return stream;
 }
 
 std::unique_ptr<MediaStream> IMediaDataProvider::SetAudioStream(int index, TimePoint time)
 {
     auto stream = _SetStream(_videoData, index);
-    if (stream) _SetAudioStream(index, time);
+    if (stream || index == -1) _SetAudioStream(index, time);
     return stream;
 }
 
 std::unique_ptr<MediaStream> IMediaDataProvider::SetSubtitleStream(int index, TimePoint time)
 {
     auto stream = _SetStream(_videoData, index);
-    if (stream) _SetSubtitleStream(index, time);
+    if (stream || index == -1) _SetSubtitleStream(index, time);
     return stream;
 }
 
-std::unique_ptr<MediaStream> IMediaDataProvider::_SetStream(MediaData& mediaData, int& index)
+std::unique_ptr<MediaStream> IMediaDataProvider::_SetStream(MediaData& mediaData, int index)
 {
-    if (index == -1) index = 0; // -1 means default (first) stream
-    if (index < -1) return nullptr;
+    if (index < 0) return nullptr;
     if (index >= mediaData.streams.size()) return nullptr;
     return std::make_unique<MediaStream>(mediaData.streams[index]);
 }
