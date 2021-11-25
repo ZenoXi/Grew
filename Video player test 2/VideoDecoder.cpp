@@ -43,6 +43,8 @@ void VideoDecoder::_DecoderThread()
     uchar* dest[4] = { data, NULL, NULL, NULL };
     int destLinesize[4] = { _codecContext->width * 4, 0, 0, 0 };
 
+    bool discontinuity = true;
+
     while (!_decoderThreadStop)
     {
         // Seek
@@ -55,6 +57,7 @@ void VideoDecoder::_DecoderThread()
 
             ClearFrames();
             _decoderThreadFlush = false;
+            discontinuity = true;
             continue;
         }
 
@@ -115,8 +118,8 @@ void VideoDecoder::_DecoderThread()
         sws_scale(swsContext, frame->data, frame->linesize, 0, frame->height, dest, destLinesize);
 
         long long int timestamp = av_rescale_q(frame->pts, _timebase, { 1, AV_TIME_BASE });
-
-        VideoFrame* vf = new VideoFrame(frame->width, frame->height, timestamp);
+        VideoFrame* vf = new VideoFrame(frame->width, frame->height, timestamp, discontinuity);
+        discontinuity = false;
         vf->SetBytes(data);
 
         _m_frames.lock();

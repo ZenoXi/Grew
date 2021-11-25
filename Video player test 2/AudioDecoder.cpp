@@ -101,6 +101,8 @@ void AudioDecoder::_DecoderThread()
 
     AVFrame* frame = av_frame_alloc();
 
+    bool discontinuity = true;
+
     while (!_decoderThreadStop)
     {
         // Seek
@@ -113,6 +115,7 @@ void AudioDecoder::_DecoderThread()
 
             ClearFrames();
             _decoderThreadFlush = false;
+            discontinuity = true;
             continue;
         }
 
@@ -164,7 +167,8 @@ void AudioDecoder::_DecoderThread()
 
         // Create AudioFrame
         long long int timestamp = av_rescale_q(frame->pts, _timebase, { 1, AV_TIME_BASE });
-        AudioFrame* af = new AudioFrame(frame->nb_samples, frame->channels, frame->sample_rate, timestamp);
+        AudioFrame* af = new AudioFrame(frame->nb_samples, frame->channels, frame->sample_rate, timestamp, discontinuity);
+        discontinuity = false;
         af->SetBytes(audioData);
 
         _m_frames.lock();
