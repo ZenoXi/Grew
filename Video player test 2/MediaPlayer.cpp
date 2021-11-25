@@ -25,6 +25,8 @@ MediaPlayer::MediaPlayer(
     // Subtitles not currently supported
     //if (subtitleStream) _subtitleDecoder = new VideoDecoder(*subtitleStream);
 
+    _recovering = true;
+
     _playbackTimer = Clock(0);
     _playbackTimer.Stop();
 }
@@ -36,13 +38,14 @@ MediaPlayer::~MediaPlayer()
     if (_subtitleDecoder) delete _subtitleDecoder;
 }
 
-bool MediaPlayer::_PassPacket(IMediaDecoder* decoder, MediaPacket packet)
+int MediaPlayer::_PassPacket(IMediaDecoder* decoder, MediaPacket packet)
 {
     // Flush packet
     if (packet.flush)
     {
         decoder->Flush();
-        StopTimer();
+        _recovering = true;
+        _recovered = false;
         return true;
     }
 
@@ -61,31 +64,50 @@ void MediaPlayer::Update(double timeLimit)
     Clock funcTimer = Clock();
 
     // Sync timer to audio
-    TimePoint adapterTime = TimePoint(_audioOutputAdapter->CurrentTime() + _audioOutputAdapter->TimeSinceLastBufferStart(), MICROSECONDS);
-    Duration timeDelta = adapterTime - _playbackTimer.Now();
-    if (std::abs(timeDelta.GetDuration(MILLISECONDS)) > 50)
-    {
-        _playbackTimer.AdvanceTime(timeDelta);
-    }
+    //TimePoint adapterTime = TimePoint(_audioOutputAdapter->CurrentTime() + _audioOutputAdapter->TimeSinceLastBufferStart(), MICROSECONDS);
+    //Duration timeDelta = adapterTime - _playbackTimer.Now();
+    //if (std::abs(timeDelta.GetDuration(MILLISECONDS)) > 50)
+    //{
+    //    _playbackTimer.AdvanceTime(timeDelta);
+    //}
 
     // Read and pass packets to decoders
     while (true)
     {
         if (TimeExceeded(funcTimer, timeLimit)) break;
 
-        // If this is false, the loop is broken
-        bool packetGot = false;
-        if (_videoDecoder && !_videoDecoder->PacketQueueFull() && !_videoDecoder->Flushing())
+        // If this is 0 (no packets sent to decoder), the loop is broken
+        int packetGot = 0;
+        if (_videoDecoder && !_videoDecoder->Flushing())
         {
-            packetGot |= _PassPacket(_videoDecoder, _dataProvider->GetVideoPacket());
+            if (!_videoDecoder->PacketQueueFull() || _dataProvider->FlushVideoPacketNext())
+            {
+                int passResult = _PassPacket(_videoDecoder, _dataProvider->GetVideoPacket());
+                // If flushing, clear the stored next frame to prevent
+                // frames with lower timestamps after flush getting stuck
+                if (passResult == 2) _nextVideoFrame.reset(nullptr);
+                packetGot += passResult;
+            }
         }
-        if (_audioDecoder && !_audioDecoder->PacketQueueFull() && !_audioDecoder->Flushing())
+        if (_audioDecoder && !_audioDecoder->Flushing())
         {
-            packetGot |= _PassPacket(_audioDecoder, _dataProvider->GetAudioPacket());
+            if (!_audioDecoder->PacketQueueFull() || _dataProvider->FlushAudioPacketNext())
+            {
+                int passResult = _PassPacket(_audioDecoder, _dataProvider->GetAudioPacket());
+                // See above
+                if (passResult == 2) _nextAudioFrame.reset(nullptr);
+                packetGot += passResult;
+            }
         }
-        if (_subtitleDecoder && !_subtitleDecoder->PacketQueueFull() && !_subtitleDecoder->Flushing())
+        if (_subtitleDecoder && !_subtitleDecoder->Flushing())
         {
-            packetGot |= _PassPacket(_subtitleDecoder, _dataProvider->GetSubtitlePacket());
+            if (!_subtitleDecoder->PacketQueueFull() || _dataProvider->FlushSubtitlePacketNext())
+            {
+                int passResult = _PassPacket(_subtitleDecoder, _dataProvider->GetSubtitlePacket());
+                // See above
+                //if (passResult == 2) _nextSubtitleFrame.reset(nullptr);
+                packetGot += passResult;
+            }
         }
         if (!packetGot) break;
     }
@@ -118,6 +140,13 @@ void MediaPlayer::Update(double timeLimit)
         }
         if (_nextAudioFrame)
         {
+            // Reset audio playback
+            if (_nextAudioFrame->First())
+            {
+                _audioOutputAdapter->Reset(_nextAudioFrame->GetChannelCount(), _nextAudioFrame->GetSampleRate());
+                _audioOutputAdapter->SetTime(_playbackTimer.Now().GetTime());
+            }
+
             // Audio frames are buffered for up to 500ms
             if (_nextAudioFrame->GetTimestamp() <= (_playbackTimer.Now() + Duration(500, MILLISECONDS)).GetTime())
             {
@@ -126,14 +155,13 @@ void MediaPlayer::Update(double timeLimit)
                 frameAdvanced = true;
             }
         }
-
-        if (frameAdvanced)
+        if (!frameAdvanced)
         {
-            _skipping = true;
-        }
-        else
-        {
-            _skipping = false;
+            if (_nextVideoFrame && _nextAudioFrame && _recovering)
+            {
+                _recovering = false;
+                _recovered = true;
+            }
             break;
         }
     }
@@ -157,6 +185,11 @@ void MediaPlayer::StopTimer()
         _playbackTimer.Stop();
         _audioOutputAdapter->Pause();
     }
+}
+
+bool MediaPlayer::TimerRunning() const
+{
+    return !_playbackTimer.Paused();
 }
 
 void MediaPlayer::SetTimerPosition(TimePoint time)
@@ -192,4 +225,11 @@ bool MediaPlayer::Buffering() const
 bool MediaPlayer::Skipping() const
 {
     return _skipping;
+}
+
+bool MediaPlayer::Recovered()
+{
+    bool recovered = _recovered;
+    _recovered = false;
+    return recovered;
 }

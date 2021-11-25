@@ -31,6 +31,9 @@ class MediaPlayer
     bool _buffering = false;
     bool _skipping = false;
 
+    bool _recovering = false;
+    bool _recovered = false;
+
 public:
     MediaPlayer(
         IMediaDataProvider* dataProvider,
@@ -40,12 +43,14 @@ public:
     ~MediaPlayer();
 
 private:
-    bool _PassPacket(IMediaDecoder* decoder, MediaPacket packet);
+    // 0 - no packet to pass, 1 - packed passed, 2 - flush packet received
+    int _PassPacket(IMediaDecoder* decoder, MediaPacket packet);
 public:
     void Update(double timeLimit = 0.01666666);
 
     void StartTimer();
     void StopTimer();
+    bool TimerRunning() const;
     void SetTimerPosition(TimePoint time);
     TimePoint TimerPosition() const;
     void SetVolume(float volume);
@@ -57,4 +62,9 @@ public:
     bool Buffering() const;
     // Frames are being skipped to catch up to the timer (usually after seeking/changing streams)
     bool Skipping() const;
+
+    // After a flush packet is received, the player enters recovery mode until
+    // all streams have caught up to the timer. Then this function will return
+    // true ONCE.
+    bool Recovered();
 };
