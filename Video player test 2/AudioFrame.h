@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IMediaFrame.h"
+#include "GameTime.h"
 
 #include <cstdint>
 #include <memory>
@@ -53,4 +54,5 @@ public:
     long long int GetTimestamp() const;
     bool First() const;
     bool Last() const;
+    Duration CalculateDuration() const;
 };

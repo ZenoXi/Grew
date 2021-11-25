@@ -161,3 +161,8 @@ bool AudioFrame::Last() const
 {
     return _last;
 }
+
+Duration AudioFrame::CalculateDuration() const
+{
+    return Duration((_samples * 1000000) / _sampleRate, MICROSECONDS);
+}
