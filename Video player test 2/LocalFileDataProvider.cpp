@@ -124,6 +124,10 @@ void LocalFileDataProvider::_ReadPackets()
     AVPacket* packet = av_packet_alloc();
     bool eof = false;
 
+    int videoStreamIndex = _videoData.currentStream != -1 ? _videoData.streams[_videoData.currentStream].index : -1;
+    int audioStreamIndex = _audioData.currentStream != -1 ? _audioData.streams[_audioData.currentStream].index : -1;
+    int subtitleStreamIndex = _subtitleData.currentStream != -1 ? _subtitleData.streams[_subtitleData.currentStream].index : -1;
+
     while (!_packetThreadController.Get<bool>("stop"))
     {
         // Seek
@@ -163,6 +167,12 @@ void LocalFileDataProvider::_ReadPackets()
             _packetThreadController.Set("stream", StreamChangeDesc{ -1, nullptr, 0 });
             newStream.mediaDataPtr->currentStream = newStream.streamIndex;
             _packetThreadController.Set("seek", newStream.time.GetTime());
+
+            // Update stream indexes
+            videoStreamIndex = _videoData.currentStream != -1 ? _videoData.streams[_videoData.currentStream].index : -1;
+            audioStreamIndex = _audioData.currentStream != -1 ? _audioData.streams[_audioData.currentStream].index : -1;
+            subtitleStreamIndex = _subtitleData.currentStream != -1 ? _subtitleData.streams[_subtitleData.currentStream].index : -1;
+
             continue;
         }
 
@@ -174,10 +184,6 @@ void LocalFileDataProvider::_ReadPackets()
                 eof = false;
                 _packetThreadController.Set("eof", false);
             }
-
-            int videoStreamIndex = _videoData.currentStream != -1 ? _videoData.streams[_videoData.currentStream].index : -1;
-            int audioStreamIndex = _audioData.currentStream != -1 ? _audioData.streams[_audioData.currentStream].index : -1;
-            int subtitleStreamIndex = _subtitleData.currentStream != -1 ? _subtitleData.streams[_subtitleData.currentStream].index : -1;
 
             if (packet->stream_index == videoStreamIndex)
             {
