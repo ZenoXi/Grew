@@ -151,9 +151,9 @@ void LocalFileDataProvider::_ReadPackets()
             _ClearSubtitlePackets();
 
             // Send flush packets
-            _videoData.packets.push_back(MediaPacket(true));
-            _audioData.packets.push_back(MediaPacket(true));
-            _subtitleData.packets.push_back(MediaPacket(true));
+            _AddVideoPacket(MediaPacket(true));
+            _AddAudioPacket(MediaPacket(true));
+            _AddSubtitlePacket(MediaPacket(true));
         }
 
         // Change stream
@@ -181,20 +181,17 @@ void LocalFileDataProvider::_ReadPackets()
 
             if (packet->stream_index == videoStreamIndex)
             {
-                std::unique_lock<std::mutex> lock(_videoData.mtx);
-                _videoData.packets.push_back(MediaPacket(packet));
+                _AddVideoPacket(MediaPacket(packet));
                 packet = av_packet_alloc();
             }
             else if (packet->stream_index == audioStreamIndex)
             {
-                std::unique_lock<std::mutex> lock(_audioData.mtx);
-                _audioData.packets.push_back(MediaPacket(packet));
+                _AddAudioPacket(MediaPacket(packet));
                 packet = av_packet_alloc();
             }
             else if (packet->stream_index == subtitleStreamIndex)
             {
-                std::unique_lock<std::mutex> lock(_subtitleData.mtx);
-                _subtitleData.packets.push_back(MediaPacket(packet));
+                _AddSubtitlePacket(MediaPacket(packet));
                 packet = av_packet_alloc();
             }
         }
