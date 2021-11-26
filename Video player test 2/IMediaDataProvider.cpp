@@ -39,7 +39,7 @@ Duration IMediaDataProvider::_BufferedDuration(MediaData& mediaData)
 
 Duration IMediaDataProvider::MediaDuration()
 {
-    Duration finalDuration = 0;
+    int64_t finalDuration = 0;
     if (_videoData.currentStream != -1)
     {
         int64_t startTime = _videoData.streams[_videoData.currentStream].startTime;
@@ -67,7 +67,7 @@ Duration IMediaDataProvider::MediaDuration()
             finalDuration = startTime + duration;
         }
     }
-    return finalDuration;
+    return Duration(finalDuration, MILLISECONDS);
 }
 
 void IMediaDataProvider::Seek(TimePoint time)
