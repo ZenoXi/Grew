@@ -94,7 +94,9 @@ class XAudio2_AudioOutputAdapter : public IAudioOutputAdapter
     // Positive - audio ahead
     // Negative - audio behind
     int64_t _playbackOffset = 0;
-    int64_t _offsetTolerance = 1000; // In microseconds
+    // Values below ~1500us start causing frequent overcorrections
+    // and make the audio sound choppy
+    int64_t _offsetTolerance = 5000; // In microseconds
     // Pending offset correction
     // Positive - audio behind (some audio will be cut)
     // Negative - audio ahead (silent padding will be added)
@@ -176,6 +178,8 @@ public:
     void AddRawData(const AudioFrame& frame)
     {
         _cyclesSinceLastCorrection++;
+
+        //std::cout << "off: " << _playbackOffset << " | cor: " << _offsetCorrection << std::endl;
 
         int64_t currentOffset = _playbackOffset + _offsetCorrection;
         int64_t samplesToCut = 0;
