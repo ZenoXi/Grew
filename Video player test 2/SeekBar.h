@@ -261,7 +261,7 @@ private:
         {
             double xPosNorm = xPos / (double)seekBarWidth;
             long long int hoverTime = _duration * xPosNorm;
-            _selectedTime = TimePoint(hoverTime, MILLISECONDS);
+            _selectedTime = TimePoint(hoverTime, MICROSECONDS);
         }
         return this;
     }
@@ -408,6 +408,6 @@ public:
 
     void SetDuration(Duration duration)
     {
-        _duration = duration.GetDuration();
+        _duration = duration.GetDuration(MICROSECONDS);
     }
 };
