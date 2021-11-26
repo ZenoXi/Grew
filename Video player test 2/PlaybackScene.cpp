@@ -54,45 +54,40 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     //}
 
     // Initialize scene
-    //_controlBar = new Panel();
-    //_controlBar->SetParentWidthPercent(1.0f);
-    //_controlBar->SetParentHeightPercent(1.0f);
-    //_controlBar->SetBackgroundColor(D2D1::ColorF::ColorF(0.0f, 0.0f, 0.0f, 0.7f));
+    _controlBar = new Panel();
+    _controlBar->SetParentWidthPercent(1.0f);
+    _controlBar->SetParentHeightPercent(1.0f);
+    _controlBar->SetBackgroundColor(D2D1::ColorF::ColorF(0.0f, 0.0f, 0.0f, 0.7f));
 
-    //_seekBar = new SeekBar(_player->GetDuration().GetDuration());
-    //_seekBar->SetParentWidthPercent(1.0f);
-    //_seekBar->SetBaseWidth(-20);
-    //_seekBar->SetBaseHeight(50);
-    //_seekBar->SetHorizontalOffsetPercent(0.5f);
+    _seekBar = new SeekBar(1000000); // Placeholder duration until data provider loads
+    _seekBar->SetParentWidthPercent(1.0f);
+    _seekBar->SetBaseWidth(-20);
+    _seekBar->SetBaseHeight(50);
+    _seekBar->SetHorizontalOffsetPercent(0.5f);
 
-    //_volumeSlider = new VolumeSlider(_player->GetVolume());
-    //_volumeSlider->SetBaseWidth(150);
-    //_volumeSlider->SetBaseHeight(20);
-    //_volumeSlider->SetHorizontalOffsetPixels(10);
-    //_volumeSlider->SetVerticalOffsetPixels(50);
+    _volumeSlider = new VolumeSlider(0.0f);
+    _volumeSlider->SetBaseWidth(150);
+    _volumeSlider->SetBaseHeight(20);
+    _volumeSlider->SetHorizontalOffsetPixels(10);
+    _volumeSlider->SetVerticalOffsetPixels(50);
 
-    //_playButton = new PlayButton();
-    //_playButton->SetBaseWidth(40);
-    //_playButton->SetBaseHeight(40);
-    //_playButton->SetHorizontalOffsetPercent(0.5f);
-    //_playButton->SetVerticalOffsetPixels(50);
-    //_playButton->SetPaused(true);
+    _playButton = new PlayButton();
+    _playButton->SetBaseWidth(40);
+    _playButton->SetBaseHeight(40);
+    _playButton->SetHorizontalOffsetPercent(0.5f);
+    _playButton->SetVerticalOffsetPixels(50);
+    _playButton->SetPaused(true);
 
-    //_controlBar->AddItem(_seekBar);
-    //_controlBar->AddItem(_volumeSlider);
-    //_controlBar->AddItem(_playButton);
+    _controlBar->AddItem(_seekBar);
+    _controlBar->AddItem(_volumeSlider);
+    _controlBar->AddItem(_playButton);
 
-    //_bottomControlPanel = new BottomControlPanel(_controlBar);
-    //_bottomControlPanel->SetParentWidthPercent(1.0f);
-    //_bottomControlPanel->SetBaseHeight(100);
-    //_bottomControlPanel->SetVerticalAlignment(Alignment::END);
+    _bottomControlPanel = new BottomControlPanel(_controlBar);
+    _bottomControlPanel->SetParentWidthPercent(1.0f);
+    _bottomControlPanel->SetBaseHeight(100);
+    _bottomControlPanel->SetVerticalAlignment(Alignment::END);
 
-    
-    
-    //_canvas->AddComponent(_bottomControlPanel); // ########################################### UNCOMMENT LATER
-
-
-
+    _canvas->AddComponent(_bottomControlPanel);
     //componentCanvas.AddComponent(controlBar);
     _canvas->Resize(App::Instance()->window.width, App::Instance()->window.height);
 }
@@ -119,99 +114,97 @@ void PlaybackScene::_Update()
         }
     }
 
-    // Check for pause key
-    //if (ButtonPressed(spaceClicked, VK_SPACE))
-    //{
-    //    std::cout << "Spacebar clicked.\n";
-    //    if (_player->Paused())
-    //    {
-    //        _player->Play(true);
-    //        _playButton->SetPaused(false);
-    //    }
-    //    else
-    //    {
-    //        _player->Pause(true);
-    //        _playButton->SetPaused(true);
-    //    }
-    //}
-    //if (_player->Paused() != _playButton->GetPaused())
-    //{
-    //    if (_playButton->Clicked())
-    //    {
-    //        std::cout << "Pause synced.\n";
-    //        if (_playButton->GetPaused())
-    //        {
-    //            _player->Pause(true);
-    //        }
-    //        else
-    //        {
-    //            _player->Play(true);
-    //        }
-    //    }
-    //    else
-    //    {
-    //        _playButton->SetPaused(_player->Paused());
-    //    }
-    //}
+    if (_mediaPlayer)
+    {
+        // Check for pause key
+        if (ButtonPressed(spaceClicked, VK_SPACE))
+        {
+            if (_controller->Paused())
+            {
+                _controller->Play();
+                _playButton->SetPaused(false);
+            }
+            else
+            {
+                _controller->Pause();
+                _playButton->SetPaused(true);
+            }
+        }
+        if (_controller->Paused() != _playButton->GetPaused())
+        {
+            if (_playButton->Clicked())
+            {
+                if (_playButton->GetPaused())
+                {
+                    _controller->Pause();
+                }
+                else
+                {
+                    _controller->Play();
+                }
+            }
+            else
+            {
+                _playButton->SetPaused(_controller->Paused());
+            }
+        }
 
-    // Check for seek commands
-    //TimePoint seekTo = _seekBar->SeekTime();
-    //if (seekTo.GetTime() != -1)
-    //{
-    //    _player->Seek(seekTo, true);
-    //}
-    //else
-    //{
-    //    bool seekBack = ButtonPressed(leftClicked, VK_LEFT);
-    //    bool seekForward = ButtonPressed(rightClicked, VK_RIGHT);
-    //    if (seekBack || seekForward)
-    //    {
-    //        if (seekBack)
-    //        {
-    //            _player->Seek(ztime::Game() - Duration(5, SECONDS), true);
-    //        }
-    //        else if (seekForward)
-    //        {
-    //            _player->Seek(ztime::Game() + Duration(5, SECONDS), true);
-    //        }
-    //    }
-    //}
+        // Check for seek commands
+        TimePoint seekTo = _seekBar->SeekTime();
+        if (seekTo.GetTicks() != -1)
+        {
+            _controller->Seek(seekTo);
+        }
+        else
+        {
+            bool seekBack = ButtonPressed(leftClicked, VK_LEFT);
+            bool seekForward = ButtonPressed(rightClicked, VK_RIGHT);
+            if (seekBack || seekForward)
+            {
+                int seekAmount = 15;
+                if (GetAsyncKeyState(VK_CONTROL) & 0x8000) seekAmount = 60;
+                if (GetAsyncKeyState(VK_SHIFT) & 0x8000) seekAmount = 5;
+                if (seekBack)
+                {
+                    _controller->Seek(_controller->CurrentTime() - Duration(seekAmount, SECONDS));
+                }
+                else if (seekForward)
+                {
+                    _controller->Seek(_controller->CurrentTime() + Duration(seekAmount, SECONDS));
+                }
+            }
+        }
 
-    // Check for volume commands
-    //if (ButtonPressed(upClicked, VK_UP))
-    //{
-    //    float newVolume = _player->GetVolume() + 0.05f;
-    //    _player->SetVolume(newVolume);
-    //    _volumeSlider->SetVolume(newVolume);
-    //}
-    //if (ButtonPressed(downClicked, VK_DOWN))
-    //{
-    //    float newVolume = _player->GetVolume() - 0.05f;
-    //    _player->SetVolume(newVolume);
-    //    _volumeSlider->SetVolume(newVolume);
-    //}
-    //if (_volumeSlider->GetVolume() != _player->GetVolume())
-    //{
-    //    _player->SetVolume(_volumeSlider->GetVolume());
-    //}
+        // Check for volume commands
+        if (ButtonPressed(upClicked, VK_UP))
+        {
+            float newVolume = _controller->GetVolume() + 0.05f;
+            _controller->SetVolume(newVolume);
+            _volumeSlider->SetVolume(newVolume);
+        }
+        if (ButtonPressed(downClicked, VK_DOWN))
+        {
+            float newVolume = _controller->GetVolume() - 0.05f;
+            _controller->SetVolume(newVolume);
+            _volumeSlider->SetVolume(newVolume);
+        }
+        if (_volumeSlider->GetVolume() != _controller->GetVolume())
+        {
+            _controller->SetVolume(_volumeSlider->GetVolume());
+        }
 
-    // Update buffered time in seekbar
-    //Duration bDuration = _player->GetBufferedDuration();
-    //if (bDuration.GetDuration() != -1)
-    //{
-    //    _seekBar->SetBufferedDuration(bDuration);
-    //}
-
+        // Update seekbar
+        Duration bufferedDuration = _controller->GetBufferedDuration();
+        if (bufferedDuration.GetTicks() != -1)
+        {
+            _seekBar->SetBufferedDuration(bufferedDuration);
+        }
+        _seekBar->SetCurrentTime(_controller->CurrentTime());
+    }
     
-
     if (_controller)
     {
         _controller->Update();
-
-        if (ButtonPressed(rightClicked, VK_RIGHT))
-        {
-            _controller->Seek(_controller->CurrentTime() + Duration(5, SECONDS));
-        }
     }
     if (_mediaPlayer)
     {
@@ -233,6 +226,9 @@ void PlaybackScene::_Update()
                 std::unique_ptr<IAudioOutputAdapter>(_audioAdapter)
             );
             _controller = new BasePlaybackController(_mediaPlayer, _dataProvider);
+
+            _seekBar->SetDuration(_dataProvider->MediaDuration());
+            _volumeSlider->SetVolume(_controller->GetVolume());
         }
     }
 

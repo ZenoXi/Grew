@@ -40,7 +40,7 @@ class PlaybackScene : public Scene
     IAudioOutputAdapter* _audioAdapter = nullptr;
     IVideoOutputAdapter* _videoAdapter = nullptr;
     MediaPlayer* _mediaPlayer = nullptr;
-    BasePlaybackController* _controller = nullptr;
+    IPlaybackController* _controller = nullptr;
 
 public:
     PlaybackScene();

@@ -22,13 +22,13 @@ private:
         // Create brushes
         if (!_viewedPartBrush)
         {
-            g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::DodgerBlue), &_viewedPartBrush);
+            g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::DodgerBlue, 0.75f), &_viewedPartBrush);
             g.refs->push_back((IUnknown**)&_viewedPartBrush);
         }
-        if (!_viewedBufferingPartBrush)
+        if (!_seekbarMarkerBrush)
         {
-            g.target->CreateSolidColorBrush(D2D1::ColorF::ColorF(25, 120, 213), &_viewedBufferingPartBrush);
-            g.refs->push_back((IUnknown**)&_viewedBufferingPartBrush);
+            g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::DodgerBlue), &_seekbarMarkerBrush);
+            g.refs->push_back((IUnknown**)&_seekbarMarkerBrush);
         }
         if (!_bufferedPartBrush)
         {
@@ -54,13 +54,46 @@ private:
         g.target->Clear();
 
         // Draw the seek bar
-        float progress = ztime::Game().GetTime() / (double)_duration;
-        float bufferProgress = _buffered / (double)_duration;
+        float progress = _currentTime.GetTicks() / (double)_duration.GetTicks();
+        float bufferProgress = _buffered.GetTicks() / (double)_duration.GetTicks();
         if (progress > 1.0f) progress = 1.0f;
         int timeTextWidth = ceilf(_maxTimeWidth) + _margins * 2;
         int seekBarWidth = GetWidth() - timeTextWidth * 2;
         int viewedPartWidth = seekBarWidth * progress;
         int bufferedPartWidth = seekBarWidth * bufferProgress;
+        // Background part
+        g.target->FillRectangle(
+            D2D1::RectF(
+                timeTextWidth,
+                GetHeight() / 2.0f - 1.0f,
+                GetWidth() - timeTextWidth,
+                GetHeight() / 2.0f + 1.0f),
+            _remainingPartBrush
+        );
+        // Buffered part
+        if (_buffered > 0)
+        {
+            g.target->FillRectangle(
+                D2D1::RectF(
+                    timeTextWidth,
+                    GetHeight() / 2.0f - 1.0f,
+                    timeTextWidth + bufferedPartWidth,
+                    GetHeight() / 2.0f + 1.0f
+                ),
+                _bufferedPartBrush
+            );
+        }
+        //else
+        //{
+        //    g.target->FillRectangle(
+        //        D2D1::RectF(
+        //            timeTextWidth + viewedPartWidth,
+        //            GetHeight() / 2.0f - 1.0f,
+        //            timeTextWidth + bufferedPartWidth,
+        //            GetHeight() / 2.0f + 1.0f),
+        //        _viewedBufferingPartBrush
+        //    );
+        //}
         // Completed part
         g.target->FillRectangle(
             D2D1::RectF(
@@ -71,39 +104,6 @@ private:
             ),
             _viewedPartBrush
         );
-        // Remaining part
-        g.target->FillRectangle(
-            D2D1::RectF(
-                timeTextWidth + viewedPartWidth,
-                GetHeight() / 2.0f - 1.0f,
-                GetWidth() - timeTextWidth,
-                GetHeight() / 2.0f + 1.0f),
-            _remainingPartBrush
-        );
-        // Buffered part
-        if (_buffered < ztime::Game().GetTime())
-        {
-            g.target->FillRectangle(
-                D2D1::RectF(
-                    timeTextWidth + bufferedPartWidth,
-                    GetHeight() / 2.0f - 1.0f,
-                    timeTextWidth + viewedPartWidth,
-                    GetHeight() / 2.0f + 1.0f
-                ),
-                _bufferedPartBrush
-            );
-        }
-        else
-        {
-            g.target->FillRectangle(
-                D2D1::RectF(
-                    timeTextWidth + viewedPartWidth,
-                    GetHeight() / 2.0f - 1.0f,
-                    timeTextWidth + bufferedPartWidth,
-                    GetHeight() / 2.0f + 1.0f),
-                _viewedBufferingPartBrush
-            );
-        }
 
         if (GetMouseInside())
         {
@@ -116,7 +116,7 @@ private:
                     5.0f,
                     5.0f
                 ),
-                _viewedPartBrush
+                _seekbarMarkerBrush
             );
 
             //g->FillRectangle(
@@ -135,9 +135,9 @@ private:
         std::wstring currentTimeStr;
         std::wstring durationStr;
 
-        int h = ztime::Game().GetTime(HOURS);
-        int m = ztime::Game().GetTime(MINUTES) % 60;
-        int s = ztime::Game().GetTime(SECONDS) % 60;
+        int h = _currentTime.GetTime(HOURS);
+        int m = _currentTime.GetTime(MINUTES) % 60;
+        int s = _currentTime.GetTime(SECONDS) % 60;
         if (h > 0) timeStr << h << ":";
         if (m < 10) timeStr << "0" << m << ":";
         else timeStr << m << ":";
@@ -145,9 +145,9 @@ private:
         else timeStr << s;
         currentTimeStr = timeStr.str();
 
-        h = _duration / 3600000000LL;
-        m = (_duration / 60000000LL) % 60;
-        s = (_duration / 1000000LL) % 60;
+        h = _duration.GetDuration(HOURS);
+        m = _duration.GetDuration(MINUTES) % 60;
+        s = _duration.GetDuration(SECONDS) % 60;
         timeStr.str(L"");
         timeStr.clear();
         if (h > 0) timeStr << h << ":";
@@ -191,11 +191,11 @@ private:
             if (xPos < 0) xPos = 0;
             if (xPos > seekBarWidth) xPos = seekBarWidth;
             double xPosNorm = xPos / (double)seekBarWidth;
-            long long int hoverTime = _duration * xPosNorm;
+            TimePoint hoverTime = _duration.GetTicks() * xPosNorm;
 
-            h = (hoverTime / 3600000000LL);
-            m = (hoverTime / 60000000LL) % 60;
-            s = (hoverTime / 1000000LL) % 60;
+            h = hoverTime.GetTime(HOURS);
+            m = hoverTime.GetTime(MINUTES) % 60;
+            s = hoverTime.GetTime(SECONDS) % 60;
             timeStr.str(L"");
             timeStr.clear();
             if (h > 0) timeStr << h << ":";
@@ -260,8 +260,7 @@ private:
         if (xPos >= 0 && xPos <= seekBarWidth)
         {
             double xPosNorm = xPos / (double)seekBarWidth;
-            long long int hoverTime = _duration * xPosNorm;
-            _selectedTime = TimePoint(hoverTime, MICROSECONDS);
+            _selectedTime = _duration.GetTicks() * xPosNorm;
         }
         return this;
     }
@@ -301,8 +300,9 @@ public:
 #pragma endregion
 
 private:
-    long long int _duration = 0;
-    long long int _buffered = 0;
+    Duration _duration = 0;
+    Duration _buffered = 0;
+    TimePoint _currentTime = 0;
 
     bool _held = false;
     TimePoint _selectedTime = -1;
@@ -313,7 +313,7 @@ private:
 
     // Resources
     ID2D1SolidColorBrush* _viewedPartBrush = nullptr;
-    ID2D1SolidColorBrush* _viewedBufferingPartBrush = nullptr;
+    ID2D1SolidColorBrush* _seekbarMarkerBrush = nullptr;
     ID2D1SolidColorBrush* _bufferedPartBrush = nullptr;
     ID2D1SolidColorBrush* _remainingPartBrush = nullptr;
     ID2D1SolidColorBrush* _textBrush = nullptr;
@@ -367,7 +367,7 @@ public:
     {
         // Release resources
         SafeFullRelease((IUnknown**)&_viewedPartBrush);
-        SafeFullRelease((IUnknown**)&_viewedBufferingPartBrush);
+        SafeFullRelease((IUnknown**)&_seekbarMarkerBrush);
         SafeFullRelease((IUnknown**)&_bufferedPartBrush);
         SafeFullRelease((IUnknown**)&_remainingPartBrush);
         SafeFullRelease((IUnknown**)&_textBrush);
@@ -388,9 +388,14 @@ public:
         return timepoint;
     }
 
+    void SetCurrentTime(TimePoint time)
+    {
+        _currentTime = time;
+    }
+
     void SetBufferedDuration(Duration duration)
     {
-        _buffered = duration.GetDuration();
+        _buffered = duration;
         if (_buffered < 0)
         {
             _buffered = 0;
@@ -408,6 +413,6 @@ public:
 
     void SetDuration(Duration duration)
     {
-        _duration = duration.GetDuration(MICROSECONDS);
+        _duration = duration;
     }
 };
