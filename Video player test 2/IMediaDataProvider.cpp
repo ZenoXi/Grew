@@ -34,7 +34,7 @@ Duration IMediaDataProvider::_BufferedDuration(MediaData& mediaData)
     {
         return Duration::Max();
     }
-    return mediaData.lastPts > mediaData.lastDts ? mediaData.lastPts.GetTime(NANOSECONDS) : mediaData.lastDts.GetTime(NANOSECONDS);
+    return mediaData.lastPts > mediaData.lastDts ? mediaData.lastPts.GetTicks() : mediaData.lastDts.GetTicks();
 }
 
 Duration IMediaDataProvider::MediaDuration()
@@ -269,6 +269,26 @@ void IMediaDataProvider::_AddSubtitlePacket(MediaPacket packet)
     _AddPacket(_subtitleData, std::move(packet));
 }
 
+void IMediaDataProvider::_AddPacket(MediaData& mediaData, MediaPacket packet)
+{
+    std::unique_lock<std::mutex> lock(mediaData.mtx);
+    if (!packet.flush && packet.Valid())
+    {
+        AVRational timebase = mediaData.streams[mediaData.currentStream].timeBase;
+        if (packet.GetPacket()->pts != AV_NOPTS_VALUE)
+        {
+            TimePoint pts = TimePoint(av_rescale_q(packet.GetPacket()->pts, timebase, { 1, AV_TIME_BASE }), MICROSECONDS);
+            if (pts > mediaData.lastPts) mediaData.lastPts = pts;
+        }
+        if (packet.GetPacket()->dts != AV_NOPTS_VALUE)
+        {
+            TimePoint dts = TimePoint(av_rescale_q(packet.GetPacket()->dts, timebase, { 1, AV_TIME_BASE }), MICROSECONDS);
+            if (dts > mediaData.lastDts) mediaData.lastDts = dts;
+        }
+    }
+    mediaData.packets.push_back(std::move(packet));
+}
+
 void IMediaDataProvider::_ClearVideoPackets()
 {
     _ClearPackets(_videoData);
@@ -282,17 +302,6 @@ void IMediaDataProvider::_ClearAudioPackets()
 void IMediaDataProvider::_ClearSubtitlePackets()
 {
     _ClearPackets(_subtitleData);
-}
-
-void IMediaDataProvider::_AddPacket(MediaData& mediaData, MediaPacket packet)
-{
-    std::unique_lock<std::mutex> lock(mediaData.mtx);
-    if (!packet.flush && packet.Valid())
-    {
-        if (packet.GetPacket()->pts > mediaData.lastPts) mediaData.lastPts = packet.GetPacket()->pts;
-        if (packet.GetPacket()->dts > mediaData.lastDts) mediaData.lastDts = packet.GetPacket()->dts;
-    }
-    mediaData.packets.push_back(std::move(packet));
 }
 
 void IMediaDataProvider::_ClearPackets(MediaData& mediaData)
