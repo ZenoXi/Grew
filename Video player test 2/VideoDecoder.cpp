@@ -17,7 +17,7 @@ VideoDecoder::VideoDecoder(const MediaStream& stream)
     _timebase = stream.timeBase;
 
     // placeholder until global options are implemented
-    _MAX_FRAME_QUEUE_SIZE = 15;
+    _MAX_FRAME_QUEUE_SIZE = 30;
     _MAX_PACKET_QUEUE_SIZE = 100;
 
     // Start decoding thread
