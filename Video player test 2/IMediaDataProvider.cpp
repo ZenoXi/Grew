@@ -84,14 +84,14 @@ std::unique_ptr<MediaStream> IMediaDataProvider::SetVideoStream(int index, TimeP
 
 std::unique_ptr<MediaStream> IMediaDataProvider::SetAudioStream(int index, TimePoint time)
 {
-    auto stream = _SetStream(_videoData, index);
+    auto stream = _SetStream(_audioData, index);
     if (stream || index == -1) _SetAudioStream(index, time);
     return stream;
 }
 
 std::unique_ptr<MediaStream> IMediaDataProvider::SetSubtitleStream(int index, TimePoint time)
 {
-    auto stream = _SetStream(_videoData, index);
+    auto stream = _SetStream(_subtitleData, index);
     if (stream || index == -1) _SetSubtitleStream(index, time);
     return stream;
 }
