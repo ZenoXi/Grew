@@ -261,7 +261,7 @@ private:
         {
             double xPosNorm = xPos / (double)seekBarWidth;
             long long int hoverTime = _duration * xPosNorm;
-            _selectedTime = hoverTime;
+            _selectedTime = TimePoint(hoverTime, MILLISECONDS);
         }
         return this;
     }
