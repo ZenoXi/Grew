@@ -297,7 +297,7 @@ public:
             _sourceVoice->SetVolume(volume);
             return;
         }
-        else if (_channelCount >= 2)
+        else if (_channelCount == 2)
         {
             float volumeL = _volume;
             float volumeR = _volume;
@@ -311,6 +311,16 @@ public:
             }
             float volumes[2] = { volumeL, volumeR };
             _sourceVoice->SetChannelVolumes(2, volumes);
+            return;
+        }
+        else if (_channelCount > 2)
+        {
+            auto volumes = std::make_unique<float[]>(_channelCount);
+            for (int i = 0; i < _channelCount; i++)
+            {
+                volumes[i] = _volume;
+            }
+            _sourceVoice->SetChannelVolumes(_channelCount, volumes.get());
             return;
         }
     }
