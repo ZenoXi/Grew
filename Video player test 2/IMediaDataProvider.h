@@ -106,8 +106,12 @@ public:
     std::unique_ptr<MediaStream> CurrentVideoStream();
     std::unique_ptr<MediaStream> CurrentAudioStream();
     std::unique_ptr<MediaStream> CurrentSubtitleStream();
+    int CurrentVideoStreamIndex() const;
+    int CurrentAudioStreamIndex() const;
+    int CurrentSubtitleStreamIndex() const;
 protected:
     std::unique_ptr<MediaStream> _CurrentStream(MediaData& mediaData);
+    int _CurrentStreamIndex(const MediaData& mediaData) const;
 protected:
     virtual void _Seek(TimePoint time) = 0;
     virtual void _SetVideoStream(int index, TimePoint time) = 0;

@@ -130,6 +130,26 @@ std::unique_ptr<MediaStream> IMediaDataProvider::_CurrentStream(MediaData& media
     }
 }
 
+int IMediaDataProvider::CurrentVideoStreamIndex() const
+{
+    return _CurrentStreamIndex(_videoData);
+}
+
+int IMediaDataProvider::CurrentAudioStreamIndex() const
+{
+    return _CurrentStreamIndex(_audioData);
+}
+
+int IMediaDataProvider::CurrentSubtitleStreamIndex() const
+{
+    return _CurrentStreamIndex(_subtitleData);
+}
+
+int IMediaDataProvider::_CurrentStreamIndex(const MediaData& mediaData) const
+{
+    return mediaData.currentStream;
+}
+
 std::vector<std::string> IMediaDataProvider::GetAvailableVideoStreams()
 {
     return _GetAvailableStreams(_videoData);
