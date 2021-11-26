@@ -10,20 +10,41 @@
 
 class MediaPlayer
 {
+    struct MediaData
+    {
+        IMediaDecoder* decoder = nullptr;
+        std::unique_ptr<IMediaFrame> currentFrame = nullptr;
+        std::unique_ptr<IMediaFrame> nextFrame = nullptr;
+
+        std::unique_ptr<MediaStream> pendingStream = nullptr;
+        bool expectingStream = false;
+    };
+
     IMediaDataProvider* _dataProvider = nullptr;
 
-    IMediaDecoder* _videoDecoder = nullptr;
-    IMediaDecoder* _audioDecoder = nullptr;
-    IMediaDecoder* _subtitleDecoder = nullptr;
-    std::unique_ptr<VideoFrame> _currentVideoFrame = nullptr;
-    std::unique_ptr<AudioFrame> _currentAudioFrame = nullptr;
-    std::unique_ptr<VideoFrame> _nextVideoFrame = nullptr;
-    std::unique_ptr<AudioFrame> _nextAudioFrame = nullptr;
+    MediaData _videoData;
+    MediaData _audioData;
+    //MediaData _subtitleData;
+
+    //IMediaDecoder* _videoDecoder = nullptr;
+    //IMediaDecoder* _audioDecoder = nullptr;
+    //IMediaDecoder* _subtitleDecoder = nullptr;
+    //std::unique_ptr<VideoFrame> _currentVideoFrame = nullptr;
+    //std::unique_ptr<AudioFrame> _currentAudioFrame = nullptr;
+    //std::unique_ptr<VideoFrame> _nextVideoFrame = nullptr;
+    //std::unique_ptr<AudioFrame> _nextAudioFrame = nullptr;
     //std::unique_ptr<VideoFrame> _nextSubtitleFrame = nullptr;
 
     // Subtitles and video are combined
     std::unique_ptr<IVideoOutputAdapter> _videoOutputAdapter = nullptr;
     std::unique_ptr<IAudioOutputAdapter> _audioOutputAdapter = nullptr;
+
+    //std::unique_ptr<MediaStream> _pendingVideoStream = nullptr;
+    //std::unique_ptr<MediaStream> _pendingAudioStream = nullptr;
+    //std::unique_ptr<MediaStream> _pendingSubtitleStream = nullptr;
+    //bool _expectingVideoStream = false;
+    //bool _expectingAudioStream = false;
+    //bool _expectingSubtitleStream = false;
 
     Clock _playbackTimer;
 
@@ -44,7 +65,7 @@ public:
 
 private:
     // 0 - no packet to pass, 1 - packed passed, 2 - flush packet received
-    int _PassPacket(IMediaDecoder* decoder, MediaPacket packet);
+    int _PassPacket(MediaData& mediaData, MediaPacket packet);
 public:
     void Update(double timeLimit = 0.01666666);
 
@@ -55,6 +76,13 @@ public:
     TimePoint TimerPosition() const;
     void SetVolume(float volume);
     void SetBalance(float balance);
+
+    void SetVideoStream(std::unique_ptr<MediaStream> stream);
+    void SetAudioStream(std::unique_ptr<MediaStream> stream);
+    void SetSubtitleStream(std::unique_ptr<MediaStream> stream);
+private:
+    void _SetStream(MediaData& mediaData, std::unique_ptr<MediaStream> stream);
+public:
 
     // Packets are not being decoded fast enough
     bool Lagging() const;
