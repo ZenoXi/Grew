@@ -22,7 +22,22 @@ MediaPlayer::MediaPlayer(
 
     if (videoStream) _videoData.decoder = new VideoDecoder(*videoStream);
     if (audioStream) _audioData.decoder = new AudioDecoder(*audioStream);
-    if (subtitleStream) _subtitleData.decoder = new SubtitleDecoder(*subtitleStream);
+    if (subtitleStream)
+    {
+        SubtitleDecoder* decoder = new SubtitleDecoder(*subtitleStream);
+        auto fontStreams = _dataProvider->GetFontStreams();
+        std::vector<SubtitleDecoder::FontDesc> fonts;
+        for (auto& stream : fontStreams)
+        {
+            SubtitleDecoder::FontDesc font;
+            font.data = (char*)stream.GetParams()->extradata;
+            font.dataSize = stream.GetParams()->extradata_size;
+            font.name = (char*)"";
+            fonts.push_back(font);
+        }
+        decoder->AddFonts(fonts);
+        _subtitleData.decoder = decoder;
+    }
 
     _recovering = true;
 
@@ -127,7 +142,22 @@ void MediaPlayer::Update(double timeLimit)
                 if (passResult == 2 || passResult == 3) _subtitleData.nextFrame.reset(nullptr);
                 if (passResult == 3)
                 {
-                    if (_subtitleData.pendingStream) _subtitleData.decoder = new SubtitleDecoder(*_subtitleData.pendingStream);
+                    if (_subtitleData.pendingStream)
+                    {
+                        SubtitleDecoder* decoder = new SubtitleDecoder(*_subtitleData.pendingStream);
+                        auto fontStreams = _dataProvider->GetFontStreams();
+                        std::vector<SubtitleDecoder::FontDesc> fonts;
+                        for (auto& stream : fontStreams)
+                        {
+                            SubtitleDecoder::FontDesc font;
+                            font.data = (char*)stream.GetParams()->extradata;
+                            font.dataSize = stream.GetParams()->extradata_size;
+                            font.name = (char*)"";
+                            fonts.push_back(font);
+                        }
+                        decoder->AddFonts(fonts);
+                        _subtitleData.decoder = decoder;
+                    }
                 }
                 packetGot += passResult;
             }
@@ -249,6 +279,7 @@ bool MediaPlayer::TimerRunning() const
 void MediaPlayer::SetTimerPosition(TimePoint time)
 {
     _playbackTimer.SetTime(time);
+    _lastSubtitleRender = time;
 }
 
 TimePoint MediaPlayer::TimerPosition() const
