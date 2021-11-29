@@ -124,6 +124,10 @@ private:
     {
         if (_packet)
         {
+            if (!_packet->buf)
+            {
+                av_free(_packet->data);
+            }
             av_packet_unref(_packet);
             av_packet_free(&_packet);
             _packet = nullptr;

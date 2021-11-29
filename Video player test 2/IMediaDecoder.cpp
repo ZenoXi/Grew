@@ -7,7 +7,8 @@ IMediaDecoder::IMediaDecoder()
 
 IMediaDecoder::~IMediaDecoder()
 {
-
+    ClearPackets();
+    ClearFrames();
 }
 
 bool IMediaDecoder::PacketQueueFull() const
@@ -55,7 +56,11 @@ void IMediaDecoder::ClearPackets()
 void IMediaDecoder::ClearFrames()
 {
     _m_frames.lock();
-    while (!_frames.empty()) _frames.pop();
+    while (!_frames.empty())
+    {
+        delete _frames.front();
+        _frames.pop();
+    }
     _m_frames.unlock();
 }
 

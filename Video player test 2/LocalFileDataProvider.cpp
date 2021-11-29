@@ -200,6 +200,10 @@ void LocalFileDataProvider::_ReadPackets()
                 _AddSubtitlePacket(MediaPacket(packet));
                 packet = av_packet_alloc();
             }
+            else
+            {
+                av_packet_unref(packet);
+            }
         }
         else
         {
