@@ -7,6 +7,8 @@ bool upClicked = false;
 bool downClicked = false;
 bool fClicked = false;
 bool spaceClicked = false;
+bool num1Clicked = false;
+bool num2Clicked = false;
 
 bool ButtonPressed(bool& buttonClicked, int vkCode)
 {
@@ -175,6 +177,16 @@ void PlaybackScene::_Update()
             }
         }
 
+        // Check for stream change
+        if (ButtonPressed(num1Clicked, VK_NUMPAD1))
+        {
+            _controller->SetAudioStream(0);
+        }
+        else if (ButtonPressed(num2Clicked, VK_NUMPAD2))
+        {
+            _controller->SetAudioStream(1);
+        }
+
         // Check for volume commands
         if (ButtonPressed(upClicked, VK_UP))
         {
@@ -241,10 +253,9 @@ ID2D1Bitmap1* PlaybackScene::_Draw(Graphics g)
     if (_mediaPlayer)
     {
         const VideoFrame& videoFrame = _videoAdapter->GetVideoData();
+        const VideoFrame& subtitleFrame = _videoAdapter->GetSubtitleData();
         if (videoFrame.GetWidth() && videoFrame.GetHeight())
         {
-            // Get video frame
-            //const FrameData* fd = _player->GetCurrentFrame();
             D2D1_BITMAP_PROPERTIES props;
             props.dpiX = 96.0f;
             props.dpiY = 96.0f;
@@ -300,6 +311,33 @@ ID2D1Bitmap1* PlaybackScene::_Draw(Graphics g)
             // Draw frame
             g.target->DrawBitmap(frame, destRect, 1.0f, D2D1_INTERPOLATION_MODE_CUBIC, srcRect);
             frame->Release();
+
+            // Apply subtitles
+            if (subtitleFrame.GetWidth() && subtitleFrame.GetHeight())
+            {
+                D2D1_BITMAP_PROPERTIES props;
+                props.dpiX = 96.0f;
+                props.dpiY = 96.0f;
+                props.pixelFormat = D2D1::PixelFormat
+                (
+                    DXGI_FORMAT_B8G8R8A8_UNORM,
+                    D2D1_ALPHA_MODE_PREMULTIPLIED
+                );
+                ID2D1Bitmap* subframe;
+                HRESULT hr = g.target->CreateBitmap
+                (
+                    D2D1::SizeU(subtitleFrame.GetWidth(), subtitleFrame.GetHeight()),
+                    props,
+                    &subframe
+                );
+                D2D1_RECT_U rect = D2D1::RectU(0, 0, subtitleFrame.GetWidth(), subtitleFrame.GetHeight());
+                subframe->CopyFromMemory(&rect, subtitleFrame.GetBytes(), subtitleFrame.GetWidth() * 4);
+
+                srcRect = D2D1::RectF(0.0f, 0.0f, subtitleFrame.GetWidth(), subtitleFrame.GetHeight());
+
+                g.target->DrawBitmap(subframe, destRect, 1.0f, D2D1_INTERPOLATION_MODE_CUBIC, srcRect);
+                subframe->Release();
+            }
         }
     }
 

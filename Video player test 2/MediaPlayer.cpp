@@ -22,7 +22,7 @@ MediaPlayer::MediaPlayer(
 
     if (videoStream) _videoData.decoder = new VideoDecoder(*videoStream);
     if (audioStream) _audioData.decoder = new AudioDecoder(*audioStream);
-    //if (subtitleStream) _subtitleData.decoder = new VideoDecoder(*subtitleStream);
+    if (subtitleStream) _subtitleData.decoder = new SubtitleDecoder(*subtitleStream);
 
     _recovering = true;
 
@@ -34,7 +34,7 @@ MediaPlayer::~MediaPlayer()
 {
     if (_videoData.decoder) delete _videoData.decoder;
     if (_audioData.decoder) delete _audioData.decoder;
-    //if (_subtitleData.decoder) delete _subtitleData.decoder;
+    if (_subtitleData.decoder) delete _subtitleData.decoder;
 }
 
 int MediaPlayer::_PassPacket(MediaData& mediaData, MediaPacket packet)
@@ -118,20 +118,20 @@ void MediaPlayer::Update(double timeLimit)
                 packetGot += passResult;
             }
         }
-        //if (_subtitleData.decoder && !_subtitleData.decoder->Flushing())
-        //{
-        //    if (!_subtitleData.decoder->PacketQueueFull() || _dataProvider->FlushSubtitlePacketNext())
-        //    {
-        //        int passResult = _PassPacket(_subtitleData, _dataProvider->GetSubtitlePacket());
-        //        // See above
-        //        if (passResult == 2 || passResult == 3) _nextSubtitleFrame.reset(nullptr);
-        //        if (passResult == 3)
-        //        {
-        //            if (_subtitleData.pendingStream) _subtitleData.decoder = new SubtitleDecoder(*_subtitleData.pendingStream);
-        //        }
-        //        packetGot += passResult;
-        //    }
-        //}
+        if (_subtitleData.decoder && !_subtitleData.decoder->Flushing())
+        {
+            if (!_subtitleData.decoder->PacketQueueFull() || _dataProvider->FlushSubtitlePacketNext())
+            {
+                int passResult = _PassPacket(_subtitleData, _dataProvider->GetSubtitlePacket());
+                // See above
+                if (passResult == 2 || passResult == 3) _subtitleData.nextFrame.reset(nullptr);
+                if (passResult == 3)
+                {
+                    if (_subtitleData.pendingStream) _subtitleData.decoder = new SubtitleDecoder(*_subtitleData.pendingStream);
+                }
+                packetGot += passResult;
+            }
+        }
         if (packetGot == 0) break;
     }
 
@@ -195,6 +195,15 @@ void MediaPlayer::Update(double timeLimit)
                     _audioOutputAdapter->AddRawData(*currentFrame);
                 }
                 frameAdvanced = true;
+            }
+        }
+        if (_subtitleData.decoder)
+        {
+            if ((_playbackTimer.Now() - _lastSubtitleRender).GetDuration(MILLISECONDS) > 50)
+            {
+                VideoFrame subtitle = ((SubtitleDecoder*)_subtitleData.decoder)->RenderFrame(_playbackTimer.Now());
+                _videoOutputAdapter->SetSubtitleData(subtitle);
+                _lastSubtitleRender = _playbackTimer.Now();
             }
         }
         if (!frameAdvanced)

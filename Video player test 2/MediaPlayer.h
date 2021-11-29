@@ -24,7 +24,9 @@ class MediaPlayer
 
     MediaData _videoData;
     MediaData _audioData;
-    //MediaData _subtitleData;
+    MediaData _subtitleData;
+
+    TimePoint _lastSubtitleRender = 0;
 
     //IMediaDecoder* _videoDecoder = nullptr;
     //IMediaDecoder* _audioDecoder = nullptr;
