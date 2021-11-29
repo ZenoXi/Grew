@@ -7,8 +7,16 @@ bool upClicked = false;
 bool downClicked = false;
 bool fClicked = false;
 bool spaceClicked = false;
+bool num0Clicked = false;
 bool num1Clicked = false;
 bool num2Clicked = false;
+bool num3Clicked = false;
+bool num4Clicked = false;
+bool num5Clicked = false;
+bool num6Clicked = false;
+bool num7Clicked = false;
+bool num8Clicked = false;
+bool num9Clicked = false;
 
 bool ButtonPressed(bool& buttonClicked, int vkCode)
 {
@@ -180,11 +188,39 @@ void PlaybackScene::_Update()
         // Check for stream change
         if (ButtonPressed(num1Clicked, VK_NUMPAD1))
         {
-            _controller->SetAudioStream(0);
+            _controller->SetVideoStream(0);
         }
         else if (ButtonPressed(num2Clicked, VK_NUMPAD2))
         {
+            _controller->SetVideoStream(1);
+        }
+        else if (ButtonPressed(num3Clicked, VK_NUMPAD3))
+        {
+            _controller->SetVideoStream(2);
+        }
+        if (ButtonPressed(num4Clicked, VK_NUMPAD4))
+        {
+            _controller->SetAudioStream(0);
+        }
+        else if (ButtonPressed(num5Clicked, VK_NUMPAD5))
+        {
             _controller->SetAudioStream(1);
+        }
+        else if (ButtonPressed(num6Clicked, VK_NUMPAD6))
+        {
+            _controller->SetAudioStream(2);
+        }
+        if (ButtonPressed(num7Clicked, VK_NUMPAD7))
+        {
+            _controller->SetSubtitleStream(0);
+        }
+        else if (ButtonPressed(num8Clicked, VK_NUMPAD8))
+        {
+            _controller->SetSubtitleStream(1);
+        }
+        else if (ButtonPressed(num9Clicked, VK_NUMPAD9))
+        {
+            _controller->SetSubtitleStream(2);
         }
 
         // Check for volume commands
