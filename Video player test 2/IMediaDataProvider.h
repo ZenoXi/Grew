@@ -126,6 +126,8 @@ public:
     std::vector<std::string> GetAvailableSubtitleStreams();
 private:
     std::vector<std::string> _GetAvailableStreams(MediaData& mediaData);
+public:
+    std::vector<MediaStream> GetFontStreams();
 
 
     // PACKET OUTPUT

@@ -1,5 +1,7 @@
 #include "IMediaDataProvider.h"
 
+#include "Functions.h"
+
 bool IMediaDataProvider::Initializing()
 {
     return _initializing;
@@ -174,6 +176,49 @@ std::vector<std::string> IMediaDataProvider::_GetAvailableStreams(MediaData& med
         streams.push_back("");
     }
     return streams;
+}
+
+std::vector<MediaStream> IMediaDataProvider::GetFontStreams()
+{
+    std::vector<MediaStream> fontStreams;
+
+    // Search attachment streams
+    for (auto& stream : _attachmentStreams)
+    {
+        bool isFont = false;
+        for (auto& data : stream.metadata)
+        {
+            if (data.key == "filename")
+            {
+                std::vector<std::string> split;
+                split_str(data.value, split, '.');
+                if (!split.empty())
+                {
+                    std::string value = to_lowercase(split.back());
+                    if (value == "ttf") { isFont = true; break; }
+                    else if (value == "otf") { isFont = true; break; }
+                }
+            }
+            else if (data.key == "mimetype")
+            {
+                // This list will likely grow in the future, this is just a naive implementation
+                if (data.value == "application/vnd.ms-opentype") { isFont = true; break; }
+                else if (data.value == "application/x-truetype-font") { isFont = true; break; }
+                else if (data.value == "application/font-sfnt") { isFont = true; break; }
+                else if (data.value == "application/font-woff") { isFont = true; break; }
+                else if (data.value == "application/font-woff2") { isFont = true; break; }
+                else if (data.value == "application/x-font-truetype") { isFont = true; break; }
+                else if (data.value == "application/x-font-opentype") { isFont = true; break; }
+            }
+        }
+        if (isFont) fontStreams.push_back(stream);
+    }
+
+    // Search data streams
+
+    // Search unknown streams
+
+    return fontStreams;
 }
 
 size_t IMediaDataProvider::VideoPacketCount() const
