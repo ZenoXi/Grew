@@ -6,9 +6,9 @@ SubtitleDecoder::SubtitleDecoder(const MediaStream& stream)
     _library = ass_library_init();
     _renderer = ass_renderer_init(_library);
     _track = ass_new_track(_library);
-    ass_set_frame_size(_renderer, 1920, 1080);
-    ass_set_fonts(_renderer, NULL, "sans-serif", ASS_FONTPROVIDER_AUTODETECT, NULL, 1);
     ass_process_data(_track, (char*)_stream.GetParams()->extradata, _stream.GetParams()->extradata_size);
+    ass_set_frame_size(_renderer, _track->PlayResX, _track->PlayResY);
+    ass_set_fonts(_renderer, NULL, "sans-serif", ASS_FONTPROVIDER_AUTODETECT, NULL, 1);
 
     //AVCodec* codec = avcodec_find_decoder(stream.GetParams()->codec_id);
     //_codecContext = avcodec_alloc_context3(codec);
@@ -52,9 +52,12 @@ void SubtitleDecoder::_DecoderThread()
             //int gotSub;
             //while (avcodec_decode_subtitle2(_codecContext, &sub, &gotSub, flushPkt) >= 0);
             //avcodec_flush_buffers(_codecContext);
+
+            std::unique_lock<std::mutex> lock(_m_ass);
             ass_free_track(_track);
             _track = ass_new_track(_library);
             ass_process_data(_track, (char*)_stream.GetParams()->extradata, _stream.GetParams()->extradata_size);
+            lock.unlock();
 
             ClearFrames();
             ClearPackets();
@@ -89,7 +92,9 @@ void SubtitleDecoder::_DecoderThread()
         int64_t timestamp = av_rescale_q(packet.GetPacket()->pts, _timebase, { 1, AV_TIME_BASE });
         int64_t duration = av_rescale_q(packet.GetPacket()->duration, _timebase, { 1, AV_TIME_BASE });
 
+        std::unique_lock<std::mutex> lock(_m_ass);
         ass_process_chunk(_track, (char*)packet.GetPacket()->data, packet.GetPacket()->size, timestamp / 1000, duration / 1000);
+        lock.unlock();
         //for (int i = 0; i < sub.num_rects; i++)
         //{
         //    ass_process_chunk(_track, sub.rects[i]->ass, strlen(sub.rects[i]->ass), timestamp / 1000, duration / 1000);
@@ -184,9 +189,27 @@ void Blend(VideoFrame* frame, ASS_Image* img)
 
 VideoFrame SubtitleDecoder::RenderFrame(TimePoint time)
 {
+    std::unique_lock<std::mutex> lock(_m_ass);
     ASS_Image* img = ass_render_frame(_renderer, _track, time.GetTime(MILLISECONDS), NULL);
+    lock.unlock();
+
     VideoFrame vf = VideoFrame(_track->PlayResX, _track->PlayResY, time.GetTime(MICROSECONDS));
     std::fill_n((uchar*)vf.GetBytes(), vf.GetWidth() * vf.GetHeight() * 4, 0);
     Blend(&vf, img);
     return vf;
+}
+
+void SubtitleDecoder::AddFonts(const std::vector<FontDesc>& fonts)
+{
+    std::unique_lock<std::mutex> lock(_m_ass);
+
+    for (auto& font : fonts)
+    {
+        ass_add_font(_library, font.name, font.data, font.dataSize);
+    }
+    // Reset renderer
+    ass_renderer_done(_renderer);
+    _renderer = ass_renderer_init(_library);
+    ass_set_frame_size(_renderer, _track->PlayResX, _track->PlayResY);
+    ass_set_fonts(_renderer, NULL, "sans-serif", ASS_FONTPROVIDER_AUTODETECT, NULL, 1);
 }

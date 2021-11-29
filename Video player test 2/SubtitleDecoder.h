@@ -17,15 +17,25 @@ class SubtitleDecoder : public IMediaDecoder
     ASS_Library* _library = nullptr;
     ASS_Renderer* _renderer = nullptr;
     ASS_Track* _track = nullptr;
+    std::mutex _m_ass;
 
     MediaStream _stream;
 
     std::thread _renderingThread;
 
 public:
+    struct FontDesc
+    {
+        char* name;
+        char* data;
+        size_t dataSize;
+    };
+
     SubtitleDecoder(const MediaStream& stream);
     ~SubtitleDecoder();
     VideoFrame RenderFrame(TimePoint time);
+    void AddFonts(const std::vector<FontDesc>& fonts);
+
 
 private:
     void _DecoderThread();
