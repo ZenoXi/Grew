@@ -59,6 +59,8 @@ void BasePlaybackController::SetBalance(float balance, bool bounded)
 
 void BasePlaybackController::Seek(TimePoint time)
 {
+    if (_player->Waiting()) return;
+
     if (time.GetTime() < 0) time.SetTime(0);
     else
     {
@@ -71,12 +73,15 @@ void BasePlaybackController::Seek(TimePoint time)
 
     _player->StopTimer();
     _player->SetTimerPosition(time);
+    _player->WaitDiscontinuity();
     _dataProvider->Seek(time);
     _loading = true;
 }
 
 void BasePlaybackController::SetVideoStream(int index)
 {
+    if (_player->Waiting()) return;
+
     _player->StopTimer();
     _player->SetVideoStream(_dataProvider->SetVideoStream(index, _player->TimerPosition()));
     _currentVideoStream = index;
@@ -85,6 +90,8 @@ void BasePlaybackController::SetVideoStream(int index)
 
 void BasePlaybackController::SetAudioStream(int index)
 {
+    if (_player->Waiting()) return;
+
     _player->StopTimer();
     _player->SetAudioStream(_dataProvider->SetAudioStream(index, _player->TimerPosition()));
     _currentAudioStream = index;
@@ -93,6 +100,8 @@ void BasePlaybackController::SetAudioStream(int index)
 
 void BasePlaybackController::SetSubtitleStream(int index)
 {
+    if (_player->Waiting()) return;
+
     _player->StopTimer();
     _player->SetSubtitleStream(_dataProvider->SetSubtitleStream(index, _player->TimerPosition()));
     _currentSubtitleStream = index;
