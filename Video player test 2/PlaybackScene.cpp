@@ -278,6 +278,10 @@ void PlaybackScene::_Update()
             _seekBar->SetDuration(_dataProvider->MediaDuration());
             _volumeSlider->SetVolume(_controller->GetVolume());
         }
+        if (_dataProvider->InitFailed())
+        {
+            std::cout << "DATA PROVIDER INIT FAILED" << std::endl;
+        }
     }
 
     // Update UI
