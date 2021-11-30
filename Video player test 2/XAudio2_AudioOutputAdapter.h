@@ -189,8 +189,10 @@ public:
         {
             _cyclesSinceLastCorrection = 0;
 
-            // Add a silent chunk
-            size_t sampleCount = (currentOffset * (int64_t)frame.GetSampleRate()) / (int64_t)1000000;
+            // Add a silent chunk (up to 100ms)
+            int64_t chunkDuration = currentOffset;
+            if (chunkDuration > 100000) chunkDuration = 100000;
+            size_t sampleCount = (chunkDuration * (int64_t)frame.GetSampleRate()) / (int64_t)1000000;
             size_t chunkSize = sampleCount * frame.GetChannelCount() * 2;
 
             //18,446,744,073,709,551,615
@@ -205,9 +207,9 @@ public:
             // Setup callback
             VoiceCallback::BufferContext* bCtx = new VoiceCallback::BufferContext();
             bCtx->timestamp = frame.GetTimestamp();
-            bCtx->sampleDuration = currentOffset;
+            bCtx->sampleDuration = chunkDuration;
             bCtx->data = dataBytes; // Callback will delete this pointer after finishing playback
-            int64_t correction = -currentOffset;
+            int64_t correction = -chunkDuration;
             bCtx->correction = correction;
             // Add correction offset
             _offsetCorrection += correction;
@@ -215,7 +217,7 @@ public:
 
             _sourceVoice->SubmitSourceBuffer(&buffer);
 
-            std::cout << "[XAudio2_AudioOuptutAdapter] SYNC: Added silent chunk of length " << currentOffset << std::endl;
+            std::cout << "[XAudio2_AudioOuptutAdapter] SYNC: Added silent chunk of length " << chunkDuration << "us" << std::endl;
         }
         // Audio is behind
         else if (currentOffset < -_offsetTolerance && _cyclesSinceLastCorrection >= 60)
@@ -253,7 +255,7 @@ public:
 
         if (correction != 0)
         {
-            std::cout << "[XAudio2_AudioOuptutAdapter] SYNC: Cut chunk of length " << correction << std::endl;
+            std::cout << "[XAudio2_AudioOuptutAdapter] SYNC: Cut chunk of length " << correction << "us" << std::endl;
         }
 
         _sourceVoice->SubmitSourceBuffer(&buffer);
