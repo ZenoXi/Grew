@@ -76,18 +76,22 @@ void LocalFileDataProvider::_SetSubtitleStream(int index, TimePoint time)
 
 void LocalFileDataProvider::_Initialize()
 {
+    std::cout << "Init started.." << std::endl;
+
     // Open file
     _avfContext = avformat_alloc_context();
     if (!_avfContext)
     {
         _initFailed = true;
         _initializing = false;
+        std::cout << "Init failed." << std::endl;
         return;
     }
     if (avformat_open_input(&_avfContext, _filename.c_str(), NULL, NULL) != 0)
     {
         _initFailed = true;
         _initializing = false;
+        std::cout << "Init failed." << std::endl;
         return;
     }
 
@@ -109,6 +113,7 @@ void LocalFileDataProvider::_Initialize()
     {
         _initFailed = true;
         _initializing = false;
+        std::cout << "Init failed." << std::endl;
         return;
     }
 
@@ -117,6 +122,8 @@ void LocalFileDataProvider::_Initialize()
     if (!_subtitleData.streams.empty()) _subtitleData.currentStream = 0;
 
     _initializing = false;
+
+    std::cout << "Init success!" << std::endl;
 }
 
 void LocalFileDataProvider::_ReadPackets()
