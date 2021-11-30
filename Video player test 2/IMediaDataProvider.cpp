@@ -334,6 +334,11 @@ void IMediaDataProvider::_AddPacket(MediaData& mediaData, MediaPacket packet)
     mediaData.packets.push_back(std::move(packet));
 }
 
+void IMediaDataProvider::_AddFlushPackets()
+{
+    
+}
+
 void IMediaDataProvider::_ClearVideoPackets()
 {
     _ClearPackets(_videoData);

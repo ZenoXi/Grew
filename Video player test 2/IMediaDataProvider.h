@@ -152,6 +152,8 @@ protected:
     void _AddVideoPacket(MediaPacket packet);
     void _AddAudioPacket(MediaPacket packet);
     void _AddSubtitlePacket(MediaPacket packet);
+    // A stub for now.
+    void _AddFlushPackets();
     void _ClearVideoPackets();
     void _ClearAudioPackets();
     void _ClearSubtitlePackets();
