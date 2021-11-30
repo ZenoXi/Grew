@@ -53,7 +53,7 @@ class MediaPlayer
     bool _lagging = false;
     bool _buffering = false;
     bool _skipping = false;
-
+    bool _waiting = false;
     bool _recovering = false;
     bool _recovered = false;
 
@@ -75,6 +75,7 @@ public:
     void StopTimer();
     bool TimerRunning() const;
     void SetTimerPosition(TimePoint time);
+    void WaitDiscontinuity();
     TimePoint TimerPosition() const;
     void SetVolume(float volume);
     void SetBalance(float balance);
@@ -92,6 +93,8 @@ public:
     bool Buffering() const;
     // Frames are being skipped to catch up to the timer (usually after seeking/changing streams)
     bool Skipping() const;
+    // The player is waiting for flush packets; Avoid seeking/changing streams
+    bool Waiting() const;
 
     // After a flush packet is received, the player enters recovery mode until
     // all streams have caught up to the timer. Then this function will return

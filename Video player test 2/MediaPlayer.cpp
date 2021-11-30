@@ -59,6 +59,7 @@ int MediaPlayer::_PassPacket(MediaData& mediaData, MediaPacket packet)
     {
         _recovering = true;
         _recovered = false;
+        _waiting = false;
         if (mediaData.expectingStream)
         {
             std::cout << "Decoder reset\n";
@@ -110,7 +111,7 @@ void MediaPlayer::Update(double timeLimit)
             {
                 int passResult = _PassPacket(_videoData, _dataProvider->GetVideoPacket());
                 // If flushing, clear the stored next frame to prevent
-                // frames with lower timestamps after flush getting stuck
+                // frames with lower timestamps getting stuck
                 if (passResult == 2 || passResult == 3) _videoData.nextFrame.reset(nullptr);
                 if (passResult == 3)
                 {
@@ -171,11 +172,11 @@ void MediaPlayer::Update(double timeLimit)
         if (TimeExceeded(funcTimer, timeLimit)) break;
 
         // Get next frames
-        if (_videoData.decoder && !_videoData.nextFrame)
+        if (_videoData.decoder && !_videoData.decoder->Flushing() && !_videoData.nextFrame)
         {
             _videoData.nextFrame.reset(_videoData.decoder->GetFrame().release());
         }
-        if (_audioData.decoder && !_audioData.nextFrame)
+        if (_audioData.decoder && !_audioData.decoder->Flushing() && !_audioData.nextFrame)
         {
             _audioData.nextFrame.reset(_audioData.decoder->GetFrame().release());
         }
@@ -240,7 +241,7 @@ void MediaPlayer::Update(double timeLimit)
         {
             if ((_videoData.nextFrame || !_videoData.decoder) &&
                 (_audioData.nextFrame || !_audioData.decoder) &&
-                _recovering)
+                _recovering && !_waiting)
             {
                 _recovering = false;
                 _recovered = true;
@@ -280,6 +281,11 @@ void MediaPlayer::SetTimerPosition(TimePoint time)
 {
     _playbackTimer.SetTime(time);
     _lastSubtitleRender = time;
+}
+
+void MediaPlayer::WaitDiscontinuity()
+{
+    _waiting = true;
 }
 
 TimePoint MediaPlayer::TimerPosition() const
@@ -331,6 +337,11 @@ bool MediaPlayer::Buffering() const
 bool MediaPlayer::Skipping() const
 {
     return _skipping;
+}
+
+bool MediaPlayer::Waiting() const
+{
+    return _waiting;
 }
 
 bool MediaPlayer::Recovered()
