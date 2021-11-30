@@ -309,7 +309,7 @@ void MediaPlayer::SetAudioStream(std::unique_ptr<MediaStream> stream)
 
 void MediaPlayer::SetSubtitleStream(std::unique_ptr<MediaStream> stream)
 {
-    //_SetStream(_subtitleData, std::move(stream));
+    _SetStream(_subtitleData, std::move(stream));
 }
 
 void MediaPlayer::_SetStream(MediaData& mediaData, std::unique_ptr<MediaStream> stream)

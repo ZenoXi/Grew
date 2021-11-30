@@ -23,7 +23,7 @@ SubtitleDecoder::SubtitleDecoder(const MediaStream& stream)
 
     // Start decoding and rendering threads
     _decoderThread = std::thread(&SubtitleDecoder::_DecoderThread, this);
-    _renderingThread = std::thread(&SubtitleDecoder::_RenderingThread, this);
+    //_renderingThread = std::thread(&SubtitleDecoder::_RenderingThread, this);
 }
 
 SubtitleDecoder::~SubtitleDecoder()
