@@ -185,7 +185,22 @@ void AudioDecoder::_DecoderThread()
 
 void ConvertU8Chunk(AudioChunkData data)
 {
-    return;
+    static constexpr int16_t num = std::numeric_limits<int16_t>::max();
+    static constexpr int16_t den = std::numeric_limits<int8_t>::max();
+    static constexpr int16_t ratio = num / den;
+
+    int curPos = 0;
+    for (int i = 0; i < data.frame->nb_samples; i++)
+    {
+        for (int ch = 0; ch < data.frame->channels; ch++)
+        {
+            uint8_t uval = *(uint8_t*)(data.frame->data[0] + data.bytesPerSample * data.frame->channels * i + data.bytesPerSample * ch);
+            int8_t sval = (int8_t)(uval - 128);
+            int16_t value = (int16_t)(sval * ratio);
+            *(int16_t*)(data.outputData + curPos) = value;
+            curPos += 2;
+        }
+    }
 }
 
 void ConvertS16Chunk(AudioChunkData data)
@@ -199,38 +214,108 @@ void ConvertS16Chunk(AudioChunkData data)
 
 void ConvertS32Chunk(AudioChunkData data)
 {
-    return;
+    static constexpr int32_t num = std::numeric_limits<int32_t>::max();
+    static constexpr int32_t den = std::numeric_limits<int16_t>::max();
+    static constexpr int32_t ratio = num / den;
+
+    int curPos = 0;
+    for (int i = 0; i < data.frame->nb_samples; i++)
+    {
+        for (int ch = 0; ch < data.frame->channels; ch++)
+        {
+            int32_t val = *(int32_t*)(data.frame->data[0] + data.bytesPerSample * data.frame->channels * i + data.bytesPerSample * ch);
+            int16_t value = (int16_t)(val / ratio);
+            *(int16_t*)(data.outputData + curPos) = value;
+            curPos += 2;
+        }
+    }
 }
 
 void ConvertFLTChunk(AudioChunkData data)
 {
-    //float val = *(float*)(data);
-    //if (val < -1.0f) val = -1.0f;
-    //else if (val > 1.0f) val = 1.0f;
-    //return (int16_t)(val * 32767.0f);
+    int curPos = 0;
+    for (int i = 0; i < data.frame->nb_samples; i++)
+    {
+        for (int ch = 0; ch < data.frame->channels; ch++)
+        {
+            float val = *(float*)(data.frame->data[0] + data.bytesPerSample * data.frame->channels * i + data.bytesPerSample * ch);
+            if (val < -1.0f) val = -1.0f;
+            else if (val > 1.0f) val = 1.0f;
+            int16_t value = (int16_t)(val * 32767.0f);
+            *(int16_t*)(data.outputData + curPos) = value;
+            curPos += 2;
+        }
+    }
 }
 
 void ConvertDBLChunk(AudioChunkData data)
 {
-    //double val = *(double*)(data);
-    //if (val < -1.0) val = -1.0;
-    //else if (val > 1.0) val = 1.0;
-    //return (int16_t)(val * 32767.0);
+    int curPos = 0;
+    for (int i = 0; i < data.frame->nb_samples; i++)
+    {
+        for (int ch = 0; ch < data.frame->channels; ch++)
+        {
+            double val = *(double*)(data.frame->data[0] + data.bytesPerSample * data.frame->channels * i + data.bytesPerSample * ch);
+            if (val < -1.0) val = -1.0;
+            else if (val > 1.0) val = 1.0;
+            int16_t value = (int16_t)(val * 32767.0);
+            *(int16_t*)(data.outputData + curPos) = value;
+            curPos += 2;
+        }
+    }
 }
 
 void ConvertU8PlanarChunk(AudioChunkData data)
 {
-    return;
+    static constexpr int16_t num = std::numeric_limits<int16_t>::max();
+    static constexpr int16_t den = std::numeric_limits<int8_t>::max();
+    static constexpr int16_t ratio = num / den;
+
+    int curPos = 0;
+    for (int i = 0; i < data.frame->nb_samples; i++)
+    {
+        for (int ch = 0; ch < data.frame->channels; ch++)
+        {
+            uint8_t uval = *(uint8_t*)(data.frame->data[ch] + data.bytesPerSample * i);
+            int8_t sval = (int8_t)(uval - 128);
+            int16_t value = (int16_t)(sval * ratio);
+            *(int16_t*)(data.outputData + curPos) = value;
+            curPos += 2;
+        }
+    }
 }
 
 void ConvertS16PlanarChunk(AudioChunkData data)
 {
-    return;
+    int curPos = 0;
+    for (int i = 0; i < data.frame->nb_samples; i++)
+    {
+        for (int ch = 0; ch < data.frame->channels; ch++)
+        {
+            int16_t val = *(int16_t*)(data.frame->data[ch] + data.bytesPerSample * i);
+            *(int16_t*)(data.outputData + curPos) = val;
+            curPos += 2;
+        }
+    }
 }
 
 void ConvertS32PlanarChunk(AudioChunkData data)
 {
-    return;
+    static constexpr int32_t num = std::numeric_limits<int32_t>::max();
+    static constexpr int32_t den = std::numeric_limits<int16_t>::max();
+    static constexpr int32_t ratio = num / den;
+
+    int curPos = 0;
+    for (int i = 0; i < data.frame->nb_samples; i++)
+    {
+        for (int ch = 0; ch < data.frame->channels; ch++)
+        {
+            int32_t val = *(int32_t*)(data.frame->data[ch] + data.bytesPerSample * i);
+            int16_t value = (int16_t)(val / ratio);
+            *(int16_t*)(data.outputData + curPos) = value;
+            curPos += 2;
+        }
+    }
 }
 
 void ConvertFLTPlanarChunk(AudioChunkData data)
@@ -248,10 +333,6 @@ void ConvertFLTPlanarChunk(AudioChunkData data)
             curPos += 2;
         }
     }
-    //float val = *(float*)(data);
-    //if (val < -1.0f) val = -1.0f;
-    //else if (val > 1.0f) val = 1.0f;
-    //return (int16_t)(val * 32767.0f);
 }
 
 void ConvertDBLPlanarChunk(AudioChunkData data)
