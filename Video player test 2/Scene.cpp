@@ -3,7 +3,7 @@
 
 Scene::Scene()
 {
-    _canvas = new Canvas(App::Instance()->window.width, App::Instance()->window.height);
+    _canvas = new zcom::Canvas(App::Instance()->window.width, App::Instance()->window.height);
 }
 
 Scene::~Scene()
@@ -14,6 +14,7 @@ Scene::~Scene()
 void Scene::Init(const SceneOptionsBase* options)
 {
     App::Instance()->mouseManager.AddHandler(_canvas);
+    App::Instance()->keyboardManager.AddHandler(_canvas);
     _canvas->Resize(App::Instance()->window.width, App::Instance()->window.height);
     _Init(options);
 }
@@ -21,6 +22,7 @@ void Scene::Init(const SceneOptionsBase* options)
 void Scene::Uninit()
 {
     App::Instance()->mouseManager.RemoveHandler(_canvas);
+    App::Instance()->keyboardManager.RemoveHandler(_canvas);
     _Uninit();
 }
 

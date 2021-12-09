@@ -5,205 +5,213 @@
 
 #include <iostream>
 
-class BottomControlPanel : public ComponentBase
+namespace zcom
 {
+    class BottomControlPanel : public Base
+    {
 #pragma region base_class
-private:
-    void _OnUpdate()
-    {
-        if (_hanging)
+    private:
+        void _OnUpdate()
         {
-            if ((ztime::Main() - _mouseLeaveTime).GetDuration() / 1000000.0f > _hangDuration)
+            if (_hanging)
             {
-                _hanging = false;
-                _fading = true;
-                _fadeStartTime = ztime::Main();
-                _startOpacity = GetOpacity();
-                _targetOpacity = 0.0f;
+                if ((ztime::Main() - _mouseLeaveTime).GetDuration() / 1000000.0f > _hangDuration)
+                {
+                    _hanging = false;
+                    _fading = true;
+                    _fadeStartTime = ztime::Main();
+                    _startOpacity = GetOpacity();
+                    _targetOpacity = 0.0f;
+                }
+            }
+
+            if (_fading)
+            {
+                float progress = (ztime::Main() - _fadeStartTime).GetDuration() / (1000000.0f * _fadeDuration);
+                if (progress >= 1.0f)
+                {
+                    _fading = false;
+                    SetOpacity(_targetOpacity);
+                }
+                else
+                {
+                    SetOpacity(_startOpacity + (_targetOpacity - _startOpacity) * progress);
+                }
             }
         }
 
-        if (_fading)
+        void _OnDraw(Graphics g)
         {
-            float progress = (ztime::Main() - _fadeStartTime).GetDuration() / (1000000.0f * _fadeDuration);
-            if (progress >= 1.0f)
+            g.target->Clear();
+            g.target->DrawBitmap(
+                _panel->Draw(g),
+                D2D1::RectF(
+                    _panel->GetX(),
+                    _panel->GetY(),
+                    _panel->GetX() + _panel->GetWidth(),
+                    _panel->GetY() + _panel->GetHeight()
+                ),
+                _panel->GetOpacity()
+            );
+        }
+
+        void _OnResize(int width, int height)
+        {
+            int newWidth = (int)std::round(GetWidth() * _panel->GetParentWidthPercent()) + _panel->GetBaseWidth();
+            int newHeight = (int)std::round(GetHeight() * _panel->GetParentHeightPercent()) + _panel->GetBaseHeight();
+            // SetSize does limit checking so the resulting size and newWidth/newHeight can mismatch
+            _panel->SetSize(newWidth, newHeight);
+
+            int newPosX = 0;
+            if (_panel->GetHorizontalAlignment() == Alignment::START)
             {
-                _fading = false;
-                SetOpacity(_targetOpacity);
+                newPosX += std::round((GetWidth() - _panel->GetWidth()) * _panel->GetHorizontalOffsetPercent());
             }
-            else
+            else if (_panel->GetHorizontalAlignment() == Alignment::END)
             {
-                SetOpacity(_startOpacity + (_targetOpacity - _startOpacity) * progress);
+                newPosX = GetWidth() - _panel->GetWidth();
+                newPosX -= std::round((GetWidth() - _panel->GetWidth()) * _panel->GetHorizontalOffsetPercent());
             }
+            newPosX += _panel->GetHorizontalOffsetPixels();
+            // Alternative (no branching):
+            // int align = item->GetHorizontalAlignment() == Alignment::END;
+            // newPosX += align * (_width - item->GetWidth());
+            // newPosX += (-1 * align) * std::round((_width - item->GetWidth()) * item->GetHorizontalOffsetPercent());
+            // newPosX += item->GetHorizontalOffsetPixels();
+            int newPosY = 0;
+            if (_panel->GetVerticalAlignment() == Alignment::START)
+            {
+                newPosY += std::round((GetHeight() - _panel->GetHeight()) * _panel->GetVerticalOffsetPercent());
+            }
+            else if (_panel->GetVerticalAlignment() == Alignment::END)
+            {
+                newPosY = GetHeight() - _panel->GetHeight();
+                newPosY -= std::round((GetHeight() - _panel->GetHeight()) * _panel->GetVerticalOffsetPercent());
+            }
+            newPosY += _panel->GetVerticalOffsetPixels();
+            _panel->SetPosition(newPosX, newPosY);
+
+            _panel->Resize(_panel->GetWidth(), _panel->GetHeight());
+            //_panel->Resize(width, height);
         }
-    }
 
-    void _OnDraw(Graphics g)
-    {
-        g.target->Clear();
-        g.target->DrawBitmap(
-            _panel->Draw(g),
-            D2D1::RectF(
-                _panel->GetX(),
-                _panel->GetY(),
-                _panel->GetX() + _panel->GetWidth(),
-                _panel->GetY() + _panel->GetHeight()
-            ),
-            _panel->GetOpacity()
-        );
-    }
-
-    void _OnResize(int width, int height)
-    {
-        int newWidth = (int)std::round(GetWidth() * _panel->GetParentWidthPercent()) + _panel->GetBaseWidth();
-        int newHeight = (int)std::round(GetHeight() * _panel->GetParentHeightPercent()) + _panel->GetBaseHeight();
-        // SetSize does limit checking so the resulting size and newWidth/newHeight can mismatch
-        _panel->SetSize(newWidth, newHeight);
-
-        int newPosX = 0;
-        if (_panel->GetHorizontalAlignment() == Alignment::START)
+        Base* _OnMouseMove(int x, int y)
         {
-            newPosX += std::round((GetWidth() - _panel->GetWidth()) * _panel->GetHorizontalOffsetPercent());
+            return _panel->OnMouseMove(x, y);
         }
-        else if (_panel->GetHorizontalAlignment() == Alignment::END)
+
+        void _OnMouseLeave()
         {
-            newPosX = GetWidth() - _panel->GetWidth();
-            newPosX -= std::round((GetWidth() - _panel->GetWidth()) * _panel->GetHorizontalOffsetPercent());
+            _panel->OnMouseLeave();
+
+            _hanging = true;
+            _mouseLeaveTime = ztime::Main();
         }
-        newPosX += _panel->GetHorizontalOffsetPixels();
-        // Alternative (no branching):
-        // int align = item->GetHorizontalAlignment() == Alignment::END;
-        // newPosX += align * (_width - item->GetWidth());
-        // newPosX += (-1 * align) * std::round((_width - item->GetWidth()) * item->GetHorizontalOffsetPercent());
-        // newPosX += item->GetHorizontalOffsetPixels();
-        int newPosY = 0;
-        if (_panel->GetVerticalAlignment() == Alignment::START)
+
+        void _OnMouseEnter()
         {
-            newPosY += std::round((GetHeight() - _panel->GetHeight()) * _panel->GetVerticalOffsetPercent());
+            _panel->OnMouseEnter();
+
+            _hanging = false;
+            _fading = true;
+            _fadeStartTime = ztime::Main();
+            _startOpacity = GetOpacity();
+            _targetOpacity = 1.0f;
         }
-        else if (_panel->GetVerticalAlignment() == Alignment::END)
+
+        Base* _OnLeftPressed(int x, int y)
         {
-            newPosY = GetHeight() - _panel->GetHeight();
-            newPosY -= std::round((GetHeight() - _panel->GetHeight()) * _panel->GetVerticalOffsetPercent());
+            return _panel->OnLeftPressed(x, y);
         }
-        newPosY += _panel->GetVerticalOffsetPixels();
-        _panel->SetPosition(newPosX, newPosY);
 
-        _panel->Resize(_panel->GetWidth(), _panel->GetHeight());
-        //_panel->Resize(width, height);
-    }
-
-    ComponentBase* _OnMouseMove(int x, int y)
-    {
-        return _panel->OnMouseMove(x, y);
-    }
-
-    void _OnMouseLeave()
-    {
-        _panel->OnMouseLeave();
-
-        _hanging = true;
-        _mouseLeaveTime = ztime::Main();
-    }
-
-    void _OnMouseEnter()
-    {
-        _panel->OnMouseEnter();
-
-        _hanging = false;
-        _fading = true;
-        _fadeStartTime = ztime::Main();
-        _startOpacity = GetOpacity();
-        _targetOpacity = 1.0f;
-    }
-
-    ComponentBase* _OnLeftPressed(int x, int y)
-    {
-        return _panel->OnLeftPressed(x, y);
-    }
-
-    ComponentBase* _OnLeftReleased(int x, int y)
-    {
-        return _panel->OnLeftReleased(x, y);
-    }
-
-    ComponentBase* _OnRightPressed(int x, int y)
-    {
-        return _panel->OnRightPressed(x, y);
-    }
-
-    ComponentBase* _OnRightReleased(int x, int y)
-    {
-        return _panel->OnRightReleased(x, y);
-    }
-
-    ComponentBase* _OnWheelUp(int x, int y)
-    {
-        return _panel->OnWheelUp(x, y);
-    }
-
-    ComponentBase* _OnWheelDown(int x, int y)
-    {
-        return _panel->OnWheelDown(x, y);
-    }
-
-public:
-    std::list<ComponentBase*> GetChildren()
-    {
-        std::list<ComponentBase*> children;
-        children.push_back(_panel);
-        return children;
-    }
-
-    std::list<ComponentBase*> GetAllChildren()
-    {
-        std::list<ComponentBase*> children;
-        children.push_back(_panel);
-        auto panelChildren = _panel->GetAllChildren();
-        if (!panelChildren.empty())
+        Base* _OnLeftReleased(int x, int y)
         {
-            children.insert(children.end(), panelChildren.begin(), panelChildren.end());
+            return _panel->OnLeftReleased(x, y);
         }
-        return children;
-    }
 
-    const char* GetName() const { return "bottom_control_panel"; }
+        Base* _OnRightPressed(int x, int y)
+        {
+            return _panel->OnRightPressed(x, y);
+        }
+
+        Base* _OnRightReleased(int x, int y)
+        {
+            return _panel->OnRightReleased(x, y);
+        }
+
+        Base* _OnWheelUp(int x, int y)
+        {
+            return _panel->OnWheelUp(x, y);
+        }
+
+        Base* _OnWheelDown(int x, int y)
+        {
+            return _panel->OnWheelDown(x, y);
+        }
+
+    public:
+        std::list<Base*> GetChildren()
+        {
+            std::list<Base*> children;
+            children.push_back(_panel);
+            return children;
+        }
+
+        std::list<Base*> GetAllChildren()
+        {
+            std::list<Base*> children;
+            children.push_back(_panel);
+            auto panelChildren = _panel->GetAllChildren();
+            if (!panelChildren.empty())
+            {
+                children.insert(children.end(), panelChildren.begin(), panelChildren.end());
+            }
+            return children;
+        }
+
+        Base* IterateTab()
+        {
+            return _panel->IterateTab();
+        }
+
+        const char* GetName() const { return "bottom_control_panel"; }
 #pragma endregion
 
-private:
-    ComponentBase* _panel = nullptr;
+    private:
+        Base* _panel = nullptr;
 
-    TimePoint _mouseLeaveTime;
-    bool _hanging;
-    float _hangDuration = 2.0f;
+        TimePoint _mouseLeaveTime;
+        bool _hanging;
+        float _hangDuration = 2.0f;
 
-    TimePoint _fadeStartTime;
-    float _targetOpacity;
-    float _startOpacity;
-    bool _fading;
-    float _fadeDuration = 0.1f;
+        TimePoint _fadeStartTime;
+        float _targetOpacity;
+        float _startOpacity;
+        bool _fading;
+        float _fadeDuration = 0.1f;
 
-public:
-    BottomControlPanel(ComponentBase* panel) : _panel(panel)
-    {
-        SetOpacity(0.0f);
-        //Resize();
+    public:
+        BottomControlPanel(Base* panel) : _panel(panel)
+        {
+            SetOpacity(0.0f);
+            //Resize();
 
-        _hanging = false;
-        _fading = false;
-    }
-    ~BottomControlPanel() {}
-    BottomControlPanel(BottomControlPanel&&) = delete;
-    BottomControlPanel& operator=(BottomControlPanel&&) = delete;
-    BottomControlPanel(const BottomControlPanel&) = delete;
-    BottomControlPanel& operator=(const BottomControlPanel&) = delete;
+            _hanging = false;
+            _fading = false;
+        }
+        ~BottomControlPanel() {}
+        BottomControlPanel(BottomControlPanel&&) = delete;
+        BottomControlPanel& operator=(BottomControlPanel&&) = delete;
+        BottomControlPanel(const BottomControlPanel&) = delete;
+        BottomControlPanel& operator=(const BottomControlPanel&) = delete;
 
-    void Resize()
-    {
-        //SetWidth(_panel->GetWidth());
-        //SetHeight(_panel->GetHeight());
-        //SetX(_panel->GetX());
-        //SetY(_panel->GetY());
-        //_panel->SetPosition(0, 0);
-    }
-};
+        void Resize()
+        {
+            //SetWidth(_panel->GetWidth());
+            //SetHeight(_panel->GetHeight());
+            //SetX(_panel->GetX());
+            //SetY(_panel->GetY());
+            //_panel->SetPosition(0, 0);
+        }
+    };
+}

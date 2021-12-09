@@ -64,24 +64,24 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     //}
 
     // Initialize scene
-    _controlBar = new Panel();
+    _controlBar = new zcom::Panel();
     _controlBar->SetParentWidthPercent(1.0f);
     _controlBar->SetParentHeightPercent(1.0f);
     _controlBar->SetBackgroundColor(D2D1::ColorF::ColorF(0.0f, 0.0f, 0.0f, 0.7f));
 
-    _seekBar = new SeekBar(1000000); // Placeholder duration until data provider loads
+    _seekBar = new zcom::SeekBar(1000000); // Placeholder duration until data provider loads
     _seekBar->SetParentWidthPercent(1.0f);
     _seekBar->SetBaseWidth(-20);
     _seekBar->SetBaseHeight(50);
     _seekBar->SetHorizontalOffsetPercent(0.5f);
 
-    _volumeSlider = new VolumeSlider(0.0f);
+    _volumeSlider = new zcom::VolumeSlider(0.0f);
     _volumeSlider->SetBaseWidth(150);
     _volumeSlider->SetBaseHeight(20);
     _volumeSlider->SetHorizontalOffsetPixels(10);
     _volumeSlider->SetVerticalOffsetPixels(50);
 
-    _playButton = new PlayButton();
+    _playButton = new zcom::PlayButton();
     _playButton->SetBaseWidth(40);
     _playButton->SetBaseHeight(40);
     _playButton->SetHorizontalOffsetPercent(0.5f);
@@ -92,14 +92,14 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _controlBar->AddItem(_volumeSlider);
     _controlBar->AddItem(_playButton);
 
-    _bottomControlPanel = new BottomControlPanel(_controlBar);
+    _bottomControlPanel = new zcom::BottomControlPanel(_controlBar);
     _bottomControlPanel->SetParentWidthPercent(1.0f);
     _bottomControlPanel->SetBaseHeight(100);
-    _bottomControlPanel->SetVerticalAlignment(Alignment::END);
+    _bottomControlPanel->SetVerticalAlignment(zcom::Alignment::END);
+    //_bottomControlPanel->SetZIndex(1);
 
     _canvas->AddComponent(_bottomControlPanel);
     //componentCanvas.AddComponent(controlBar);
-    _canvas->Resize(App::Instance()->window.width, App::Instance()->window.height);
 }
 
 void PlaybackScene::_Uninit()

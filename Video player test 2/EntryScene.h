@@ -17,37 +17,37 @@ struct EntrySceneOptions : public SceneOptionsBase
 class EntryScene : public Scene
 {
     // Main selection
-    Panel* _mainPanel = nullptr;
-    Button* _connectButton = nullptr;
-    Button* _shareButton = nullptr;
-    Button* _fileButton = nullptr;
-    Label* _connectLabel = nullptr;
-    Label* _shareLabel = nullptr;
-    Label* _fileLabel = nullptr;
+    zcom::Panel* _mainPanel = nullptr;
+    zcom::Button* _connectButton = nullptr;
+    zcom::Button* _shareButton = nullptr;
+    zcom::Button* _fileButton = nullptr;
+    zcom::Label* _connectLabel = nullptr;
+    zcom::Label* _shareLabel = nullptr;
+    zcom::Label* _fileLabel = nullptr;
 
     // Connect input
-    Panel* _connectPanel = nullptr;
-    Label* _connectPanelLabel = nullptr;
-    TextInput* _connectIpInput = nullptr;
-    TextInput* _connectPortInput = nullptr;
-    Button* _connectConfirmButton = nullptr;
-    Button* _connectCancelButton = nullptr;
+    zcom::Panel* _connectPanel = nullptr;
+    zcom::Label* _connectPanelLabel = nullptr;
+    zcom::TextInput* _connectIpInput = nullptr;
+    zcom::TextInput* _connectPortInput = nullptr;
+    zcom::Button* _connectConfirmButton = nullptr;
+    zcom::Button* _connectCancelButton = nullptr;
     bool _setConnectFocus = false;
-    LoadingImage* _connectLoadingImage = nullptr;
-    Label* _connectLoadingInfoLabel = nullptr;
-    Button* _connectLoadingCancelButton = nullptr;
+    zcom::LoadingImage* _connectLoadingImage = nullptr;
+    zcom::Label* _connectLoadingInfoLabel = nullptr;
+    zcom::Button* _connectLoadingCancelButton = nullptr;
     bool _connectLoading = false;
 
     // Share input
-    Panel* _sharePanel = nullptr;
-    Label* _sharePanelLabel = nullptr;
-    TextInput* _sharePortInput = nullptr;
-    Button* _shareConfirmButton = nullptr;
-    Button* _shareCancelButton = nullptr;
+    zcom::Panel* _sharePanel = nullptr;
+    zcom::Label* _sharePanelLabel = nullptr;
+    zcom::TextInput* _sharePortInput = nullptr;
+    zcom::Button* _shareConfirmButton = nullptr;
+    zcom::Button* _shareCancelButton = nullptr;
     bool _setShareFocus = false;
-    LoadingImage* _shareLoadingImage = nullptr;
-    Label* _shareLoadingInfoLabel = nullptr;
-    Button* _shareLoadingCancelButton = nullptr;
+    zcom::LoadingImage* _shareLoadingImage = nullptr;
+    zcom::Label* _shareLoadingInfoLabel = nullptr;
+    zcom::Button* _shareLoadingCancelButton = nullptr;
     bool _shareLoading = false;
     std::string _shareFilename = "";
 

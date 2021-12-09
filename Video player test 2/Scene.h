@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ComponentBase.h"
+#include "Canvas.h"
 
 // Options for switching scenes
 struct SceneOptionsBase
@@ -11,7 +11,7 @@ struct SceneOptionsBase
 class Scene
 {
 protected:
-    Canvas* _canvas;
+    zcom::Canvas* _canvas;
 
 public:
     Scene();

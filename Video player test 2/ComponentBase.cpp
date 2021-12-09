@@ -2,12 +2,12 @@
 
 #include "App.h"
 
-void SafeFullRelease(IUnknown** res)
+void zcom::SafeFullRelease(IUnknown** res)
 {
     App::Instance()->window.gfx.ReleaseResource(res);
 }
 
-void SafeRelease(IUnknown** res)
+void zcom::SafeRelease(IUnknown** res)
 {
     if (*res)
     {

@@ -18,14 +18,14 @@ void EntryScene::_Init(const SceneOptionsBase* options)
 
     // Main selection
     {
-        _mainPanel = new Panel();
+        _mainPanel = new zcom::Panel();
         _mainPanel->SetHorizontalOffsetPercent(0.5f);
         _mainPanel->SetVerticalOffsetPercent(0.5f);
         _mainPanel->SetBaseWidth(380);
         _mainPanel->SetBaseHeight(180);
         _mainPanel->SetBackgroundColor(D2D1::ColorF(0.5f, 0.5f, 0.5f, 0.25f));
 
-        _connectButton = new Button();
+        _connectButton = new zcom::Button();
         _connectButton->SetHorizontalOffsetPixels(20);
         _connectButton->SetVerticalOffsetPixels(20);
         _connectButton->SetBaseWidth(100);
@@ -36,17 +36,17 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectButton->SetHoverBackgroundColor(D2D1::ColorF(0, 0.0f));
         _connectButton->SetOnActivated([&]() { OnConnectSelected(); });
 
-        _connectLabel = new Label(L"Connect");
+        _connectLabel = new zcom::Label(L"Connect");
         _connectLabel->SetHorizontalOffsetPixels(20);
         _connectLabel->SetVerticalOffsetPixels(120);
         _connectLabel->SetBaseWidth(100);
         _connectLabel->SetBaseHeight(30);
         _connectLabel->SetFontSize(24.0f);
-        _connectLabel->SetHorizontalTextAlignment(TextAlignment::CENTER);
-        _connectLabel->SetVerticalTextAlignment(Alignment::CENTER);
+        _connectLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+        _connectLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _connectLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
 
-        _shareButton = new Button();
+        _shareButton = new zcom::Button();
         _shareButton->SetHorizontalOffsetPixels(140);
         _shareButton->SetVerticalOffsetPixels(20);
         _shareButton->SetBaseWidth(100);
@@ -57,17 +57,17 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _shareButton->SetHoverBackgroundColor(D2D1::ColorF(0, 0.0f));
         _shareButton->SetOnActivated([&]() { OnShareSelected(); });
 
-        _shareLabel = new Label(L"Share");
+        _shareLabel = new zcom::Label(L"Share");
         _shareLabel->SetHorizontalOffsetPixels(140);
         _shareLabel->SetVerticalOffsetPixels(120);
         _shareLabel->SetBaseWidth(100);
         _shareLabel->SetBaseHeight(30);
         _shareLabel->SetFontSize(24.0f);
-        _shareLabel->SetHorizontalTextAlignment(TextAlignment::CENTER);
-        _shareLabel->SetVerticalTextAlignment(Alignment::CENTER);
+        _shareLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+        _shareLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _shareLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
 
-        _fileButton = new Button();
+        _fileButton = new zcom::Button();
         _fileButton->SetHorizontalOffsetPixels(260);
         _fileButton->SetVerticalOffsetPixels(20);
         _fileButton->SetBaseWidth(100);
@@ -78,20 +78,20 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _fileButton->SetHoverBackgroundColor(D2D1::ColorF(0, 0.0f));
         _fileButton->SetOnActivated([&]() { OnFileSelected(); });
 
-        _fileLabel = new Label(L"Offline");
+        _fileLabel = new zcom::Label(L"Offline");
         _fileLabel->SetHorizontalOffsetPixels(260);
         _fileLabel->SetVerticalOffsetPixels(120);
         _fileLabel->SetBaseWidth(100);
         _fileLabel->SetBaseHeight(30);
         _fileLabel->SetFontSize(24.0f);
-        _fileLabel->SetHorizontalTextAlignment(TextAlignment::CENTER);
-        _fileLabel->SetVerticalTextAlignment(Alignment::CENTER);
+        _fileLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+        _fileLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _fileLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
     }
 
     // Connect input
     {
-        _connectPanel = new Panel();
+        _connectPanel = new zcom::Panel();
         _connectPanel->SetHorizontalOffsetPercent(0.5f);
         _connectPanel->SetVerticalOffsetPercent(0.5f);
         _connectPanel->SetBaseWidth(210);
@@ -100,16 +100,16 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectPanel->SetActive(false);
         _connectPanel->SetVisible(false);
 
-        _connectPanelLabel = new Label(L"Connect");
+        _connectPanelLabel = new zcom::Label(L"Connect");
         _connectPanelLabel->SetHorizontalOffsetPercent(0.5f);
         _connectPanelLabel->SetVerticalOffsetPixels(10);
         _connectPanelLabel->SetBaseWidth(150);
         _connectPanelLabel->SetBaseHeight(40);
         _connectPanelLabel->SetFontSize(32.0f);
-        _connectPanelLabel->SetHorizontalTextAlignment(TextAlignment::CENTER);
-        _connectPanelLabel->SetVerticalTextAlignment(Alignment::CENTER);
+        _connectPanelLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+        _connectPanelLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
 
-        _connectIpInput = new TextInput();
+        _connectIpInput = new zcom::TextInput();
         _connectIpInput->SetHorizontalOffsetPixels(20);
         _connectIpInput->SetVerticalOffsetPixels(60);
         _connectIpInput->SetBaseWidth(110);
@@ -126,14 +126,14 @@ void EntryScene::_Init(const SceneOptionsBase* options)
             return false;
         });
 
-        _connectPortInput = new TextInput();
+        _connectPortInput = new zcom::TextInput();
         _connectPortInput->SetHorizontalOffsetPixels(140);
         _connectPortInput->SetVerticalOffsetPixels(60);
         _connectPortInput->SetBaseWidth(50);
         _connectPortInput->SetBaseHeight(20);
         _connectPortInput->SetPlaceholderText(L"Port");
 
-        _connectConfirmButton = new Button(L"Connect");
+        _connectConfirmButton = new zcom::Button(L"Connect");
         _connectConfirmButton->SetHorizontalOffsetPercent(0.5f);
         _connectConfirmButton->SetHorizontalOffsetPixels(-40);
         _connectConfirmButton->SetVerticalOffsetPixels(100);
@@ -143,7 +143,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectConfirmButton->SetBorderColor(D2D1::ColorF(0.4f, 0.4f, 0.4f));
         _connectConfirmButton->SetOnActivated([&]() { OnConnectConfirmed(); });
 
-        _connectCancelButton = new Button(L"Cancel");
+        _connectCancelButton = new zcom::Button(L"Cancel");
         _connectCancelButton->SetHorizontalOffsetPercent(0.5f);
         _connectCancelButton->SetHorizontalOffsetPixels(40);
         _connectCancelButton->SetVerticalOffsetPixels(100);
@@ -153,23 +153,23 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectCancelButton->SetBorderColor(D2D1::ColorF(0.4f, 0.4f, 0.4f));
         _connectCancelButton->SetOnActivated([&]() { OnConnectCanceled(); });
 
-        _connectLoadingImage = new LoadingImage();
+        _connectLoadingImage = new zcom::LoadingImage();
         _connectLoadingImage->SetHorizontalOffsetPercent(0.5f);
         _connectLoadingImage->SetVerticalOffsetPixels(40);
         _connectLoadingImage->SetBaseWidth(50);
         _connectLoadingImage->SetBaseHeight(50);
         _connectLoadingImage->SetVisible(false);
 
-        _connectLoadingInfoLabel = new Label(L"Connecting...");
+        _connectLoadingInfoLabel = new zcom::Label(L"Connecting...");
         _connectLoadingInfoLabel->SetHorizontalOffsetPercent(0.5f);
         _connectLoadingInfoLabel->SetVerticalOffsetPixels(70);
         _connectLoadingInfoLabel->SetBaseWidth(100);
         _connectLoadingInfoLabel->SetBaseHeight(20);
-        _connectLoadingInfoLabel->SetHorizontalTextAlignment(TextAlignment::CENTER);
-        _connectLoadingInfoLabel->SetVerticalTextAlignment(Alignment::CENTER);
+        _connectLoadingInfoLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+        _connectLoadingInfoLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _connectLoadingInfoLabel->SetVisible(false);
 
-        _connectLoadingCancelButton = new Button(L"Cancel");
+        _connectLoadingCancelButton = new zcom::Button(L"Cancel");
         _connectLoadingCancelButton->SetHorizontalOffsetPercent(0.5f);
         _connectLoadingCancelButton->SetVerticalOffsetPixels(100);
         _connectLoadingCancelButton->SetBaseWidth(60);
@@ -182,7 +182,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
 
     // Share input
     {
-        _sharePanel = new Panel();
+        _sharePanel = new zcom::Panel();
         _sharePanel->SetHorizontalOffsetPercent(0.5f);
         _sharePanel->SetVerticalOffsetPercent(0.5f);
         _sharePanel->SetBaseWidth(180);
@@ -191,23 +191,23 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _sharePanel->SetActive(false);
         _sharePanel->SetVisible(false);
 
-        _sharePanelLabel = new Label(L"Share");
+        _sharePanelLabel = new zcom::Label(L"Share");
         _sharePanelLabel->SetHorizontalOffsetPercent(0.5f);
         _sharePanelLabel->SetVerticalOffsetPixels(10);
         _sharePanelLabel->SetBaseWidth(150);
         _sharePanelLabel->SetBaseHeight(40);
         _sharePanelLabel->SetFontSize(32.0f);
-        _sharePanelLabel->SetHorizontalTextAlignment(TextAlignment::CENTER);
-        _sharePanelLabel->SetVerticalTextAlignment(Alignment::CENTER);
+        _sharePanelLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+        _sharePanelLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
 
-        _sharePortInput = new TextInput();
+        _sharePortInput = new zcom::TextInput();
         _sharePortInput->SetHorizontalOffsetPixels(20);
         _sharePortInput->SetVerticalOffsetPixels(60);
         _sharePortInput->SetBaseWidth(140);
         _sharePortInput->SetBaseHeight(20);
         _sharePortInput->SetPlaceholderText(L"Port");
 
-        _shareConfirmButton = new Button(L"Share");
+        _shareConfirmButton = new zcom::Button(L"Share");
         _shareConfirmButton->SetHorizontalOffsetPercent(0.5f);
         _shareConfirmButton->SetHorizontalOffsetPixels(-40);
         _shareConfirmButton->SetVerticalOffsetPixels(100);
@@ -217,7 +217,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _shareConfirmButton->SetBorderColor(D2D1::ColorF(0.4f, 0.4f, 0.4f));
         _shareConfirmButton->SetOnActivated([&]() { OnShareConfirmed(); });
 
-        _shareCancelButton = new Button(L"Cancel");
+        _shareCancelButton = new zcom::Button(L"Cancel");
         _shareCancelButton->SetHorizontalOffsetPercent(0.5f);
         _shareCancelButton->SetHorizontalOffsetPixels(40);
         _shareCancelButton->SetVerticalOffsetPixels(100);
@@ -227,23 +227,23 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _shareCancelButton->SetBorderColor(D2D1::ColorF(0.4f, 0.4f, 0.4f));
         _shareCancelButton->SetOnActivated([&]() { OnShareCanceled(); });
 
-        _shareLoadingImage = new LoadingImage();
+        _shareLoadingImage = new zcom::LoadingImage();
         _shareLoadingImage->SetHorizontalOffsetPercent(0.5f);
         _shareLoadingImage->SetVerticalOffsetPixels(40);
         _shareLoadingImage->SetBaseWidth(50);
         _shareLoadingImage->SetBaseHeight(50);
         _shareLoadingImage->SetVisible(false);
 
-        _shareLoadingInfoLabel = new Label(L"Waiting for connection...");
+        _shareLoadingInfoLabel = new zcom::Label(L"Waiting for connection...");
         _shareLoadingInfoLabel->SetHorizontalOffsetPercent(0.5f);
         _shareLoadingInfoLabel->SetVerticalOffsetPixels(70);
         _shareLoadingInfoLabel->SetBaseWidth(150);
         _shareLoadingInfoLabel->SetBaseHeight(20);
-        _shareLoadingInfoLabel->SetHorizontalTextAlignment(TextAlignment::CENTER);
-        _shareLoadingInfoLabel->SetVerticalTextAlignment(Alignment::CENTER);
+        _shareLoadingInfoLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+        _shareLoadingInfoLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _shareLoadingInfoLabel->SetVisible(false);
 
-        _shareLoadingCancelButton = new Button(L"Cancel");
+        _shareLoadingCancelButton = new zcom::Button(L"Cancel");
         _shareLoadingCancelButton->SetHorizontalOffsetPercent(0.5f);
         _shareLoadingCancelButton->SetVerticalOffsetPixels(100);
         _shareLoadingCancelButton->SetBaseWidth(60);
@@ -279,6 +279,11 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _sharePanel->AddItem(_shareLoadingImage);
         _sharePanel->AddItem(_shareLoadingInfoLabel);
         _sharePanel->AddItem(_shareLoadingCancelButton);
+
+        //zcom::Panel* yeet = new zcom::Panel();
+        //yeet->SetBaseSize(100, 100);
+        //yeet->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Red));
+        //_mainPanel->AddItem(yeet);
 
         _canvas->AddComponent(_mainPanel);
         _canvas->AddComponent(_connectPanel);

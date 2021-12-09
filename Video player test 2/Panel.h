@@ -2,358 +2,434 @@
 
 #include "ComponentBase.h"
 
-class Panel : public ComponentBase
+namespace zcom
 {
+    class Panel : public Base
+    {
 #pragma region base_class
-private:
-    void _OnUpdate()
-    {
-
-    }
-
-    void _OnDraw(Graphics g)
-    {
-        // Get bitmaps of all items
-        std::vector<ID2D1Bitmap*> bitmaps;
-        bitmaps.reserve(_items.size());
-        for (auto& item : _items)
+    private:
+        void _OnUpdate()
         {
-            bitmaps.push_back(item->Draw(g));
-        }
-
-        // Draw the bitmaps
-        for (int i = 0; i < _items.size(); i++)
-        {
-            g.target->DrawBitmap(
-                bitmaps[i],
-                D2D1::RectF(
-                    _items[i]->GetX(),
-                    _items[i]->GetY(),
-                    _items[i]->GetX() + _items[i]->GetWidth(),
-                    _items[i]->GetY() + _items[i]->GetHeight()
-                ),
-                _items[i]->GetOpacity()
-            );
-        }
-    }
-
-    void _OnResize(int width, int height)
-    {
-        // Calculate item sizes and positions
-        for (auto& item : _items)
-        {
-            int newWidth = (int)std::round(GetWidth() * item->GetParentWidthPercent()) + item->GetBaseWidth();
-            int newHeight = (int)std::round(GetHeight() * item->GetParentHeightPercent()) + item->GetBaseHeight();
-            // SetSize does limit checking so the resulting size and newWidth/newHeight can mismatch
-            item->SetSize(newWidth, newHeight);
-
-            int newPosX = 0;
-            if (item->GetHorizontalAlignment() == Alignment::START)
+            for (auto item : _items)
             {
-                newPosX += std::round((GetWidth() - item->GetWidth()) * item->GetHorizontalOffsetPercent());
-            }
-            else if (item->GetHorizontalAlignment() == Alignment::END)
-            {
-                newPosX = GetWidth() - item->GetWidth();
-                newPosX -= std::round((GetWidth() - item->GetWidth()) * item->GetHorizontalOffsetPercent());
-            }
-            newPosX += item->GetHorizontalOffsetPixels();
-            // Alternative (no branching):
-            // int align = item->GetHorizontalAlignment() == Alignment::END;
-            // newPosX += align * (_width - item->GetWidth());
-            // newPosX += (-1 * align) * std::round((_width - item->GetWidth()) * item->GetHorizontalOffsetPercent());
-            // newPosX += item->GetHorizontalOffsetPixels();
-            int newPosY = 0;
-            if (item->GetVerticalAlignment() == Alignment::START)
-            {
-                newPosY += std::round((GetHeight() - item->GetHeight()) * item->GetVerticalOffsetPercent());
-            }
-            else if (item->GetVerticalAlignment() == Alignment::END)
-            {
-                newPosY = GetHeight() - item->GetHeight();
-                newPosY -= std::round((GetHeight() - item->GetHeight()) * item->GetVerticalOffsetPercent());
-            }
-            newPosY += item->GetVerticalOffsetPixels();
-            item->SetPosition(newPosX, newPosY);
-
-            item->Resize(item->GetWidth(), item->GetHeight());
-        }
-    }
-
-    ComponentBase* _OnMouseMove(int x, int y)
-    {
-        std::vector<ComponentBase*> hoveredComponents;
-
-        for (auto& item : _items)
-        {
-            if (!item->GetVisible()) continue;
-
-            if (x >= item->GetX() && x < item->GetX() + item->GetWidth() &&
-                y >= item->GetY() && y < item->GetY() + item->GetHeight())
-            {
-                if (item->GetMouseLeftClicked() || item->GetMouseRightClicked())
-                {
-                    return item->OnMouseMove(x - item->GetX(), y - item->GetY());
-                }
-                hoveredComponents.push_back(item);
-            }
-            else if (item->GetMouseInside())
-            {
-                if (item->GetMouseLeftClicked() || item->GetMouseRightClicked())
-                {
-                    return item->OnMouseMove(x - item->GetX(), y - item->GetY());
-                }
-                else
-                {
-                    item->OnMouseLeave();
-                }
+                item->Update();
             }
         }
 
-        //std::cout << hoveredComponents.size() << std::endl;
-
-        if (!hoveredComponents.empty())
+        void _OnDraw(Graphics g)
         {
-            ComponentBase* topmost = hoveredComponents[0];
-            for (int i = 1; i < hoveredComponents.size(); i++)
+            // Get bitmaps of all items
+            std::list<std::pair<ID2D1Bitmap*, Base*>> bitmaps;
+            for (auto& item : _items)
             {
-                if (hoveredComponents[i]->GetZIndex() > topmost->GetZIndex())
+                // Order by z-index
+                auto it = bitmaps.rbegin();
+                for (; it != bitmaps.rend(); it++)
                 {
-                    topmost = hoveredComponents[i];
+                    if (item->GetZIndex() >= it->second->GetZIndex())
+                    {
+                        break;
+                    }
                 }
+                bitmaps.insert(it.base(), { item->Draw(g), item });
             }
 
-            for (int i = 0; i < hoveredComponents.size(); i++)
+            // Draw the bitmaps
+            for (auto& it : bitmaps)
             {
-                if (hoveredComponents[i] != topmost && hoveredComponents[i]->GetMouseInside())
-                {
-                    hoveredComponents[i]->OnMouseLeave();
-                }
+                g.target->DrawBitmap(
+                    it.first,
+                    D2D1::RectF(
+                        it.second->GetX(),
+                        it.second->GetY(),
+                        it.second->GetX() + it.second->GetWidth(),
+                        it.second->GetY() + it.second->GetHeight()
+                    ),
+                    it.second->GetOpacity()
+                );
             }
-
-            if (!topmost->GetMouseInside())
-            {
-                topmost->OnMouseEnter();
-            }
-            return topmost->OnMouseMove(x - topmost->GetX(), y - topmost->GetY());
         }
 
-        return this;
-
-        for (auto& item : _items)
+        void _OnResize(int width, int height)
         {
-            if (x >= item->GetX() && x < item->GetX() + item->GetWidth() &&
-                y >= item->GetY() && y < item->GetY() + item->GetHeight())
+            // Calculate item sizes and positions
+            for (auto& item : _items)
             {
-                if (!item->GetMouseInside())
+                int newWidth = (int)std::round(GetWidth() * item->GetParentWidthPercent()) + item->GetBaseWidth();
+                int newHeight = (int)std::round(GetHeight() * item->GetParentHeightPercent()) + item->GetBaseHeight();
+                // SetSize does limit checking so the resulting size and newWidth/newHeight can mismatch
+                item->SetSize(newWidth, newHeight);
+
+                int newPosX = 0;
+                if (item->GetHorizontalAlignment() == Alignment::START)
                 {
-                    item->OnMouseEnter();
+                    newPosX += std::round((GetWidth() - item->GetWidth()) * item->GetHorizontalOffsetPercent());
                 }
-                item->OnMouseMove(x - item->GetX(), y - item->GetY());
-            }
-            else if (item->GetMouseInside())
-            {
-                if (item->GetMouseLeftClicked() || item->GetMouseRightClicked())
+                else if (item->GetHorizontalAlignment() == Alignment::END)
                 {
+                    newPosX = GetWidth() - item->GetWidth();
+                    newPosX -= std::round((GetWidth() - item->GetWidth()) * item->GetHorizontalOffsetPercent());
+                }
+                newPosX += item->GetHorizontalOffsetPixels();
+                // Alternative (no branching):
+                // int align = item->GetHorizontalAlignment() == Alignment::END;
+                // newPosX += align * (_width - item->GetWidth());
+                // newPosX += (-1 * align) * std::round((_width - item->GetWidth()) * item->GetHorizontalOffsetPercent());
+                // newPosX += item->GetHorizontalOffsetPixels();
+                int newPosY = 0;
+                if (item->GetVerticalAlignment() == Alignment::START)
+                {
+                    newPosY += std::round((GetHeight() - item->GetHeight()) * item->GetVerticalOffsetPercent());
+                }
+                else if (item->GetVerticalAlignment() == Alignment::END)
+                {
+                    newPosY = GetHeight() - item->GetHeight();
+                    newPosY -= std::round((GetHeight() - item->GetHeight()) * item->GetVerticalOffsetPercent());
+                }
+                newPosY += item->GetVerticalOffsetPixels();
+                item->SetPosition(newPosX, newPosY);
+
+                item->Resize(item->GetWidth(), item->GetHeight());
+            }
+        }
+
+        Base* _OnMouseMove(int x, int y)
+        {
+            std::vector<Base*> hoveredComponents;
+
+            for (auto& item : _items)
+            {
+                if (!item->GetVisible()) continue;
+
+                if (x >= item->GetX() && x < item->GetX() + item->GetWidth() &&
+                    y >= item->GetY() && y < item->GetY() + item->GetHeight())
+                {
+                    if (item->GetMouseLeftClicked() || item->GetMouseRightClicked())
+                    {
+                        return item->OnMouseMove(x - item->GetX(), y - item->GetY());
+                    }
+                    hoveredComponents.push_back(item);
+                }
+                else if (item->GetMouseInside())
+                {
+                    if (item->GetMouseLeftClicked() || item->GetMouseRightClicked())
+                    {
+                        return item->OnMouseMove(x - item->GetX(), y - item->GetY());
+                    }
+                    else
+                    {
+                        item->OnMouseLeave();
+                    }
+                }
+            }
+
+            //std::cout << hoveredComponents.size() << std::endl;
+
+            if (!hoveredComponents.empty())
+            {
+                Base* topmost = hoveredComponents[0];
+                for (int i = 1; i < hoveredComponents.size(); i++)
+                {
+                    if (hoveredComponents[i]->GetZIndex() > topmost->GetZIndex())
+                    {
+                        topmost = hoveredComponents[i];
+                    }
+                }
+
+                for (int i = 0; i < hoveredComponents.size(); i++)
+                {
+                    if (hoveredComponents[i] != topmost && hoveredComponents[i]->GetMouseInside())
+                    {
+                        hoveredComponents[i]->OnMouseLeave();
+                    }
+                }
+
+                if (!topmost->GetMouseInside())
+                {
+                    topmost->OnMouseEnter();
+                }
+                return topmost->OnMouseMove(x - topmost->GetX(), y - topmost->GetY());
+            }
+
+            return this;
+
+            for (auto& item : _items)
+            {
+                if (x >= item->GetX() && x < item->GetX() + item->GetWidth() &&
+                    y >= item->GetY() && y < item->GetY() + item->GetHeight())
+                {
+                    if (!item->GetMouseInside())
+                    {
+                        item->OnMouseEnter();
+                    }
                     item->OnMouseMove(x - item->GetX(), y - item->GetY());
                 }
-                else
+                else if (item->GetMouseInside())
+                {
+                    if (item->GetMouseLeftClicked() || item->GetMouseRightClicked())
+                    {
+                        item->OnMouseMove(x - item->GetX(), y - item->GetY());
+                    }
+                    else
+                    {
+                        item->OnMouseLeave();
+                    }
+                }
+            }
+        }
+
+        void _OnMouseLeave()
+        {
+            //std::cout << "Mouse leave\n";
+            for (auto& item : _items)
+            {
+                if (item->GetMouseInside())
                 {
                     item->OnMouseLeave();
                 }
             }
         }
-    }
 
-    void _OnMouseLeave()
-    {
-        //std::cout << "Mouse leave\n";
-        for (auto& item : _items)
+        void _OnMouseEnter()
         {
-            if (item->GetMouseInside())
+
+            //std::cout << "Mouse enter\n";
+        }
+
+        Base* _OnLeftPressed(int x, int y)
+        {
+            for (auto& item : _items)
             {
-                item->OnMouseLeave();
+                if (!item->GetVisible()) continue;
+
+                if (item->GetMouseInside())
+                {
+                    return item->OnLeftPressed(x - item->GetX(), y - item->GetY());
+                }
+            }
+            return this;
+        }
+
+        Base* _OnLeftReleased(int x, int y)
+        {
+            for (auto& item : _items)
+            {
+                if (!item->GetVisible()) continue;
+
+                if (item->GetMouseInside())
+                {
+                    return item->OnLeftReleased(x - item->GetX(), y - item->GetY());
+                }
+            }
+            return this;
+        }
+
+        Base* _OnRightPressed(int x, int y)
+        {
+            for (auto& item : _items)
+            {
+                if (!item->GetVisible()) continue;
+
+                if (item->GetMouseInside())
+                {
+                    return item->OnRightPressed(x - item->GetX(), y - item->GetY());
+                }
+            }
+            return this;
+        }
+
+        Base* _OnRightReleased(int x, int y)
+        {
+            for (auto& item : _items)
+            {
+                if (!item->GetVisible()) continue;
+
+                if (item->GetMouseInside())
+                {
+                    return item->OnRightReleased(x - item->GetX(), y - item->GetY());
+                }
+            }
+            return this;
+        }
+
+        Base* _OnWheelUp(int x, int y)
+        {
+            for (auto& item : _items)
+            {
+                if (!item->GetVisible()) continue;
+
+                if (item->GetMouseInside())
+                {
+                    return item->OnWheelUp(x - item->GetX(), y - item->GetY());
+                }
+            }
+            return this;
+        }
+
+        Base* _OnWheelDown(int x, int y)
+        {
+            for (auto& item : _items)
+            {
+                if (!item->GetVisible()) continue;
+
+                if (item->GetMouseInside())
+                {
+                    return item->OnWheelDown(x - item->GetX(), y - item->GetY());
+                }
+            }
+            return this;
+        }
+
+        void _OnSelected()
+        {
+            if (!_selectableItems.empty())
+            {
+                OnDeselected();
+                _selectableItems[0]->OnSelected();
             }
         }
-    }
 
-    void _OnMouseEnter()
-    {
-
-        //std::cout << "Mouse enter\n";
-    }
-
-    ComponentBase* _OnLeftPressed(int x, int y)
-    {
-        for (auto& item : _items)
+    public:
+        std::list<Base*> GetChildren()
         {
-            if (!item->GetVisible()) continue;
-
-            if (item->GetMouseInside())
+            std::list<Base*> children;
+            for (auto& item : _items)
             {
-                return item->OnLeftPressed(x - item->GetX(), y - item->GetY());
+                children.push_back(item);
             }
+            return children;
         }
-        return this;
-    }
 
-    ComponentBase* _OnLeftReleased(int x, int y)
-    {
-        for (auto& item : _items)
+        std::list<Base*> GetAllChildren()
         {
-            if (!item->GetVisible()) continue;
-
-            if (item->GetMouseInside())
+            std::list<Base*> children;
+            for (auto& item : _items)
             {
-                return item->OnLeftReleased(x - item->GetX(), y - item->GetY());
+                children.push_back(item);
+                auto itemChildren = item->GetAllChildren();
+                if (!itemChildren.empty())
+                {
+                    children.insert(children.end(), itemChildren.begin(), itemChildren.end());
+                }
             }
+            return children;
         }
-        return this;
-    }
 
-    ComponentBase* _OnRightPressed(int x, int y)
-    {
-        for (auto& item : _items)
+        Base* IterateTab()
         {
-            if (!item->GetVisible()) continue;
-
-            if (item->GetMouseInside())
+            if (_selectableItems.empty())
             {
-                return item->OnRightPressed(x - item->GetX(), y - item->GetY());
+                if (Selected())
+                    return nullptr;
+                else
+                    return this;
             }
-        }
-        return this;
-    }
 
-    ComponentBase* _OnRightReleased(int x, int y)
-    {
-        for (auto& item : _items)
-        {
-            if (!item->GetVisible()) continue;
-
-            if (item->GetMouseInside())
+            for (int i = 0; i < _selectableItems.size(); i++)
             {
-                return item->OnRightReleased(x - item->GetX(), y - item->GetY());
+                Base* item = _selectableItems[i]->IterateTab();
+                if (item == nullptr)
+                {
+                    if (_selectableItems.size() > i + 1)
+                        return _selectableItems[i + 1];
+                    else
+                        return nullptr;
+                }
+                else if (item != _selectableItems[i])
+                {
+                    return item;
+                }
             }
+
+            return _selectableItems[0];
         }
-        return this;
-    }
 
-    ComponentBase* _OnWheelUp(int x, int y)
-    {
-        for (auto& item : _items)
-        {
-            if (!item->GetVisible()) continue;
-
-            if (item->GetMouseInside())
-            {
-                return item->OnWheelUp(x - item->GetX(), y - item->GetY());
-            }
-        }
-        return this;
-    }
-
-    ComponentBase* _OnWheelDown(int x, int y)
-    {
-        for (auto& item : _items)
-        {
-            if (!item->GetVisible()) continue;
-
-            if (item->GetMouseInside())
-            {
-                return item->OnWheelDown(x - item->GetX(), y - item->GetY());
-            }
-        }
-        return this;
-    }
-
-public:
-    std::list<ComponentBase*> GetChildren()
-    {
-        std::list<ComponentBase*> children;
-        for (auto& item : _items)
-        {
-            children.push_back(item);
-        }
-        return children;
-    }
-
-    std::list<ComponentBase*> GetAllChildren()
-    {
-        std::list<ComponentBase*> children;
-        for (auto& item : _items)
-        {
-            children.push_back(item);
-            auto itemChildren = item->GetAllChildren();
-            if (!itemChildren.empty())
-            {
-                children.insert(children.end(), itemChildren.begin(), itemChildren.end());
-            }
-        }
-        return children;
-    }
-
-    const char* GetName() const { return "panel"; }
+        const char* GetName() const { return "panel"; }
 #pragma endregion
 
-private:
-    std::vector<ComponentBase*> _items;
+    private:
+        std::vector<Base*> _items;
+        std::vector<Base*> _selectableItems;
 
-    // Scrolling
-    int _contentWidth;
-    int _contentHeight;
-    int _horizontalScroll;
-    int _verticalScroll;
-    bool _horizontalScrollable = true;
-    bool _verticalScrollable = true;
+        // Scrolling
+        int _contentWidth = 0;
+        int _contentHeight = 0;
+        int _horizontalScroll = 0;
+        int _verticalScroll = 0;
+        bool _horizontalScrollable = true;
+        bool _verticalScrollable = true;
 
-public:
-    Panel() {}
-    ~Panel()
-    {
-        // Release resources
-        //for (auto item : _items)
-        //{
-        //    delete item;
-        //}
-    }
-    Panel(Panel&&) = delete;
-    Panel& operator=(Panel&&) = delete;
-    Panel(const Panel&) = delete;
-    Panel& operator=(const Panel&) = delete;
+    public:
+        Panel() {}
+        ~Panel() {}
+        Panel(Panel&&) = delete;
+        Panel& operator=(Panel&&) = delete;
+        Panel(const Panel&) = delete;
+        Panel& operator=(const Panel&) = delete;
 
-    void AddItem(ComponentBase* item)
-    {
-        _items.push_back(item);
-    }
-
-    void RemoveItem(ComponentBase* item)
-    {
-        for (int i = 0; i < _items.size(); i++)
+        void AddItem(Base* item)
         {
-            if (_items[i] == item)
+            _items.push_back(item);
+        }
+
+        void RemoveItem(Base* item)
+        {
+            for (int i = 0; i < _items.size(); i++)
             {
-                _items.erase(_items.begin() + i);
-                return;
+                if (_items[i] == item)
+                {
+                    _items.erase(_items.begin() + i);
+                    return;
+                }
             }
         }
-    }
 
-    void RemoveItem(int index)
-    {
-        _items.erase(_items.begin() + index);
-    }
+        void RemoveItem(int index)
+        {
+            _items.erase(_items.begin() + index);
+        }
 
-    int ItemCount() const
-    {
-        return _items.size();
-    }
+        int ItemCount() const
+        {
+            return _items.size();
+        }
 
-    ComponentBase* GetItem(int index)
-    {
-        return _items[index];
-    }
+        Base* GetItem(int index)
+        {
+            return _items[index];
+        }
 
-    // Scrolling
+        void ClearItems()
+        {
+            _items.clear();
+        }
 
-};
+        void ReindexTabOrder()
+        {
+            _selectableItems.clear();
+            for (int i = 0; i < _items.size(); i++)
+            {
+                if (_items[i]->GetTabIndex() != -1)
+                {
+                    _selectableItems.push_back(_items[i]);
+                }
+            }
+
+            // Sort indices
+            std::sort(_selectableItems.begin(), _selectableItems.end(), [](Base* a, Base* b) { return a->GetTabIndex() < b->GetTabIndex(); });
+
+            // Remove duplicates
+            for (int i = 1; i < _selectableItems.size(); i++)
+            {
+                if (_selectableItems[i - 1]->GetZIndex() == _selectableItems[i]->GetZIndex())
+                {
+                    _selectableItems.erase(_selectableItems.begin() + i);
+                    i--;
+                }
+            }
+        }
+
+        // Scrolling
+
+    };
+}

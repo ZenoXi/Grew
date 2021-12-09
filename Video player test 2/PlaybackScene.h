@@ -30,11 +30,11 @@ class PlaybackScene : public Scene
 {
     MediaPlayerOld* _player = nullptr;
 
-    Panel* _controlBar = nullptr;
-    SeekBar* _seekBar = nullptr;
-    VolumeSlider* _volumeSlider = nullptr;
-    PlayButton* _playButton = nullptr;
-    BottomControlPanel* _bottomControlPanel = nullptr;
+    zcom::Panel* _controlBar = nullptr;
+    zcom::SeekBar* _seekBar = nullptr;
+    zcom::VolumeSlider* _volumeSlider = nullptr;
+    zcom::PlayButton* _playButton = nullptr;
+    zcom::BottomControlPanel* _bottomControlPanel = nullptr;
 
     LocalFileDataProvider* _dataProvider = nullptr;
     IAudioOutputAdapter* _audioAdapter = nullptr;
