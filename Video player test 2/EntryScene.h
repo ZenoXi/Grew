@@ -9,6 +9,8 @@
 #include "Label.h"
 #include "LoadingImage.h"
 
+#include "FileDialog.h"
+
 struct EntrySceneOptions : public SceneOptionsBase
 {
 
@@ -50,6 +52,10 @@ class EntryScene : public Scene
     zcom::Button* _shareLoadingCancelButton = nullptr;
     bool _shareLoading = false;
     std::string _shareFilename = "";
+
+    // File
+    AsyncFileDialog _fileDialog;
+    bool _fileLoading = false;
 
 
 public:

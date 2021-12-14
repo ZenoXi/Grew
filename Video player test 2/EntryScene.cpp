@@ -2,7 +2,6 @@
 #include "EntryScene.h"
 
 #include "ResourceManager.h"
-#include "FileDialog.h"
 #include "Functions.h"
 #include "PlaybackScene.h"
 
@@ -373,6 +372,25 @@ void EntryScene::_Update()
             App::Instance()->SetScene("playback_scene", &options);
         }
     }
+    else if (_fileLoading)
+    {
+        if (_fileDialog.Done())
+        {
+            //std::wstring filename = OpenFile();
+            std::wstring filename = _fileDialog.Result();
+            if (filename != L"")
+            {
+                PlaybackSceneOptions* options = new PlaybackSceneOptions();
+                options->fileName = wstring_to_string(filename);
+                options->mode = PlaybackMode::OFFLINE;
+                App::Instance()->UninitScene("entry_scene");
+                App::Instance()->InitScene("playback_scene", options);
+                App::Instance()->MoveSceneToFront("playback_scene");
+                //App::Instance()->SetScene("playback_scene", options);
+                delete options;
+            }
+        }
+    }
 }
 
 ID2D1Bitmap1* EntryScene::_Draw(Graphics g)
@@ -414,17 +432,10 @@ void EntryScene::OnShareSelected()
 
 void EntryScene::OnFileSelected()
 {
-    std::wstring filename = OpenFile();
-    if (filename != L"")
+    if (!_fileLoading)
     {
-        PlaybackSceneOptions* options = new PlaybackSceneOptions();
-        options->fileName = wstring_to_string(filename);
-        options->mode = PlaybackMode::OFFLINE;
-        App::Instance()->UninitScene("entry_scene");
-        App::Instance()->InitScene("playback_scene", options);
-        App::Instance()->MoveSceneToFront("playback_scene");
-        //App::Instance()->SetScene("playback_scene", options);
-        delete options;
+        _fileDialog.Open();
+        _fileLoading = true;
     }
 }
 
