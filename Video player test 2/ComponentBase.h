@@ -262,7 +262,7 @@ namespace zcom
         // Events
         Base* OnMouseMove(int x, int y)
         {
-            if (!_active) return this;
+            if (!_active) return nullptr;
 
             _mousePosX = x;
             _mousePosY = y;
@@ -271,6 +271,7 @@ namespace zcom
         void OnMouseEnter()
         {
             if (!_active) return;
+            if (_mouseInside) return;
 
             _mouseInside = true;
             _OnMouseEnter();
@@ -278,47 +279,52 @@ namespace zcom
         void OnMouseLeave()
         {
             if (!_active) return;
+            if (!_mouseInside) return;
 
             _mouseInside = false;
             _OnMouseLeave();
         }
         Base* OnLeftPressed(int x, int y)
         {
-            if (!_active) return this;
+            if (!_active) return nullptr;
+            if (_mouseLeftClicked) return nullptr;
 
             _mouseLeftClicked = true;
             return _OnLeftPressed(x, y);
         }
         Base* OnLeftReleased(int x, int y)
         {
-            if (!_active) return this;
+            if (!_active) return nullptr;
+            if (!_mouseLeftClicked) return nullptr;
 
             _mouseLeftClicked = false;
             return _OnLeftReleased(x, y);
         }
         Base* OnRightPressed(int x, int y)
         {
-            if (!_active) return this;
+            if (!_active) return nullptr;
+            if (_mouseRightClicked) return nullptr;
 
             _mouseRightClicked = true;
             return _OnRightPressed(x, y);
         }
         Base* OnRightReleased(int x, int y)
         {
-            if (!_active) return this;
+            if (!_active) return nullptr;
+            if (!_mouseRightClicked) return nullptr;
 
             _mouseRightClicked = false;
             return _OnRightReleased(x, y);
         }
         Base* OnWheelUp(int x, int y)
         {
-            if (!_active) return this;
+            if (!_active) return nullptr;
 
             return _OnWheelUp(x, y);
         }
         Base* OnWheelDown(int x, int y)
         {
-            if (!_active) return this;
+            if (!_active) return nullptr;
 
             return _OnWheelDown(x, y);
         }
