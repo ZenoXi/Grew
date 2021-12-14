@@ -110,6 +110,10 @@ bool App::InitScene(std::string name, SceneOptionsBase* options)
 
     scene->Init(options);
     _activeScenes.insert(_activeScenes.begin(), scene);
+    if (_activeScenes.size() == 1)
+    {
+        _activeScenes.back()->Focus();
+    }
     return true;
 }
 
