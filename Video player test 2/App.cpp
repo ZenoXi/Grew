@@ -62,7 +62,7 @@ void App::Init(DisplayWindow& dw, std::string startScene)
     // Add scenes
     Instance()->_scenes.push_back(new EntryScene());
     Instance()->_scenes.push_back(new PlaybackScene());
-    Instance()->SetScene(startScene, nullptr);
+    Instance()->InitScene(startScene, nullptr);
 
     // Start main loop
     Instance()->_mainThreadController.Add("stop", sizeof(true));
@@ -102,6 +102,177 @@ Scene* App::CurrentScene()
     return _scenes.at(_currentSceneIndex);
 }
 
+bool App::InitScene(std::string name, SceneOptionsBase* options)
+{
+    Scene* scene = FindScene(name);
+    if (!scene) return false;
+    if (FindActiveScene(name)) return true;
+
+    scene->Init(options);
+    _activeScenes.insert(_activeScenes.begin(), scene);
+    return true;
+}
+
+bool App::UninitScene(std::string name)
+{
+    Scene* scene = FindActiveScene(name);
+    if (!scene) return false;
+
+    scene->Uninit();
+    _activeScenes.erase(std::find(_activeScenes.begin(), _activeScenes.end(), scene));
+    return true;
+}
+
+bool App::MoveSceneToFront(std::string name)
+{
+    int index = FindActiveSceneIndex(name);
+    if (index == -1) return false;
+    if (index == _activeScenes.size() - 1) return true;
+
+    _activeScenes.back()->Unfocus();
+    _activeScenes.push_back(_activeScenes[index]);
+    _activeScenes.erase(_activeScenes.begin() + index);
+    _activeScenes.back()->Focus();
+    return true;
+}
+
+bool App::MoveSceneToBack(std::string name)
+{
+    int index = FindActiveSceneIndex(name);
+    if (index == -1) return false;
+    if (index == 0) return true;
+
+    Scene* scene = _activeScenes[index];
+    _activeScenes.erase(_activeScenes.begin() + index);
+    _activeScenes.insert(_activeScenes.begin(), scene);
+    if (index == _activeScenes.size() - 1)
+    {
+        scene->Unfocus();
+        _activeScenes.back()->Focus();
+    }
+    return true;
+}
+
+bool App::MoveSceneUp(std::string name)
+{
+    int index = FindActiveSceneIndex(name);
+    if (index == -1) return false;
+    if (index == _activeScenes.size() - 1) return true;
+
+    if (index == _activeScenes.size() - 2)
+    {
+        _activeScenes[index]->Focus();
+        _activeScenes[index + 1]->Unfocus();
+    }
+    std::swap(_activeScenes[index], _activeScenes[index + 1]);
+    return true;
+}
+
+bool App::MoveSceneDown(std::string name)
+{
+    int index = FindActiveSceneIndex(name);
+    if (index == -1) return false;
+    if (index == 0) return true;
+
+    if (index == _activeScenes.size() - 1)
+    {
+        _activeScenes[index]->Unfocus();
+        _activeScenes[index + -1]->Focus();
+    }
+    std::swap(_activeScenes[index], _activeScenes[index - 1]);
+    return true;
+}
+
+bool App::MoveSceneBehind(std::string name, std::string behind)
+{
+    int sceneIndex = FindActiveSceneIndex(name);
+    if (sceneIndex == -1) return false;
+    int inFrontSceneIndex = FindActiveSceneIndex(behind);
+    if (inFrontSceneIndex == -1) return false;
+    if (sceneIndex < inFrontSceneIndex) return true;
+
+    Scene* scene = _activeScenes[sceneIndex];
+    _activeScenes.erase(_activeScenes.begin() + sceneIndex);
+    _activeScenes.insert(_activeScenes.begin() + inFrontSceneIndex, scene);
+    if (sceneIndex == _activeScenes.size() - 1)
+    {
+        scene->Unfocus();
+        _activeScenes.back()->Focus();
+    }
+    return true;
+}
+
+bool App::MoveSceneInFront(std::string name, std::string inFront)
+{
+    int sceneIndex = FindActiveSceneIndex(name);
+    if (sceneIndex == -1) return false;
+    int behindSceneIndex = FindActiveSceneIndex(inFront);
+    if (behindSceneIndex == -1) return false;
+    if (sceneIndex > behindSceneIndex) return true;
+
+    _activeScenes.insert(_activeScenes.begin() + behindSceneIndex + 1, _activeScenes[sceneIndex]);
+    _activeScenes.erase(_activeScenes.begin() + sceneIndex);
+    if (behindSceneIndex == _activeScenes.size() - 1)
+    {
+        _activeScenes[behindSceneIndex]->Unfocus();
+        _activeScenes.back()->Focus();
+    }
+    return true;
+}
+
+std::vector<Scene*> App::ActiveScenes()
+{
+    return _activeScenes;
+}
+
+Scene* App::FindScene(std::string name)
+{
+    for (auto scene : _scenes)
+    {
+        if (scene->GetName() == name)
+        {
+            return scene;
+        }
+    }
+    return nullptr;
+}
+
+Scene* App::FindActiveScene(std::string name)
+{
+    for (auto scene : _activeScenes)
+    {
+        if (scene->GetName() == name)
+        {
+            return scene;
+        }
+    }
+    return nullptr;
+}
+
+int App::FindSceneIndex(std::string name)
+{
+    for (int i = 0; i < _scenes.size(); i++)
+    {
+        if (_scenes[i]->GetName() == name)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int App::FindActiveSceneIndex(std::string name)
+{
+    for (int i = 0; i < _activeScenes.size(); i++)
+    {
+        if (_activeScenes[i]->GetName() == name)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
 void App::LoopThread()
 {
     int framecounter = 0;
@@ -135,7 +306,7 @@ void App::LoopThread()
             int h = HIWORD(wmSize.lParam);
             //layout.Resize(w, h);
             //layout.componentCanvas.Resize(w, h);
-            CurrentScene()->Resize(w, h);
+            ActiveScenes().back()->Resize(w, h);
         }
 
         //// Show video frame
@@ -151,11 +322,11 @@ void App::LoopThread()
 
         //frame->Release();
 
-        // Update scene
-        CurrentScene()->Update();
-
-        // Draw scene
-        CurrentScene()->Draw(window.gfx.GetGraphics());
+        for (auto& scene : ActiveScenes())
+        {
+            scene->Update();
+            scene->Draw(window.gfx.GetGraphics());
+        }
 
         //// Draw UI
         //layout.componentCanvas.Update();
