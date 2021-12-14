@@ -17,6 +17,7 @@ class LocalFileDataProvider : public IMediaDataProvider
 
 public:
     LocalFileDataProvider(std::string filename);
+    LocalFileDataProvider(LocalFileDataProvider* other);
     ~LocalFileDataProvider();
 private:
     void _Initialize();

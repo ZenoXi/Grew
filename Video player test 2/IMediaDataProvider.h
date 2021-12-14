@@ -59,6 +59,7 @@ protected:
 
 public:
     IMediaDataProvider() {};
+    IMediaDataProvider(IMediaDataProvider* other);
     virtual ~IMediaDataProvider() {};
 
 public:

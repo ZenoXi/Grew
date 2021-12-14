@@ -29,6 +29,18 @@ LocalFileDataProvider::LocalFileDataProvider(std::string filename) : _filename(f
     _initializationThread.detach();
 }
 
+LocalFileDataProvider::LocalFileDataProvider(LocalFileDataProvider* other)
+    : IMediaDataProvider(other)
+{
+    _packetThreadController.Add("seek", sizeof(int64_t));
+    _packetThreadController.Add("stream", sizeof(StreamChangeDesc));
+    _packetThreadController.Add("stop", sizeof(bool));
+    _packetThreadController.Add("eof", sizeof(bool));
+
+    _filename = other->_filename;
+    avformat_open_input(&_avfContext, _filename.c_str(), NULL, NULL);
+}
+
 LocalFileDataProvider::~LocalFileDataProvider()
 {
     Stop();

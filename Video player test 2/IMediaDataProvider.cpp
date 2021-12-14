@@ -2,6 +2,16 @@
 
 #include "Functions.h"
 
+IMediaDataProvider::IMediaDataProvider(IMediaDataProvider* other)
+{
+    _videoData.streams = other->_videoData.streams;
+    _audioData.streams = other->_audioData.streams;
+    _subtitleData.streams = other->_subtitleData.streams;
+    _attachmentStreams = other->_attachmentStreams;
+    _dataStreams = other->_dataStreams;
+    _unknownStreams = other->_unknownStreams;
+}
+
 bool IMediaDataProvider::Initializing()
 {
     return _initializing;
