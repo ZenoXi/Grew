@@ -13,22 +13,21 @@ Scene::~Scene()
 
 void Scene::Init(const SceneOptionsBase* options)
 {
-    App::Instance()->mouseManager.AddHandler(_canvas);
-    App::Instance()->keyboardManager.AddHandler(_canvas);
     _Init(options);
     _canvas->Resize(App::Instance()->window.width, App::Instance()->window.height);
 }
 
 void Scene::Uninit()
 {
-    App::Instance()->mouseManager.RemoveHandler(_canvas);
-    App::Instance()->keyboardManager.RemoveHandler(_canvas);
+    Unfocus();
     _Uninit();
 }
 
 void Scene::Focus()
 {
     _focused = true;
+    App::Instance()->mouseManager.AddHandler(_canvas);
+    App::Instance()->keyboardManager.AddHandler(_canvas);
 }
 
 void Scene::Unfocus()
@@ -38,6 +37,8 @@ void Scene::Unfocus()
     _canvas->OnLeftReleased(std::numeric_limits<int>::min(), std::numeric_limits<int>::min());
     _canvas->OnRightReleased(std::numeric_limits<int>::min(), std::numeric_limits<int>::min());
     _canvas->OnMouseLeave();
+    App::Instance()->mouseManager.RemoveHandler(_canvas);
+    App::Instance()->keyboardManager.RemoveHandler(_canvas);
 }
 
 bool Scene::Focused() const
