@@ -4,16 +4,9 @@ SubtitleDecoder::SubtitleDecoder(const MediaStream& stream)
     : _stream(stream)
 {
     _library = ass_library_init();
-    _renderer = ass_renderer_init(_library);
     _track = ass_new_track(_library);
     ass_process_data(_track, (char*)_stream.GetParams()->extradata, _stream.GetParams()->extradata_size);
-    ass_set_frame_size(_renderer, _track->PlayResX, _track->PlayResY);
-    ass_set_fonts(_renderer, NULL, "sans-serif", ASS_FONTPROVIDER_AUTODETECT, NULL, 1);
-
-    //AVCodec* codec = avcodec_find_decoder(stream.GetParams()->codec_id);
-    //_codecContext = avcodec_alloc_context3(codec);
-    //avcodec_parameters_to_context(_codecContext, stream.GetParams());
-    //avcodec_open2(_codecContext, codec, NULL);
+    _ResetRenderer();
 
     _timebase = _stream.timeBase;
 
@@ -193,7 +186,19 @@ VideoFrame SubtitleDecoder::RenderFrame(TimePoint time)
     ASS_Image* img = ass_render_frame(_renderer, _track, time.GetTime(MILLISECONDS), NULL);
     lock.unlock();
 
-    VideoFrame vf = VideoFrame(_track->PlayResX, _track->PlayResY, time.GetTime(MICROSECONDS));
+    //VideoFrame vf = VideoFrame(_track->PlayResX, _track->PlayResY, time.GetTime(MICROSECONDS));
+    int width, height;
+    if (_outputWidth != 0 && _outputHeight != 0)
+    {
+        width = _outputWidth;
+        height = _outputHeight;
+    }
+    else
+    {
+        width = _track->PlayResX;
+        height = _track->PlayResY;
+    }
+    VideoFrame vf = VideoFrame(width, height, time.GetTime(MICROSECONDS));
     std::fill_n((uchar*)vf.GetBytes(), vf.GetWidth() * vf.GetHeight() * 4, 0);
     Blend(&vf, img);
     return vf;
@@ -207,9 +212,40 @@ void SubtitleDecoder::AddFonts(const std::vector<FontDesc>& fonts)
     {
         ass_add_font(_library, font.name, font.data, font.dataSize);
     }
-    // Reset renderer
-    ass_renderer_done(_renderer);
+    _ResetRenderer();
+}
+
+void SubtitleDecoder::SetOutputSize(int width, int height)
+{
+    _outputWidth = width;
+    _outputHeight = height;
+    _ResetRenderer();
+}
+
+int SubtitleDecoder::GetOutputWidth() const
+{
+    return _outputWidth;
+}
+
+int SubtitleDecoder::GetOutputHeight() const
+{
+    return _outputHeight;
+}
+
+void SubtitleDecoder::_ResetRenderer()
+{
+    if (_renderer)
+    {
+        ass_renderer_done(_renderer);
+    }
     _renderer = ass_renderer_init(_library);
-    ass_set_frame_size(_renderer, _track->PlayResX, _track->PlayResY);
+    if (_outputWidth != 0 && _outputHeight != 0)
+    {
+        ass_set_frame_size(_renderer, _outputWidth, _outputHeight);
+    }
+    else
+    {
+        ass_set_frame_size(_renderer, _track->PlayResX, _track->PlayResY);
+    }
     ass_set_fonts(_renderer, NULL, "sans-serif", ASS_FONTPROVIDER_AUTODETECT, NULL, 1);
 }

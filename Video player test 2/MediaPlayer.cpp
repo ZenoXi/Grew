@@ -185,6 +185,18 @@ void MediaPlayer::Update(double timeLimit)
         //    _subtitleData.nextFrame.reset(_subtitleData.decoder->GetFrame().release());
         //}
 
+        // Update subtitle decoder output dimensions
+        if (_subtitleData.decoder && _videoData.nextFrame)
+        {
+            int outputWidth = ((SubtitleDecoder*)_subtitleData.decoder)->GetOutputWidth();
+            int outputHeight = ((SubtitleDecoder*)_subtitleData.decoder)->GetOutputHeight();
+            VideoFrame* nextFrame = (VideoFrame*)_videoData.nextFrame.get();
+            if (outputWidth != nextFrame->GetWidth() || outputHeight != nextFrame->GetHeight())
+            {
+                ((SubtitleDecoder*)_subtitleData.decoder)->SetOutputSize(nextFrame->GetWidth(), nextFrame->GetHeight());
+            }
+        }
+
         // Switch to new frames
         bool frameAdvanced = false;
         if (_videoData.nextFrame)

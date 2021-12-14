@@ -20,6 +20,8 @@ class SubtitleDecoder : public IMediaDecoder
     std::mutex _m_ass;
 
     MediaStream _stream;
+    int _outputWidth = 0;
+    int _outputHeight = 0;
 
     std::thread _renderingThread;
 
@@ -35,9 +37,13 @@ public:
     ~SubtitleDecoder();
     VideoFrame RenderFrame(TimePoint time);
     void AddFonts(const std::vector<FontDesc>& fonts);
-
+    void SetOutputSize(int width, int height);
+    int GetOutputWidth() const;
+    int GetOutputHeight() const;
 
 private:
     void _DecoderThread();
     void _RenderingThread();
+
+    void _ResetRenderer();
 };
