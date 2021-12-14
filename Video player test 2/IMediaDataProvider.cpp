@@ -82,6 +82,33 @@ Duration IMediaDataProvider::MediaDuration()
     return Duration(finalDuration, MILLISECONDS);
 }
 
+Duration IMediaDataProvider::MaxMediaDuration()
+{
+    int64_t finalDuration = 0;
+    for (auto& stream : _videoData.streams)
+    {
+        if (stream.startTime + stream.duration > finalDuration)
+        {
+            finalDuration = stream.startTime + stream.duration;
+        }
+    }
+    for (auto& stream : _audioData.streams)
+    {
+        if (stream.startTime + stream.duration > finalDuration)
+        {
+            finalDuration = stream.startTime + stream.duration;
+        }
+    }
+    for (auto& stream : _subtitleData.streams)
+    {
+        if (stream.startTime + stream.duration > finalDuration)
+        {
+            finalDuration = stream.startTime + stream.duration;
+        }
+    }
+    return Duration(finalDuration, MILLISECONDS);
+}
+
 void IMediaDataProvider::Seek(TimePoint time)
 {
     _Seek(time);

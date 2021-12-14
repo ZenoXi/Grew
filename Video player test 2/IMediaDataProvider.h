@@ -81,6 +81,7 @@ private:
     // METADATA
 public:
     Duration MediaDuration();
+    Duration MaxMediaDuration();
 
 
     // STREAM CONTROL
