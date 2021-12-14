@@ -98,13 +98,28 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _bottomControlPanel->SetVerticalAlignment(zcom::Alignment::END);
     //_bottomControlPanel->SetZIndex(1);
 
+    _mediaQueueItem = new zcom::MediaQueueItem(L"E:\\aots4e5.mkv");
+    _mediaQueueItem->SetBaseSize(400, 35);
+    _mediaQueueItem->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.5f));
+
     _canvas->AddComponent(_bottomControlPanel);
+    _canvas->AddComponent(_mediaQueueItem);
     //componentCanvas.AddComponent(controlBar);
 }
 
 void PlaybackScene::_Uninit()
 {
     //delete _player;
+}
+
+void PlaybackScene::_Focus()
+{
+
+}
+
+void PlaybackScene::_Unfocus()
+{
+
 }
 
 void PlaybackScene::_Update()

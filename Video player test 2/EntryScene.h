@@ -55,8 +55,11 @@ class EntryScene : public Scene
 public:
     EntryScene();
 
+private:
     void _Init(const SceneOptionsBase* options);
     void _Uninit();
+    void _Focus();
+    void _Unfocus();
     void _Update();
     ID2D1Bitmap1* _Draw(Graphics g);
     void _Resize(int width, int height);

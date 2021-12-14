@@ -323,6 +323,16 @@ void EntryScene::_Uninit()
     _connectCancelButton = nullptr;
 }
 
+void EntryScene::_Focus()
+{
+
+}
+
+void EntryScene::_Unfocus()
+{
+
+}
+
 void EntryScene::_Update()
 {
     if (_setConnectFocus)
@@ -410,7 +420,10 @@ void EntryScene::OnFileSelected()
         PlaybackSceneOptions* options = new PlaybackSceneOptions();
         options->fileName = wstring_to_string(filename);
         options->mode = PlaybackMode::OFFLINE;
-        App::Instance()->SetScene("playback_scene", options);
+        App::Instance()->UninitScene("entry_scene");
+        App::Instance()->InitScene("playback_scene", options);
+        App::Instance()->MoveSceneToFront("playback_scene");
+        //App::Instance()->SetScene("playback_scene", options);
         delete options;
     }
 }
