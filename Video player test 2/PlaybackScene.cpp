@@ -1,5 +1,6 @@
 #include "App.h" // App.h must be included first
 #include "PlaybackScene.h"
+#include "PlaybackOverlayScene.h"
 
 bool leftClicked = false;
 bool rightClicked = false;
@@ -96,7 +97,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _overlayButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _overlayButton->SetOnActivated([&]()
     {
-        App::Instance()->MoveSceneToFront("playback_overlay_scene");
+        App::Instance()->MoveSceneToFront(PlaybackOverlayScene::StaticName());
     });
 
     _controlBar->AddItem(_seekBar);

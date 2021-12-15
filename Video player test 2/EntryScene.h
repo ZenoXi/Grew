@@ -61,6 +61,9 @@ class EntryScene : public Scene
 public:
     EntryScene();
 
+    const char* GetName() const { return "entry"; }
+    static const char* StaticName() { return "entry"; }
+
 private:
     void _Init(const SceneOptionsBase* options);
     void _Uninit();
@@ -81,6 +84,4 @@ private:
     void OnShareConfirmed();
     void OnShareCanceled();
     void OnShareLoadingCanceled();
-
-    const char* GetName() const { return "entry_scene"; }
 };

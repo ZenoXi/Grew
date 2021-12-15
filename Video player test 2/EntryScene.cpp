@@ -4,6 +4,7 @@
 #include "ResourceManager.h"
 #include "Functions.h"
 #include "PlaybackScene.h"
+#include "PlaybackOverlayScene.h"
 
 EntryScene::EntryScene() {}
 
@@ -359,7 +360,7 @@ void EntryScene::_Update()
         {
             PlaybackSceneOptions options;
             options.mode = PlaybackMode::CLIENT;
-            App::Instance()->SetScene("playback_scene", &options);
+            App::Instance()->SetScene(PlaybackScene::StaticName(), &options);
         }
     }
     else if (_shareLoading)
@@ -369,7 +370,7 @@ void EntryScene::_Update()
             PlaybackSceneOptions options;
             options.fileName = _shareFilename;
             options.mode = PlaybackMode::SERVER;
-            App::Instance()->SetScene("playback_scene", &options);
+            App::Instance()->SetScene(PlaybackScene::StaticName(), &options);
         }
     }
     else if (_fileLoading)
@@ -383,11 +384,18 @@ void EntryScene::_Update()
                 PlaybackSceneOptions* options = new PlaybackSceneOptions();
                 options->fileName = wstring_to_string(filename);
                 options->mode = PlaybackMode::OFFLINE;
-                App::Instance()->UninitScene("entry_scene");
-                App::Instance()->InitScene("playback_scene", options);
-                App::Instance()->MoveSceneToFront("playback_scene");
+                App::Instance()->UninitScene(GetName());
+                App::Instance()->InitScene(PlaybackScene::StaticName(), options);
+                App::Instance()->MoveSceneToFront(PlaybackScene::StaticName());
                 //App::Instance()->SetScene("playback_scene", options);
                 delete options;
+
+                // Later the overlay scene instead of playback scene will be used
+                Scene* scene = App::Instance()->FindScene(PlaybackOverlayScene::StaticName());
+                if (scene)
+                {
+
+                }
             }
         }
     }

@@ -17,6 +17,7 @@
 #include "MediaDecoder.h"
 #include "MediaPlayerOld.h"
 #include "App.h"
+#include "EntryScene.h"
 
 #include "Event.h"
 
@@ -24,7 +25,7 @@
 
 int WINAPI main(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
 {
-    // Initialize WSA
+    // Initialize WSA 
     znet::WSAHolder holder = znet::WSAHolder();
 
     // Create window
@@ -48,7 +49,7 @@ int WINAPI main(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
     ztime::clock[CLOCK_GAME].Stop();
 
     // Initialize singleton objects
-    App::Init(window, "entry_scene");
+    App::Init(window, EntryScene::StaticName());
     NetworkInterface::Init();
     //App app(window, "entry_scene");
 

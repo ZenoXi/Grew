@@ -65,7 +65,7 @@ void App::Init(DisplayWindow& dw, std::string startScene)
     Instance()->_scenes.push_back(new PlaybackScene());
     Instance()->_scenes.push_back(new PlaybackOverlayScene()); // Must be after PlaybackScene()
     Instance()->InitScene(startScene, nullptr);
-    Instance()->InitScene("playback_overlay_scene", nullptr);
+    Instance()->InitScene(PlaybackOverlayScene::StaticName(), nullptr);
 
     // Start main loop
     Instance()->_mainThreadController.Add("stop", sizeof(true));
