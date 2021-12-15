@@ -2,6 +2,7 @@
 
 #include "EntryScene.h";
 #include "PlaybackScene.h"
+#include "PlaybackOverlayScene.h"
 
 App* App::_instance = nullptr;
 
@@ -62,7 +63,9 @@ void App::Init(DisplayWindow& dw, std::string startScene)
     // Add scenes
     Instance()->_scenes.push_back(new EntryScene());
     Instance()->_scenes.push_back(new PlaybackScene());
+    Instance()->_scenes.push_back(new PlaybackOverlayScene()); // Must be after PlaybackScene()
     Instance()->InitScene(startScene, nullptr);
+    Instance()->InitScene("playback_overlay_scene", nullptr);
 
     // Start main loop
     Instance()->_mainThreadController.Add("stop", sizeof(true));
