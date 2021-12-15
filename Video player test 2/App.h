@@ -46,9 +46,9 @@ public:
     // If the scene is already in front, it isn't moved
     bool MoveSceneInFront(std::string name, std::string inFront);
     std::vector<Scene*> ActiveScenes();
-private:
     Scene* FindScene(std::string name);
     Scene* FindActiveScene(std::string name);
+private:
     int FindSceneIndex(std::string name);
     int FindActiveSceneIndex(std::string name);
 
