@@ -16,7 +16,7 @@
 #include "SeekBar.h"
 #include "VolumeSlider.h"
 #include "PlayButton.h"
-#include "MediaQueueItem.h"
+#include "Button.h"
 
 struct PlaybackSceneOptions : public SceneOptionsBase
 {
@@ -36,7 +36,7 @@ class PlaybackScene : public Scene
     zcom::VolumeSlider* _volumeSlider = nullptr;
     zcom::PlayButton* _playButton = nullptr;
     zcom::BottomControlPanel* _bottomControlPanel = nullptr;
-    zcom::MediaQueueItem* _mediaQueueItem = nullptr;
+    zcom::Button* _overlayButton = nullptr;
 
     LocalFileDataProvider* _dataProvider = nullptr;
     IAudioOutputAdapter* _audioAdapter = nullptr;

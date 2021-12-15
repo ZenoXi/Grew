@@ -88,9 +88,21 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _playButton->SetVerticalOffsetPixels(50);
     _playButton->SetPaused(true);
 
+    _overlayButton = new zcom::Button(L"Open overlay");
+    _overlayButton->SetBaseSize(150, 25);
+    _overlayButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
+    _overlayButton->SetOffsetPixels(-25, -25);
+    _overlayButton->SetBorderVisibility(true);
+    _overlayButton->SetActivation(zcom::ButtonActivation::RELEASE);
+    _overlayButton->SetOnActivated([&]()
+    {
+        App::Instance()->MoveSceneToFront("playback_overlay_scene");
+    });
+
     _controlBar->AddItem(_seekBar);
     _controlBar->AddItem(_volumeSlider);
     _controlBar->AddItem(_playButton);
+    _controlBar->AddItem(_overlayButton);
 
     _bottomControlPanel = new zcom::BottomControlPanel(_controlBar);
     _bottomControlPanel->SetParentWidthPercent(1.0f);
@@ -98,12 +110,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _bottomControlPanel->SetVerticalAlignment(zcom::Alignment::END);
     //_bottomControlPanel->SetZIndex(1);
 
-    _mediaQueueItem = new zcom::MediaQueueItem(L"E:\\aots4e5.mkv");
-    _mediaQueueItem->SetBaseSize(400, 35);
-    _mediaQueueItem->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.5f));
-
     _canvas->AddComponent(_bottomControlPanel);
-    _canvas->AddComponent(_mediaQueueItem);
     //componentCanvas.AddComponent(controlBar);
 }
 
@@ -305,6 +312,8 @@ void PlaybackScene::_Update()
 
 ID2D1Bitmap1* PlaybackScene::_Draw(Graphics g)
 {
+    g.target->Clear(D2D1::ColorF(0.05f, 0.05f, 0.05f));
+
     if (_mediaPlayer)
     {
         const VideoFrame& videoFrame = _videoAdapter->GetVideoData();
