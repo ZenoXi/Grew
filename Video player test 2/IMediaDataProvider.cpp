@@ -54,8 +54,9 @@ Duration IMediaDataProvider::MediaDuration()
     int64_t finalDuration = 0;
     if (_videoData.currentStream != -1)
     {
-        int64_t startTime = _videoData.streams[_videoData.currentStream].startTime;
-        int64_t duration = _videoData.streams[_videoData.currentStream].duration;
+        MediaStream& stream = _videoData.streams[_videoData.currentStream];
+        int64_t startTime = av_rescale_q(stream.startTime, stream.timeBase, { 1, AV_TIME_BASE });
+        int64_t duration = av_rescale_q(stream.duration, stream.timeBase, { 1, AV_TIME_BASE });
         if (startTime + duration > finalDuration)
         {
             finalDuration = startTime + duration;
@@ -63,8 +64,9 @@ Duration IMediaDataProvider::MediaDuration()
     }
     if (_audioData.currentStream != -1)
     {
-        int64_t startTime = _audioData.streams[_audioData.currentStream].startTime;
-        int64_t duration = _audioData.streams[_audioData.currentStream].duration;
+        MediaStream& stream = _audioData.streams[_audioData.currentStream];
+        int64_t startTime = av_rescale_q(stream.startTime, stream.timeBase, { 1, AV_TIME_BASE });
+        int64_t duration = av_rescale_q(stream.duration, stream.timeBase, { 1, AV_TIME_BASE });
         if (startTime + duration > finalDuration)
         {
             finalDuration = startTime + duration;
@@ -72,14 +74,15 @@ Duration IMediaDataProvider::MediaDuration()
     }
     if (_subtitleData.currentStream != -1)
     {
-        int64_t startTime = _subtitleData.streams[_subtitleData.currentStream].startTime;
-        int64_t duration = _subtitleData.streams[_subtitleData.currentStream].duration;
+        MediaStream& stream = _subtitleData.streams[_subtitleData.currentStream];
+        int64_t startTime = av_rescale_q(stream.startTime, stream.timeBase, { 1, AV_TIME_BASE });
+        int64_t duration = av_rescale_q(stream.duration, stream.timeBase, { 1, AV_TIME_BASE });
         if (startTime + duration > finalDuration)
         {
             finalDuration = startTime + duration;
         }
     }
-    return Duration(finalDuration, MILLISECONDS);
+    return Duration(finalDuration, MICROSECONDS);
 }
 
 Duration IMediaDataProvider::MaxMediaDuration()
@@ -87,26 +90,32 @@ Duration IMediaDataProvider::MaxMediaDuration()
     int64_t finalDuration = 0;
     for (auto& stream : _videoData.streams)
     {
-        if (stream.startTime + stream.duration > finalDuration)
+        int64_t startTime = av_rescale_q(stream.startTime, stream.timeBase, { 1, AV_TIME_BASE });
+        int64_t duration = av_rescale_q(stream.duration, stream.timeBase, { 1, AV_TIME_BASE });
+        if (startTime + duration > finalDuration)
         {
-            finalDuration = stream.startTime + stream.duration;
+            finalDuration = startTime + duration;
         }
     }
     for (auto& stream : _audioData.streams)
     {
-        if (stream.startTime + stream.duration > finalDuration)
+        int64_t startTime = av_rescale_q(stream.startTime, stream.timeBase, { 1, AV_TIME_BASE });
+        int64_t duration = av_rescale_q(stream.duration, stream.timeBase, { 1, AV_TIME_BASE });
+        if (startTime + duration > finalDuration)
         {
-            finalDuration = stream.startTime + stream.duration;
+            finalDuration = startTime + duration;
         }
     }
     for (auto& stream : _subtitleData.streams)
     {
-        if (stream.startTime + stream.duration > finalDuration)
+        int64_t startTime = av_rescale_q(stream.startTime, stream.timeBase, { 1, AV_TIME_BASE });
+        int64_t duration = av_rescale_q(stream.duration, stream.timeBase, { 1, AV_TIME_BASE });
+        if (startTime + duration > finalDuration)
         {
-            finalDuration = stream.startTime + stream.duration;
+            finalDuration = startTime + duration;
         }
     }
-    return Duration(finalDuration, MILLISECONDS);
+    return Duration(finalDuration, MICROSECONDS);
 }
 
 void IMediaDataProvider::Seek(TimePoint time)
