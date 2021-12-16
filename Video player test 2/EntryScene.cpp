@@ -30,10 +30,10 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectButton->SetVerticalOffsetPixels(20);
         _connectButton->SetBaseWidth(100);
         _connectButton->SetBaseHeight(100);
-        _connectButton->SetBackgroundImage(ResourceManager::GetImage("connect_dim"));
-        _connectButton->SetHoverBackgroundImage(ResourceManager::GetImage("connect_bright"));
-        _connectButton->SetClickBackgroundImage(ResourceManager::GetImage("connect_bright"));
-        _connectButton->SetHoverBackgroundColor(D2D1::ColorF(0, 0.0f));
+        _connectButton->SetButtonImage(ResourceManager::GetImage("connect_dim"));
+        _connectButton->SetButtonHoverImage(ResourceManager::GetImage("connect_bright"));
+        _connectButton->SetButtonClickImage(ResourceManager::GetImage("connect_bright"));
+        _connectButton->SetButtonHoverColor(D2D1::ColorF(0, 0.0f));
         _connectButton->SetOnActivated([&]() { OnConnectSelected(); });
 
         _connectLabel = new zcom::Label(L"Connect");
@@ -51,10 +51,10 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _shareButton->SetVerticalOffsetPixels(20);
         _shareButton->SetBaseWidth(100);
         _shareButton->SetBaseHeight(100);
-        _shareButton->SetBackgroundImage(ResourceManager::GetImage("share_dim"));
-        _shareButton->SetHoverBackgroundImage(ResourceManager::GetImage("share_bright"));
-        _shareButton->SetClickBackgroundImage(ResourceManager::GetImage("share_bright"));
-        _shareButton->SetHoverBackgroundColor(D2D1::ColorF(0, 0.0f));
+        _shareButton->SetButtonImage(ResourceManager::GetImage("share_dim"));
+        _shareButton->SetButtonHoverImage(ResourceManager::GetImage("share_bright"));
+        _shareButton->SetButtonClickImage(ResourceManager::GetImage("share_bright"));
+        _shareButton->SetButtonHoverColor(D2D1::ColorF(0, 0.0f));
         _shareButton->SetOnActivated([&]() { OnShareSelected(); });
 
         _shareLabel = new zcom::Label(L"Share");
@@ -72,10 +72,10 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _fileButton->SetVerticalOffsetPixels(20);
         _fileButton->SetBaseWidth(100);
         _fileButton->SetBaseHeight(100);
-        _fileButton->SetBackgroundImage(ResourceManager::GetImage("file_dim"));
-        _fileButton->SetHoverBackgroundImage(ResourceManager::GetImage("file_bright"));
-        _fileButton->SetClickBackgroundImage(ResourceManager::GetImage("file_bright"));
-        _fileButton->SetHoverBackgroundColor(D2D1::ColorF(0, 0.0f));
+        _fileButton->SetButtonImage(ResourceManager::GetImage("file_dim"));
+        _fileButton->SetButtonHoverImage(ResourceManager::GetImage("file_bright"));
+        _fileButton->SetButtonClickImage(ResourceManager::GetImage("file_bright"));
+        _fileButton->SetButtonHoverColor(D2D1::ColorF(0, 0.0f));
         _fileButton->SetOnActivated([&]() { OnFileSelected(); });
 
         _fileLabel = new zcom::Label(L"Offline");
