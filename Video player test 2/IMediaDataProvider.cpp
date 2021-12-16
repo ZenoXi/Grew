@@ -5,8 +5,11 @@
 IMediaDataProvider::IMediaDataProvider(IMediaDataProvider* other)
 {
     _videoData.streams = other->_videoData.streams;
+    _videoData.currentStream = other->_videoData.currentStream;
     _audioData.streams = other->_audioData.streams;
+    _audioData.currentStream = other->_audioData.currentStream;
     _subtitleData.streams = other->_subtitleData.streams;
+    _subtitleData.currentStream = other->_subtitleData.currentStream;
     _attachmentStreams = other->_attachmentStreams;
     _dataStreams = other->_dataStreams;
     _unknownStreams = other->_unknownStreams;
