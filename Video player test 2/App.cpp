@@ -125,8 +125,15 @@ bool App::UninitScene(std::string name)
     Scene* scene = FindActiveScene(name);
     if (!scene) return false;
 
+    bool newFocus = false;
+    if (_activeScenes.back() == scene)
+        newFocus = true;
+
     scene->Uninit();
     _activeScenes.erase(std::find(_activeScenes.begin(), _activeScenes.end(), scene));
+    if (newFocus && !_activeScenes.empty())
+        _activeScenes.back()->Focus();
+
     return true;
 }
 
@@ -328,9 +335,9 @@ void App::LoopThread()
         //);
 
         //frame->Release();
-
-        for (auto& scene : ActiveScenes())
+        for (int i = 0; i < ActiveScenes().size(); i++)
         {
+            auto scene = ActiveScenes()[i];
             scene->Update();
             scene->Draw(window.gfx.GetGraphics());
         }
