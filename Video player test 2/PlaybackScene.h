@@ -25,6 +25,7 @@ struct PlaybackSceneOptions : public SceneOptionsBase
     std::string fileName = "";
     std::string ip = "";
     uint16_t port = 0;
+    LocalFileDataProvider* dataProvider = nullptr;
 };
 
 class PlaybackScene : public Scene
@@ -57,4 +58,8 @@ public:
 
     const char* GetName() const { return "playback"; }
     static const char* StaticName() { return "playback"; }
+
+public:
+    // Playback reached the end
+    bool Finished() const;
 };
