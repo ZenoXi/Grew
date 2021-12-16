@@ -7,6 +7,11 @@
 
 namespace zcom
 {
+    enum class ButtonPreset
+    {
+        NO_EFFECTS,
+        DEFAULT
+    };
 
     enum class ButtonActivation
     {
@@ -26,6 +31,41 @@ namespace zcom
 
         void _OnDraw(Graphics g)
         {
+            D2D1_COLOR_F color;
+            ID2D1Bitmap* image;
+            if (GetMouseLeftClicked())
+            {
+                color = _colorClicked;
+                image = _imageClicked;
+            }
+            else if (GetMouseInside())
+            {
+                color = _colorHovered;
+                image = _imageHovered;
+            }
+            else
+            {
+                color = _color;
+                image = _image;
+            }
+
+            ID2D1SolidColorBrush* brush;
+            g.target->CreateSolidColorBrush(color, &brush);
+            g.target->FillRectangle
+            (
+                D2D1::RectF(0, 0, g.target->GetSize().width, g.target->GetSize().height),
+                brush
+            );
+            brush->Release();
+            if (image)
+            {
+                g.target->DrawBitmap
+                (
+                    image,
+                    D2D1::RectF(0, 0, g.target->GetSize().width, g.target->GetSize().height)
+                );
+            }
+
             g.target->DrawBitmap(
                 _text->Draw(g),
                 D2D1::RectF(
@@ -49,18 +89,12 @@ namespace zcom
 
         void _OnMouseLeave()
         {
-            _hovered = false;
-            SetBackgroundImage(_backgroundImageBackup);
-            SetBackgroundColor(_backgroundColorBackup);
+
         }
 
         void _OnMouseEnter()
         {
-            _hovered = true;
-            _backgroundImageBackup = GetBackgroundImage();
-            _backgroundColorBackup = GetBackgroundColor();
-            SetBackgroundImage(_backgroundImageHovered);
-            SetBackgroundColor(_backgroundColorHovered);
+
         }
 
         Base* _OnLeftPressed(int x, int y)
@@ -70,14 +104,6 @@ namespace zcom
                 _activated = true;
                 _OnActivated.InvokeAll();
             }
-
-            if (!_hovered)
-            {
-                _backgroundImageBackup = GetBackgroundImage();
-                _backgroundColorBackup = GetBackgroundColor();
-            }
-            SetBackgroundImage(_backgroundImageClicked);
-            SetBackgroundColor(_backgroundColorClicked);
             return this;
         }
 
@@ -87,17 +113,6 @@ namespace zcom
             {
                 _activated = true;
                 _OnActivated.InvokeAll();
-            }
-
-            if (_hovered)
-            {
-                SetBackgroundImage(_backgroundImageHovered);
-                SetBackgroundColor(_backgroundColorHovered);
-            }
-            else
-            {
-                SetBackgroundImage(_backgroundImageBackup);
-                SetBackgroundColor(_backgroundColorBackup);
             }
             return this;
         }
@@ -153,12 +168,12 @@ namespace zcom
 
         Label* _text = nullptr;
 
-        ID2D1Bitmap* _backgroundImageHovered = nullptr;
-        D2D1_COLOR_F _backgroundColorHovered = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f);
-        ID2D1Bitmap* _backgroundImageClicked = nullptr;
-        D2D1_COLOR_F _backgroundColorClicked = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.1f);
-        ID2D1Bitmap* _backgroundImageBackup = nullptr;
-        D2D1_COLOR_F _backgroundColorBackup = D2D1::ColorF(0, 0.0f);
+        ID2D1Bitmap* _image = nullptr;
+        D2D1_COLOR_F _color = D2D1::ColorF(0, 0.0f);
+        ID2D1Bitmap* _imageHovered = nullptr;
+        D2D1_COLOR_F _colorHovered = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f);
+        ID2D1Bitmap* _imageClicked = nullptr;
+        D2D1_COLOR_F _colorClicked = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.1f);
 
     public:
         Button(std::wstring text = L"") : _text(new Label(text))
@@ -180,24 +195,63 @@ namespace zcom
         Button(const Button&) = delete;
         Button& operator=(const Button&) = delete;
 
-        void SetHoverBackgroundImage(ID2D1Bitmap* image)
+        void SetButtonImage(ID2D1Bitmap* image)
         {
-            _backgroundImageHovered = image;
+            _image = image;
         }
 
-        void SetHoverBackgroundColor(D2D1_COLOR_F color)
+        void SetButtonColor(D2D1_COLOR_F color)
         {
-            _backgroundColorHovered = color;
+            _color = color;
         }
 
-        void SetClickBackgroundImage(ID2D1Bitmap* image)
+        void SetButtonHoverImage(ID2D1Bitmap* image)
         {
-            _backgroundImageClicked = image;
+            _imageHovered = image;
         }
 
-        void SetClickBackgroundColor(D2D1_COLOR_F color)
+        void SetButtonHoverColor(D2D1_COLOR_F color)
         {
-            _backgroundColorClicked = color;
+            _colorHovered = color;
+        }
+
+        void SetButtonClickImage(ID2D1Bitmap* image)
+        {
+            _imageClicked = image;
+        }
+
+        void SetButtonClickColor(D2D1_COLOR_F color)
+        {
+            _colorClicked = color;
+        }
+
+        void SetPreset(ButtonPreset preset)
+        {
+            switch (preset)
+            {
+            case ButtonPreset::NO_EFFECTS:
+            {
+                _image = nullptr;
+                _color = D2D1::ColorF(0, 0.0f);
+                _imageHovered = nullptr;
+                _colorHovered = D2D1::ColorF(0, 0.0f);
+                _imageClicked = nullptr;
+                _colorClicked = D2D1::ColorF(0, 0.0f);
+                break;
+            }
+            case ButtonPreset::DEFAULT:
+            {
+                _image = nullptr;
+                _color = D2D1::ColorF(0, 0.0f);
+                _imageHovered = nullptr;
+                _colorHovered = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f);
+                _imageClicked = nullptr;
+                _colorClicked = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.1f);
+                break;
+            }
+            default:
+                break;
+            }
         }
 
         void SetOnActivated(const std::function<void()>& func)
