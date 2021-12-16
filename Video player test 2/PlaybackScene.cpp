@@ -46,23 +46,19 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
         opt = *reinterpret_cast<const PlaybackSceneOptions*>(options);
     }
 
-    _dataProvider = new LocalFileDataProvider(opt.fileName);
+    if (opt.dataProvider)
+    {
+        _dataProvider = opt.dataProvider;
+    }
+    else
+    {
+        _dataProvider = new LocalFileDataProvider(opt.fileName);
+    }
 
-    // Initialize player
-    //_player = new MediaPlayerOld(opt.mode, opt.fileName);
-
-    //if (opt.mode == PlaybackMode::CLIENT)
-    //{
-    //    _player = new MediaPlayer(opt.ip, opt.port);
-    //}
-    //else if (opt.mode == PlaybackMode::SERVER)
-    //{
-    //    _player = new MediaPlayer(opt.port, opt.fileName);
-    //}
-    //else if (opt.mode == PlaybackMode::OFFLINE)
-    //{
-    //    _player = new MediaPlayer(0, opt.fileName);
-    //}
+    _audioAdapter = nullptr;
+    _videoAdapter = nullptr;
+    _mediaPlayer = nullptr;
+    _controller = nullptr;
 
     // Initialize scene
     _controlBar = new zcom::Panel();
@@ -117,7 +113,23 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
 
 void PlaybackScene::_Uninit()
 {
-    //delete _player;
+    _canvas->ClearComponents();
+    _controlBar->ClearItems();
+    delete _bottomControlPanel;
+    delete _controlBar;
+    delete _seekBar;
+    delete _volumeSlider;
+    delete _playButton;
+    delete _overlayButton;
+
+    delete _controller;
+    delete _mediaPlayer;
+    delete _dataProvider;
+
+    _audioAdapter = nullptr;
+    _videoAdapter = nullptr;
+    _mediaPlayer = nullptr;
+    _controller = nullptr;
 }
 
 void PlaybackScene::_Focus()
@@ -290,7 +302,11 @@ void PlaybackScene::_Update()
 
             _videoAdapter = new IVideoOutputAdapter();
             auto audioStream = _dataProvider->CurrentAudioStream();
-            _audioAdapter = new XAudio2_AudioOutputAdapter(audioStream->channels, audioStream->sampleRate);
+            if (audioStream)
+                _audioAdapter = new XAudio2_AudioOutputAdapter(audioStream->channels, audioStream->sampleRate);
+            else
+                _audioAdapter = new XAudio2_AudioOutputAdapter(1, 1);
+
             _mediaPlayer = new MediaPlayer(
                 _dataProvider,
                 std::unique_ptr<IVideoOutputAdapter>(_videoAdapter),
@@ -416,4 +432,16 @@ ID2D1Bitmap1* PlaybackScene::_Draw(Graphics g)
 void PlaybackScene::_Resize(int width, int height)
 {
     
+}
+
+bool PlaybackScene::Finished() const
+{
+    if (_controller)
+    {
+        return _controller->Finished();
+    }
+    else
+    {
+        return false;
+    }
 }
