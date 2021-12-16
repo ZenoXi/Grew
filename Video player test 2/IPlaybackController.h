@@ -20,7 +20,8 @@ public:
     virtual void SetAudioStream(int index) = 0;
     virtual void SetSubtitleStream(int index) = 0;
 
-    virtual bool Paused() = 0;
+    virtual bool Paused() const = 0;
+    virtual bool Finished() const = 0;
     virtual float GetVolume() const = 0;
     virtual float GetBalance() const = 0;
     virtual TimePoint CurrentTime() const = 0;
