@@ -21,12 +21,29 @@ void BasePlaybackController::Update()
             }
         }
     }
+
+    if (_player->TimerRunning())
+    {
+        Duration duration = _dataProvider->MediaDuration();
+        if (_player->TimerPosition().GetTicks() >= duration.GetTicks())
+        {
+            _player->StopTimer();
+            _finished = true;
+        }
+    }
 }
 
 void BasePlaybackController::Play()
 {
     _paused = false;
-    _player->StartTimer();
+    if (_finished)
+    {
+        Seek(0);
+    }
+    if (!_loading)
+    {
+        _player->StartTimer();
+    }
 }
 
 void BasePlaybackController::Pause()
@@ -61,7 +78,10 @@ void BasePlaybackController::Seek(TimePoint time)
 {
     if (_player->Waiting()) return;
 
-    if (time.GetTime() < 0) time.SetTime(0);
+    if (time.GetTime() < 0)
+    {
+        time.SetTime(0);
+    }
     else
     {
         Duration mediaDuration = _dataProvider->MediaDuration();
@@ -76,6 +96,7 @@ void BasePlaybackController::Seek(TimePoint time)
     _player->WaitDiscontinuity();
     _dataProvider->Seek(time);
     _loading = true;
+    _finished = false;
 }
 
 void BasePlaybackController::SetVideoStream(int index)
@@ -86,6 +107,7 @@ void BasePlaybackController::SetVideoStream(int index)
     _player->SetVideoStream(_dataProvider->SetVideoStream(index, _player->TimerPosition()));
     _currentVideoStream = index;
     _loading = true;
+    _finished = false;
 }
 
 void BasePlaybackController::SetAudioStream(int index)
@@ -96,6 +118,7 @@ void BasePlaybackController::SetAudioStream(int index)
     _player->SetAudioStream(_dataProvider->SetAudioStream(index, _player->TimerPosition()));
     _currentAudioStream = index;
     _loading = true;
+    _finished = false;
 }
 
 void BasePlaybackController::SetSubtitleStream(int index)
@@ -106,11 +129,17 @@ void BasePlaybackController::SetSubtitleStream(int index)
     _player->SetSubtitleStream(_dataProvider->SetSubtitleStream(index, _player->TimerPosition()));
     _currentSubtitleStream = index;
     _loading = true;
+    _finished = false;
 }
 
-bool BasePlaybackController::Paused()
+bool BasePlaybackController::Paused() const
 {
     return _paused;
+}
+
+bool BasePlaybackController::Finished() const
+{
+    return _finished;
 }
 
 float BasePlaybackController::GetVolume() const

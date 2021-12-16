@@ -12,6 +12,7 @@ class BasePlaybackController : public IPlaybackController
 
     bool _paused = true;
     bool _loading = true;
+    bool _finished = false;
 
     float _volume = 0.1f;
     float _balance = 0.0f;
@@ -37,7 +38,8 @@ public:
     void SetAudioStream(int index);
     void SetSubtitleStream(int index);
 
-    bool Paused();
+    bool Paused() const;
+    bool Finished() const;
     float GetVolume() const;
     float GetBalance() const;
     TimePoint CurrentTime() const;
