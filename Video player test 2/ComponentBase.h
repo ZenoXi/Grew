@@ -198,6 +198,8 @@ namespace zcom
         }
         void SetSize(int width, int height)
         {
+            if (width <= 0) width = 1;
+            if (height <= 0) height = 1;
             _width = width;
             _height = height;
             SafeFullRelease((IUnknown**)&_canvas);
