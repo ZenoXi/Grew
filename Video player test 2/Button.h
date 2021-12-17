@@ -80,6 +80,7 @@ namespace zcom
         void _OnResize(int width, int height)
         {
             _text->SetSize(width, height);
+            _text->Resize();
         }
 
         Base* _OnMouseMove(int x, int y)
