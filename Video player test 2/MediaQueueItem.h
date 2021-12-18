@@ -6,6 +6,7 @@
 #include "Button.h"
 
 #include "LocalFileDataProvider.h"
+#include "ResourceManager.h"
 
 #include "functions.h"
 
@@ -18,6 +19,41 @@ namespace zcom
         void _OnUpdate()
         {
             _mainPanel->Update();
+
+            // Update status text
+            if (!_dataProvider->Initializing() && !_initDone)
+            {
+                _initDone = true;
+                if (_dataProvider->InitFailed())
+                {
+                    _statusLabel->SetText(L"Initialization failed.");
+                }
+                else
+                {
+
+                    Duration mediaDuration = _dataProvider->MaxMediaDuration();
+                    int64_t h = mediaDuration.GetDuration(HOURS);
+                    int64_t m = mediaDuration.GetDuration(MINUTES) % 60;
+                    int64_t s = mediaDuration.GetDuration(SECONDS) % 60;
+
+                    // Format status label
+                    std::wstringstream timeStr;
+                    timeStr.str(L"");
+                    timeStr.clear();
+                    if (h > 0) timeStr << h << ":";
+                    if (m < 10) timeStr << "0" << m << ":";
+                    else timeStr << m << ":";
+                    if (s < 10) timeStr << "0" << s;
+                    else timeStr << s;
+                    _statusLabel->SetText(timeStr.str());
+
+                    // Show play button
+                    _statusLabel->SetBaseSize(100, 25);
+                    _statusLabel->SetHorizontalOffsetPixels(-50);
+                    _playButton->SetVisible(true);
+                    _mainPanel->Resize();
+                }
+            }
         }
 
         void _OnDraw(Graphics g)
@@ -111,9 +147,14 @@ namespace zcom
         std::unique_ptr<Panel> _mainPanel;
         std::unique_ptr<Label> _filenameLabel;
         std::unique_ptr<Label> _statusLabel;
-        std::unique_ptr<Button> _cancelButton;
+        std::unique_ptr<Button> _playButton;
+        std::unique_ptr<Button> _deleteButton;
 
+        bool _initDone = false;
         std::unique_ptr<LocalFileDataProvider> _dataProvider;
+
+        bool _delete = false;
+        bool _play = false;
 
     public:
         MediaQueueItem(std::wstring path)
@@ -132,29 +173,47 @@ namespace zcom
 
             _filenameLabel = std::make_unique<Label>(filename);
             _filenameLabel->SetParentWidthPercent(1.0f);
-            _filenameLabel->SetBaseSize(-35, 20);
-            _filenameLabel->SetFont(L"Arial");
-            _filenameLabel->SetFontSize(18.0f);
+            _filenameLabel->SetBaseSize(-150, 25);
+            _filenameLabel->SetMargins({ 5.f, 0.f, 5.f, 0.f });
+            _filenameLabel->SetFont(L"Segoe UI");
+            _filenameLabel->SetFontSize(14.0f);
             _filenameLabel->SetVerticalTextAlignment(Alignment::CENTER);
+            _filenameLabel->SetCutoff(L"...");
 
             _statusLabel = std::make_unique<Label>(L"Initializing...");
-            _statusLabel->SetParentWidthPercent(1.0f);
-            _statusLabel->SetBaseSize(-35, 15);
-            _statusLabel->SetVerticalOffsetPixels(20);
-            _statusLabel->SetFont(L"Arial");
+            _statusLabel->SetBaseSize(125, 25);
+            _statusLabel->SetHorizontalOffsetPixels(-25);
+            _statusLabel->SetHorizontalAlignment(Alignment::END);
+            _statusLabel->SetMargins({ 0.f, 0.f, 5.f, 0.f });
+            _statusLabel->SetFont(L"Segoe UI");
             _statusLabel->SetFontSize(12.0f);
             _statusLabel->SetFontColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
+            _statusLabel->SetHorizontalTextAlignment(TextAlignment::TRAILING);
             _statusLabel->SetVerticalTextAlignment(Alignment::CENTER);
+            _statusLabel->SetCutoff(L"...");
 
-            _cancelButton = std::make_unique<Button>();
-            _cancelButton->SetBaseSize(35, 35);
-            _cancelButton->SetHorizontalAlignment(Alignment::END);
+            _playButton = std::make_unique<Button>();
+            _playButton->SetBaseSize(25, 25);
+            _playButton->SetHorizontalOffsetPixels(-25);
+            _playButton->SetHorizontalAlignment(Alignment::END);
+            _playButton->SetActivation(ButtonActivation::RELEASE);
+            _playButton->SetOnActivated([&]() { _play = true; });
+            _playButton->SetBackgroundImage(ResourceManager::GetImage("item_play"));
+            _playButton->SetVisible(false);
+
+            _deleteButton = std::make_unique<Button>();
+            _deleteButton->SetBaseSize(25, 25);
+            _deleteButton->SetHorizontalAlignment(Alignment::END);
+            _deleteButton->SetActivation(ButtonActivation::RELEASE);
+            _deleteButton->SetOnActivated([&]() { _delete = true; });
+            _deleteButton->SetBackgroundImage(ResourceManager::GetImage("item_delete"));
 
             _mainPanel = std::make_unique<Panel>();
             _mainPanel->SetSize(GetWidth(), GetHeight());
             _mainPanel->AddItem(_filenameLabel.get());
             _mainPanel->AddItem(_statusLabel.get());
-            _mainPanel->AddItem(_cancelButton.get());
+            _mainPanel->AddItem(_playButton.get());
+            _mainPanel->AddItem(_deleteButton.get());
             _mainPanel->Resize();
 
             // Start processing the file
@@ -179,14 +238,25 @@ namespace zcom
             return !_dataProvider->InitFailed();
         }
 
-        LocalFileDataProvider* GetProvider()
+        LocalFileDataProvider* GetDataProvider()
         {
-            return _dataProvider.get();
+            return new LocalFileDataProvider(_dataProvider.get());
+        }
+        
+        // If true, this media should be played
+        bool Play()
+        {
+            bool val = _play;
+            _play = false;
+            return val;
         }
 
-        LocalFileDataProvider* ReleaseProvider()
+        // If true, this object should be destroyed
+        bool Delete()
         {
-            return _dataProvider.release();
+            bool val = _delete;
+            _delete = false;
+            return val;
         }
     };
 }
