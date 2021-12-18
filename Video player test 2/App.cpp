@@ -320,7 +320,8 @@ void App::LoopThread()
             int h = HIWORD(wmSize.lParam);
             //layout.Resize(w, h);
             //layout.componentCanvas.Resize(w, h);
-            ActiveScenes().back()->Resize(w, h);
+            for (auto& scene : ActiveScenes())
+                scene->Resize(w, h);
         }
 
         //// Show video frame
@@ -351,6 +352,8 @@ void App::LoopThread()
         window.gfx.Unlock();
 
         // Prevent deadlock from extremely short unlock/lock cycle
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        Clock sleepTimer = Clock(0);
+        do sleepTimer.Update();
+        while (sleepTimer.Now().GetTime(MICROSECONDS) < 100);
     }
 }
