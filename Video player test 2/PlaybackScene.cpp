@@ -46,13 +46,13 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
         opt = *reinterpret_cast<const PlaybackSceneOptions*>(options);
     }
 
+    _startPaused = opt.startPaused;
+    _placeholder = opt.placeholder;
+
     if (opt.dataProvider)
         _dataProvider = opt.dataProvider;
-    else
+    else if (!_placeholder)
         _dataProvider = new LocalFileDataProvider(opt.fileName);
-
-    if (opt.startPaused)
-        _startPaused = true;
 
     _audioAdapter = nullptr;
     _videoAdapter = nullptr;
@@ -293,7 +293,7 @@ void PlaybackScene::_Update()
         _mediaPlayer->Update();
     }
 
-    if (!_mediaPlayer)
+    if (!_mediaPlayer && _dataProvider)
     {
         if (!_dataProvider->Initializing() && !_dataProvider->InitFailed())
         {

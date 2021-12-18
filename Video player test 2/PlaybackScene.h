@@ -27,6 +27,7 @@ struct PlaybackSceneOptions : public SceneOptionsBase
     uint16_t port = 0;
     LocalFileDataProvider* dataProvider = nullptr;
     bool startPaused = false;
+    bool placeholder = false;
 };
 
 class PlaybackScene : public Scene
@@ -46,6 +47,7 @@ class PlaybackScene : public Scene
     MediaPlayer* _mediaPlayer = nullptr;
     IPlaybackController* _controller = nullptr;
     bool _startPaused = false;
+    bool _placeholder = false;
 
 public:
     PlaybackScene();
