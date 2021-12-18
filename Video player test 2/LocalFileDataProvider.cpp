@@ -141,6 +141,7 @@ void LocalFileDataProvider::_Initialize()
 void LocalFileDataProvider::_ReadPackets()
 {
     AVPacket* packet = av_packet_alloc();
+    bool holdPacket = false;
     bool eof = false;
 
     int videoStreamIndex = _videoData.currentStream != -1 ? _videoData.streams[_videoData.currentStream].index : -1;
@@ -177,6 +178,12 @@ void LocalFileDataProvider::_ReadPackets()
             _AddVideoPacket(MediaPacket(true));
             _AddAudioPacket(MediaPacket(true));
             _AddSubtitlePacket(MediaPacket(true));
+
+            if (holdPacket)
+            {
+                av_packet_unref(packet);
+                holdPacket = false;
+            }
         }
 
         // Change stream
@@ -196,7 +203,11 @@ void LocalFileDataProvider::_ReadPackets()
         }
 
         // Read audio and video packets
-        if (av_read_frame(_avfContext, packet) >= 0)
+        int result = 0;
+        if (!holdPacket)
+            result = av_read_frame(_avfContext, packet);
+
+        if (result >= 0)
         {
             if (eof)
             {
@@ -206,18 +217,42 @@ void LocalFileDataProvider::_ReadPackets()
 
             if (packet->stream_index == videoStreamIndex)
             {
-                _AddVideoPacket(MediaPacket(packet));
-                packet = av_packet_alloc();
+                if (VideoMemoryExceeded())
+                {
+                    holdPacket = true;
+                }
+                else
+                {
+                    holdPacket = false;
+                    _AddVideoPacket(MediaPacket(packet));
+                    packet = av_packet_alloc();
+                }
             }
             else if (packet->stream_index == audioStreamIndex)
             {
-                _AddAudioPacket(MediaPacket(packet));
-                packet = av_packet_alloc();
+                if (AudioMemoryExceeded())
+                {
+                    holdPacket = true;
+                }
+                else
+                {
+                    holdPacket = false;
+                    _AddAudioPacket(MediaPacket(packet));
+                    packet = av_packet_alloc();
+                }
             }
             else if (packet->stream_index == subtitleStreamIndex)
             {
-                _AddSubtitlePacket(MediaPacket(packet));
-                packet = av_packet_alloc();
+                if (SubtitleMemoryExceeded())
+                {
+                    holdPacket = true;
+                }
+                else
+                {
+                    holdPacket = false;
+                    _AddSubtitlePacket(MediaPacket(packet));
+                    packet = av_packet_alloc();
+                }
             }
             else
             {

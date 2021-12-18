@@ -22,6 +22,8 @@ public:
         TimePoint lastPts = TimePoint::Min();
         TimePoint lastDts = TimePoint::Min();
         int currentPacket = 0;
+        size_t totalMemoryUsed = 0;
+        size_t allowedMemory = 100000000;
         std::mutex mtx;
     };
 
@@ -58,7 +60,7 @@ protected:
     //std::mutex _m_subtitlePackets;
 
 public:
-    IMediaDataProvider() {};
+    IMediaDataProvider();
     IMediaDataProvider(IMediaDataProvider* other);
     virtual ~IMediaDataProvider() {};
 
@@ -82,6 +84,19 @@ private:
 public:
     Duration MediaDuration();
     Duration MaxMediaDuration();
+
+
+    // MEMORY MANAGEMENT
+public:
+    void SetAllowedVideoMemory(size_t bytes);
+    void SetAllowedAudioMemory(size_t bytes);
+    void SetAllowedSubtitleMemory(size_t bytes);
+    bool VideoMemoryExceeded() const;
+    bool AudioMemoryExceeded() const;
+    bool SubtitleMemoryExceeded() const;
+private:
+    void _SetAllowedMemory(MediaData& mediaData, size_t bytes);
+    bool _MemoryExceeded(const MediaData& mediaData) const;
 
 
     // STREAM CONTROL

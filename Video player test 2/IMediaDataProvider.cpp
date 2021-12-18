@@ -2,7 +2,15 @@
 
 #include "Functions.h"
 
+IMediaDataProvider::IMediaDataProvider()
+{
+    _videoData.allowedMemory = 1000000000; // 1 GB
+    _audioData.allowedMemory = 100000000; // 100 MB
+    _subtitleData.allowedMemory = 10000000; // 10 MB
+}
+
 IMediaDataProvider::IMediaDataProvider(IMediaDataProvider* other)
+    : IMediaDataProvider()
 {
     _videoData.streams = other->_videoData.streams;
     _videoData.currentStream = other->_videoData.currentStream;
@@ -119,6 +127,46 @@ Duration IMediaDataProvider::MaxMediaDuration()
         }
     }
     return Duration(finalDuration, MICROSECONDS);
+}
+
+void IMediaDataProvider::SetAllowedVideoMemory(size_t bytes)
+{
+    _SetAllowedMemory(_videoData, bytes);
+}
+
+void IMediaDataProvider::SetAllowedAudioMemory(size_t bytes)
+{
+    _SetAllowedMemory(_audioData, bytes);
+}
+
+void IMediaDataProvider::SetAllowedSubtitleMemory(size_t bytes)
+{
+    _SetAllowedMemory(_subtitleData, bytes);
+}
+
+void IMediaDataProvider::_SetAllowedMemory(MediaData& mediaData, size_t bytes)
+{
+    mediaData.allowedMemory = bytes;
+}
+
+bool IMediaDataProvider::VideoMemoryExceeded() const
+{
+    return _MemoryExceeded(_videoData);
+}
+
+bool IMediaDataProvider::AudioMemoryExceeded() const
+{
+    return _MemoryExceeded(_audioData);
+}
+
+bool IMediaDataProvider::SubtitleMemoryExceeded() const
+{
+    return _MemoryExceeded(_subtitleData);
+}
+
+bool IMediaDataProvider::_MemoryExceeded(const MediaData& mediaData) const
+{
+    return mediaData.totalMemoryUsed > mediaData.allowedMemory;
 }
 
 void IMediaDataProvider::Seek(TimePoint time)
@@ -308,6 +356,22 @@ MediaPacket IMediaDataProvider::GetSubtitlePacket()
 MediaPacket IMediaDataProvider::_GetPacket(MediaData& mediaData)
 {
     std::unique_lock<std::mutex> lock(mediaData.mtx);
+
+    // Keep memory usage in check
+    size_t softCap = mediaData.allowedMemory * 0.8;
+    while (mediaData.totalMemoryUsed > softCap)
+    {
+        if (mediaData.currentPacket == 0) break;
+
+        auto& packet = mediaData.packets.front();
+        if (!packet.flush && packet.Valid())
+            mediaData.totalMemoryUsed -= mediaData.packets.front().GetPacket()->size;
+
+        mediaData.packets.erase(mediaData.packets.begin());
+        mediaData.currentPacket--;
+    }
+
+    // Return packet
     if (mediaData.currentPacket >= mediaData.packets.size())
     {
         return MediaPacket();
@@ -379,6 +443,7 @@ void IMediaDataProvider::_AddPacket(MediaData& mediaData, MediaPacket packet)
             TimePoint dts = TimePoint(av_rescale_q(packet.GetPacket()->dts, timebase, { 1, AV_TIME_BASE }), MICROSECONDS);
             if (dts > mediaData.lastDts) mediaData.lastDts = dts;
         }
+        mediaData.totalMemoryUsed += packet.GetPacket()->size;
     }
     mediaData.packets.push_back(std::move(packet));
 }
@@ -410,4 +475,5 @@ void IMediaDataProvider::_ClearPackets(MediaData& mediaData)
     mediaData.lastPts = TimePoint::Min();
     mediaData.lastDts = TimePoint::Min();
     mediaData.currentPacket = 0;
+    mediaData.totalMemoryUsed = 0;
 }
