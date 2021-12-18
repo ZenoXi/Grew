@@ -11,6 +11,7 @@
 //#pragma comment( lib,"xaudio2.lib" )
 //#include <xaudio2.h>
 
+#include "NetBase2.h"
 #include "ResourceManager.h"
 #include "FileDialog.h"
 #include "DisplayWindow.h"
