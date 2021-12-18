@@ -6,6 +6,8 @@ extern "C"
 #include <libavcodec/avcodec.h>
 }
 
+#include <iostream>
+
 struct AudioChunkData
 {
     AVFrame* frame;
@@ -13,6 +15,8 @@ struct AudioChunkData
     int bytesPerSample;
 };
 
+void SelectSampleConverter(void(**convertChunk)(AudioChunkData), int& bytesPerSample, int sampleFormat);
+void ConvertNoneChunk(AudioChunkData data);
 void ConvertU8Chunk(AudioChunkData data);
 void ConvertS16Chunk(AudioChunkData data);
 void ConvertS32Chunk(AudioChunkData data);
@@ -61,43 +65,10 @@ void AudioDecoder::_DecoderThread()
         exit(1);
     }
 
+    int currentSampleFormat = _codecContext->sample_fmt;
     void(*convertChunk)(AudioChunkData) = nullptr;
-    switch (_codecContext->sample_fmt)
-    {
-    case AV_SAMPLE_FMT_U8:
-        convertChunk = &ConvertU8Chunk;
-        break;
-    case AV_SAMPLE_FMT_S16:
-        convertChunk = &ConvertS16Chunk;
-        break;
-    case AV_SAMPLE_FMT_S32:
-        convertChunk = &ConvertS32Chunk;
-        break;
-    case AV_SAMPLE_FMT_FLT:
-        convertChunk = &ConvertFLTChunk;
-        break;
-    case AV_SAMPLE_FMT_DBL:
-        convertChunk = &ConvertDBLChunk;
-        break;
-    case AV_SAMPLE_FMT_U8P:
-        convertChunk = &ConvertU8PlanarChunk;
-        break;
-    case AV_SAMPLE_FMT_S16P:
-        convertChunk = &ConvertS16PlanarChunk;
-        break;
-    case AV_SAMPLE_FMT_S32P:
-        convertChunk = &ConvertS32PlanarChunk;
-        break;
-    case AV_SAMPLE_FMT_FLTP:
-        convertChunk = &ConvertFLTPlanarChunk;
-        break;
-    case AV_SAMPLE_FMT_DBLP:
-        convertChunk = &ConvertDBLPlanarChunk;
-        break;
-    default:
-        break;
-    }
-    if (!convertChunk) return;
+    SelectSampleConverter(&convertChunk, bytesPerSample, _codecContext->sample_fmt);
+    //if (!convertChunk) return;
 
     AVFrame* frame = av_frame_alloc();
 
@@ -159,6 +130,15 @@ void AudioDecoder::_DecoderThread()
             continue;
         }
 
+        // Account for possible mid stream sample format change
+        if (currentSampleFormat != frame->format)
+        {
+            currentSampleFormat = frame->format;
+            SelectSampleConverter(&convertChunk, bytesPerSample, frame->format);
+            discontinuity = true;
+            std::cout << "[AudioDecoder] Sample format changed to " << av_get_sample_fmt_name((AVSampleFormat)currentSampleFormat) << std::endl;
+        }
+
         // The format accepted by XAudio is signed 16 bit, hence the 2 (bytes) at the end
         int chunkSize = frame->nb_samples * frame->channels * 2;
         char* audioData = new char[chunkSize];
@@ -181,6 +161,65 @@ void AudioDecoder::_DecoderThread()
 
     av_frame_unref(frame);
     av_frame_free(&frame);
+}
+
+void SelectSampleConverter(void(**convertChunk)(AudioChunkData), int& bytesPerSample, int sampleFormat)
+{
+    switch (sampleFormat)
+    {
+    case AV_SAMPLE_FMT_U8:
+        (*convertChunk) = &ConvertU8Chunk;
+        bytesPerSample = 1;
+        break;
+    case AV_SAMPLE_FMT_S16:
+        (*convertChunk) = &ConvertS16Chunk;
+        bytesPerSample = 2;
+        break;
+    case AV_SAMPLE_FMT_S32:
+        (*convertChunk) = &ConvertS32Chunk;
+        bytesPerSample = 4;
+        break;
+    case AV_SAMPLE_FMT_FLT:
+        (*convertChunk) = &ConvertFLTChunk;
+        bytesPerSample = 4;
+        break;
+    case AV_SAMPLE_FMT_DBL:
+        (*convertChunk) = &ConvertDBLChunk;
+        bytesPerSample = 8;
+        break;
+    case AV_SAMPLE_FMT_U8P:
+        (*convertChunk) = &ConvertU8PlanarChunk;
+        bytesPerSample = 1;
+        break;
+    case AV_SAMPLE_FMT_S16P:
+        (*convertChunk) = &ConvertS16PlanarChunk;
+        bytesPerSample = 2;
+        break;
+    case AV_SAMPLE_FMT_S32P:
+        (*convertChunk) = &ConvertS32PlanarChunk;
+        bytesPerSample = 4;
+        break;
+    case AV_SAMPLE_FMT_FLTP:
+        (*convertChunk) = &ConvertFLTPlanarChunk;
+        bytesPerSample = 4;
+        break;
+    case AV_SAMPLE_FMT_DBLP:
+        (*convertChunk) = &ConvertDBLPlanarChunk;
+        bytesPerSample = 8;
+        break;
+    default:
+        (*convertChunk) = &ConvertNoneChunk;
+        break;
+    }
+}
+
+void ConvertNoneChunk(AudioChunkData data)
+{
+    std::fill_n(
+        data.frame->data[0],
+        data.frame->nb_samples * data.frame->channels * 2,
+        (int8_t)0
+    );
 }
 
 void ConvertU8Chunk(AudioChunkData data)
