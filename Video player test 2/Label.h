@@ -2,6 +2,8 @@
 
 #include "ComponentBase.h"
 
+#include <string_view>
+
 namespace zcom
 {
     enum class TextAlignment
@@ -10,6 +12,32 @@ namespace zcom
         CENTER,
         JUSTIFIED,
         TRAILING
+    };
+
+    struct RECT_F
+    {
+        float left;
+        float top;
+        float right;
+        float bottom;
+
+        bool operator!=(const RECT_F& other)
+        {
+            return
+                left != other.left ||
+                top != other.top ||
+                right != other.right ||
+                bottom != other.bottom;
+        }
+
+        bool operator==(const RECT_F& other)
+        {
+            return
+                left == other.left &&
+                top == other.top &&
+                right == other.right &&
+                bottom == other.bottom;
+        }
     };
 
     class Label : public Base
@@ -40,16 +68,17 @@ namespace zcom
             }
             else if (_hTextAlignment == TextAlignment::CENTER)
             {
-                pos.x = GetWidth() * 0.5f;
+                pos.x = 0;
             }
             else if (_hTextAlignment == TextAlignment::JUSTIFIED)
             {
-                pos.x = (GetWidth() - textMetrics.width) * 0.5f;
+                pos.x = 0;
             }
             else if (_hTextAlignment == TextAlignment::TRAILING)
             {
-                pos.x = GetWidth();
+                pos.x = 0;
             }
+            //
             if (_vTextAlignment == Alignment::START)
             {
                 pos.y = 0;
@@ -62,6 +91,9 @@ namespace zcom
             {
                 pos.y = GetHeight() - textMetrics.height;
             }
+
+            pos.x += _margins.left;
+            pos.y += _margins.top;
 
             // Draw text
             if (!_text.empty())
@@ -76,7 +108,7 @@ namespace zcom
 
         void _OnResize(int width, int height)
         {
-
+            _CreateTextLayout();
         }
 
         Base* _OnMouseMove(int x, int y)
@@ -155,19 +187,64 @@ namespace zcom
 
         void _CreateTextLayout()
         {
-            if (_dwriteTextLayout)
-            {
-                _dwriteTextLayout->Release();
-            }
+            float finalWidth = GetWidth() - _margins.left - _margins.right;
+            float finalHeight = GetHeight() - _margins.top - _margins.bottom;
+            if (finalWidth <= 0) finalWidth = 1.f;
+            if (finalHeight <= 0) finalHeight = 1.f;
 
-            _dwriteFactory->CreateTextLayout(
-                _text.c_str(),
-                _text.length(),
-                _dwriteTextFormat,
-                0,
-                0,
-                &_dwriteTextLayout
-            );
+            std::wstring finalText = _text;
+            size_t charactersCut = 0;
+
+            while (true)
+            {
+                if (_dwriteTextLayout)
+                {
+                    _dwriteTextLayout->Release();
+                }
+
+                // Create the text layout
+                _dwriteFactory->CreateTextLayout(
+                    finalText.c_str(),
+                    finalText.length(),
+                    _dwriteTextFormat,
+                    finalWidth,
+                    finalHeight,
+                    &_dwriteTextLayout
+                );
+
+                // Wrapping
+                if (!_wrapText)
+                {
+                    _dwriteTextLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+                }
+
+                // If a cutoff is specified, truncate the text until it fits (including the cutoff sequence)
+                if (!_cutoff.empty())
+                {
+                    // OPTIMIZATION: Use binary search to speed up truncation of long strings
+
+                    DWRITE_TEXT_METRICS textMetrics;
+                    _dwriteTextLayout->GetMetrics(&textMetrics);
+                    if (textMetrics.width > textMetrics.layoutWidth ||
+                        (textMetrics.height > textMetrics.layoutHeight && textMetrics.lineCount > 1))
+                    {
+                        // Stop if the entire string is cut
+                        if (charactersCut == _text.length())
+                            break;
+
+                        charactersCut++;
+                        finalText = _text.substr(0, _text.length() - charactersCut) + _cutoff;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
 
             // Alignment
             if (_hTextAlignment == TextAlignment::LEADING)
@@ -185,12 +262,6 @@ namespace zcom
             else if (_hTextAlignment == TextAlignment::TRAILING)
             {
                 _dwriteTextLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
-            }
-
-            // Wrapping
-            if (!_wrapText)
-            {
-                _dwriteTextLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
             }
         }
 
@@ -221,6 +292,8 @@ namespace zcom
         TextAlignment _hTextAlignment = TextAlignment::LEADING;
         Alignment _vTextAlignment = Alignment::START;
         bool _wrapText = false;
+        std::wstring _cutoff = L"";
+        RECT_F _margins = { 0, 0, 0, 0 };
 
         std::wstring _font = L"Calibri";
         float _fontSize = 14.0f;
@@ -279,6 +352,16 @@ namespace zcom
             return _wrapText;
         }
 
+        std::wstring GetCutoff() const
+        {
+            return _cutoff;
+        }
+
+        RECT_F GetMargins() const
+        {
+            return _margins;
+        }
+
         std::wstring GetFont() const
         {
             return _font;
@@ -334,6 +417,26 @@ namespace zcom
             if (_wrapText != wrap)
             {
                 _wrapText = wrap;
+                _CreateTextLayout();
+            }
+        }
+
+        // If set to a non-empty string, the text will be truncated to fit within the boundaries.
+        // 'cutoff' - The string appended to the end of truncated text (e.g. "trunca..." if 'cutoff' is "...").
+        void SetCutoff(std::wstring cutoff)
+        {
+            if (_cutoff != cutoff)
+            {
+                _cutoff = cutoff;
+                _CreateTextLayout();
+            }
+        }
+
+        void SetMargins(RECT_F margins)
+        {
+            if (_margins != margins)
+            {
+                _margins = margins;
                 _CreateTextLayout();
             }
         }
