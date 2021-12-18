@@ -381,20 +381,27 @@ void EntryScene::_Update()
             std::wstring filename = _fileDialog.Result();
             if (filename != L"")
             {
-                PlaybackSceneOptions* options = new PlaybackSceneOptions();
-                options->fileName = wstring_to_string(filename);
-                options->mode = PlaybackMode::OFFLINE;
-                App::Instance()->UninitScene(GetName());
-                App::Instance()->InitScene(PlaybackScene::StaticName(), options);
-                App::Instance()->MoveSceneToFront(PlaybackScene::StaticName());
+                //PlaybackSceneOptions* options = new PlaybackSceneOptions();
+                //options->fileName = wstring_to_string(filename);
+                //options->mode = PlaybackMode::OFFLINE;
+                //App::Instance()->UninitScene(GetName());
+                //App::Instance()->InitScene(PlaybackScene::StaticName(), options);
+                //App::Instance()->MoveSceneToFront(PlaybackScene::StaticName());
                 //App::Instance()->SetScene("playback_scene", options);
-                delete options;
+                //delete options;
 
-                // Later the overlay scene instead of playback scene will be used
-                Scene* scene = App::Instance()->FindScene(PlaybackOverlayScene::StaticName());
-                if (scene)
+                App::Instance()->UninitScene(GetName());
+                Scene* scenePtr = App::Instance()->FindScene(PlaybackOverlayScene::StaticName());
+                if (scenePtr)
                 {
-
+                    PlaybackOverlayScene* scene = (PlaybackOverlayScene*)scenePtr;
+                    scene->AddItem(filename);
+                    scene->WaitForLoad(true);
+                }
+                else
+                {
+                    std::cout << "[FATAL] Playback overlay scene missing, exiting" << std::endl;
+                    exit(1);
                 }
             }
         }
