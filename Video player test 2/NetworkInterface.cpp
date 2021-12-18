@@ -182,7 +182,7 @@ NetworkStatus NetworkInterface::Status()
 void NetworkInterface::SendVideoParams(FFmpeg::Result params)
 {
     _mtxNetThread.lock();
-    _outPacketQueue.push_back(znet::Packet(_clientId, packet::VIDEO_PARAMS, (char*)params.data, params.size));
+    _outPacketQueue.push_back(znetold::Packet(_clientId, packet::VIDEO_PARAMS, (char*)params.data, params.size));
     _mtxNetThread.unlock();
     params.data = nullptr;
     params.size = 0;
@@ -191,7 +191,7 @@ void NetworkInterface::SendVideoParams(FFmpeg::Result params)
 void NetworkInterface::SendAudioParams(FFmpeg::Result params)
 {
     _mtxNetThread.lock();
-    _outPacketQueue.push_back(znet::Packet(_clientId, packet::AUDIO_PARAMS, (char*)params.data, params.size));
+    _outPacketQueue.push_back(znetold::Packet(_clientId, packet::AUDIO_PARAMS, (char*)params.data, params.size));
     _mtxNetThread.unlock();
     params.data = nullptr;
     params.size = 0;
@@ -200,7 +200,7 @@ void NetworkInterface::SendAudioParams(FFmpeg::Result params)
 void NetworkInterface::SendVideoPacket(FFmpeg::Result packet)
 {
     _mtxNetThread.lock();
-    _outPacketQueue.push_back(znet::Packet(_clientId, packet::VIDEO_PACKET, (char*)packet.data, packet.size));
+    _outPacketQueue.push_back(znetold::Packet(_clientId, packet::VIDEO_PACKET, (char*)packet.data, packet.size));
     _mtxNetThread.unlock();
     packet.data = nullptr;
     packet.size = 0;
@@ -211,7 +211,7 @@ void NetworkInterface::SendAudioPacket(FFmpeg::Result packet)
     //sAudioOut.write((char*)packet.data, packet.size);
 
     _mtxNetThread.lock();
-    _outPacketQueue.push_back(znet::Packet(_clientId, packet::AUDIO_PACKET, (char*)packet.data, packet.size));
+    _outPacketQueue.push_back(znetold::Packet(_clientId, packet::AUDIO_PACKET, (char*)packet.data, packet.size));
     _mtxNetThread.unlock();
     packet.data = nullptr;
     packet.size = 0;
@@ -231,7 +231,7 @@ void NetworkInterface::SendMetadata(Duration duration, AVRational framerate, AVR
     memcpy(data + offset, &audioTimebase, sizeof(audioTimebase));
     offset += sizeof(audioTimebase);
     _mtxNetThread.lock();
-    _outPacketQueue.push_back(znet::Packet(_clientId, packet::METADATA, data, totalSize));
+    _outPacketQueue.push_back(znetold::Packet(_clientId, packet::METADATA, data, totalSize));
     _mtxNetThread.unlock();
 }
 
@@ -239,7 +239,7 @@ void NetworkInterface::ConfirmSeekReceived()
 {
     char* padding = new char;
     _mtxNetThread.lock();
-    _outPacketQueue.push_front(znet::Packet(_clientId, packet::SEEK_CONFIRMATION, padding, 1));
+    _outPacketQueue.push_front(znetold::Packet(_clientId, packet::SEEK_CONFIRMATION, padding, 1));
     int count = 0;
     for (int i = 0; i < _outPacketQueue.size(); i++)
     {
@@ -362,7 +362,7 @@ void NetworkInterface::NotifyBufferingEnd()
 {
     char* padding = new char;
     _mtxNetThread.lock();
-    _outPacketQueue.push_back(znet::Packet(-1, packet::BUFFERING_END, padding, 1));
+    _outPacketQueue.push_back(znetold::Packet(-1, packet::BUFFERING_END, padding, 1));
     _mtxNetThread.unlock();
 }
 
@@ -370,7 +370,7 @@ void NetworkInterface::NotifyBufferingStart()
 {
     char* padding = new char;
     _mtxNetThread.lock();
-    _outPacketQueue.push_back(znet::Packet(-1, packet::BUFFERING_START, padding, 1));
+    _outPacketQueue.push_back(znetold::Packet(-1, packet::BUFFERING_START, padding, 1));
     _mtxNetThread.unlock();
 }
 
@@ -379,7 +379,7 @@ void NetworkInterface::SendBufferedDuration(TimePoint bufferEnd)
     TimePoint* tp = new TimePoint;
     *tp = bufferEnd;
     _mtxNetThread.lock();
-    _outPacketQueue.push_front(znet::Packet(-1, packet::BUFFERING_START, (char*)tp, sizeof(bufferEnd)));
+    _outPacketQueue.push_front(znetold::Packet(-1, packet::BUFFERING_START, (char*)tp, sizeof(bufferEnd)));
     _mtxNetThread.unlock();
 }
 
@@ -403,7 +403,7 @@ void NetworkInterface::SendSeekCommand(TimePoint position)
     TimePoint* tp = new TimePoint;
     *tp = position;
     _mtxNetThread.lock();
-    _outPacketQueue.push_front(znet::Packet(_clientId, packet::SEEK, (char*)tp, sizeof(position)));
+    _outPacketQueue.push_front(znetold::Packet(_clientId, packet::SEEK, (char*)tp, sizeof(position)));
     if (Mode() == NetworkMode::CLIENT)
     {
         _awaitingSeekConfirmation = true;
@@ -449,7 +449,7 @@ void NetworkInterface::SendPauseCommand()
 
     char* padding = new char;
     _mtxNetThread.lock();
-    _outPacketQueue.push_front(znet::Packet(_clientId, packet::PAUSE, padding, 1));
+    _outPacketQueue.push_front(znetold::Packet(_clientId, packet::PAUSE, padding, 1));
     _mtxNetThread.unlock();
     //if (_mode == SERVER)
     //{
@@ -473,7 +473,7 @@ void NetworkInterface::SendResumeCommand()
 
     char* padding = new char;
     _mtxNetThread.lock();
-    _outPacketQueue.push_front(znet::Packet(_clientId, packet::RESUME, padding, 1));
+    _outPacketQueue.push_front(znetold::Packet(_clientId, packet::RESUME, padding, 1));
     _mtxNetThread.unlock();
     //if (_mode == SERVER)
     //{
@@ -498,7 +498,7 @@ void NetworkInterface::SendCurrentPosition(TimePoint position)
     TimePoint* tp = new TimePoint;
     *tp = position;
     _mtxNetThread.lock();
-    _outPacketQueue.push_front(znet::Packet(_clientId, packet::POSITION, (char*)tp, sizeof(position)));
+    _outPacketQueue.push_front(znetold::Packet(_clientId, packet::POSITION, (char*)tp, sizeof(position)));
     _mtxNetThread.unlock();
     //if (_mode == SERVER)
     //{
@@ -518,18 +518,18 @@ void NetworkInterface::SendCurrentPosition(TimePoint position)
     //}
 }
 
-znet::Packet NetworkInterface::GetPacket()
+znetold::Packet NetworkInterface::GetPacket()
 {
-    if (Mode() == NetworkMode::OFFLINE) return znet::Packet();
+    if (Mode() == NetworkMode::OFFLINE) return znetold::Packet();
 
     LOCK_GUARD(lock, _mtxNetThread);
     if (_inPacketQueue.size() > 0)
     {
-        znet::Packet pkt = std::move(_inPacketQueue.front());
+        znetold::Packet znetold = std::move(_inPacketQueue.front());
         _inPacketQueue.pop_front();
-        return pkt;
+        return znetold;
     }
-    return znet::Packet();
+    return znetold::Packet();
     //if (_mode == SERVER)
     //{
     //    LOCK_GUARD(lock, _mServer);
@@ -587,7 +587,7 @@ void NetworkInterface::NetworkThread()
         // Read incoming packets
         if (inPacketCount > 0)
         {
-            znet::PacketView pv = _network->ReadPacket();
+            znetold::PacketView pv = _network->ReadPacket();
             // Confirm packet received
             if (pv.packetId != packet::BYTE_CONFIRMATION)
             {
@@ -666,7 +666,7 @@ void NetworkInterface::NetworkThread()
             }
             case packet::METADATA:
             {
-                znet::Packet pkt = _network->GetPacket();
+                znetold::Packet pkt = _network->GetPacket();
 
                 int offset = 0;
                 _mtxNetThread.lock();
@@ -711,11 +711,11 @@ void NetworkInterface::NetworkThread()
                 // Artificially throttle speed
                 //int64_t MAX_BYTES_PER_SECOND = 400000LL;
                 int64_t MAX_BYTES_PER_SECOND = (~0ULL) >> 1;
-                znet::PacketView pv = _outPacketQueue.front().View();
+                znetold::PacketView pv = _outPacketQueue.front().View();
                 if (true/*bytesSent - bytesSentLastPrint < MAX_BYTES_PER_SECOND || (pv.packetId != packet::AUDIO_PACKET && pv.packetId != packet::VIDEO_PACKET)*/)
                 {
                     // Send packet
-                    znet::Packet packet = std::move(_outPacketQueue.front());
+                    znetold::Packet packet = std::move(_outPacketQueue.front());
                     _outPacketQueue.pop_front();
                     //_outServerPacketQueue.erase(_outServerPacketQueue.begin());
                     _mtxNetThread.unlock();
@@ -781,7 +781,7 @@ void NetworkInterface::ServerThread()
         if (_server.GetPacketCount() > 0)
         {
             Clock timer = Clock();
-            znet::PacketView pv = _server.ReadPacket();
+            znetold::PacketView pv = _server.ReadPacket();
             switch (pv.packetId)
             {
             case packet::BYTE_CONFIRMATION:
@@ -841,11 +841,11 @@ void NetworkInterface::ServerThread()
                 // Artificially throttle speed
                 //int64_t MAX_BYTES_PER_SECOND = 400000LL;
                 int64_t MAX_BYTES_PER_SECOND = (~0ULL) >> 1;
-                znet::PacketView pv = _outServerPacketQueue.front().View();
+                znetold::PacketView pv = _outServerPacketQueue.front().View();
                 if (bytesSent - bytesSentLastPrint < MAX_BYTES_PER_SECOND || (pv.packetId != packet::AUDIO_PACKET && pv.packetId != packet::VIDEO_PACKET))
                 {
                     // Send packet
-                    znet::Packet packet = std::move(_outServerPacketQueue.front());
+                    znetold::Packet packet = std::move(_outServerPacketQueue.front());
                     _outServerPacketQueue.pop_front();
                     //_outServerPacketQueue.erase(_outServerPacketQueue.begin());
                     _mServer.unlock();
@@ -904,7 +904,7 @@ void NetworkInterface::ClientThread()
         // Read incoming packets
         if (_client.GetPacketCount() > 0)
         {
-            znet::PacketView pv = _client.ReadPacket();
+            znetold::PacketView pv = _client.ReadPacket();
             _client.SendStruct(pv.size, packet::BYTE_CONFIRMATION);
 
             switch (pv.packetId)
@@ -965,7 +965,7 @@ void NetworkInterface::ClientThread()
             }
             case packet::METADATA:
             {
-                znet::Packet pkt = _client.GetPacket();
+                znetold::Packet pkt = _client.GetPacket();
 
                 int offset = 0;
                 _mClient.lock();
@@ -1013,7 +1013,7 @@ void NetworkInterface::ClientThread()
         _mClient.lock();
         if (_outClientPacketQueue.size() > 0)
         {
-            znet::Packet packet = std::move(_outClientPacketQueue.front());
+            znetold::Packet packet = std::move(_outClientPacketQueue.front());
             _outClientPacketQueue.pop_front();
             _mClient.unlock();
 

@@ -366,7 +366,7 @@ void MediaPlayerOld::Update(double timeLimit)
             }
         }
 
-        znet::Packet p;
+        znetold::Packet p;
         while ((p = _network->GetPacket()).size != -1)
         {
             switch (p.packetId)
@@ -424,7 +424,7 @@ void MediaPlayerOld::Update(double timeLimit)
     }
     else if (_mode == PlaybackMode::SERVER)
     {
-        znet::Packet p;
+        znetold::Packet p;
         while ((p = _network->GetPacket()).size != -1)
         {
             switch (p.packetId)

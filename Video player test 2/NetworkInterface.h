@@ -28,9 +28,9 @@ struct PacketData
 
 class NetworkInterface
 {
-    znet::TCPServer _server;
-    znet::TCPClient _client;
-    znet::TCPComponent* _network;
+    znetold::TCPServer _server;
+    znetold::TCPClient _client;
+    znetold::TCPComponent* _network;
 
     //PlaybackMode _mode = OFFLINE;
     NetworkStatus _status = NetworkStatus::OFFLINE;
@@ -112,7 +112,7 @@ public:
     void SendPauseCommand();
     void SendResumeCommand();
     void SendCurrentPosition(TimePoint position);
-    znet::Packet GetPacket();
+    znetold::Packet GetPacket();
     int PacketsBuffered();
     TimePoint PeerPosition();
 
@@ -122,16 +122,16 @@ private:
     std::mutex _mtxNetThread;
     std::thread _networkThread;
     ThreadController _networkThreadController;
-    std::deque<znet::Packet> _inPacketQueue;
-    std::deque<znet::Packet> _outPacketQueue;
+    std::deque<znetold::Packet> _inPacketQueue;
+    std::deque<znetold::Packet> _outPacketQueue;
     TimePoint _position = 0;
 
     // Server thread
     void ServerThread();
     std::mutex _mServer;
     std::thread _serverThread;
-    std::deque<znet::Packet> _inServerPacketQueue;
-    std::deque<znet::Packet> _outServerPacketQueue;
+    std::deque<znetold::Packet> _inServerPacketQueue;
+    std::deque<znetold::Packet> _outServerPacketQueue;
     TimePoint _clientPosition = 0;
     TimePoint _bufferedDuration = 0;
 
@@ -139,13 +139,13 @@ private:
     void ClientThread();
     std::mutex _mClient;
     std::thread _clientThread;
-    std::deque<znet::Packet> _inClientPacketQueue;
-    std::deque<znet::Packet> _outClientPacketQueue;
+    std::deque<znetold::Packet> _inClientPacketQueue;
+    std::deque<znetold::Packet> _outClientPacketQueue;
     TimePoint _serverPosition;
-    znet::Packet _videoParamsPkt;
-    znet::Packet _audioParamsPkt;
-    std::deque<znet::Packet> _videoPacketPkts;
-    std::deque<znet::Packet> _audioPacketPkts;
+    znetold::Packet _videoParamsPkt;
+    znetold::Packet _audioParamsPkt;
+    std::deque<znetold::Packet> _videoPacketPkts;
+    std::deque<znetold::Packet> _audioPacketPkts;
     Duration _duration = -1;
     AVRational _framerate = { -1, -1 };
     AVRational _videoTimebase = { -1, -1 };

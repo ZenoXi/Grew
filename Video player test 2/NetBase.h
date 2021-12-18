@@ -28,7 +28,7 @@
 // The packet itself contains a single 32-bit value which represents how many packets after this one to combine.
 #define MULTIPLE_PACKETS 0x0FFFFFFE
 
-namespace znet
+namespace znetold
 {
     class WSAHolder
     {
