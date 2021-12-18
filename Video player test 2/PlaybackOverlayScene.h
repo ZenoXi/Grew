@@ -17,6 +17,8 @@ class PlaybackOverlayScene : public Scene
 {
     PlaybackScene* _playbackScene = nullptr;
     int _currentlyPlaying = -1;
+    bool _autoplay = true;
+    bool _waiting = false;
 
     std::unique_ptr<zcom::Panel> _playbackQueuePanel = nullptr;
     std::vector<std::unique_ptr<zcom::MediaQueueItem>> _readyItems;
@@ -39,6 +41,13 @@ public:
 
     const char* GetName() const { return "playback_overlay"; }
     static const char* StaticName() { return "playback_overlay"; }
+
+public:
+    void AddItem(std::wstring filepath);
+    // Shows a placeholder playback scene until an available (loaded) item appears
+    void WaitForLoad(bool focus);
+    void SetAutoplay(bool autoplay);
+    bool GetAutoplay() const;
 
 private:
     void _RearrangeQueuePanel();

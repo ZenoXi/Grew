@@ -53,7 +53,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _canvas->AddComponent(_playbackQueuePanel.get());
     _canvas->AddComponent(_addFileButton.get());
     _canvas->AddComponent(_closeOverlayButton.get());
-    _canvas->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.5f));
+    _canvas->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.75f));
 }
 
 void PlaybackOverlayScene::_Uninit()
@@ -75,6 +75,7 @@ void PlaybackOverlayScene::_Update()
 {
     _playbackQueuePanel->Update();
 
+    // Check for file dialog completion
     if (_addingFile)
     {
         if (_fileDialog->Done())
@@ -92,9 +93,11 @@ void PlaybackOverlayScene::_Update()
         }
     }
 
+    // Manage queue items
     bool changed = false;
     for (int i = 0; i < _loadingItems.size(); i++)
     {
+        // Delete
         if (_loadingItems[i]->Delete())
         {
             _loadingItems.erase(_loadingItems.begin() + i);
@@ -103,6 +106,7 @@ void PlaybackOverlayScene::_Update()
             continue;
         }
 
+        // Move from loading to ready
         if (_loadingItems[i]->Initialized() && _loadingItems[i]->InitSuccess())
         {
             _readyItems.push_back(std::move(_loadingItems[i]));
@@ -114,9 +118,7 @@ void PlaybackOverlayScene::_Update()
     }
     for (int i = 0; i < _readyItems.size(); i++)
     {
-        if (_currentlyPlaying == i)
-            continue;
-
+        // Play
         if (_readyItems[i]->Play())
         {
             _currentlyPlaying = i;
@@ -126,8 +128,16 @@ void PlaybackOverlayScene::_Update()
             App::Instance()->UninitScene(PlaybackScene::StaticName());
             App::Instance()->InitScene(PlaybackScene::StaticName(), &options);
             App::Instance()->MoveSceneBehind(PlaybackScene::StaticName(), StaticName());
-            _RearrangeQueuePanel();
+            changed = true;
         }
+        // Stop
+        else if (_readyItems[i]->Stop())
+        {
+            _currentlyPlaying = -1;
+            App::Instance()->UninitScene(PlaybackScene::StaticName());
+            changed = true;
+        }
+        // Delete
         else if (_readyItems[i]->Delete())
         {
             if (_currentlyPlaying > i)
@@ -142,18 +152,32 @@ void PlaybackOverlayScene::_Update()
     if (changed) _RearrangeQueuePanel();
 
     // Play next item
-    if (_playbackScene->Finished())
+    if ((_autoplay && _playbackScene->Finished()) || _waiting)
     {
-        bool focused = App::Instance()->FindActiveScene(PlaybackScene::StaticName())->Focused();
-        App::Instance()->UninitScene(PlaybackScene::StaticName());
-
+        bool uninitScene = true;
         _currentlyPlaying++;
         if (_currentlyPlaying == _readyItems.size())
         {
             _currentlyPlaying = -1;
+            if (_waiting)
+                uninitScene = false;
         }
-        else
+
+        Scene* scene = nullptr;
+        bool focused = false;
+        if (uninitScene)
         {
+            scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
+            if (scene)
+            {
+                focused = scene->Focused();
+                App::Instance()->UninitScene(PlaybackScene::StaticName());
+            }
+        }
+
+        if (_currentlyPlaying != -1)
+        {
+            _waiting = false;
             PlaybackSceneOptions options;
             options.dataProvider = _readyItems[_currentlyPlaying]->GetDataProvider();
             options.mode = PlaybackMode::OFFLINE;
@@ -164,7 +188,8 @@ void PlaybackOverlayScene::_Update()
                 App::Instance()->MoveSceneBehind(PlaybackScene::StaticName(), StaticName());
         }
 
-        _RearrangeQueuePanel();
+        if (uninitScene)
+            _RearrangeQueuePanel();
     }
 }
 
@@ -182,6 +207,49 @@ void PlaybackOverlayScene::_Resize(int width, int height)
 
 }
 
+void PlaybackOverlayScene::AddItem(std::wstring filepath)
+{
+    auto newItem = std::make_unique<zcom::MediaQueueItem>(filepath);
+    newItem->SetParentWidthPercent(1.0f);
+    newItem->SetBaseHeight(25);
+    _loadingItems.push_back(std::move(newItem));
+    _RearrangeQueuePanel();
+
+    //_readyItems.push_back(std::move(newItem));
+    //_currentlyPlaying = _readyItems.size() - 1;
+
+    //PlaybackSceneOptions options;
+    //options.fileName = wstring_to_string(filepath);
+    //options.mode = PlaybackMode::OFFLINE;
+    //App::Instance()->InitScene(PlaybackScene::StaticName(), &options);
+    //App::Instance()->MoveSceneToFront(PlaybackScene::StaticName());
+}
+
+void PlaybackOverlayScene::WaitForLoad(bool focus)
+{
+    if (_readyItems.empty())
+    {
+        _waiting = true;
+        _currentlyPlaying = -1;
+
+        PlaybackSceneOptions options;
+        options.placeholder = true;
+        App::Instance()->InitScene(PlaybackScene::StaticName(), &options);
+        if (focus)
+            App::Instance()->MoveSceneToFront(PlaybackScene::StaticName());
+    }
+}
+
+void PlaybackOverlayScene::SetAutoplay(bool autoplay)
+{
+    _autoplay = autoplay;
+}
+
+bool PlaybackOverlayScene::GetAutoplay() const
+{
+    return _autoplay;
+}
+
 void PlaybackOverlayScene::_RearrangeQueuePanel()
 {
     _playbackQueuePanel->ClearItems();
@@ -191,7 +259,15 @@ void PlaybackOverlayScene::_RearrangeQueuePanel()
         _readyItems[i]->SetVerticalOffsetPixels(25 * i);
         _readyItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f * (i % 2)));
         if (i == _currentlyPlaying)
-            _readyItems[i]->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.1f));
+        {
+            _readyItems[i]->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
+            _readyItems[i]->SetNowPlaying(true);
+        }
+        else
+        {
+            _readyItems[i]->SetNowPlaying(false);
+        }
+
     }
     for (int i = 0; i < _loadingItems.size(); i++)
     {
