@@ -47,13 +47,12 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     }
 
     if (opt.dataProvider)
-    {
         _dataProvider = opt.dataProvider;
-    }
     else
-    {
         _dataProvider = new LocalFileDataProvider(opt.fileName);
-    }
+
+    if (opt.startPaused)
+        _startPaused = true;
 
     _audioAdapter = nullptr;
     _videoAdapter = nullptr;
@@ -313,6 +312,8 @@ void PlaybackScene::_Update()
                 std::unique_ptr<IAudioOutputAdapter>(_audioAdapter)
             );
             _controller = new BasePlaybackController(_mediaPlayer, _dataProvider);
+            if (!_startPaused)
+                _controller->Play();
 
             _seekBar->SetDuration(_dataProvider->MediaDuration());
             _volumeSlider->SetVolume(_controller->GetVolume());

@@ -26,6 +26,7 @@ struct PlaybackSceneOptions : public SceneOptionsBase
     std::string ip = "";
     uint16_t port = 0;
     LocalFileDataProvider* dataProvider = nullptr;
+    bool startPaused = false;
 };
 
 class PlaybackScene : public Scene
@@ -44,6 +45,7 @@ class PlaybackScene : public Scene
     IVideoOutputAdapter* _videoAdapter = nullptr;
     MediaPlayer* _mediaPlayer = nullptr;
     IPlaybackController* _controller = nullptr;
+    bool _startPaused = false;
 
 public:
     PlaybackScene();
