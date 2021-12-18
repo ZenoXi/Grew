@@ -30,6 +30,7 @@ namespace zcom
                 }
                 else
                 {
+                    _initSuccess = true;
 
                     Duration mediaDuration = _dataProvider->MaxMediaDuration();
                     int64_t h = mediaDuration.GetDuration(HOURS);
@@ -45,7 +46,8 @@ namespace zcom
                     else timeStr << m << ":";
                     if (s < 10) timeStr << "0" << s;
                     else timeStr << s;
-                    _statusLabel->SetText(timeStr.str());
+                    _durationStr = timeStr.str();
+                    _statusLabel->SetText(_durationStr);
 
                     // Show play button
                     _statusLabel->SetBaseSize(100, 25);
@@ -149,12 +151,17 @@ namespace zcom
         std::unique_ptr<Label> _statusLabel;
         std::unique_ptr<Button> _playButton;
         std::unique_ptr<Button> _deleteButton;
+        std::unique_ptr<Button> _stopButton;
 
         bool _initDone = false;
+        bool _initSuccess = false;
         std::unique_ptr<LocalFileDataProvider> _dataProvider;
+        std::wstring _durationStr = L"";
+        bool _nowPlaying = false;
 
         bool _delete = false;
         bool _play = false;
+        bool _stop = false;
 
     public:
         MediaQueueItem(std::wstring path)
@@ -208,12 +215,21 @@ namespace zcom
             _deleteButton->SetOnActivated([&]() { _delete = true; });
             _deleteButton->SetBackgroundImage(ResourceManager::GetImage("item_delete"));
 
+            _stopButton = std::make_unique<Button>();
+            _stopButton->SetBaseSize(25, 25);
+            _stopButton->SetHorizontalAlignment(Alignment::END);
+            _stopButton->SetActivation(ButtonActivation::RELEASE);
+            _stopButton->SetOnActivated([&]() { _stop = true; });
+            _stopButton->SetBackgroundImage(ResourceManager::GetImage("item_stop"));
+            _stopButton->SetVisible(false);
+
             _mainPanel = std::make_unique<Panel>();
             _mainPanel->SetSize(GetWidth(), GetHeight());
             _mainPanel->AddItem(_filenameLabel.get());
             _mainPanel->AddItem(_statusLabel.get());
             _mainPanel->AddItem(_playButton.get());
             _mainPanel->AddItem(_deleteButton.get());
+            _mainPanel->AddItem(_stopButton.get());
             _mainPanel->Resize();
 
             // Start processing the file
@@ -242,12 +258,45 @@ namespace zcom
         {
             return new LocalFileDataProvider(_dataProvider.get());
         }
+
+        void SetNowPlaying(bool nowPlaying)
+        {
+            if (_initSuccess && (nowPlaying != _nowPlaying))
+            {
+                _nowPlaying = nowPlaying;
+                if (nowPlaying)
+                {
+                    _statusLabel->SetBaseSize(125, 25);
+                    _statusLabel->SetHorizontalOffsetPixels(-25);
+                    _playButton->SetVisible(false);
+                    _deleteButton->SetVisible(false);
+                    _stopButton->SetVisible(true);
+                }
+                else
+                {
+                    _statusLabel->SetBaseSize(100, 25);
+                    _statusLabel->SetHorizontalOffsetPixels(-50);
+                    _playButton->SetVisible(true);
+                    _deleteButton->SetVisible(true);
+                    _stopButton->SetVisible(false);
+                }
+                _mainPanel->Resize();
+            }
+        }
         
         // If true, this media should be played
         bool Play()
         {
             bool val = _play;
             _play = false;
+            return val;
+        }
+
+        // If true, the playback should be aborted
+        bool Stop()
+        {
+            bool val = _stop;
+            _stop = false;
             return val;
         }
 
