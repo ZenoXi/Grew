@@ -42,7 +42,7 @@ public:
 class MediaPlayerOld
 {
     MediaDecoder* _decoder;
-    NetworkInterface* _network;
+    NetworkInterfaceOld* _network;
     PlaybackMode _mode;
 
     bool _loading;

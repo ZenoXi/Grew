@@ -2,51 +2,93 @@
 
 #include <fstream>
 
-#include "NetBase.h"
+#include "NetBase2.h"
 #include "GameTime.h"
 #include "NetworkMode.h"
-#include "ThreadController.h"
-#include "FFmpegSerializer.h"
+#include "IConnectionManager.h"
+#include "ClientConnectionManager.h"
+#include "ServerConnectionManager.h"
 
-struct PacketData
+#include "PacketSubscriber.h"
+
+namespace znet
 {
-    char* data;
-    size_t size;
-    int packetId;
-    int userId;
-};
+    struct PacketData
+    {
+        char* data;
+        size_t size;
+        int packetId;
+        int userId;
+    };
 
-enum class NetworkStatus
-{
-    WAITING_FOR_CONNECTION = -2,
-    CONNECTING,
-    OFFLINE,
-    CONNECTED
-};
+    class NetworkInterface
+    {
+        znet::TCPServer _server;
+        znet::TCPClient _client;
 
-class NetworkInterface
-{
-    znet::TCPServer _server;
-    znet::TCPClient _client;
+        IConnectionManager* _connectionManager = nullptr;
+        bool _PACKET_THR_STOP = false;
+        std::thread _incomingPacketManager;
+        std::mutex _m_conMng;
 
-    NetworkMode _mode = NetworkMode::OFFLINE;
-    NetworkStatus _status = NetworkStatus::OFFLINE;
+        NetworkMode _mode = NetworkMode::OFFLINE;
 
-public:
-    NetworkInterface();
 
-    void StartServer(USHORT port);
-    void StopServer();
-    void Connect(std::string ip, USHORT port);
-    void Disconnect();
+        // Singleton interface
+    private:
+        NetworkInterface();
+        static NetworkInterface* _instance;
+    public:
+        static void Init();
+        static NetworkInterface* Instance();
 
-    NetworkMode Mode();
-    NetworkStatus Status();
 
-    // Sender functions
-    void SendVideoParams(FFmpeg::Result params);
-    void SendAudioParams(FFmpeg::Result params);
-    void SendVideoPacket(FFmpeg::Result packet);
-    void SendAudioPacket(FFmpeg::Result packet);
-    void SendMetadata(Duration duration, AVRational framerate, AVRational videoTimebase, AVRational audioTimebase);
-};
+        // Connection functions
+    public:
+        void StartServer(USHORT port);
+        void StopServer();
+        void Connect(std::string ip, USHORT port);
+        void Disconnect();
+    private:
+        void _ManageIncomingPackets();
+
+
+        // Sending functions
+    public:
+        std::vector<IConnectionManager::User> Users();
+        void Send(Packet&& packet, std::vector<int64_t> userIds, int priority = 0);
+        void AddToQueue(Packet&& packet, std::vector<int64_t> userIds);
+        void SendQueue(std::vector<int64_t> userIds, int priority = 0);
+        void AbortSend(int32_t packetId);
+
+        
+        // Packet subscription
+    private:
+        friend class PacketSubscriber;
+        struct _PacketSubscription
+        {
+            int32_t packetId;
+            std::vector<PacketSubscriber*> subs;
+        };
+        std::vector<_PacketSubscription> _subscriptions;
+        std::mutex _m_subscriptions;
+        void _Subscribe(PacketSubscriber* sub);
+        void _Unsubscribe(PacketSubscriber* sub);
+        void _DistributePacket(Packet packet, int64_t userId);
+
+
+        // Network status
+    public:
+        NetworkMode Mode();
+
+        std::string StatusString();
+        ConnectionStatus Status();
+
+        // Sender functions
+        //void SendVideoParams(FFmpeg::Result params);
+        //void SendAudioParams(FFmpeg::Result params);
+        //void SendVideoPacket(FFmpeg::Result packet);
+        //void SendAudioPacket(FFmpeg::Result packet);
+        //void SendMetadata(Duration duration, AVRational framerate, AVRational videoTimebase, AVRational audioTimebase);
+    };
+}

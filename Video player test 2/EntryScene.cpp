@@ -356,7 +356,7 @@ void EntryScene::_Update()
 
     if (_connectLoading)
     {
-        if (NetworkInterface::Instance()->Connected())
+        if (NetworkInterfaceOld::Instance()->Connected())
         {
             PlaybackSceneOptions options;
             options.mode = PlaybackMode::CLIENT;
@@ -365,7 +365,7 @@ void EntryScene::_Update()
     }
     else if (_shareLoading)
     {
-        if (NetworkInterface::Instance()->ClientConnected())
+        if (NetworkInterfaceOld::Instance()->ClientConnected())
         {
             PlaybackSceneOptions options;
             options.fileName = _shareFilename;
@@ -458,7 +458,7 @@ void EntryScene::OnConnectConfirmed()
 {
     std::string ip = wstring_to_string(_connectIpInput->GetText());
     USHORT port = str_to_int(wstring_to_string(_connectPortInput->GetText()));
-    NetworkInterface::Instance()->Connect(ip, port);
+    NetworkInterfaceOld::Instance()->Connect(ip, port);
 
     _connectIpInput->SetVisible(false);
     _connectPortInput->SetVisible(false);
@@ -495,7 +495,7 @@ void EntryScene::OnShareConfirmed()
 {
     //_shareFilename = wstring_to_string(OpenFile());
     USHORT port = str_to_int(wstring_to_string(_sharePortInput->GetText()));
-    NetworkInterface::Instance()->StartServer(port);
+    NetworkInterfaceOld::Instance()->StartServer(port);
 
     _sharePortInput->SetVisible(false);
     _shareConfirmButton->SetVisible(false);
@@ -524,5 +524,5 @@ void EntryScene::OnShareLoadingCanceled()
     _shareLoadingInfoLabel->SetVisible(false);
     _shareLoadingCancelButton->SetVisible(false);
     _shareLoading = false;
-    NetworkInterface::Instance()->StopServer();
+    NetworkInterfaceOld::Instance()->StopServer();
 }

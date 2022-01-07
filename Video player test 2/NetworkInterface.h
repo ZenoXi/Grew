@@ -26,7 +26,7 @@ struct PacketData
     int userId;
 };
 
-class NetworkInterface
+class NetworkInterfaceOld
 {
     znetold::TCPServer _server;
     znetold::TCPClient _client;
@@ -46,19 +46,19 @@ class NetworkInterface
     std::thread _clientStartThread;
 
 private: // Singleton interface
-    NetworkInterface();
-    static NetworkInterface* _instance;
+    NetworkInterfaceOld();
+    static NetworkInterfaceOld* _instance;
 public:
     static void Init();
-    static NetworkInterface* Instance();
+    static NetworkInterfaceOld* Instance();
 
 private:
     // Blank constructor
-    NetworkInterface(bool online);
+    NetworkInterfaceOld(bool online);
     // Server constructor
-    NetworkInterface(USHORT port);
+    NetworkInterfaceOld(USHORT port);
     // Client constructor
-    NetworkInterface(std::string ip, USHORT port);
+    NetworkInterfaceOld(std::string ip, USHORT port);
 
 public:
     void StartServer(USHORT port);

@@ -19,6 +19,7 @@
 #include "MediaPlayerOld.h"
 #include "App.h"
 #include "EntryScene.h"
+#include "NetworkInterfaceNew.h"
 
 #include "Event.h"
 
@@ -51,7 +52,7 @@ int WINAPI main(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
 
     // Initialize singleton objects
     App::Init(window, EntryScene::StaticName());
-    NetworkInterface::Init();
+    znet::NetworkInterface::Init();
     //App app(window, "entry_scene");
 
     // Main window loop

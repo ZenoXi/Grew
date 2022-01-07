@@ -1,8 +1,8 @@
 #include "NetworkInterface.h"
 
-NetworkInterface* NetworkInterface::_instance = nullptr;
+NetworkInterfaceOld* NetworkInterfaceOld::_instance = nullptr;
 
-NetworkInterface::NetworkInterface(bool online)
+NetworkInterfaceOld::NetworkInterfaceOld(bool online)
 {
     if (!online) _mode = NetworkMode::OFFLINE;
 
@@ -12,29 +12,29 @@ NetworkInterface::NetworkInterface(bool online)
     _clientStartController.Set("done", 0);
 }
 
-NetworkInterface::NetworkInterface(USHORT port)
-    : NetworkInterface(true)
+NetworkInterfaceOld::NetworkInterfaceOld(USHORT port)
+    : NetworkInterfaceOld(true)
 {
     //sAudioOut.open("server.data", std::ios::binary);
     _mode = NetworkMode::SERVER;
     _port = port;
 
-    _serverStartThread = std::thread(&NetworkInterface::_StartServer, this);
+    _serverStartThread = std::thread(&NetworkInterfaceOld::_StartServer, this);
     _serverStartThread.detach();
 }
 
-NetworkInterface::NetworkInterface(std::string ip, USHORT port)
-    : NetworkInterface(true)
+NetworkInterfaceOld::NetworkInterfaceOld(std::string ip, USHORT port)
+    : NetworkInterfaceOld(true)
 {
     _mode = NetworkMode::CLIENT;
     _ip = ip;
     _port = port;
 
-    _clientStartThread = std::thread(&NetworkInterface::_StartClient, this);
+    _clientStartThread = std::thread(&NetworkInterfaceOld::_StartClient, this);
     _clientStartThread.detach();
 }
 
-NetworkInterface::NetworkInterface()
+NetworkInterfaceOld::NetworkInterfaceOld()
 {
     _serverStartController.Add("done", sizeof(int));
     _serverStartController.Set("done", 0);
@@ -44,30 +44,30 @@ NetworkInterface::NetworkInterface()
     _networkThreadController.Set("stop", false);
 }
 
-void NetworkInterface::Init()
+void NetworkInterfaceOld::Init()
 {
     if (!_instance)
     {
-        _instance = new NetworkInterface();
+        _instance = new NetworkInterfaceOld();
     }
 }
 
-NetworkInterface* NetworkInterface::Instance()
+NetworkInterfaceOld* NetworkInterfaceOld::Instance()
 {
     return _instance;
 }
 
-void NetworkInterface::StartServer(USHORT port)
+void NetworkInterfaceOld::StartServer(USHORT port)
 {
     _mode = NetworkMode::SERVER;
     _status = NetworkStatus::WAITING_FOR_CONNECTION;
     _port = port;
 
-    _serverStartThread = std::thread(&NetworkInterface::_StartServer, this);
+    _serverStartThread = std::thread(&NetworkInterfaceOld::_StartServer, this);
     _serverStartThread.detach();
 }
 
-void NetworkInterface::StopServer()
+void NetworkInterfaceOld::StopServer()
 {
     if (_serverStartController.Get<int>("done") == 1)
     {
@@ -79,18 +79,18 @@ void NetworkInterface::StopServer()
     }
 }
 
-void NetworkInterface::Connect(std::string ip, USHORT port)
+void NetworkInterfaceOld::Connect(std::string ip, USHORT port)
 {
     _mode = NetworkMode::CLIENT;
     _status = NetworkStatus::CONNECTING;
     _ip = ip;
     _port = port;
 
-    _clientStartThread = std::thread(&NetworkInterface::_StartClient, this);
+    _clientStartThread = std::thread(&NetworkInterfaceOld::_StartClient, this);
     _clientStartThread.detach();
 }
 
-void NetworkInterface::Disconnect()
+void NetworkInterfaceOld::Disconnect()
 {
     if (_clientStartController.Get<int>("done") == 1)
     {
@@ -103,7 +103,7 @@ void NetworkInterface::Disconnect()
     }
 }
 
-void NetworkInterface::_StartServer()
+void NetworkInterfaceOld::_StartServer()
 {
     // Create and bind the socket
     _server.StartServer(_port, 1);
@@ -127,14 +127,14 @@ void NetworkInterface::_StartServer()
     // Start server thread
     _network = &_server;
     _networkThreadController.Set("stop", false);
-    _networkThread = std::thread(&NetworkInterface::NetworkThread, this);
+    _networkThread = std::thread(&NetworkInterfaceOld::NetworkThread, this);
 
     // Return success
     _serverStartController.Set("done", 1);
     _status = NetworkStatus::CONNECTED;
 }
 
-void NetworkInterface::_StartClient()
+void NetworkInterfaceOld::_StartClient()
 {
     // Connect to the server
     if (!_client.Connect(_ip, _port))
@@ -148,29 +148,29 @@ void NetworkInterface::_StartClient()
     // Start client thread
     _network = &_client;
     _networkThreadController.Set("stop", false);
-    _networkThread = std::thread(&NetworkInterface::NetworkThread, this);
+    _networkThread = std::thread(&NetworkInterfaceOld::NetworkThread, this);
 
     // Return success
     _clientStartController.Set("done", 1);
     _status = NetworkStatus::CONNECTED;
 }
 
-int NetworkInterface::ServerStarted()
+int NetworkInterfaceOld::ServerStarted()
 {
     return _serverStartController.Get<int>("done");
 }
 
-int NetworkInterface::Connected()
+int NetworkInterfaceOld::Connected()
 {
     return _clientStartController.Get<int>("done");
 }
 
-NetworkMode NetworkInterface::Mode()
+NetworkMode NetworkInterfaceOld::Mode()
 {
     return _mode;
 }
 
-NetworkStatus NetworkInterface::Status()
+NetworkStatus NetworkInterfaceOld::Status()
 {
     return _status;
 }
@@ -179,7 +179,7 @@ NetworkStatus NetworkInterface::Status()
 // SENDER FUNCTIONS //
 // //////////////// //
 
-void NetworkInterface::SendVideoParams(FFmpeg::Result params)
+void NetworkInterfaceOld::SendVideoParams(FFmpeg::Result params)
 {
     _mtxNetThread.lock();
     _outPacketQueue.push_back(znetold::Packet(_clientId, packet::VIDEO_PARAMS, (char*)params.data, params.size));
@@ -188,7 +188,7 @@ void NetworkInterface::SendVideoParams(FFmpeg::Result params)
     params.size = 0;
 }
 
-void NetworkInterface::SendAudioParams(FFmpeg::Result params)
+void NetworkInterfaceOld::SendAudioParams(FFmpeg::Result params)
 {
     _mtxNetThread.lock();
     _outPacketQueue.push_back(znetold::Packet(_clientId, packet::AUDIO_PARAMS, (char*)params.data, params.size));
@@ -197,7 +197,7 @@ void NetworkInterface::SendAudioParams(FFmpeg::Result params)
     params.size = 0;
 }
 
-void NetworkInterface::SendVideoPacket(FFmpeg::Result packet)
+void NetworkInterfaceOld::SendVideoPacket(FFmpeg::Result packet)
 {
     _mtxNetThread.lock();
     _outPacketQueue.push_back(znetold::Packet(_clientId, packet::VIDEO_PACKET, (char*)packet.data, packet.size));
@@ -206,7 +206,7 @@ void NetworkInterface::SendVideoPacket(FFmpeg::Result packet)
     packet.size = 0;
 }
 
-void NetworkInterface::SendAudioPacket(FFmpeg::Result packet)
+void NetworkInterfaceOld::SendAudioPacket(FFmpeg::Result packet)
 {
     //sAudioOut.write((char*)packet.data, packet.size);
 
@@ -217,7 +217,7 @@ void NetworkInterface::SendAudioPacket(FFmpeg::Result packet)
     packet.size = 0;
 }
 
-void NetworkInterface::SendMetadata(Duration duration, AVRational framerate, AVRational videoTimebase, AVRational audioTimebase)
+void NetworkInterfaceOld::SendMetadata(Duration duration, AVRational framerate, AVRational videoTimebase, AVRational audioTimebase)
 {
     int totalSize = sizeof(duration) + sizeof(framerate) + sizeof(videoTimebase) + sizeof(audioTimebase);
     char* data = new char[totalSize];
@@ -235,7 +235,7 @@ void NetworkInterface::SendMetadata(Duration duration, AVRational framerate, AVR
     _mtxNetThread.unlock();
 }
 
-void NetworkInterface::ConfirmSeekReceived()
+void NetworkInterfaceOld::ConfirmSeekReceived()
 {
     char* padding = new char;
     _mtxNetThread.lock();
@@ -254,7 +254,7 @@ void NetworkInterface::ConfirmSeekReceived()
     std::cout << count << " packets discarded.\n";
 }
 
-TimePoint NetworkInterface::ClientPosition()
+TimePoint NetworkInterfaceOld::ClientPosition()
 {
     _mServer.lock();
     TimePoint time = _clientPosition;
@@ -262,13 +262,13 @@ TimePoint NetworkInterface::ClientPosition()
     return time;
 }
 
-TimePoint NetworkInterface::GetBufferedDuration()
+TimePoint NetworkInterfaceOld::GetBufferedDuration()
 {
     LOCK_GUARD(lock, _mtxNetThread);
     return _bufferedDuration;
 }
 
-bool NetworkInterface::ClientConnected()
+bool NetworkInterfaceOld::ClientConnected()
 {
     return _clientId >= 0;
 }
@@ -277,7 +277,7 @@ bool NetworkInterface::ClientConnected()
 // RECEIVER FUNCTIONS //
 // ////////////////// //
 
-uchar* NetworkInterface::GetVideoParams()
+uchar* NetworkInterfaceOld::GetVideoParams()
 {
     LOCK_GUARD(lock, _mtxNetThread);
     if (_videoParamsPkt.size > 0)
@@ -287,7 +287,7 @@ uchar* NetworkInterface::GetVideoParams()
     return nullptr;
 }
 
-uchar* NetworkInterface::GetAudioParams()
+uchar* NetworkInterfaceOld::GetAudioParams()
 {
     LOCK_GUARD(lock, _mtxNetThread);
     if (_audioParamsPkt.size > 0)
@@ -297,7 +297,7 @@ uchar* NetworkInterface::GetAudioParams()
     return nullptr;
 }
 
-std::unique_ptr<char> NetworkInterface::GetVideoPacket()
+std::unique_ptr<char> NetworkInterfaceOld::GetVideoPacket()
 {
     LOCK_GUARD(lock, _mtxNetThread);
     if (!_videoPacketPkts.empty())
@@ -309,7 +309,7 @@ std::unique_ptr<char> NetworkInterface::GetVideoPacket()
     return nullptr;
 }
 
-std::unique_ptr<char> NetworkInterface::GetAudioPacket()
+std::unique_ptr<char> NetworkInterfaceOld::GetAudioPacket()
 {
     LOCK_GUARD(lock, _mtxNetThread);
     if (!_audioPacketPkts.empty())
@@ -322,31 +322,31 @@ std::unique_ptr<char> NetworkInterface::GetAudioPacket()
     return nullptr;
 }
 
-Duration NetworkInterface::GetDuration()
+Duration NetworkInterfaceOld::GetDuration()
 {
     LOCK_GUARD(lock, _mtxNetThread);
     return _duration;
 }
 
-AVRational NetworkInterface::GetFramerate()
+AVRational NetworkInterfaceOld::GetFramerate()
 {
     LOCK_GUARD(lock, _mtxNetThread);
     return _framerate;
 }
 
-AVRational NetworkInterface::GetVideoTimebase()
+AVRational NetworkInterfaceOld::GetVideoTimebase()
 {
     LOCK_GUARD(lock, _mtxNetThread);
     return _videoTimebase;
 }
 
-AVRational NetworkInterface::GetAudioTimebase()
+AVRational NetworkInterfaceOld::GetAudioTimebase()
 {
     LOCK_GUARD(lock, _mtxNetThread);
     return _audioTimebase;
 }
 
-bool NetworkInterface::MetadataReceived()
+bool NetworkInterfaceOld::MetadataReceived()
 {
     LOCK_GUARD(lock, _mClient);
     if (_videoParamsPkt.size == -1) return false;
@@ -358,7 +358,7 @@ bool NetworkInterface::MetadataReceived()
     return true;
 }
 
-void NetworkInterface::NotifyBufferingEnd()
+void NetworkInterfaceOld::NotifyBufferingEnd()
 {
     char* padding = new char;
     _mtxNetThread.lock();
@@ -366,7 +366,7 @@ void NetworkInterface::NotifyBufferingEnd()
     _mtxNetThread.unlock();
 }
 
-void NetworkInterface::NotifyBufferingStart()
+void NetworkInterfaceOld::NotifyBufferingStart()
 {
     char* padding = new char;
     _mtxNetThread.lock();
@@ -374,7 +374,7 @@ void NetworkInterface::NotifyBufferingStart()
     _mtxNetThread.unlock();
 }
 
-void NetworkInterface::SendBufferedDuration(TimePoint bufferEnd)
+void NetworkInterfaceOld::SendBufferedDuration(TimePoint bufferEnd)
 {
     TimePoint* tp = new TimePoint;
     *tp = bufferEnd;
@@ -383,7 +383,7 @@ void NetworkInterface::SendBufferedDuration(TimePoint bufferEnd)
     _mtxNetThread.unlock();
 }
 
-TimePoint NetworkInterface::ServerPosition()
+TimePoint NetworkInterfaceOld::ServerPosition()
 {
     _mClient.lock();
     TimePoint time = _serverPosition;
@@ -395,7 +395,7 @@ TimePoint NetworkInterface::ServerPosition()
 // SHARED FUNCTIONS //
 // //////////////// //
 
-void NetworkInterface::SendSeekCommand(TimePoint position)
+void NetworkInterfaceOld::SendSeekCommand(TimePoint position)
 {
     if (Status() != NetworkStatus::CONNECTED) return;
     std::cout << "Seek command sent.\n";
@@ -443,7 +443,7 @@ void NetworkInterface::SendSeekCommand(TimePoint position)
     //}
 }
 
-void NetworkInterface::SendPauseCommand()
+void NetworkInterfaceOld::SendPauseCommand()
 {
     if (Status() != NetworkStatus::CONNECTED) return;
 
@@ -467,7 +467,7 @@ void NetworkInterface::SendPauseCommand()
     //}
 }
 
-void NetworkInterface::SendResumeCommand()
+void NetworkInterfaceOld::SendResumeCommand()
 {
     if (Status() != NetworkStatus::CONNECTED) return;
 
@@ -491,7 +491,7 @@ void NetworkInterface::SendResumeCommand()
     //}
 }
 
-void NetworkInterface::SendCurrentPosition(TimePoint position)
+void NetworkInterfaceOld::SendCurrentPosition(TimePoint position)
 {
     if (Status() != NetworkStatus::CONNECTED) return;
 
@@ -518,7 +518,7 @@ void NetworkInterface::SendCurrentPosition(TimePoint position)
     //}
 }
 
-znetold::Packet NetworkInterface::GetPacket()
+znetold::Packet NetworkInterfaceOld::GetPacket()
 {
     if (Mode() == NetworkMode::OFFLINE) return znetold::Packet();
 
@@ -553,13 +553,13 @@ znetold::Packet NetworkInterface::GetPacket()
     //return znet::Packet();
 }
 
-int NetworkInterface::PacketsBuffered()
+int NetworkInterfaceOld::PacketsBuffered()
 {
     LOCK_GUARD(lock, _mtxNetThread);
     return _outPacketQueue.size();
 }
 
-TimePoint NetworkInterface::PeerPosition()
+TimePoint NetworkInterfaceOld::PeerPosition()
 {
     LOCK_GUARD(lock, _mtxNetThread);
     return _clientPosition;
@@ -569,7 +569,7 @@ TimePoint NetworkInterface::PeerPosition()
 // THREAD FUNCTIONS //
 // //////////////// //
 
-void NetworkInterface::NetworkThread()
+void NetworkInterfaceOld::NetworkThread()
 {
     uint64_t bytesSent = 0;
     uint64_t bytesConfirmed = 0;
@@ -758,7 +758,7 @@ void NetworkInterface::NetworkThread()
     _networkThreadController.Set("stop", false);
 }
 
-void NetworkInterface::ServerThread()
+void NetworkInterfaceOld::ServerThread()
 {
     uint64_t bytesSent = 0;
     uint64_t bytesConfirmed = 0;
@@ -897,7 +897,7 @@ void NetworkInterface::ServerThread()
     }
 }
 
-void NetworkInterface::ClientThread()
+void NetworkInterfaceOld::ClientThread()
 {
     while (true)
     {

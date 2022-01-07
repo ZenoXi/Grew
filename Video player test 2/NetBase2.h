@@ -9,6 +9,7 @@
 #include <queue>
 #include <mutex>
 #include <atomic>
+#include <functional>
 
 // Less verbose locking of a mutex
 #define LOCK_GUARD(varname, mutexname) std::lock_guard<std::mutex> varname(mutexname)
@@ -58,7 +59,7 @@ namespace znet
     struct Packet
     {
     private:
-        std::unique_ptr<int8_t[]> _bytes;
+        std::shared_ptr<int8_t[]> _bytes;
     public:
         size_t size;
         int32_t id;
@@ -92,6 +93,18 @@ namespace znet
             return *this;
         }
 
+        // Creates a packet pointing to the same memory
+        // NOTE: changes to one packets data will be seen in the other packets data
+        Packet Reference() const
+        {
+            Packet refPacket;
+            refPacket._bytes = _bytes;
+            refPacket.size = size;
+            refPacket.id = id;
+            return refPacket;
+        }
+
+        // Allocates memory and creates a copy of the packet 
         Packet Clone() const
         {
             auto newBytes = std::make_unique<int8_t[]>(size);
@@ -257,6 +270,10 @@ namespace znet
             if (priority == 0)
             {
                 LOCK_GUARD(lock, _m_outPackets);
+                if (!_packetQueue.empty())
+                {
+                    _outPackets.push_back({ std::move(Packet(MULTIPLE_PACKETS).From(_packetQueue.size())), priority });
+                }
                 while (!_packetQueue.empty())
                 {
                     _outPackets.push_back({ std::move(_packetQueue.front()), priority });
@@ -270,6 +287,10 @@ namespace znet
             {
                 if (_outPackets[i].second < priority)
                 {
+                    if (!_packetQueue.empty())
+                    {
+                        _outPackets.push_back({ std::move(Packet(MULTIPLE_PACKETS).From(_packetQueue.size())), priority });
+                    }
                     while (!_packetQueue.empty())
                     {
                         _outPackets.insert(_outPackets.begin() + i, { std::move(_packetQueue.front()), priority });
@@ -832,11 +853,30 @@ namespace znet
 
         size_t _connectionMaxPacketSize = 1024;
 
-        int64_t _ID_COUNTER = 0;
-        int64_t GetNewID()
+        // User id generation
+    public:
+        class IDGenerator
         {
-            return _ID_COUNTER++;
+        public:
+            virtual int64_t _GetNewID() = 0;
+        };
+    private:
+        IDGenerator* _generator = nullptr;
+    public:
+        void SetGenerator(IDGenerator* generator)
+        {
+            _generator = generator;
         }
+    private:
+        int64_t _ID_COUNTER = 0;
+        int64_t _GetNewID()
+        {
+            if (_generator)
+                return _generator->_GetNewID();
+            else
+                return _ID_COUNTER++;
+        }
+
 
     public:
         TCPServer()
@@ -1120,7 +1160,7 @@ namespace znet
                 // Add connection
                 //std::unique_ptr<TCPConnection> newConnection(new TCPConnection(socket, socketInfo, _connectionMaxPacketSize));
                 auto newConnection = std::make_unique<TCPConnection>(socket, socketInfo, _connectionMaxPacketSize);
-                int64_t newId = GetNewID();
+                int64_t newId = _GetNewID();
                 _m_connections.lock();
                 _connections.push_back(_connectionManager->AddClient(std::move(newConnection), newId));
                 _m_connections.unlock();
@@ -1192,10 +1232,28 @@ namespace znet
     {
         TCPConnectionManager* _connectionManager;
 
-        int64_t _ID_COUNTER = 1;
+        // User id generation
+    public:
+        class IDGenerator
+        {
+        public:
+            virtual int64_t _GetNewID() = 0;
+        };
+    private:
+        IDGenerator* _generator = nullptr;
+    public:
+        void SetGenerator(IDGenerator* generator)
+        {
+            _generator = generator;
+        }
+    private:
+        int64_t _ID_COUNTER = 0;
         int64_t _GetID()
         {
-            return _ID_COUNTER++;
+            if (_generator)
+                return _generator->_GetNewID();
+            else
+                return _ID_COUNTER++;
         }
 
     public:

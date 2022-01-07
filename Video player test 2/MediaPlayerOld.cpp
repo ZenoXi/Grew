@@ -11,7 +11,7 @@ MediaPlayerOld::MediaPlayerOld(std::string ip, USHORT port) : _currentFrame(0, 0
     //cAudioOut.open("client.data", std::ios::binary);
 
     // Init network
-    _network = NetworkInterface::Instance();
+    _network = NetworkInterfaceOld::Instance();
     _network->Connect(ip, port);
     while (_network->Connected() == 0)
     {
@@ -81,7 +81,7 @@ MediaPlayerOld::MediaPlayerOld(USHORT port, std::string filename) : _currentFram
         _waiting = false;
 
         // Init network in offline mode
-        _network = NetworkInterface::Instance();
+        _network = NetworkInterfaceOld::Instance();
         //_network = new NetworkInterface(false);
     }
     else
@@ -94,7 +94,7 @@ MediaPlayerOld::MediaPlayerOld(USHORT port, std::string filename) : _currentFram
         _waiting = true;
 
         // Init network
-        _network = NetworkInterface::Instance();
+        _network = NetworkInterfaceOld::Instance();
         _network->StartServer(port);
 
         // Wait for a connection
@@ -155,7 +155,7 @@ MediaPlayerOld::MediaPlayerOld(USHORT port, std::string filename) : _currentFram
 MediaPlayerOld::MediaPlayerOld(PlaybackMode mode, std::string filename) : _currentFrame(0, 0, -1), _skippedFrame(0, 0, -1), _voiceCallback(_audioBufferLength)
 {
     _mode = mode;
-    _network = NetworkInterface::Instance();
+    _network = NetworkInterfaceOld::Instance();
 
     if (mode == PlaybackMode::CLIENT)
     {
