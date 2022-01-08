@@ -126,7 +126,17 @@ namespace znet
 
         // Shallow copy object into packet data
         template<class T>
-        Packet& From(const T& object)
+        Packet From(const T& object) &&
+        {
+            _bytes.reset(new int8_t[sizeof(T)]);
+            memcpy(Bytes(), &object, sizeof(T));
+            size = sizeof(T);
+            return std::move(*this);
+        }
+
+        // Shallow copy object into packet data
+        template<class T>
+        Packet& From(const T& object) &
         {
             _bytes.reset(new int8_t[sizeof(T)]);
             memcpy(Bytes(), &object, sizeof(T));
@@ -236,22 +246,39 @@ namespace znet
         {
             if (!Connected()) return;
 
-            if (priority == 0)
-            {
-                LOCK_GUARD(lock, _m_outPackets);
-                _outPackets.push_back({ std::move(packet), priority });
-                return;
-            }
-
             LOCK_GUARD(lock, _m_outPackets);
-            for (int i = 0; i < _outPackets.size(); i++)
+            if (priority != 0)
             {
-                if (_outPackets[i].second < priority)
+                for (int i = 0; i < _outPackets.size(); i++)
                 {
-                    _outPackets.insert(_outPackets.begin() + i, { std::move(packet), priority });
-                    return;
+                    if (_outPackets[i].second < priority)
+                    {
+                        _outPackets.insert(_outPackets.begin() + i, { std::move(packet), priority });
+                        return;
+                    }
                 }
             }
+
+            _outPackets.push_back({ std::move(packet), priority });
+
+
+            //if (priority == 0)
+            //{
+            //    LOCK_GUARD(lock, _m_outPackets);
+            //    _outPackets.push_back({ std::move(packet), priority });
+            //    return;
+            //}
+
+            //LOCK_GUARD(lock, _m_outPackets);
+            //for (int i = 0; i < _outPackets.size(); i++)
+            //{
+            //    if (_outPackets[i].second < priority)
+            //    {
+            //        _outPackets.insert(_outPackets.begin() + i, { std::move(packet), priority });
+            //        return;
+            //    }
+            //}
+            //_outPackets.push_back({ std::move(packet), priority });
         }
 
         // Packets in the queue are sent bundled together, with no packets inbetween
@@ -267,39 +294,79 @@ namespace znet
         {
             if (!Connected()) return;
 
-            if (priority == 0)
+            if (priority != 0)
             {
-                LOCK_GUARD(lock, _m_outPackets);
-                if (!_packetQueue.empty())
+                for (int i = 0; i < _outPackets.size(); i++)
                 {
-                    _outPackets.push_back({ std::move(Packet(MULTIPLE_PACKETS).From(_packetQueue.size())), priority });
+                    if (_outPackets[i].second < priority)
+                    {
+                        if (!_packetQueue.empty())
+                        {
+                            _outPackets.push_back({ Packet(MULTIPLE_PACKETS).From(_packetQueue.size()), priority });
+                        }
+                        while (!_packetQueue.empty())
+                        {
+                            _outPackets.insert(_outPackets.begin() + i, { std::move(_packetQueue.front()), priority });
+                            _packetQueue.pop();
+                            i++;
+                        }
+                        return;
+                    }
                 }
-                while (!_packetQueue.empty())
-                {
-                    _outPackets.push_back({ std::move(_packetQueue.front()), priority });
-                    _packetQueue.pop();
-                }
-                return;
             }
 
-            LOCK_GUARD(lock, _m_outPackets);
-            for (int i = 0; i < _outPackets.size(); i++)
+            if (!_packetQueue.empty())
             {
-                if (_outPackets[i].second < priority)
-                {
-                    if (!_packetQueue.empty())
-                    {
-                        _outPackets.push_back({ std::move(Packet(MULTIPLE_PACKETS).From(_packetQueue.size())), priority });
-                    }
-                    while (!_packetQueue.empty())
-                    {
-                        _outPackets.insert(_outPackets.begin() + i, { std::move(_packetQueue.front()), priority });
-                        _packetQueue.pop();
-                        i++;
-                    }
-                    return;
-                }
+                _outPackets.push_back({ Packet(MULTIPLE_PACKETS).From(_packetQueue.size()), priority });
             }
+            while (!_packetQueue.empty())
+            {
+                _outPackets.push_back({ std::move(_packetQueue.front()), priority });
+                _packetQueue.pop();
+            }
+
+            //if (priority == 0)
+            //{
+            //    LOCK_GUARD(lock, _m_outPackets);
+            //    if (!_packetQueue.empty())
+            //    {
+            //        _outPackets.push_back({ Packet(MULTIPLE_PACKETS).From(_packetQueue.size()), priority });
+            //    }
+            //    while (!_packetQueue.empty())
+            //    {
+            //        _outPackets.push_back({ std::move(_packetQueue.front()), priority });
+            //        _packetQueue.pop();
+            //    }
+            //    return;
+            //}
+
+            //LOCK_GUARD(lock, _m_outPackets);
+            //for (int i = 0; i < _outPackets.size(); i++)
+            //{
+            //    if (_outPackets[i].second < priority)
+            //    {
+            //        if (!_packetQueue.empty())
+            //        {
+            //            _outPackets.push_back({ Packet(MULTIPLE_PACKETS).From(_packetQueue.size()), priority });
+            //        }
+            //        while (!_packetQueue.empty())
+            //        {
+            //            _outPackets.insert(_outPackets.begin() + i, { std::move(_packetQueue.front()), priority });
+            //            _packetQueue.pop();
+            //            i++;
+            //        }
+            //        return;
+            //    }
+            //}
+            //if (!_packetQueue.empty())
+            //{
+            //    _outPackets.push_back({ Packet(MULTIPLE_PACKETS).From(_packetQueue.size()), priority });
+            //}
+            //while (!_packetQueue.empty())
+            //{
+            //    _outPackets.push_back({ std::move(_packetQueue.front()), priority });
+            //    _packetQueue.pop();
+            //}
         }
 
     private:
@@ -1279,12 +1346,12 @@ namespace znet
             _connectionManager->AllowSelfDestruct();
         }
 
-        /// <returns>If successful, the id of the connection (>=1); 0 otherwise</returns>
+        /// <returns>If successful, the id of the connection; -1 otherwise</returns>
         int64_t Connect(std::string ip, uint16_t port)
         {
             // Create socket
             SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
-            if (sock == INVALID_SOCKET) return 0;
+            if (sock == INVALID_SOCKET) return -1;
 
             sockaddr_in addr;
             addr.sin_family = AF_INET;
@@ -1295,7 +1362,7 @@ namespace znet
             int connResult = connect(sock, (sockaddr*)&addr, sizeof(addr));
             if (connResult == SOCKET_ERROR) {
                 closesocket(sock);
-                return 0;
+                return -1;
             }
 
             int64_t newId = _GetID();

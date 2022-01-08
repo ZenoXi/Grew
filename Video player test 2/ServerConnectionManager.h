@@ -184,6 +184,25 @@ namespace znet
                 {
                     _userBytesUnconfirmed.push_back(0);
                     std::lock_guard<std::mutex> lock(_m_users);
+
+                    // Send new user id to other users
+                    for (int i = 0; i < _users.size(); i++)
+                    {
+                        TCPClientRef connection = _server.Connection(_users[i].id);
+                        connection->Send(Packet((int)PacketType::NEW_USER).From(newUser), 2);
+                    }
+                    // Send existing user ids to new user
+                    TCPClientRef connection = _server.Connection(newUser);
+                    size_t byteCount = sizeof(int64_t) * (_users.size() + 1);
+                    auto userIdsBytes = std::make_unique<int8_t[]>(byteCount);
+                    ((int64_t*)userIdsBytes.get())[0] = 0;
+                    for (int i = 0; i < _users.size(); i++)
+                    {
+                        ((int64_t*)userIdsBytes.get())[i + 1] = _users[i].id;
+                    }
+                    connection->Send(Packet(std::move(userIdsBytes), byteCount, (int)PacketType::USER_LIST), 2);
+                    std::cout << "New list sent" << std::endl;
+
                     _users.push_back({ "", newUser });
                 }
 
@@ -202,6 +221,13 @@ namespace znet
                             _userBytesUnconfirmed.erase(_userBytesUnconfirmed.begin() + i);
                             break;
                         }
+                    }
+
+                    // Send disconnected user id to other users
+                    for (int i = 0; i < _users.size(); i++)
+                    {
+                        TCPClientRef connection = _server.Connection(_users[i].id);
+                        connection->Send(Packet((int)PacketType::DISCONNECTED_USER).From(disconnectedUser), 2);
                     }
                 }
 
@@ -235,21 +261,21 @@ namespace znet
                                     client->Send(std::move(confirmation), 1);
 
                                     // Create destination vector
+                                    if (pack1.size % sizeof(int64_t) != 0)
+                                        std::cout << "[WARN] User id packet size misaligned" << std::endl;
                                     std::vector<int64_t> to;
-                                    to.reserve(pack1.size / 8);
-                                    if (pack1.size % 8 != 0)
-                                        std::cout << "[WARN] User id packet received without accompanying data packet" << std::endl;
-                                    std::copy_n((int32_t*)pack1.Bytes(), pack1.size, to.data());
+                                    for (int j = 0; j < pack1.size / sizeof(int64_t); j++)
+                                        to.push_back(((int64_t*)pack1.Bytes())[j]);
 
                                     // If server user id is in destinations, move it to incoming packet queue
-                                    for (int i = 0; i < to.size(); i++)
+                                    for (int j = 0; j < to.size(); j++)
                                     {
-                                        if (to[i] == 0)
+                                        if (to[j] == 0)
                                         {
                                             std::unique_lock<std::mutex> lock(_m_inPackets);
-                                            _PacketData data = { std::move(pack2), { _users[i].id } };
+                                            _PacketData data = { pack2.Reference(), { _users[i].id } };
                                             _inPackets.push(std::move(data));
-                                            to.erase(to.begin() + i);
+                                            to.erase(to.begin() + j);
                                             break;
                                         }
                                     }

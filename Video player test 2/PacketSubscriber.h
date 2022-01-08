@@ -12,6 +12,7 @@ namespace znet
         virtual void _OnPacketReceived(Packet packet, int64_t userId) = 0;
     public:
         PacketSubscriber(int32_t packetId);
+        PacketSubscriber(const PacketSubscriber&) = delete;
         virtual ~PacketSubscriber();
     };
 }

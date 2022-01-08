@@ -23,6 +23,18 @@ namespace znet
         //  int64_t - user id
         //  remaining bytes - wchar_t string
         USER_DATA,
+        // Sent by the server to all clients when a new user connects
+        // Contains:
+        //  int64_t - new user id
+        NEW_USER,
+        // Sent by the server to all clients when a user disconnects
+        // Contains:
+        //  int64_t - disconnected user id
+        DISCONNECTED_USER,
+        // Sent by the server to a new connection
+        // Contains:
+        //  array of int64_t - currently connected user ids
+        USER_LIST,
 
         //
         // Playback

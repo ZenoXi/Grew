@@ -16,6 +16,7 @@ namespace znet
 
         TCPClient _client;
         std::vector<User> _users;
+        std::mutex _m_users;
 
         std::thread _connectionThread;
         int64_t _connectionId = -1;
@@ -99,7 +100,7 @@ namespace znet
         void _Connect(std::string ip, uint16_t port)
         {
             _connectionId = _client.Connect(ip, port);
-            if (_connectionId > 0)
+            if (_connectionId != -1)
                 _managementThread = std::thread(&ClientConnectionManager::_ManageConnections, this);
 
             _connecting = false;
@@ -107,6 +108,7 @@ namespace znet
     public:
         std::vector<User> Users()
         {
+            std::lock_guard<std::mutex> lock(_m_users);
             return _users;
         }
 
@@ -228,6 +230,33 @@ namespace znet
                         _disconnected = true;
                         break;
                     }
+                    else if (pack1.id == (int32_t)PacketType::NEW_USER)
+                    {
+                        int64_t newUserId = pack1.Cast<int32_t>();
+                        std::lock_guard<std::mutex> lock(_m_users);
+                        _users.push_back({ "", newUserId });
+                    }
+                    else if (pack1.id == (int32_t)PacketType::DISCONNECTED_USER)
+                    {
+                        int64_t disconnectedUserId = pack1.Cast<int32_t>();
+                        std::lock_guard<std::mutex> lock(_m_users);
+                        for (int i = 0; i < _users.size(); i++)
+                        {
+                            if (_users[i].id == disconnectedUserId)
+                            {
+                                _users.erase(_users.begin() + i);
+                                break;
+                            }
+                        }
+                    }
+                    else if (pack1.id == (int32_t)PacketType::USER_LIST)
+                    {
+                        size_t userCount = pack1.size / sizeof(int64_t);
+                        std::lock_guard<std::mutex> lock(_m_users);
+                        _users.resize(userCount);
+                        for (int i = 0; i < userCount; i++)
+                            _users[i] = { "", ((int64_t*)pack1.Bytes())[i] };
+                    }
                     else if (pack1.id == (int32_t)PacketType::USER_ID)
                     {
                         if (connection->PacketCount() > 0)
@@ -235,9 +264,7 @@ namespace znet
                             Packet pack2 = connection->GetPacket();
 
                             // Send confirmation packet
-                            Packet confirmation = Packet((int32_t)PacketType::BYTE_CONFIRMATION);
-                            confirmation.From(pack2.size);
-                            connection->Send(std::move(confirmation), 1);
+                            connection->Send(Packet((int)PacketType::BYTE_CONFIRMATION).From(pack2.size), 1);
 
                             int64_t from = pack1.Cast<int32_t>();
                             std::unique_lock<std::mutex> lock(_m_inPackets);

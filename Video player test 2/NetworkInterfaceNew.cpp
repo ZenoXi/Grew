@@ -90,7 +90,7 @@ std::vector<znet::IConnectionManager::User> znet::NetworkInterface::Users()
         return std::vector<znet::IConnectionManager::User>();
 }
 
-void znet::NetworkInterface::Send(Packet&& packet, std::vector<int64_t> userIds, int priority = 0)
+void znet::NetworkInterface::Send(Packet&& packet, std::vector<int64_t> userIds, int priority)
 {
     if (_connectionManager)
         _connectionManager->Send(std::move(packet), userIds, priority);
@@ -102,7 +102,7 @@ void znet::NetworkInterface::AddToQueue(Packet&& packet, std::vector<int64_t> us
         _connectionManager->AddToQueue(std::move(packet), userIds);
 }
 
-void znet::NetworkInterface::SendQueue(std::vector<int64_t> userIds, int priority = 0)
+void znet::NetworkInterface::SendQueue(std::vector<int64_t> userIds, int priority)
 {
     if (_connectionManager)
         _connectionManager->SendQueue(userIds, priority);
