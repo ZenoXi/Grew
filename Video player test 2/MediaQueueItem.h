@@ -10,6 +10,8 @@
 
 #include "functions.h"
 
+#include <sstream>
+
 namespace zcom
 {
     class MediaQueueItem : public Base
@@ -21,7 +23,7 @@ namespace zcom
             _mainPanel->Update();
 
             // Update status text
-            if (!_dataProvider->Initializing() && !_initDone)
+            if (_dataProvider && !_dataProvider->Initializing() && !_initDone)
             {
                 _initDone = true;
                 if (_dataProvider->InitFailed())
@@ -31,29 +33,8 @@ namespace zcom
                 else
                 {
                     _initSuccess = true;
-
-                    Duration mediaDuration = _dataProvider->MaxMediaDuration();
-                    int64_t h = mediaDuration.GetDuration(HOURS);
-                    int64_t m = mediaDuration.GetDuration(MINUTES) % 60;
-                    int64_t s = mediaDuration.GetDuration(SECONDS) % 60;
-
-                    // Format status label
-                    std::wstringstream timeStr;
-                    timeStr.str(L"");
-                    timeStr.clear();
-                    if (h > 0) timeStr << h << ":";
-                    if (m < 10) timeStr << "0" << m << ":";
-                    else timeStr << m << ":";
-                    if (s < 10) timeStr << "0" << s;
-                    else timeStr << s;
-                    _durationStr = timeStr.str();
-                    _statusLabel->SetText(_durationStr);
-
-                    // Show play button
-                    _statusLabel->SetBaseSize(100, 25);
-                    _statusLabel->SetHorizontalOffsetPixels(-50);
-                    _playButton->SetVisible(true);
-                    _mainPanel->Resize();
+                    SetDuration(_dataProvider->MaxMediaDuration());
+                    SetButtonVisibility(BTN_PLAY | BTN_DELETE);
                 }
             }
         }
@@ -145,40 +126,51 @@ namespace zcom
         const char* GetName() const { return "media_queue_item"; }
 #pragma endregion
 
+    public:
+        enum Buttons
+        {
+            BTN_PLAY = 0x1,
+            BTN_STOP = 0x2,
+            BTN_DELETE = 0x4
+        };
+
     private:
-        std::unique_ptr<Panel> _mainPanel;
-        std::unique_ptr<Label> _filenameLabel;
-        std::unique_ptr<Label> _statusLabel;
-        std::unique_ptr<Button> _playButton;
-        std::unique_ptr<Button> _deleteButton;
-        std::unique_ptr<Button> _stopButton;
+        std::unique_ptr<Panel> _mainPanel = nullptr;
+        std::unique_ptr<Label> _filenameLabel = nullptr;
+        std::unique_ptr<Label> _statusLabel = nullptr;
+        std::unique_ptr<Button> _playButton = nullptr;
+        std::unique_ptr<Button> _deleteButton = nullptr;
+        std::unique_ptr<Button> _stopButton = nullptr;
 
         bool _initDone = false;
         bool _initSuccess = false;
-        std::unique_ptr<LocalFileDataProvider> _dataProvider;
+        std::unique_ptr<LocalFileDataProvider> _dataProvider = nullptr;
+        std::wstring _filenameStr = L"";
         std::wstring _durationStr = L"";
+        Duration _duration = 0;
         bool _nowPlaying = false;
+        std::wstring _customStatus = L"";
 
         bool _delete = false;
         bool _play = false;
         bool _stop = false;
 
-    public:
-        MediaQueueItem(std::wstring path)
-        {
-            // Extract only the filename
-            std::wstring filename;
-            for (int i = path.length() - 1; i >= 0; i--)
-            {
-                if (path[i] == '\\' || path[i] == '/')
-                {
-                    break;
-                }
-                filename += path[i];
-            }
-            std::reverse(filename.begin(), filename.end());
+        int32_t _mediaId = -1;
+        int64_t _userId = -1;
 
-            _filenameLabel = std::make_unique<Label>(filename);
+        static int32_t _ID_COUNTER;
+        static int32_t _GenerateCallbackId()
+        {
+            return _ID_COUNTER++;
+        }
+        int32_t _callbackId;
+
+    public:
+        MediaQueueItem()
+        {
+            _callbackId = MediaQueueItem::_GenerateCallbackId();
+
+            _filenameLabel = std::make_unique<Label>(L"");
             _filenameLabel->SetParentWidthPercent(1.0f);
             _filenameLabel->SetBaseSize(-150, 25);
             _filenameLabel->SetMargins({ 5.f, 0.f, 5.f, 0.f });
@@ -188,7 +180,7 @@ namespace zcom
             _filenameLabel->SetCutoff(L"...");
 
             _statusLabel = std::make_unique<Label>(L"Initializing...");
-            _statusLabel->SetBaseSize(125, 25);
+            _statusLabel->SetBaseSize(150, 25);
             _statusLabel->SetHorizontalOffsetPixels(-25);
             _statusLabel->SetHorizontalAlignment(Alignment::END);
             _statusLabel->SetMargins({ 0.f, 0.f, 5.f, 0.f });
@@ -201,7 +193,6 @@ namespace zcom
 
             _playButton = std::make_unique<Button>();
             _playButton->SetBaseSize(25, 25);
-            _playButton->SetHorizontalOffsetPixels(-25);
             _playButton->SetHorizontalAlignment(Alignment::END);
             _playButton->SetActivation(ButtonActivation::RELEASE);
             _playButton->SetOnActivated([&]() { _play = true; });
@@ -214,6 +205,7 @@ namespace zcom
             _deleteButton->SetActivation(ButtonActivation::RELEASE);
             _deleteButton->SetOnActivated([&]() { _delete = true; });
             _deleteButton->SetBackgroundImage(ResourceManager::GetImage("item_delete"));
+            _deleteButton->SetVisible(false);
 
             _stopButton = std::make_unique<Button>();
             _stopButton->SetBaseSize(25, 25);
@@ -230,7 +222,22 @@ namespace zcom
             _mainPanel->AddItem(_playButton.get());
             _mainPanel->AddItem(_deleteButton.get());
             _mainPanel->AddItem(_stopButton.get());
-            _mainPanel->Resize();
+            SetButtonVisibility(BTN_DELETE);
+        }
+        MediaQueueItem(std::wstring path) : MediaQueueItem()
+        {
+            // Extract only the filename
+            _filenameStr = L"";
+            for (int i = path.length() - 1; i >= 0; i--)
+            {
+                if (path[i] == '\\' || path[i] == '/')
+                {
+                    break;
+                }
+                _filenameStr += path[i];
+            }
+            std::reverse(_filenameStr.begin(), _filenameStr.end());
+            _filenameLabel->SetText(_filenameStr);
 
             // Start processing the file
             _dataProvider = std::make_unique<LocalFileDataProvider>(wstring_to_string(path));
@@ -244,6 +251,11 @@ namespace zcom
         MediaQueueItem(const MediaQueueItem&) = delete;
         MediaQueueItem& operator=(const MediaQueueItem&) = delete;
 
+        int32_t GetCallbackId()
+        {
+            return _callbackId;
+        }
+
         bool Initialized()
         {
             return !_dataProvider->Initializing();
@@ -254,34 +266,47 @@ namespace zcom
             return !_dataProvider->InitFailed();
         }
 
-        LocalFileDataProvider* GetDataProvider()
+        LocalFileDataProvider* CopyDataProvider()
         {
             return new LocalFileDataProvider(_dataProvider.get());
         }
 
-        void SetNowPlaying(bool nowPlaying)
+        LocalFileDataProvider* DataProvider()
         {
-            if (_initSuccess && (nowPlaying != _nowPlaying))
+            return _dataProvider.get();
+        }
+
+        //void SetNowPlaying(bool nowPlaying)
+        //{
+        //    if (_initSuccess && (nowPlaying != _nowPlaying))
+        //    {
+        //        _nowPlaying = nowPlaying;
+        //        if (nowPlaying)
+        //        {
+        //            SetButtonVisibility(BTN_STOP);
+        //        }
+        //        else
+        //        {
+        //            SetButtonVisibility(BTN_PLAY | BTN_DELETE);
+        //        }
+        //    }
+        //}
+
+        void SetCustomStatus(std::wstring statusString)
+        {
+            if (_customStatus != statusString)
             {
-                _nowPlaying = nowPlaying;
-                if (nowPlaying)
-                {
-                    _statusLabel->SetBaseSize(125, 25);
-                    _statusLabel->SetHorizontalOffsetPixels(-25);
-                    _playButton->SetVisible(false);
-                    _deleteButton->SetVisible(false);
-                    _stopButton->SetVisible(true);
-                }
+                _customStatus = statusString;
+                if (_customStatus.empty())
+                    _statusLabel->SetText(_durationStr);
                 else
-                {
-                    _statusLabel->SetBaseSize(100, 25);
-                    _statusLabel->SetHorizontalOffsetPixels(-50);
-                    _playButton->SetVisible(true);
-                    _deleteButton->SetVisible(true);
-                    _stopButton->SetVisible(false);
-                }
-                _mainPanel->Resize();
+                    _statusLabel->SetText(_customStatus);
             }
+        }
+
+        std::wstring GetCustomStatus() const
+        {
+            return _customStatus;
         }
         
         // If true, this media should be played
@@ -306,6 +331,114 @@ namespace zcom
             bool val = _delete;
             _delete = false;
             return val;
+        }
+
+        std::wstring GetFilename() const
+        {
+            return _filenameStr;
+        }
+
+        void SetFilename(std::wstring filename)
+        {
+            _filenameStr = filename;
+            _filenameLabel->SetText(_filenameStr);
+        }
+
+        Duration GetDuration() const
+        {
+            return _duration;
+        }
+
+        void SetDuration(Duration duration)
+        {
+            _duration = duration;
+            int64_t h = _duration.GetDuration(HOURS);
+            int64_t m = _duration.GetDuration(MINUTES) % 60;
+            int64_t s = _duration.GetDuration(SECONDS) % 60;
+
+            // Format status label
+            std::wstringstream timeStr;
+            timeStr.str(L"");
+            timeStr.clear();
+            if (h > 0) timeStr << h << ":";
+            if (m < 10) timeStr << "0" << m << ":";
+            else timeStr << m << ":";
+            if (s < 10) timeStr << "0" << s;
+            else timeStr << s;
+            _durationStr = timeStr.str();
+
+            if (_customStatus.empty())
+                _statusLabel->SetText(_durationStr);
+        }
+
+        int32_t GetMediaId() const
+        {
+            return _mediaId;
+        }
+
+        void SetMediaId(int32_t id)
+        {
+            _mediaId = id;
+        }
+
+        int64_t GetUserId() const
+        {
+            return _userId;
+        }
+
+        void SetUserId(int64_t id)
+        {
+            _userId = id;
+        }
+
+        void SetButtonVisibility(int buttons)
+        {
+            int offset = 0;
+
+            // Delete button
+            if (buttons & BTN_DELETE)
+            {
+                _deleteButton->SetVisible(true);
+                _deleteButton->SetHorizontalOffsetPixels(offset);
+                offset -= 25;
+            }
+            else
+            {
+                _deleteButton->SetVisible(false);
+            }
+
+            // Stop button
+            if (buttons & BTN_STOP)
+            {
+                _stopButton->SetVisible(true);
+                _stopButton->SetHorizontalOffsetPixels(offset);
+                offset -= 25;
+            }
+            else
+            {
+                _stopButton->SetVisible(false);
+            }
+
+            // Play button
+            if (buttons & BTN_PLAY)
+            {
+                _playButton->SetVisible(true);
+                _playButton->SetHorizontalOffsetPixels(offset);
+                offset -= 25;
+            }
+            else
+            {
+                _playButton->SetVisible(false);
+            }
+
+            // Status label
+            _statusLabel->SetHorizontalOffsetPixels(offset);
+            offset -= 150;
+
+            // Filename label
+            _filenameLabel->SetBaseWidth(offset);
+
+            _mainPanel->Resize();
         }
     };
 }
