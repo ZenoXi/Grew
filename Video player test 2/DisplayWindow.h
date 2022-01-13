@@ -171,6 +171,7 @@ public:
     void SetFullscreen(bool fullscreen);
     bool GetFullscreen();
     void SetWindowDimensions(unsigned w, unsigned h);
+    void HandleFullscreenChange();
 private:
     static LRESULT WINAPI _HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
     static LRESULT WINAPI _HandleMsgThunk(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -187,7 +188,14 @@ private:
     std::queue<WindowMessage> _msgQueue;
 
     bool _fullscreen = false;
+    bool _maximized = false;
     RECT _windowedRect;
+    bool _windowedMaximized;
+
+    RECT _last2Moves[2];
+
+    bool _fullscreenChanged = false;
+    std::mutex _m_fullscreen;
     //int _newWidth;
     //int _newHeight;
 };

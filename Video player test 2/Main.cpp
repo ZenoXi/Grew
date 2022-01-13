@@ -51,8 +51,8 @@ int WINAPI main(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
     ztime::clock[CLOCK_GAME].Stop();
 
     // Initialize singleton objects
-    App::Init(window, EntryScene::StaticName());
     znet::NetworkInterface::Init();
+    App::Init(window, EntryScene::StaticName());
     //App app(window, "entry_scene");
 
     // Main window loop
@@ -62,6 +62,8 @@ int WINAPI main(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
         window.ProcessMessages();
         WindowMessage wm = window.GetExitResult();
         if (!wm.handled) exit(0);
+
+        window.HandleFullscreenChange();
 
         // Limit cpu usage
         std::this_thread::sleep_for(std::chrono::milliseconds(10));

@@ -47,9 +47,12 @@ DisplayWindow::DisplayWindow(HINSTANCE hInst, wchar_t* pArgs, LPCWSTR name) : _a
     //wr.bottom = wr.top + height;
     //AdjustWindowRect(&wr, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, FALSE);
 
+
     // Create maximized window
     RECT workRect;
     SystemParametersInfo(SPI_GETWORKAREA, 0, &workRect, 0);
+    int x = (workRect.right - width) / 2;
+    int y = (workRect.bottom - height) / 2;
 
     // Create and show window
     _hwnd = CreateWindowEx(
@@ -57,7 +60,8 @@ DisplayWindow::DisplayWindow(HINSTANCE hInst, wchar_t* pArgs, LPCWSTR name) : _a
         _wndClassName,
         WINDOW_NAME.c_str(),
         WS_OVERLAPPEDWINDOW,
-        0, 0, workRect.right, workRect.bottom,
+        //0, 0, workRect.right, workRect.bottom,
+        x, y, width, height,
         //CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         NULL,
         NULL,
@@ -71,6 +75,13 @@ DisplayWindow::DisplayWindow(HINSTANCE hInst, wchar_t* pArgs, LPCWSTR name) : _a
     //HDC hdc = BeginPaint(_hwnd, &ps);
     //FillRect(hdc, &ps.rcPaint, CreateSolidBrush(RGB(128, 128, 128)));
     //EndPaint(_hwnd, &ps);
+
+    _windowedRect.left = x;
+    _windowedRect.top = y;
+    _windowedRect.right = x + width;
+    _windowedRect.bottom = y + height;
+    _last2Moves[0] = _windowedRect;
+    _last2Moves[1] = _windowedRect;
     
     ShowWindow(_hwnd, SW_SHOWMAXIMIZED);
     UpdateWindow(_hwnd);
@@ -258,6 +269,19 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
         }
         case WM_MOVE:
         {
+            if (!_fullscreen)
+            {
+                int x = LOWORD(lParam);
+                int y = HIWORD(lParam);
+                int w = _windowedRect.right - _windowedRect.left;
+                int h = _windowedRect.bottom - _windowedRect.top;
+                _last2Moves[0] = _last2Moves[1];
+                _last2Moves[1].left = x;
+                _last2Moves[1].top = y;
+                _last2Moves[1].right = x + w;
+                _last2Moves[1].bottom = y + h;
+            }
+
             _m_msg.lock();
             _msgQueue.push({ false, WM_MOVE, wParam, lParam });
             _m_msg.unlock();
@@ -268,6 +292,23 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
             int w = LOWORD(lParam);
             int h = HIWORD(lParam);
             if (w == width && h == height) break;
+
+            if (wParam == SIZE_RESTORED && !_fullscreen)
+            {
+                _last2Moves[0] = _last2Moves[1];
+                GetWindowRect(_hwnd, &_last2Moves[1]);
+                //GetWindowRect(_hwnd, &_windowedRect);
+                //_windowedRect.right = _windowedRect.left + w;
+                //_windowedRect.bottom = _windowedRect.top + h;
+            }
+            if (wParam == SIZE_MAXIMIZED)
+            {
+                _last2Moves[1] = _last2Moves[0];
+            }
+            if (wParam == SIZE_MINIMIZED)
+            {
+                _last2Moves[1] = _last2Moves[0];
+            }
 
             gfx.ResizeBuffers(w, h);
             width = w;
@@ -475,6 +516,53 @@ void DisplayWindow::MsgHandleThread()
     }
 }
 
+void DisplayWindow::HandleFullscreenChange()
+{
+    std::lock_guard<std::mutex> lock(_m_fullscreen);
+    if (_fullscreenChanged)
+    {
+        _fullscreenChanged = false;
+
+        if (_fullscreen)
+        {
+            WINDOWPLACEMENT placement;
+            placement.length = sizeof(WINDOWPLACEMENT);
+            GetWindowPlacement(_hwnd, &placement);
+            _windowedMaximized = (placement.showCmd == SW_SHOWMAXIMIZED);
+
+            RECT desktop;
+            HWND deskwin = GetDesktopWindow();
+            GetWindowRect(deskwin, &desktop);
+
+            int w = desktop.right - desktop.left;
+            int h = desktop.bottom - desktop.top;
+            SetWindowLongPtr(_hwnd, GWL_STYLE, WS_VISIBLE | WS_POPUP);
+            SetWindowPos(_hwnd, HWND_TOP, 0, 0, w, h, SWP_FRAMECHANGED);
+
+            ShowWindow(_hwnd, SW_SHOWDEFAULT);
+        }
+        else
+        {
+            //int x = _windowedRect.left;
+            //int y = _windowedRect.top;
+            //int w = _windowedRect.right - _windowedRect.left;
+            //int h = _windowedRect.bottom - _windowedRect.top;
+            int x = _last2Moves[1].left;
+            int y = _last2Moves[1].top;
+            int w = _last2Moves[1].right - _last2Moves[1].left;
+            int h = _last2Moves[1].bottom - _last2Moves[1].top;
+            SetWindowLongPtr(_hwnd, GWL_STYLE, WS_VISIBLE | WS_OVERLAPPEDWINDOW);
+            SetWindowPos(_hwnd, NULL, x, y, w, h, SWP_FRAMECHANGED);
+
+            if (_windowedMaximized)
+                ShowWindow(_hwnd, SW_SHOWMAXIMIZED);
+            else
+                ShowWindow(_hwnd, SW_SHOWDEFAULT);
+        }
+        //UpdateWindow(_hwnd);
+    }
+}
+
 void DisplayWindow::AddMouseHandler(MouseEventHandler* handler)
 {
     _mouseHandlers.push_back(handler);
@@ -513,33 +601,9 @@ bool DisplayWindow::RemoveKeyboardHandler(KeyboardEventHandler* handler)
 
 void DisplayWindow::SetFullscreen(bool fullscreen)
 {
+    std::lock_guard<std::mutex> lock(_m_fullscreen);
     if (_fullscreen == fullscreen) return;
-    
-    if (fullscreen)
-    {
-        GetWindowRect(_hwnd, &_windowedRect);
-
-        RECT desktop;
-        HWND deskwin = GetDesktopWindow();
-        GetWindowRect(deskwin, &desktop);
-
-        int w = desktop.right - desktop.left;
-        int h = desktop.bottom - desktop.top;
-        SetWindowLongPtr(_hwnd, GWL_STYLE, WS_VISIBLE | WS_POPUP);
-        SetWindowPos(_hwnd, HWND_TOP, 0, 0, w, h, SWP_FRAMECHANGED);
-    }
-    else
-    {
-        int x = _windowedRect.left;
-        int y = _windowedRect.top;
-        int w = _windowedRect.right - _windowedRect.left;
-        int h = _windowedRect.bottom - _windowedRect.top;
-        SetWindowLongPtr(_hwnd, GWL_STYLE, WS_VISIBLE | WS_OVERLAPPEDWINDOW);
-        SetWindowPos(_hwnd, NULL, x, y, w, h, SWP_FRAMECHANGED);
-    }
-    ShowWindow(_hwnd, SW_SHOWDEFAULT);
-    //UpdateWindow(_hwnd);
-
+    _fullscreenChanged = true;
     _fullscreen = fullscreen;
 }
 
