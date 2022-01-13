@@ -25,7 +25,7 @@ public:
     }
     ~MediaPacket()
     {
-        _Reset();
+        Reset();
     }
     MediaPacket(MediaPacket&& other) noexcept
     {
@@ -41,6 +41,8 @@ public:
     {
         if (this != &other)
         {
+            Reset();
+
             _packet = other._packet;
             other._packet = nullptr;
 
@@ -73,6 +75,20 @@ public:
         return _packet != nullptr;
     }
 
+    MediaPacket Reference() const
+    {
+        AVPacket* avpkt = nullptr;
+        if (_packet)
+        {
+            avpkt = av_packet_alloc();
+            av_packet_ref(avpkt, _packet);
+        }
+        MediaPacket newPacket(avpkt);
+        newPacket.last = last;
+        newPacket.flush = flush;
+        return newPacket;
+    }
+
     SerializedData Serialize() const
     {
         SerializedData packetBytes;
@@ -97,12 +113,12 @@ public:
         std::copy_n(otherBytes.Bytes(), otherBytes.Size(), bytes.get() + memPos);
         memPos += otherBytes.Size();
 
-        return { totalSize, bytes };
+        return { totalSize, std::move(bytes) };
     }
 
     size_t Deserialize(SerializedData data)
     {
-        _Reset();
+        Reset();
 
         uchar packetExists;
         _SafeCopy(data.Bytes(), 0, &packetExists, 1, data.Size());
@@ -119,8 +135,7 @@ public:
         return usedBytes1 + usedBytes2;
     }
 
-private:
-    void _Reset()
+    void Reset()
     {
         if (_packet)
         {
@@ -128,7 +143,6 @@ private:
             {
                 av_free(_packet->data);
             }
-            av_packet_unref(_packet);
             av_packet_free(&_packet);
             _packet = nullptr;
         }
@@ -136,6 +150,7 @@ private:
         flush = 0;
     }
 
+private:
     SerializedData _SerializeAVPacket() const
     {
         size_t avpSize = sizeof(AVPacket);
@@ -166,7 +181,7 @@ private:
             ptr++;
         }
 
-        return { totalSize, bytes };
+        return { totalSize, std::move(bytes) };
     }
 
     SerializedData _SerializeRemainingFields() const
@@ -179,7 +194,7 @@ private:
         std::copy_n((uchar*)this + memPos, fieldSize, bytes.get());
         memPos += fieldSize;
 
-        return { fieldSize, bytes };
+        return { fieldSize, std::move(bytes) };
     }
 
     size_t _DeserializeAVPacket(uchar* data, size_t dataSize)
@@ -207,13 +222,14 @@ private:
                 {
                     _SafeCopy(data, memPos, (uchar*)&sideData[i], avpsdSize, dataSize);
                     memPos += avpsdSize;
-                    sideData[i].data = (uint8_t*)av_malloc(sideData[i].size);
+                    sideData[i].data = (uint8_t*)av_mallocz(sideData[i].size + AV_INPUT_BUFFER_PADDING_SIZE);
                     _SafeCopy(data, memPos, sideData[i].data, sideData[i].size, dataSize);
                     memPos += sideData[i].size;
                 }
             }
             packet->side_data = sideData;
             packet->buf = nullptr;
+            av_packet_make_refcounted(packet);
 
             _packet = packet;
         }
