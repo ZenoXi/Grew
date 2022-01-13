@@ -1,8 +1,11 @@
 #pragma once
 
-enum class NetworkMode
+namespace znet
 {
-    OFFLINE,
-    CLIENT,
-    SERVER
-};
+    enum class NetworkMode
+    {
+        OFFLINE,
+        CLIENT,
+        SERVER
+    };
+}
