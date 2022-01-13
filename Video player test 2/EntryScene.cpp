@@ -5,6 +5,7 @@
 #include "Functions.h"
 #include "PlaybackScene.h"
 #include "PlaybackOverlayScene.h"
+#include "NetworkInterfaceNew.h"
 
 EntryScene::EntryScene() {}
 
@@ -359,7 +360,7 @@ void EntryScene::_Update()
         if (NetworkInterfaceOld::Instance()->Connected())
         {
             PlaybackSceneOptions options;
-            options.mode = PlaybackMode::CLIENT;
+            options.playbackMode = PlaybackMode::CLIENT;
             App::Instance()->SetScene(PlaybackScene::StaticName(), &options);
         }
     }
@@ -369,7 +370,7 @@ void EntryScene::_Update()
         {
             PlaybackSceneOptions options;
             options.fileName = _shareFilename;
-            options.mode = PlaybackMode::SERVER;
+            options.playbackMode = PlaybackMode::SERVER;
             App::Instance()->SetScene(PlaybackScene::StaticName(), &options);
         }
     }
@@ -458,7 +459,9 @@ void EntryScene::OnConnectConfirmed()
 {
     std::string ip = wstring_to_string(_connectIpInput->GetText());
     USHORT port = str_to_int(wstring_to_string(_connectPortInput->GetText()));
-    NetworkInterfaceOld::Instance()->Connect(ip, port);
+    znet::NetworkInterface::Instance()->Connect(ip, port);
+    App::Instance()->UninitScene(GetName());
+    return;
 
     _connectIpInput->SetVisible(false);
     _connectPortInput->SetVisible(false);
@@ -495,7 +498,9 @@ void EntryScene::OnShareConfirmed()
 {
     //_shareFilename = wstring_to_string(OpenFile());
     USHORT port = str_to_int(wstring_to_string(_sharePortInput->GetText()));
-    NetworkInterfaceOld::Instance()->StartServer(port);
+    znet::NetworkInterface::Instance()->StartServer(port);
+    App::Instance()->UninitScene(GetName());
+    return;
 
     _sharePortInput->SetVisible(false);
     _shareConfirmButton->SetVisible(false);
