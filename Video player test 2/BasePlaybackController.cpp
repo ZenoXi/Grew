@@ -94,7 +94,9 @@ void BasePlaybackController::Seek(TimePoint time)
     _player->StopTimer();
     _player->SetTimerPosition(time);
     _player->WaitDiscontinuity();
-    _dataProvider->Seek(time);
+    IMediaDataProvider::SeekData seekData;
+    seekData.time = time;
+    _dataProvider->Seek(seekData);
     _loading = true;
     _finished = false;
 }
@@ -104,7 +106,13 @@ void BasePlaybackController::SetVideoStream(int index)
     if (_player->Waiting()) return;
 
     _player->StopTimer();
-    _player->SetVideoStream(_dataProvider->SetVideoStream(index, _player->TimerPosition()));
+    IMediaDataProvider::SeekData seekData;
+    seekData.time = _player->TimerPosition();
+    seekData.videoStreamIndex = index;
+    IMediaDataProvider::SeekResult seekResult = _dataProvider->Seek(seekData);
+    _player->SetVideoStream(std::move(seekResult.videoStream));
+    //_player->SetVideoStream(_dataProvider->SetVideoStream(index, _player->TimerPosition()));
+    _player->WaitDiscontinuity();
     _currentVideoStream = index;
     _loading = true;
     _finished = false;
@@ -115,7 +123,13 @@ void BasePlaybackController::SetAudioStream(int index)
     if (_player->Waiting()) return;
 
     _player->StopTimer();
-    _player->SetAudioStream(_dataProvider->SetAudioStream(index, _player->TimerPosition()));
+    IMediaDataProvider::SeekData seekData;
+    seekData.time = _player->TimerPosition();
+    seekData.audioStreamIndex = index;
+    IMediaDataProvider::SeekResult seekResult = _dataProvider->Seek(seekData);
+    _player->SetAudioStream(std::move(seekResult.audioStream));
+    //_player->SetAudioStream(_dataProvider->SetAudioStream(index, _player->TimerPosition()));
+    _player->WaitDiscontinuity();
     _currentAudioStream = index;
     _loading = true;
     _finished = false;
@@ -126,7 +140,13 @@ void BasePlaybackController::SetSubtitleStream(int index)
     if (_player->Waiting()) return;
 
     _player->StopTimer();
-    _player->SetSubtitleStream(_dataProvider->SetSubtitleStream(index, _player->TimerPosition()));
+    IMediaDataProvider::SeekData seekData;
+    seekData.time = _player->TimerPosition();
+    seekData.subtitleStreamIndex = index;
+    IMediaDataProvider::SeekResult seekResult = _dataProvider->Seek(seekData);
+    _player->SetSubtitleStream(std::move(seekResult.subtitleStream));
+    //_player->SetSubtitleStream(_dataProvider->SetSubtitleStream(index, _player->TimerPosition()));
+    _player->WaitDiscontinuity();
     _currentSubtitleStream = index;
     _loading = true;
     _finished = false;

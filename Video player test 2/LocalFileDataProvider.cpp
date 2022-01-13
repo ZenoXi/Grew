@@ -19,7 +19,8 @@ struct StreamChangeDesc
 
 LocalFileDataProvider::LocalFileDataProvider(std::string filename) : _filename(filename)
 {
-    _packetThreadController.Add("seek", sizeof(int64_t));
+    //_packetThreadController.Add("seek", sizeof(int64_t));
+    _packetThreadController.Add("seek", sizeof(IMediaDataProvider::SeekData));
     _packetThreadController.Add("stream", sizeof(StreamChangeDesc));
     _packetThreadController.Add("stop", sizeof(bool));
     _packetThreadController.Add("eof", sizeof(bool));
@@ -32,7 +33,8 @@ LocalFileDataProvider::LocalFileDataProvider(std::string filename) : _filename(f
 LocalFileDataProvider::LocalFileDataProvider(LocalFileDataProvider* other)
     : IMediaDataProvider(other)
 {
-    _packetThreadController.Add("seek", sizeof(int64_t));
+    //_packetThreadController.Add("seek", sizeof(int64_t));
+    _packetThreadController.Add("seek", sizeof(IMediaDataProvider::SeekData));
     _packetThreadController.Add("stream", sizeof(StreamChangeDesc));
     _packetThreadController.Add("stop", sizeof(bool));
     _packetThreadController.Add("eof", sizeof(bool));
@@ -50,7 +52,7 @@ LocalFileDataProvider::~LocalFileDataProvider()
 
 void LocalFileDataProvider::Start()
 {
-    _packetThreadController.Set("seek", (int64_t)-1);
+    _packetThreadController.Set("seek", IMediaDataProvider::SeekData());
     _packetThreadController.Set("stream", StreamChangeDesc{ -1, nullptr, 0 });
     _packetThreadController.Set("stop", false);
     _packetThreadController.Set("eof", false);
@@ -66,24 +68,44 @@ void LocalFileDataProvider::Stop()
     }
 }
 
+void LocalFileDataProvider::_Seek(SeekData seekData)
+{
+    _packetThreadController.Set("seek", seekData);
+}
+
 void LocalFileDataProvider::_Seek(TimePoint time)
 {
-    _packetThreadController.Set("seek", time.GetTime());
+    IMediaDataProvider::SeekData seekData;
+    seekData.time = time;
+    _packetThreadController.Set("seek", seekData);
+    //_packetThreadController.Set("seek", time.GetTime());
 }
 
 void LocalFileDataProvider::_SetVideoStream(int index, TimePoint time)
 {
-    _packetThreadController.Set("stream", StreamChangeDesc{ index, &_videoData, time });
+    IMediaDataProvider::SeekData seekData;
+    seekData.time = time;
+    seekData.videoStreamIndex = index;
+    _packetThreadController.Set("seek", seekData);
+    //_packetThreadController.Set("stream", StreamChangeDesc{ index, &_videoData, time });
 }
 
 void LocalFileDataProvider::_SetAudioStream(int index, TimePoint time)
 {
-    _packetThreadController.Set("stream", StreamChangeDesc{ index, &_audioData, time });
+    IMediaDataProvider::SeekData seekData;
+    seekData.time = time;
+    seekData.audioStreamIndex = index;
+    _packetThreadController.Set("seek", seekData);
+    //_packetThreadController.Set("stream", StreamChangeDesc{ index, &_audioData, time });
 }
 
 void LocalFileDataProvider::_SetSubtitleStream(int index, TimePoint time)
 {
-    _packetThreadController.Set("stream", StreamChangeDesc{ index, &_subtitleData, time });
+    IMediaDataProvider::SeekData seekData;
+    seekData.time = time;
+    seekData.subtitleStreamIndex = index;
+    _packetThreadController.Set("seek", seekData);
+    //_packetThreadController.Set("stream", StreamChangeDesc{ index, &_subtitleData, time });
 }
 
 void LocalFileDataProvider::_Initialize()
@@ -150,12 +172,31 @@ void LocalFileDataProvider::_ReadPackets()
 
     while (!_packetThreadController.Get<bool>("stop"))
     {
-        // Seek
-        int64_t seekTime = _packetThreadController.Get<int64_t>("seek");
-        if (seekTime >= 0)
+        // Check if seek is valid
+        auto seekData = _packetThreadController.Get<IMediaDataProvider::SeekData>("seek");
+        if (!seekData.Default())
         {
-            _packetThreadController.Set("seek", -1LL);
+            _packetThreadController.Set("seek", IMediaDataProvider::SeekData());
 
+            // Change stream
+            if (seekData.videoStreamIndex != std::numeric_limits<int>::min())
+            {
+                _videoData.currentStream = seekData.videoStreamIndex;
+                videoStreamIndex = _videoData.currentStream != -1 ? _videoData.streams[_videoData.currentStream].index : -1;
+            }
+            if (seekData.audioStreamIndex != std::numeric_limits<int>::min())
+            {
+                _audioData.currentStream = seekData.audioStreamIndex;
+                audioStreamIndex = _audioData.currentStream != -1 ? _audioData.streams[_audioData.currentStream].index : -1;
+            }
+            if (seekData.subtitleStreamIndex != std::numeric_limits<int>::min())
+            {
+                _subtitleData.currentStream = seekData.subtitleStreamIndex;
+                subtitleStreamIndex = _subtitleData.currentStream != -1 ? _subtitleData.streams[_subtitleData.currentStream].index : -1;
+            }
+
+            // Seek
+            int64_t seekTime = seekData.time.GetTime(MICROSECONDS);
             double seconds = seekTime / 1000000.0;
             if (seconds < 0) seconds = 0.0;
             std::cout << "Seeking to " << seconds << "s" << std::endl;
@@ -186,21 +227,57 @@ void LocalFileDataProvider::_ReadPackets()
             }
         }
 
-        // Change stream
-        StreamChangeDesc newStream = _packetThreadController.Get<StreamChangeDesc>("stream");
-        if (newStream.mediaDataPtr)
-        {
-            _packetThreadController.Set("stream", StreamChangeDesc{ -1, nullptr, 0 });
-            newStream.mediaDataPtr->currentStream = newStream.streamIndex;
-            _packetThreadController.Set("seek", newStream.time.GetTime());
+        //// Seek
+        //int64_t seekTime = _packetThreadController.Get<int64_t>("seek");
+        //if (seekTime >= 0)
+        //{
+        //    _packetThreadController.Set("seek", -1LL);
 
-            // Update stream indexes
-            videoStreamIndex = _videoData.currentStream != -1 ? _videoData.streams[_videoData.currentStream].index : -1;
-            audioStreamIndex = _audioData.currentStream != -1 ? _audioData.streams[_audioData.currentStream].index : -1;
-            subtitleStreamIndex = _subtitleData.currentStream != -1 ? _subtitleData.streams[_subtitleData.currentStream].index : -1;
+        //    double seconds = seekTime / 1000000.0;
+        //    if (seconds < 0) seconds = 0.0;
+        //    std::cout << "Seeking to " << seconds << "s" << std::endl;
 
-            continue;
-        }
+        //    avformat_seek_file(
+        //        _avfContext,
+        //        -1,
+        //        std::numeric_limits<int64_t>::min(),
+        //        seekTime,
+        //        std::numeric_limits<int64_t>::max(),
+        //        AVSEEK_FLAG_BACKWARD
+        //    );
+
+        //    // Clear packet buffers
+        //    _ClearVideoPackets();
+        //    _ClearAudioPackets();
+        //    _ClearSubtitlePackets();
+
+        //    // Send flush packets
+        //    _AddVideoPacket(MediaPacket(true));
+        //    _AddAudioPacket(MediaPacket(true));
+        //    _AddSubtitlePacket(MediaPacket(true));
+
+        //    if (holdPacket)
+        //    {
+        //        av_packet_unref(packet);
+        //        holdPacket = false;
+        //    }
+        //}
+
+        //// Change stream
+        //StreamChangeDesc newStream = _packetThreadController.Get<StreamChangeDesc>("stream");
+        //if (newStream.mediaDataPtr)
+        //{
+        //    _packetThreadController.Set("stream", StreamChangeDesc{ -1, nullptr, 0 });
+        //    newStream.mediaDataPtr->currentStream = newStream.streamIndex;
+        //    _packetThreadController.Set("seek", newStream.time.GetTime());
+
+        //    // Update stream indexes
+        //    videoStreamIndex = _videoData.currentStream != -1 ? _videoData.streams[_videoData.currentStream].index : -1;
+        //    audioStreamIndex = _audioData.currentStream != -1 ? _audioData.streams[_audioData.currentStream].index : -1;
+        //    subtitleStreamIndex = _subtitleData.currentStream != -1 ? _subtitleData.streams[_subtitleData.currentStream].index : -1;
+
+        //    continue;
+        //}
 
         // Read audio and video packets
         int result = 0;

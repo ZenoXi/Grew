@@ -4,9 +4,12 @@
 
 IMediaDataProvider::IMediaDataProvider()
 {
-    _videoData.allowedMemory = 1000000000; // 1 GB
-    _audioData.allowedMemory = 100000000; // 100 MB
+    _videoData.allowedMemory = 250000000; // 250 MB
+    _audioData.allowedMemory = 50000000; // 50 MB
     _subtitleData.allowedMemory = 10000000; // 10 MB
+    //_videoData.allowedMemory = 1000000000; // 1 GB
+    //_audioData.allowedMemory = 100000000; // 100 MB
+    //_subtitleData.allowedMemory = 50000000; // 50 MB
 }
 
 IMediaDataProvider::IMediaDataProvider(IMediaDataProvider* other)
@@ -167,6 +170,16 @@ bool IMediaDataProvider::SubtitleMemoryExceeded() const
 bool IMediaDataProvider::_MemoryExceeded(const MediaData& mediaData) const
 {
     return mediaData.totalMemoryUsed > mediaData.allowedMemory;
+}
+
+IMediaDataProvider::SeekResult IMediaDataProvider::Seek(IMediaDataProvider::SeekData seekData)
+{
+    SeekResult result;
+    result.videoStream = _SetStream(_videoData, seekData.videoStreamIndex);
+    result.audioStream = _SetStream(_audioData, seekData.audioStreamIndex);
+    result.subtitleStream = _SetStream(_subtitleData, seekData.subtitleStreamIndex);
+    _Seek(seekData);
+    return result;
 }
 
 void IMediaDataProvider::Seek(TimePoint time)
@@ -373,15 +386,9 @@ MediaPacket IMediaDataProvider::_GetPacket(MediaData& mediaData)
 
     // Return packet
     if (mediaData.currentPacket >= mediaData.packets.size())
-    {
         return MediaPacket();
-    }
     else
-    {
-        MediaPacket copy;
-        copy.Deserialize(mediaData.packets[mediaData.currentPacket++].Serialize());
-        return copy;
-    }
+        return mediaData.packets[mediaData.currentPacket++].Reference();
 }
 
 bool IMediaDataProvider::FlushVideoPacketNext()

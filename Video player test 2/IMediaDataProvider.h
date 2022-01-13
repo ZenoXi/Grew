@@ -27,6 +27,34 @@ public:
         std::mutex mtx;
     };
 
+    struct SeekData
+    {
+        TimePoint time = -1;
+        int videoStreamIndex = std::numeric_limits<int>::min();
+        int audioStreamIndex = std::numeric_limits<int>::min();
+        int subtitleStreamIndex = std::numeric_limits<int>::min();
+
+        SeekData() = default;
+        SeekData(const SeekData&) = default;
+        SeekData& operator=(const SeekData&) = default;
+        SeekData(SeekData&&) = default;
+        SeekData& operator=(SeekData&&) = default;
+        bool Default()
+        {
+            return time.GetTicks() == -1
+                && videoStreamIndex == std::numeric_limits<int>::min()
+                && audioStreamIndex == std::numeric_limits<int>::min()
+                && subtitleStreamIndex == std::numeric_limits<int>::min();
+        }
+    };
+    
+    struct SeekResult
+    {
+        std::unique_ptr<MediaStream> videoStream = nullptr;
+        std::unique_ptr<MediaStream> audioStream = nullptr;
+        std::unique_ptr<MediaStream> subtitleStream = nullptr;
+    };
+
 protected:
     bool _initializing = false;
     bool _initFailed = false;
@@ -101,6 +129,7 @@ private:
 
     // STREAM CONTROL
 public:
+    SeekResult Seek(SeekData seekData);
     void Seek(TimePoint time);
     // Returns a MediaStream object if a stream at the index exists, nullptr otherwise.
     // Valid index can be acquired from GetAvailableVideoStreams().
@@ -130,6 +159,7 @@ protected:
     std::unique_ptr<MediaStream> _CurrentStream(MediaData& mediaData);
     int _CurrentStreamIndex(const MediaData& mediaData) const;
 protected:
+    virtual void _Seek(SeekData seekData) = 0;
     virtual void _Seek(TimePoint time) = 0;
     virtual void _SetVideoStream(int index, TimePoint time) = 0;
     virtual void _SetAudioStream(int index, TimePoint time) = 0;

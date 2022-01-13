@@ -7,6 +7,7 @@
 
 class BasePlaybackController : public IPlaybackController
 {
+protected:
     MediaPlayer* _player;
     IMediaDataProvider* _dataProvider;
 

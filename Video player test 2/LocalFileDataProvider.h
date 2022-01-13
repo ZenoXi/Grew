@@ -26,6 +26,7 @@ public:
     void Stop();
 
 protected:
+    void _Seek(SeekData seekData);
     void _Seek(TimePoint time);
     void _SetVideoStream(int index, TimePoint time);
     void _SetAudioStream(int index, TimePoint time);
