@@ -201,8 +201,9 @@ namespace znet
             if (_outPacketHandler.joinable()) _outPacketHandler.join();
         }
 
-        size_t PacketCount() const
+        size_t PacketCount()
         {
+            LOCK_GUARD(lock, _m_inPackets);
             return _inPackets.size();
         }
 
@@ -294,6 +295,7 @@ namespace znet
         {
             if (!Connected()) return;
 
+            LOCK_GUARD(lock, _m_outPackets);
             if (priority != 0)
             {
                 for (int i = 0; i < _outPackets.size(); i++)
@@ -302,7 +304,8 @@ namespace znet
                     {
                         if (!_packetQueue.empty())
                         {
-                            _outPackets.push_back({ Packet(MULTIPLE_PACKETS).From(_packetQueue.size()), priority });
+                            _outPackets.insert(_outPackets.begin() + i, { Packet(MULTIPLE_PACKETS).From(_packetQueue.size()), priority });
+                            i++;
                         }
                         while (!_packetQueue.empty())
                         {
