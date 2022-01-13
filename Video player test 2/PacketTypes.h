@@ -4,54 +4,242 @@ namespace znet
 {
     enum class PacketType
     {
-        //
-        // Traffic/connection control
-        //
+        // // // // // // // // // // // // // // // // // // //
+        // // // // // // // // // // // // // // // // // // //
+        // TRAFFIC/CONNECTION CONTROL // // // // // // // // //
+        // // // // // // // // // // // // // // // // // // //
+        // // // // // // // // // // // // // // // // // // //
 
         // Contains (client -> server):
         //  array of int64_t - destination user ids
         // Contains (server -> client):
         //  int64_t - source user id
         USER_ID = 0,
+
+        // Sent when to the user when he connects
+        // Contains:
+        //  int64_t - the assigned id
+        ASSIGNED_USER_ID,
+
         // Contains:
         //  int64_t - amount of bytes confirmed to have been received
         BYTE_CONFIRMATION,
+
         // Sent by client before terminating connection
         // Used to signal an intentional disconnection
         DISCONNECT_REQUEST,
+
         // Contains:
         //  int64_t - user id
         //  remaining bytes - wchar_t string
         USER_DATA,
+
         // Sent by the server to all clients when a new user connects
         // Contains:
         //  int64_t - new user id
         NEW_USER,
+
         // Sent by the server to all clients when a user disconnects
         // Contains:
         //  int64_t - disconnected user id
         DISCONNECTED_USER,
+
         // Sent by the server to a new connection
         // Contains:
         //  array of int64_t - currently connected user ids
         USER_LIST,
 
-        //
-        // Playback
-        //
+        // // // // // // // // // // // // // // // // // // //
+        // // // // // // // // // // // // // // // // // // //
+        // PLAYBACK // // // // // // // // // // // // // // //
+        // // // // // // // // // // // // // // // // // // //
+        // // // // // // // // // // // // // // // // // // //
 
-        PAUSE = 100,
+        // Sent by media receiver after pausing
+        PAUSE_REQUEST = 100,
+
+        // Sent by media host to all receivers after pausing, or after receiving the PAUSE packet
+        PAUSE,
+
+        // See PAUSE
+        RESUME_REQUEST,
+
+        // See PAUSE_CONFIRMED
         RESUME,
-        SEEK,
+
+        // Sent to the host when a receiver wants to seek/change stream
+        // Contains:
+        //  int64_t - time point to seek to, in 'TimePoint' ticks
+        //  int32_t - new video stream index
+        //  int32_t - new audio stream index
+        //  int32_t - new subtitle stream index
+        SEEK_REQUEST,
+
+        // Sent by the media host to all receivers after seeking, or receiving the SEEK_REQUEST packet
+        // Contains:
+        //  int64_t - time point to seek to, in 'TimePoint' ticks
+        //  int32_t - new video stream index
+        //  int32_t - new audio stream index
+        //  int32_t - new subtitle stream index
+        INITIATE_SEEK,
+
+        // Sent to the host when the media player recovers after a seek
+        SEEK_FINISHED,
+
+        // Sent by the host to everyone when it receives confirmation
+        // from all receivers that they recovered
+        HOST_SEEK_FINISHED,
+
+        // Video packet data
+        // Contains:
+        //  a serialized MediaPacket object
         VIDEO_PACKET,
+
+        // Audio packet data
+        // Contains:
+        //  a serialized MediaPacket object
         AUDIO_PACKET,
+
+        // Subtitle packet data
+        // Contains:
+        //  a serialized MediaPacket object
         SUBTITLE_PACKET,
-        STREAM,
 
-        //
-        // Other (placeholder)
-        //
+        // Sent by user if it wants the playback of some media, which it does not host
+        // Contains:
+        //  int32_t - media id
+        //PLAYBACK_REQUEST,
 
-        OTHER = 200
+        // Sent by the host to all users after starting playback
+        // Contains:
+        //  int32_t - media id
+        //PLAYBACK_START,
+
+        // Sent by the receiver when the data provider is ready to receive packets,
+        // or when it declines playback
+        // Contains:
+        //  int8_t - whether the user will participate in the playback (0: accepted | 1: declined)
+        PLAYBACK_CONFIRMATION,
+
+        // Sent by host before metadata
+        // Contains:
+        //  array of int64_t values - participating user ids
+        PLAYBACK_PARTICIPANT_LIST,
+        
+        // Sent before providing streams
+        // Contains:
+        //  int8_t - video stream count
+        //  int8_t - audio stream count
+        //  int8_t - subtitle stream count
+        //  int8_t - attachment stream count
+        //  int8_t - data stream count
+        //  int8_t - unknown stream count
+        //  int8_t - current video stream
+        //  int8_t - current audio stream
+        //  int8_t - current subtitle stream
+        STREAM_METADATA,
+
+        // Sent by the receiver after receiving all metadata
+        METADATA_CONFIRMATION,
+
+        // Sent by the receiver when its playback controller sets up its packet receivers
+        CONTROLLER_READY,
+
+        // Sent to all receivers when host's 
+        HOST_CONTROLLER_READY,
+
+        // Sent by the receiver after their media player loads
+        LOAD_FINISHED,
+
+        // Video stream data
+        // Contains:
+        //  a serialized MediaStream object
+        VIDEO_STREAM,
+
+        // Audio stream data
+        // Contains:
+        //  a serialized MediaStream object
+        AUDIO_STREAM,
+
+        // Subtitle stream data
+        // Contains:
+        //  a serialized MediaStream object
+        SUBTITLE_STREAM,
+
+        // Attachment stream data
+        // Contains:
+        //  a serialized MediaStream object
+        ATTACHMENT_STREAM,
+
+        // Data stream data
+        // Contains:
+        //  a serialized MediaStream object
+        DATA_STREAM,
+
+        // Unknown stream data
+        // Contains:
+        //  a serialized MediaStream object
+        UNKNOWN_STREAM,
+
+        // // // // // // // // // // // // // // // // // // //
+        // // // // // // // // // // // // // // // // // // //
+        // PLAYBACK QUEUE // // // // // // // // // // // // //
+        // // // // // // // // // // // // // // // // // // //
+        // // // // // // // // // // // // // // // // // // //
+
+        // Sent when a client wants to add an item to the playback queue
+        // Contains:
+        //  int32_t - callback id, used by the client to differentiate between request confirmations
+        //  int64_t - media duration in 'Duration' ticks
+        //  remaining bytes - wstring of the media name
+        QUEUE_ITEM_ADD_REQUEST = 200,
+
+        // Sent to all clients when an item is added to the queue
+        // Contains:
+        //  int32_t - media id
+        //  int32_t - callback id (only used by the request issuer)
+        //  int64_t - media host user id
+        //  int64_t - media duration in 'Duration' ticks
+        //  remaining bytes - wstring of the media name
+        QUEUE_ITEM_ADD,
+
+        // Sent when a client wants to remove an item from the playback queue
+        // Contains:
+        //  int32_t - media id
+        QUEUE_ITEM_REMOVE_REQUEST,
+
+        // Sent to all clients when an item is removed from the queue
+        // Contains:
+        //  int32_t - media id
+        QUEUE_ITEM_REMOVE,
+
+        // (client/server -> server)
+        // Sent when a client/server wishes for playback to start
+        // Contains:
+        //  int32_t - media id
+        PLAYBACK_START_REQUEST,
+
+        // (server -> media host)
+        // Indicates that the host should prepare for playback
+        // Contains:
+        //  int32_t - media id
+        PLAYBACK_START_ORDER,
+
+        // Sent by the media host when it is ready for playback or declines the playback
+        // Contains:
+        //  int8_t - 0: playback declined | 1: playback ready
+        PLAYBACK_START_RESPONSE,
+
+        // Sent by the server to all clients (except host) to begin playback
+        // Contains:
+        //  int32_t - mediaId
+        //  int64_t - hostId
+        PLAYBACK_START,
+
+        // Sent when a client wants to stop currently playing item
+        PLAYBACK_STOP_REQUEST,
+
+        // Sent to all clients when playback should be aborted
+        PLAYBACK_STOP,
     };
 }
