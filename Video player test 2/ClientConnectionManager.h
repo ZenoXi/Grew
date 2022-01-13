@@ -17,6 +17,7 @@ namespace znet
         TCPClient _client;
         std::vector<User> _users;
         std::mutex _m_users;
+        User _thisUser;
 
         std::thread _connectionThread;
         int64_t _connectionId = -1;
@@ -83,10 +84,10 @@ namespace znet
 
         ConnectionStatus Status()
         {
-            if (_connectionId != -1)
-                return ConnectionStatus::CONNECTED;
             if (_connecting)
                 return ConnectionStatus::CONNECTING;
+            if (_connectionId != -1)
+                return ConnectionStatus::CONNECTED;
             if (_disconnecting)
                 return ConnectionStatus::DISCONNECTING;
             if (_disconnected)
@@ -101,7 +102,25 @@ namespace znet
         {
             _connectionId = _client.Connect(ip, port);
             if (_connectionId != -1)
+            {
+                // Wait for assigned id to arrive
+                TCPClientRef connection = _client.Connection(_connectionId);
+                while (connection->PacketCount() == 0)
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                Packet idPacket = connection->GetPacket();
+                if (idPacket.id != (int)PacketType::ASSIGNED_USER_ID)
+                {
+                    _connecting = false;
+                    // TODO: correctly disconnect
+                    connection->Disconnect();
+                    _connectionId = -1;
+                    return;
+                }
+                _thisUser.id = idPacket.Cast<int64_t>();
+
+                // Start management thread
                 _managementThread = std::thread(&ClientConnectionManager::_ManageConnections, this);
+            }
 
             _connecting = false;
         }
@@ -112,28 +131,30 @@ namespace znet
             return _users;
         }
 
+        User ThisUser()
+        {
+            return _thisUser;
+        }
+
         // PACKET INPUT/OUTPUT
     public:
         void Send(Packet&& packet, std::vector<int64_t> userIds, int priority = 0)
         {
-            if (priority == 0)
+            std::lock_guard<std::mutex> lock(_m_outPackets);
+            if (priority != 0)
             {
-                std::unique_lock<std::mutex> lock(_m_outPackets);
-                _PacketData data = { std::move(packet), std::move(userIds) };
-                _outPackets.push_back({ std::move(data), priority });
-                return;
-            }
-
-            std::unique_lock<std::mutex> lock(_m_outPackets);
-            for (int i = 0; i < _outPackets.size(); i++)
-            {
-                if (_outPackets[i].second < priority)
+                for (int i = 0; i < _outPackets.size(); i++)
                 {
-                    _PacketData data = { std::move(packet), std::move(userIds) };
-                    _outPackets.insert(_outPackets.begin() + i, { std::move(data), priority });
-                    return;
+                    if (_outPackets[i].second < priority)
+                    {
+                        _PacketData data = { std::move(packet), std::move(userIds) };
+                        _outPackets.insert(_outPackets.begin() + i, { std::move(data), priority });
+                        return;
+                    }
                 }
             }
+            _PacketData data = { std::move(packet), std::move(userIds) };
+            _outPackets.push_back({ std::move(data), priority });
         }
 
         void AddToQueue(Packet&& packet, std::vector<int64_t> userIds)
@@ -144,30 +165,27 @@ namespace znet
 
         void SendQueue(std::vector<int64_t> userIds, int priority = 0)
         {
-            if (priority == 0)
-            {
-                LOCK_GUARD(lock, _m_outPackets);
-                while (!_packetQueue.empty())
-                {
-                    _outPackets.push_back({ std::move(_packetQueue.front()), priority });
-                    _packetQueue.pop();
-                }
-                return;
-            }
-
             LOCK_GUARD(lock, _m_outPackets);
-            for (int i = 0; i < _outPackets.size(); i++)
+            if (priority != 0)
             {
-                if (_outPackets[i].second < priority)
+                for (int i = 0; i < _outPackets.size(); i++)
                 {
-                    while (!_packetQueue.empty())
+                    if (_outPackets[i].second < priority)
                     {
-                        _outPackets.insert(_outPackets.begin() + i, { std::move(_packetQueue.front()), priority });
-                        _packetQueue.pop();
-                        i++;
+                        while (!_packetQueue.empty())
+                        {
+                            _outPackets.insert(_outPackets.begin() + i, { std::move(_packetQueue.front()), priority });
+                            _packetQueue.pop();
+                            i++;
+                        }
+                        return;
                     }
-                    return;
                 }
+            }
+            while (!_packetQueue.empty())
+            {
+                _outPackets.push_back({ std::move(_packetQueue.front()), priority });
+                _packetQueue.pop();
             }
         }
 
@@ -284,6 +302,28 @@ namespace znet
                 {
                     for (int i = 0; i < _outPackets.size(); i++)
                     {
+                        // If the client is sending the packet to itself, no additional processing is necessary
+                        std::vector<int64_t> destinationUsers = _outPackets[i].first.userIds;
+                        for (int j = 0; j < _outPackets[i].first.userIds.size(); j++)
+                        {
+                            if (_outPackets[i].first.userIds[j] == ThisUser().id)
+                            {
+                                _PacketData data = { _outPackets[i].first.packet.Reference(), { ThisUser().id } };
+                                _outPackets[i].first.userIds.erase(_outPackets[i].first.userIds.begin() + j);
+                                std::unique_lock<std::mutex> lock(_m_inPackets);
+                                _inPackets.push(std::move(data));
+                                break;
+                            }
+                        }
+
+                        // Erase packet if no destination is specified
+                        if (_outPackets[i].first.userIds.empty())
+                        {
+                            _outPackets.erase(_outPackets.begin() + i);
+                            i--;
+                            continue;
+                        }
+
                         PacketView view = _outPackets[i].first.packet.View();
 
                         // Heavy packets will be postponed until unconfirmed byte count is below a certain value
@@ -291,7 +331,12 @@ namespace znet
                             view.id == (int32_t)PacketType::VIDEO_PACKET ||
                             view.id == (int32_t)PacketType::AUDIO_PACKET ||
                             view.id == (int32_t)PacketType::SUBTITLE_PACKET ||
-                            view.id == (int32_t)PacketType::STREAM
+                            view.id == (int32_t)PacketType::VIDEO_STREAM ||
+                            view.id == (int32_t)PacketType::AUDIO_STREAM ||
+                            view.id == (int32_t)PacketType::SUBTITLE_STREAM ||
+                            view.id == (int32_t)PacketType::ATTACHMENT_STREAM ||
+                            view.id == (int32_t)PacketType::DATA_STREAM ||
+                            view.id == (int32_t)PacketType::UNKNOWN_STREAM
                         );
 
                         if (bytesUnconfirmed > maxUnconfirmedBytes && heavyPacket)
@@ -326,7 +371,7 @@ namespace znet
                 }
 
                 // Sleep if no immediate work needs to be done
-                if (_inPackets.empty() && _outPackets.empty())
+                if (connection->PacketCount() == 0 && _outPackets.empty())
                 {
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 }

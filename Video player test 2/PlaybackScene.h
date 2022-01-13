@@ -20,12 +20,11 @@
 
 struct PlaybackSceneOptions : public SceneOptionsBase
 {
-    PlaybackMode mode;
-
     std::string fileName = "";
     std::string ip = "";
     uint16_t port = 0;
-    LocalFileDataProvider* dataProvider = nullptr;
+    IMediaDataProvider* dataProvider = nullptr;
+    PlaybackMode playbackMode = PlaybackMode::OFFLINE;
     bool startPaused = false;
     bool placeholder = false;
 };
@@ -34,14 +33,18 @@ class PlaybackScene : public Scene
 {
     MediaPlayerOld* _player = nullptr;
 
+    PlaybackMode _playbackMode = PlaybackMode::OFFLINE;
+
     zcom::Panel* _controlBar = nullptr;
     zcom::SeekBar* _seekBar = nullptr;
     zcom::VolumeSlider* _volumeSlider = nullptr;
     zcom::PlayButton* _playButton = nullptr;
     zcom::BottomControlPanel* _bottomControlPanel = nullptr;
     zcom::Button* _overlayButton = nullptr;
+    zcom::Button* _audioStreamButton = nullptr;
+    zcom::Button* _subtitleStreamButton = nullptr;
 
-    LocalFileDataProvider* _dataProvider = nullptr;
+    IMediaDataProvider* _dataProvider = nullptr;
     IAudioOutputAdapter* _audioAdapter = nullptr;
     IVideoOutputAdapter* _videoAdapter = nullptr;
     MediaPlayer* _mediaPlayer = nullptr;

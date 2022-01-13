@@ -56,6 +56,7 @@ namespace znet
         // Sending functions
     public:
         std::vector<IConnectionManager::User> Users();
+        IConnectionManager::User ThisUser();
         void Send(Packet&& packet, std::vector<int64_t> userIds, int priority = 0);
         void AddToQueue(Packet&& packet, std::vector<int64_t> userIds);
         void SendQueue(std::vector<int64_t> userIds, int priority = 0);

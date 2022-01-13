@@ -28,6 +28,7 @@ znet::NetworkInterface* znet::NetworkInterface::Instance()
 void znet::NetworkInterface::StartServer(USHORT port)
 {
     _connectionManager = new znet::ServerConnectionManager(port);
+    _mode = NetworkMode::SERVER;
 }
 
 void znet::NetworkInterface::StopServer()
@@ -35,11 +36,13 @@ void znet::NetworkInterface::StopServer()
     std::lock_guard<std::mutex> lock(_m_conMng);
     delete _connectionManager;
     _connectionManager = nullptr;
+    _mode = NetworkMode::OFFLINE;
 }
 
 void znet::NetworkInterface::Connect(std::string ip, USHORT port)
 {
     _connectionManager = new znet::ClientConnectionManager(ip, port);
+    _mode = NetworkMode::CLIENT;
 }
 
 void znet::NetworkInterface::Disconnect()
@@ -47,6 +50,7 @@ void znet::NetworkInterface::Disconnect()
     std::lock_guard<std::mutex> lock(_m_conMng);
     delete _connectionManager;
     _connectionManager = nullptr;
+    _mode = NetworkMode::SERVER;
 }
 
 void znet::NetworkInterface::_ManageIncomingPackets()
@@ -88,6 +92,14 @@ std::vector<znet::IConnectionManager::User> znet::NetworkInterface::Users()
         return _connectionManager->Users();
     else
         return std::vector<znet::IConnectionManager::User>();
+}
+
+znet::IConnectionManager::User znet::NetworkInterface::ThisUser()
+{
+    if (_connectionManager)
+        return _connectionManager->ThisUser();
+    else
+        return { "", -1 };
 }
 
 void znet::NetworkInterface::Send(Packet&& packet, std::vector<int64_t> userIds, int priority)
@@ -175,6 +187,11 @@ void znet::NetworkInterface::_DistributePacket(Packet packet, int64_t userId)
 }
 
 // Network status
+
+znet::NetworkMode znet::NetworkInterface::Mode()
+{
+    return _mode;
+}
 
 std::string znet::NetworkInterface::StatusString()
 {

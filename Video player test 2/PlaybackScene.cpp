@@ -1,6 +1,8 @@
 #include "App.h" // App.h must be included first
 #include "PlaybackScene.h"
 #include "PlaybackOverlayScene.h"
+#include "HostPlaybackController.h"
+#include "ReceiverPlaybackController.h"
 
 bool leftClicked = false;
 bool rightClicked = false;
@@ -46,12 +48,13 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
         opt = *reinterpret_cast<const PlaybackSceneOptions*>(options);
     }
 
+    _playbackMode = opt.playbackMode;
     _startPaused = opt.startPaused;
     _placeholder = opt.placeholder;
 
     if (opt.dataProvider)
         _dataProvider = opt.dataProvider;
-    else if (!_placeholder)
+    else if (!_placeholder && _playbackMode == PlaybackMode::OFFLINE)
         _dataProvider = new LocalFileDataProvider(opt.fileName);
 
     _audioAdapter = nullptr;
@@ -95,10 +98,40 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
         App::Instance()->MoveSceneToFront(PlaybackOverlayScene::StaticName());
     });
 
+    _audioStreamButton = new zcom::Button(L"Audio 2");
+    _audioStreamButton->SetBaseSize(50, 20);
+    _audioStreamButton->SetHorizontalAlignment(zcom::Alignment::CENTER);
+    _audioStreamButton->SetOffsetPixels(100, 60);
+    _audioStreamButton->SetBorderVisibility(true);
+    _audioStreamButton->SetActivation(zcom::ButtonActivation::RELEASE);
+    _audioStreamButton->SetOnActivated([&]()
+    {
+        if (_mediaPlayer)
+        {
+            _controller->SetAudioStream(1);
+        }
+    });
+
+    _subtitleStreamButton = new zcom::Button(L"Sub 2");
+    _subtitleStreamButton->SetBaseSize(50, 20);
+    _subtitleStreamButton->SetHorizontalAlignment(zcom::Alignment::CENTER);
+    _subtitleStreamButton->SetOffsetPixels(160, 60);
+    _subtitleStreamButton->SetBorderVisibility(true);
+    _subtitleStreamButton->SetActivation(zcom::ButtonActivation::RELEASE);
+    _subtitleStreamButton->SetOnActivated([&]()
+    {
+        if (_mediaPlayer)
+        {
+            _controller->SetSubtitleStream(1);
+        }
+    });
+
     _controlBar->AddItem(_seekBar);
     _controlBar->AddItem(_volumeSlider);
     _controlBar->AddItem(_playButton);
     _controlBar->AddItem(_overlayButton);
+    _controlBar->AddItem(_audioStreamButton);
+    _controlBar->AddItem(_subtitleStreamButton);
 
     _bottomControlPanel = new zcom::BottomControlPanel(_controlBar);
     _bottomControlPanel->SetParentWidthPercent(1.0f);
@@ -311,7 +344,14 @@ void PlaybackScene::_Update()
                 std::unique_ptr<IVideoOutputAdapter>(_videoAdapter),
                 std::unique_ptr<IAudioOutputAdapter>(_audioAdapter)
             );
-            _controller = new BasePlaybackController(_mediaPlayer, _dataProvider);
+
+            if (_playbackMode == PlaybackMode::OFFLINE)
+                _controller = new BasePlaybackController(_mediaPlayer, _dataProvider);
+            else if (_playbackMode == PlaybackMode::SERVER)
+                _controller = new HostPlaybackController(_mediaPlayer, (MediaHostDataProvider*)_dataProvider);
+            else if (_playbackMode == PlaybackMode::CLIENT)
+                _controller = new ReceiverPlaybackController(_mediaPlayer, (MediaReceiverDataProvider*)_dataProvider);
+
             if (!_startPaused)
                 _controller->Play();
 

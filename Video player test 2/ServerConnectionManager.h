@@ -83,28 +83,30 @@ namespace znet
             return _users;
         }
 
+        User ThisUser()
+        {
+            return { "", 0 };
+        }
+
         // PACKET INPUT/OUTPUT
     public:
         void Send(Packet&& packet, std::vector<int64_t> userIds, int priority = 0)
         {
-            if (priority == 0)
+            std::lock_guard<std::mutex> lock(_m_outPackets);
+            if (priority != 0)
             {
-                std::unique_lock<std::mutex> lock(_m_outPackets);
-                _PacketData data = { std::move(packet), std::move(userIds) };
-                _outPackets.push_back({ std::move(data), priority });
-                return;
-            }
-
-            std::unique_lock<std::mutex> lock(_m_outPackets);
-            for (int i = 0; i < _outPackets.size(); i++)
-            {
-                if (_outPackets[i].second < priority)
+                for (int i = 0; i < _outPackets.size(); i++)
                 {
-                    _PacketData data = { std::move(packet), std::move(userIds) };
-                    _outPackets.insert(_outPackets.begin() + i, { std::move(data), priority });
-                    return;
+                    if (_outPackets[i].second < priority)
+                    {
+                        _PacketData data = { std::move(packet), std::move(userIds) };
+                        _outPackets.insert(_outPackets.begin() + i, { std::move(data), priority });
+                        return;
+                    }
                 }
             }
+            _PacketData data = { std::move(packet), std::move(userIds) };
+            _outPackets.push_back({ std::move(data), priority });
         }
 
         void AddToQueue(Packet&& packet, std::vector<int64_t> userIds)
@@ -115,30 +117,27 @@ namespace znet
 
         void SendQueue(std::vector<int64_t> userIds, int priority = 0)
         {
-            if (priority == 0)
-            {
-                LOCK_GUARD(lock, _m_outPackets);
-                while (!_packetQueue.empty())
-                {
-                    _outPackets.push_back({ std::move(_packetQueue.front()), priority });
-                    _packetQueue.pop();
-                }
-                return;
-            }
-
             LOCK_GUARD(lock, _m_outPackets);
-            for (int i = 0; i < _outPackets.size(); i++)
+            if (priority != 0)
             {
-                if (_outPackets[i].second < priority)
+                for (int i = 0; i < _outPackets.size(); i++)
                 {
-                    while (!_packetQueue.empty())
+                    if (_outPackets[i].second < priority)
                     {
-                        _outPackets.insert(_outPackets.begin() + i, { std::move(_packetQueue.front()), priority });
-                        _packetQueue.pop();
-                        i++;
+                        while (!_packetQueue.empty())
+                        {
+                            _outPackets.insert(_outPackets.begin() + i, { std::move(_packetQueue.front()), priority });
+                            _packetQueue.pop();
+                            i++;
+                        }
+                        return;
                     }
-                    return;
                 }
+            }
+            while (!_packetQueue.empty())
+            {
+                _outPackets.push_back({ std::move(_packetQueue.front()), priority });
+                _packetQueue.pop();
             }
         }
 
@@ -191,8 +190,11 @@ namespace znet
                         TCPClientRef connection = _server.Connection(_users[i].id);
                         connection->Send(Packet((int)PacketType::NEW_USER).From(newUser), 2);
                     }
-                    // Send existing user ids to new user
+
                     TCPClientRef connection = _server.Connection(newUser);
+                    // Send the assigned id to the new user (maximum priority since this packet needs to go first)
+                    connection->Send(Packet((int)PacketType::ASSIGNED_USER_ID).From(newUser), std::numeric_limits<int>::max());
+                    // Send existing user ids to new user
                     size_t byteCount = sizeof(int64_t) * (_users.size() + 1);
                     auto userIdsBytes = std::make_unique<int8_t[]>(byteCount);
                     ((int64_t*)userIdsBytes.get())[0] = 0;
@@ -255,6 +257,13 @@ namespace znet
                                 {
                                     Packet pack2 = client->GetPacket();
 
+                                    if (pack2.id == (int)PacketType::PAUSE)
+                                    {
+                                        ztime::clock[3].Update();
+                                        TimePoint now = ztime::clock[3].Now();
+                                        std::cout << "[ServerConMgr] " << now.GetTime(SECONDS) << "." << now.GetTime(MICROSECONDS) % 1000000 << std::endl;
+                                    }
+
                                     // Send confirmation packet
                                     Packet confirmation = Packet((int32_t)PacketType::BYTE_CONFIRMATION);
                                     confirmation.From(pack2.size);
@@ -302,6 +311,20 @@ namespace znet
                 // Loop through packets until 1 is sent
                 for (int i = 0; i < _outPackets.size(); i++)
                 {
+                    // If the server is sending the packet to itself, no additional processing is necessary
+                    std::vector<int64_t> destinationUsers = _outPackets[i].first.userIds;
+                    for (int j = 0; j < _outPackets[i].first.userIds.size(); j++)
+                    {
+                        if (_outPackets[i].first.userIds[j] == ThisUser().id)
+                        {
+                            _PacketData data = { _outPackets[i].first.packet.Reference(), { ThisUser().id } };
+                            std::unique_lock<std::mutex> lock(_m_inPackets);
+                            _inPackets.push(std::move(data));
+                            _outPackets[i].first.userIds.erase(_outPackets[i].first.userIds.begin() + j);
+                            break;
+                        }
+                    }
+
                     // Erase packet if no destination is specified
                     if (_outPackets[i].first.userIds.empty())
                     {
@@ -317,19 +340,24 @@ namespace znet
                         view.id == (int32_t)PacketType::VIDEO_PACKET ||
                         view.id == (int32_t)PacketType::AUDIO_PACKET ||
                         view.id == (int32_t)PacketType::SUBTITLE_PACKET ||
-                        view.id == (int32_t)PacketType::STREAM
-                        );
+                        view.id == (int32_t)PacketType::VIDEO_STREAM ||
+                        view.id == (int32_t)PacketType::AUDIO_STREAM ||
+                        view.id == (int32_t)PacketType::SUBTITLE_STREAM ||
+                        view.id == (int32_t)PacketType::ATTACHMENT_STREAM ||
+                        view.id == (int32_t)PacketType::DATA_STREAM ||
+                        view.id == (int32_t)PacketType::UNKNOWN_STREAM
+                    );
 
                     bool sent = false;
 
                     // Go through every destination user id and attempt to send
-                    for (int j = 0; j < _outPackets[j].first.userIds.size(); j++)
+                    for (int j = 0; j < _outPackets[i].first.userIds.size(); j++)
                     {
                         // Find user with matching id
                         int userIndex = -1;
                         for (int k = 0; k < _users.size(); k++)
                         {
-                            if (_users[k].id == _outPackets[i].first.userIds[k])
+                            if (_users[k].id == _outPackets[i].first.userIds[j])
                             {
                                 userIndex = k;
                                 break;
@@ -388,7 +416,19 @@ namespace znet
                 lock.unlock();
 
                 // Sleep if no immediate work needs to be done
-                if (_inPackets.empty() && _outPackets.empty())
+                bool packetsIncoming = false;
+                for (int i = 0; i < _users.size(); i++)
+                {
+                    TCPClientRef client = _server.Connection(_users[i].id);
+                    if (!client.Valid())
+                        continue;
+                    if (client->PacketCount() > 0)
+                    {
+                        packetsIncoming = true;
+                        break;
+                    }
+                }
+                if (!packetsIncoming && _outPackets.empty())
                 {
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 }
