@@ -4,7 +4,7 @@ NetworkInterfaceOld* NetworkInterfaceOld::_instance = nullptr;
 
 NetworkInterfaceOld::NetworkInterfaceOld(bool online)
 {
-    if (!online) _mode = NetworkMode::OFFLINE;
+    if (!online) _mode = znet::NetworkMode::OFFLINE;
 
     _serverStartController.Add("done", sizeof(int));
     _serverStartController.Set("done", 0);
@@ -16,7 +16,7 @@ NetworkInterfaceOld::NetworkInterfaceOld(USHORT port)
     : NetworkInterfaceOld(true)
 {
     //sAudioOut.open("server.data", std::ios::binary);
-    _mode = NetworkMode::SERVER;
+    _mode = znet::NetworkMode::SERVER;
     _port = port;
 
     _serverStartThread = std::thread(&NetworkInterfaceOld::_StartServer, this);
@@ -26,7 +26,7 @@ NetworkInterfaceOld::NetworkInterfaceOld(USHORT port)
 NetworkInterfaceOld::NetworkInterfaceOld(std::string ip, USHORT port)
     : NetworkInterfaceOld(true)
 {
-    _mode = NetworkMode::CLIENT;
+    _mode = znet::NetworkMode::CLIENT;
     _ip = ip;
     _port = port;
 
@@ -59,7 +59,7 @@ NetworkInterfaceOld* NetworkInterfaceOld::Instance()
 
 void NetworkInterfaceOld::StartServer(USHORT port)
 {
-    _mode = NetworkMode::SERVER;
+    _mode = znet::NetworkMode::SERVER;
     _status = NetworkStatus::WAITING_FOR_CONNECTION;
     _port = port;
 
@@ -81,7 +81,7 @@ void NetworkInterfaceOld::StopServer()
 
 void NetworkInterfaceOld::Connect(std::string ip, USHORT port)
 {
-    _mode = NetworkMode::CLIENT;
+    _mode = znet::NetworkMode::CLIENT;
     _status = NetworkStatus::CONNECTING;
     _ip = ip;
     _port = port;
@@ -165,7 +165,7 @@ int NetworkInterfaceOld::Connected()
     return _clientStartController.Get<int>("done");
 }
 
-NetworkMode NetworkInterfaceOld::Mode()
+znet::NetworkMode NetworkInterfaceOld::Mode()
 {
     return _mode;
 }
@@ -404,13 +404,13 @@ void NetworkInterfaceOld::SendSeekCommand(TimePoint position)
     *tp = position;
     _mtxNetThread.lock();
     _outPacketQueue.push_front(znetold::Packet(_clientId, packet::SEEK, (char*)tp, sizeof(position)));
-    if (Mode() == NetworkMode::CLIENT)
+    if (Mode() == znet::NetworkMode::CLIENT)
     {
         _awaitingSeekConfirmation = true;
         _videoPacketPkts.clear();
         _audioPacketPkts.clear();
     }
-    else if (Mode() == NetworkMode::SERVER)
+    else if (Mode() == znet::NetworkMode::SERVER)
     {
         for (int i = 0; i < _outPacketQueue.size(); i++)
         {
@@ -520,7 +520,7 @@ void NetworkInterfaceOld::SendCurrentPosition(TimePoint position)
 
 znetold::Packet NetworkInterfaceOld::GetPacket()
 {
-    if (Mode() == NetworkMode::OFFLINE) return znetold::Packet();
+    if (Mode() == znet::NetworkMode::OFFLINE) return znetold::Packet();
 
     LOCK_GUARD(lock, _mtxNetThread);
     if (_inPacketQueue.size() > 0)
@@ -742,17 +742,17 @@ void NetworkInterfaceOld::NetworkThread()
         }
     }
 
-    if (Mode() == NetworkMode::SERVER)
+    if (Mode() == znet::NetworkMode::SERVER)
     {
         _server.CloseServer();
     }
-    else if (Mode() == NetworkMode::CLIENT)
+    else if (Mode() == znet::NetworkMode::CLIENT)
     {
         _client.Disconnect();
     }
     _network = nullptr;
 
-    _mode = NetworkMode::OFFLINE;
+    _mode = znet::NetworkMode::OFFLINE;
     _status = NetworkStatus::OFFLINE;
     _outPacketQueue.clear();
     _networkThreadController.Set("stop", false);

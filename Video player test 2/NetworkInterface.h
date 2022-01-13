@@ -34,7 +34,7 @@ class NetworkInterfaceOld
 
     //PlaybackMode _mode = OFFLINE;
     NetworkStatus _status = NetworkStatus::OFFLINE;
-    NetworkMode _mode = NetworkMode::OFFLINE;
+    znet::NetworkMode _mode = znet::NetworkMode::OFFLINE;
 
     std::string _ip = "";
     USHORT _port = 0;
@@ -66,7 +66,7 @@ public:
     void Connect(std::string ip, USHORT port);
     void Disconnect();
 
-    NetworkMode Mode();
+    znet::NetworkMode Mode();
     NetworkStatus Status();
 
 private:
