@@ -2,6 +2,8 @@
 
 #include "ComponentBase.h"
 
+#include <algorithm>
+
 namespace zcom
 {
     class Panel : public Base
@@ -65,6 +67,10 @@ namespace zcom
                 {
                     newPosX += std::round((GetWidth() - item->GetWidth()) * item->GetHorizontalOffsetPercent());
                 }
+                else if (item->GetHorizontalAlignment() == Alignment::CENTER)
+                {
+                    newPosX = (GetWidth() - item->GetWidth()) / 2;
+                }
                 else if (item->GetHorizontalAlignment() == Alignment::END)
                 {
                     newPosX = GetWidth() - item->GetWidth();
@@ -80,6 +86,10 @@ namespace zcom
                 if (item->GetVerticalAlignment() == Alignment::START)
                 {
                     newPosY += std::round((GetHeight() - item->GetHeight()) * item->GetVerticalOffsetPercent());
+                }
+                else if (item->GetVerticalAlignment() == Alignment::CENTER)
+                {
+                    newPosY = (GetHeight() - item->GetHeight()) / 2;
                 }
                 else if (item->GetVerticalAlignment() == Alignment::END)
                 {
