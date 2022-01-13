@@ -207,7 +207,7 @@ void MediaPlayer::Update(double timeLimit)
             {
                 _videoData.currentFrame.reset(_videoData.nextFrame.release());
                 currentFrame = (VideoFrame*)_videoData.currentFrame.get();
-                if (!_recovering) // Prevent ugly fast forwarding after seeking
+                if (!_recovering && TimerRunning()) // Prevent ugly fast forwarding after seeking
                 {
                     _videoOutputAdapter->SetVideoData(*currentFrame);
                 }
