@@ -15,7 +15,7 @@ public:
         _size = 0;
         _bytes = nullptr;
     }
-    SerializedData(size_t size, std::unique_ptr<uchar[]>& bytes)
+    SerializedData(size_t size, std::unique_ptr<uchar[]>&& bytes)
     {
         _size = size;
         _bytes = std::move(bytes);
@@ -53,7 +53,7 @@ public:
 
         auto bytes = std::make_unique<uchar[]>(count);
         std::copy_n(_bytes.get() + startByte, count, bytes.get());
-        return { count, bytes };
+        return { count, std::move(bytes) };
     }
 };
 
