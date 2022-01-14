@@ -3,7 +3,7 @@
 #include <iostream>
 
 MediaReceiverDataProvider::MediaReceiverDataProvider(int64_t hostId)
-    : //IMediaDataProvider(),
+    : IMediaDataProvider(),
     _videoPacketReceiver(znet::PacketType::VIDEO_PACKET),
     _audioPacketReceiver(znet::PacketType::AUDIO_PACKET),
     _subtitlePacketReceiver(znet::PacketType::SUBTITLE_PACKET)
