@@ -85,10 +85,6 @@ void ReceiverPlaybackController::_CheckForPause()
 
     while (_pauseReceiver->PacketCount() > 0)
     {
-        ztime::clock[3].Update();
-        TimePoint now = ztime::clock[3].Now();
-        std::cout << "[HostPlaybackController] " << now.GetTime(SECONDS) << "." << now.GetTime(MICROSECONDS) % 1000000 << std::endl << std::endl;
-
         auto packetPair = _pauseReceiver->GetPacket();
         BasePlaybackController::Pause();
     }

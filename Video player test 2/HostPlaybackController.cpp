@@ -214,10 +214,6 @@ void HostPlaybackController::Pause()
 {
     BasePlaybackController::Pause();
     znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PAUSE), _GetUserIds(), 1);
-
-    ztime::clock[3].Update();
-    TimePoint now = ztime::clock[3].Now();
-    std::cout << "[HostPlaybackController] " << now.GetTime(SECONDS) << "." << now.GetTime(MICROSECONDS) % 1000000 << std::endl;
 }
 
 void HostPlaybackController::_Play()
