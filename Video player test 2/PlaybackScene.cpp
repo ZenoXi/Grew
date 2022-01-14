@@ -293,15 +293,13 @@ void PlaybackScene::_Update()
         // Check for volume commands
         if (ButtonPressed(upClicked, VK_UP))
         {
-            float newVolume = _controller->GetVolume() + 0.05f;
-            _controller->SetVolume(newVolume);
-            _volumeSlider->SetVolume(newVolume);
+            _volumeSlider->SetValue(_volumeSlider->GetValue() + 0.05f);
+            _controller->SetVolume(_volumeSlider->GetVolume());
         }
         if (ButtonPressed(downClicked, VK_DOWN))
         {
-            float newVolume = _controller->GetVolume() - 0.05f;
-            _controller->SetVolume(newVolume);
-            _volumeSlider->SetVolume(newVolume);
+            _volumeSlider->SetValue(_volumeSlider->GetValue() - 0.05f);
+            _controller->SetVolume(_volumeSlider->GetVolume());
         }
         if (_volumeSlider->GetVolume() != _controller->GetVolume())
         {
@@ -356,7 +354,8 @@ void PlaybackScene::_Update()
                 _controller->Play();
 
             _seekBar->SetDuration(_dataProvider->MediaDuration());
-            _volumeSlider->SetVolume(_controller->GetVolume());
+            _volumeSlider->SetValue(0.1f);
+            _controller->SetVolume(_volumeSlider->GetVolume());
         }
         if (_dataProvider->InitFailed())
         {

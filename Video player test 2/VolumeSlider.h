@@ -41,7 +41,7 @@ namespace zcom
             g.target->Clear();
 
             // Draw the seek bar
-            float progress = _volume;
+            float progress = _value;
             int textWidth = ceilf(_maxTextWidth) + _margins * 2;
             int volumeSliderWidth = GetWidth() - textWidth - _margins;
             int selectedPartWidth = volumeSliderWidth * progress;
@@ -79,7 +79,7 @@ namespace zcom
 
             // Create value string
             std::wstringstream valueStr;
-            valueStr << (int)(_volume * 100.0f) << "%";
+            valueStr << (int)roundf(_value * 100.0f) << "%";
 
             // Draw value strings
             g.target->DrawText(
@@ -111,7 +111,7 @@ namespace zcom
                 if (xPos < 0) xPos = 0;
                 if (xPos > volumeSliderWidth) xPos = volumeSliderWidth;
                 float xPosNorm = xPos / (float)volumeSliderWidth;
-                _volume = xPosNorm;
+                _value = xPosNorm;
             }
             return this;
         }
@@ -134,7 +134,7 @@ namespace zcom
             if (xPos >= 0 && xPos <= volumeSliderWidth)
             {
                 float xPosNorm = xPos / (float)volumeSliderWidth;
-                _volume = xPosNorm;
+                _value = xPosNorm;
                 _held = true;
             }
             return this;
@@ -185,11 +185,12 @@ namespace zcom
                 return nullptr;
         }
 
-        const char* GetName() const { return "seek_bar"; }
+        const char* GetName() const { return "volume_slider"; }
 #pragma endregion
 
     private:
-        float _volume = 0;
+        float _value = 0;
+        float _exponent = 2.0f;
 
         bool _held = false;
         float _textHeight = 0.0f;
@@ -208,9 +209,9 @@ namespace zcom
         TimePoint _mouseHoverStart = 0;
 
     public:
-        VolumeSlider(float volume)
+        VolumeSlider(float value)
         {
-            _volume = volume;
+            _value = value;
 
             // Create text rendering resources
             DWriteCreateFactory(
@@ -260,16 +261,40 @@ namespace zcom
         VolumeSlider(const VolumeSlider&) = delete;
         VolumeSlider& operator=(const VolumeSlider&) = delete;
 
+        float GetValue() const
+        {
+            return _value;
+        }
+
+        void SetValue(float value)
+        {
+            if (value > 1.0f) value = 1.0f;
+            else if (value < 0.0f) value = 0.0f;
+            _value = value;
+        }
+
         float GetVolume() const
         {
-            return _volume;
+            return powf(_value, _exponent);
         }
 
         void SetVolume(float volume)
         {
             if (volume > 1.0f) volume = 1.0f;
             else if (volume < 0.0f) volume = 0.0f;
-            _volume = volume;
+            _value = powf(volume, 1.0f / _exponent);
+        }
+
+        float GetExponent() const
+        {
+            return _exponent;
+        }
+
+        // If the slider is in position X (0.0-1.0), the volume will be set to X^'exponent'
+        // Default - 2.0
+        void SetExponent(float exponent)
+        {
+            _exponent = exponent;
         }
     };
 }
