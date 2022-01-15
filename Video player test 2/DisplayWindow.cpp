@@ -9,7 +9,7 @@
 #include <WinUser.h>
 #pragma comment( lib,"User32.lib" )
 
-std::wstring DisplayWindow::WINDOW_NAME = L"DirectX app";
+std::wstring DisplayWindow::WINDOW_NAME = L"Grew";
 
 #define EXEC_PTR_LOOP(container, expression) for (auto item : container) item->expression
 #define EXEC_LOOP(container, expression) for (auto item : container) item.expression
