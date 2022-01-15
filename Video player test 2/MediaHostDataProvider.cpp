@@ -296,11 +296,20 @@ void MediaHostDataProvider::_ReadPackets()
         {
             // Wait until all packet types are flush
             if (!_localDataProvider->FlushVideoPacketNext())
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(0));
                 continue;
+            }
             if (!_localDataProvider->FlushAudioPacketNext())
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(0));
                 continue;
+            }
             if (!_localDataProvider->FlushSubtitlePacketNext())
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(0));
                 continue;
+            }
 
             videoPacket = _localDataProvider->GetVideoPacket();
             audioPacket = _localDataProvider->GetAudioPacket();
@@ -322,6 +331,7 @@ void MediaHostDataProvider::_ReadPackets()
         }
         lock.unlock();
 
+        // Read packets
         if (!videoPacket.Valid() && !videoPacket.flush)
             videoPacket = _localDataProvider->GetVideoPacket();
         if (!audioPacket.Valid() && !audioPacket.flush)
@@ -329,10 +339,15 @@ void MediaHostDataProvider::_ReadPackets()
         if (!subtitlePacket.Valid() && !subtitlePacket.flush)
             subtitlePacket = _localDataProvider->GetSubtitlePacket();
 
+
+        // Pass packets to receivers and data provider
+        bool packetPassed = false;
         if (videoPacket.Valid() || videoPacket.flush)
         {
             if (!VideoMemoryExceeded())
             {
+                packetPassed = true;
+
                 // Send packet to all receivers
                 auto data = videoPacket.Serialize();
                 auto bytes = std::make_unique<int8_t[]>(data.Size());
@@ -348,6 +363,8 @@ void MediaHostDataProvider::_ReadPackets()
         {
             if (!AudioMemoryExceeded())
             {
+                packetPassed = true;
+
                 // Send packet to all receivers
                 auto data = audioPacket.Serialize();
                 auto bytes = std::make_unique<int8_t[]>(data.Size());
@@ -363,6 +380,8 @@ void MediaHostDataProvider::_ReadPackets()
         {
             if (!SubtitleMemoryExceeded())
             {
+                packetPassed = true;
+
                 // Send packet to all receivers
                 auto data = subtitlePacket.Serialize();
                 auto bytes = std::make_unique<int8_t[]>(data.Size());
@@ -372,6 +391,11 @@ void MediaHostDataProvider::_ReadPackets()
                 // Add packet to local playback
                 _AddSubtitlePacket(std::move(subtitlePacket));
             }
+        }
+
+        if (!packetPassed)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
 }
