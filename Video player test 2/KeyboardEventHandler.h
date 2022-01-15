@@ -81,4 +81,9 @@ public:
     {
         return _keyStates[vkCode] & 0x80;
     }
+
+    BYTE* KeyStates()
+    {
+        return _keyStates;
+    }
 };
