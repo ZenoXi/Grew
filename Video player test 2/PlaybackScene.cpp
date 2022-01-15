@@ -477,7 +477,7 @@ ID2D1Bitmap1* PlaybackScene::_Draw(Graphics g)
 
         // Determine subtitle destination dimensions
         D2D1_RECT_F destRectSubtitles;
-        D2D1_RECT_F srcRectSubtitles;
+        D2D1_RECT_F srcRectSubtitles = D2D1::RectF(0.0f, 0.0f, subtitleFrame.GetWidth(), subtitleFrame.GetHeight());
         if (_videoFrameBitmap)
         {
             destRectSubtitles = destRectVideo;
@@ -485,7 +485,6 @@ ID2D1Bitmap1* PlaybackScene::_Draw(Graphics g)
         else
         {
             // Scale frame to preserve aspect ratio
-            srcRectSubtitles = D2D1::RectF(0.0f, 0.0f, subtitleFrame.GetWidth(), subtitleFrame.GetHeight());
             float tWidth = g.target->GetSize().width;
             float tHeight = g.target->GetSize().height;
             if (subtitleFrame.GetWidth() / (float)subtitleFrame.GetHeight() < tWidth / tHeight)
