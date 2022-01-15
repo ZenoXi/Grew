@@ -389,13 +389,13 @@ namespace zcom
             }
 
             // Stash current target
-            g.target->EndDraw();
+            //g.target->EndDraw();
             ID2D1Image* target;
             g.target->GetTarget(&target);
 
             // Set canvas as target
             g.target->SetTarget(_canvas);
-            g.target->BeginDraw();
+            //g.target->BeginDraw();
 
             if (_visible)
             {
@@ -431,16 +431,16 @@ namespace zcom
                 g.target->Clear();
             }
 
-            HRESULT hr = g.target->EndDraw();
-            if (hr != S_OK)
-            {
-                std::cout << "Draw failed in '" << GetName() << "'" << std::endl;
-            }
+            //HRESULT hr = g.target->EndDraw();
+            //if (hr != S_OK)
+            //{
+            //    std::cout << "Draw failed in '" << GetName() << "'" << std::endl;
+            //}
 
             // Unstash target
             g.target->SetTarget(target);
             target->Release();
-            g.target->BeginDraw();
+            //g.target->BeginDraw();
 
             return _canvas;
         }
