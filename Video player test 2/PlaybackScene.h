@@ -52,6 +52,9 @@ class PlaybackScene : public Scene
     bool _startPaused = false;
     bool _placeholder = false;
 
+    ID2D1Bitmap* _videoFrameBitmap = nullptr;
+    ID2D1Bitmap* _subtitleFrameBitmap = nullptr;
+
 public:
     PlaybackScene();
 

@@ -375,36 +375,81 @@ ID2D1Bitmap1* PlaybackScene::_Draw(Graphics g)
     {
         const VideoFrame& videoFrame = _videoAdapter->GetVideoData();
         const VideoFrame& subtitleFrame = _videoAdapter->GetSubtitleData();
-        if (videoFrame.GetWidth() && videoFrame.GetHeight())
-        {
-            D2D1_BITMAP_PROPERTIES props;
-            props.dpiX = 96.0f;
-            props.dpiY = 96.0f;
-            props.pixelFormat = D2D1::PixelFormat
-            (
-                DXGI_FORMAT_B8G8R8A8_UNORM,
-                D2D1_ALPHA_MODE_IGNORE
-            );
-            ID2D1Bitmap* frame;
-            g.target->CreateBitmap
-            (
-                D2D1::SizeU(videoFrame.GetWidth(), videoFrame.GetHeight()),
-                props,
-                &frame
-            );
-            D2D1_RECT_U rect = D2D1::RectU(0, 0, videoFrame.GetWidth(), videoFrame.GetHeight());
-            frame->CopyFromMemory(&rect, videoFrame.GetBytes(), videoFrame.GetWidth() * 4);
 
+        // Update video bitmap
+        if (!_videoFrameBitmap || _videoAdapter->VideoDataChanged())
+        {
+            if (_videoFrameBitmap)
+                zcom::SafeFullRelease((IUnknown**)&_videoFrameBitmap);
+
+            bool frameValid = videoFrame.GetWidth() && videoFrame.GetHeight();
+            if (frameValid)
+            {
+                D2D1_BITMAP_PROPERTIES props;
+                props.dpiX = 96.0f;
+                props.dpiY = 96.0f;
+                props.pixelFormat = D2D1::PixelFormat
+                (
+                    DXGI_FORMAT_B8G8R8A8_UNORM,
+                    D2D1_ALPHA_MODE_IGNORE
+                );
+                g.target->CreateBitmap
+                (
+                    D2D1::SizeU(videoFrame.GetWidth(), videoFrame.GetHeight()),
+                    props,
+                    &_videoFrameBitmap
+                );
+                g.refs->push_back((IUnknown**)&_videoFrameBitmap);
+
+                D2D1_RECT_U rect = D2D1::RectU(0, 0, videoFrame.GetWidth(), videoFrame.GetHeight());
+                _videoFrameBitmap->CopyFromMemory(&rect, videoFrame.GetBytes(), videoFrame.GetWidth() * 4);
+            }
+        }
+
+        // Update subtitle bitmap
+        if (!_subtitleFrameBitmap || _videoAdapter->SubtitleDataChanged())
+        {
+            if (_subtitleFrameBitmap)
+                zcom::SafeFullRelease((IUnknown**)&_subtitleFrameBitmap);
+
+            bool frameValid = subtitleFrame.GetWidth() && subtitleFrame.GetHeight();
+            if (frameValid)
+            {
+                D2D1_BITMAP_PROPERTIES props;
+                props.dpiX = 96.0f;
+                props.dpiY = 96.0f;
+                props.pixelFormat = D2D1::PixelFormat
+                (
+                    DXGI_FORMAT_B8G8R8A8_UNORM,
+                    D2D1_ALPHA_MODE_PREMULTIPLIED
+                );
+                g.target->CreateBitmap
+                (
+                    D2D1::SizeU(subtitleFrame.GetWidth(), subtitleFrame.GetHeight()),
+                    props,
+                    &_subtitleFrameBitmap
+                );
+                g.refs->push_back((IUnknown**)&_subtitleFrameBitmap);
+
+                D2D1_RECT_U rect = D2D1::RectU(0, 0, subtitleFrame.GetWidth(), subtitleFrame.GetHeight());
+                _subtitleFrameBitmap->CopyFromMemory(&rect, subtitleFrame.GetBytes(), subtitleFrame.GetWidth() * 4);
+            }
+        }
+
+        // Determine video destination dimensions
+        D2D1_RECT_F destRectVideo;
+        D2D1_RECT_F srcRectVideo;
+        if (_videoFrameBitmap)
+        {
             // Scale frame to preserve aspect ratio
-            D2D1_RECT_F srcRect = D2D1::RectF(0.0f, 0.0f, videoFrame.GetWidth(), videoFrame.GetHeight());
-            D2D1_RECT_F destRect;
+            srcRectVideo = D2D1::RectF(0.0f, 0.0f, videoFrame.GetWidth(), videoFrame.GetHeight());
             float tWidth = g.target->GetSize().width;
             float tHeight = g.target->GetSize().height;
             if (videoFrame.GetWidth() / (float)videoFrame.GetHeight() < tWidth / tHeight)
             {
                 float scale = videoFrame.GetHeight() / tHeight;
                 float newWidth = videoFrame.GetWidth() / scale;
-                destRect = D2D1::Rect
+                destRectVideo = D2D1::Rect
                 (
                     (tWidth - newWidth) * 0.5f,
                     0.0f,
@@ -416,7 +461,7 @@ ID2D1Bitmap1* PlaybackScene::_Draw(Graphics g)
             {
                 float scale = videoFrame.GetWidth() / tWidth;
                 float newHeight = videoFrame.GetHeight() / scale;
-                destRect = D2D1::Rect
+                destRectVideo = D2D1::Rect
                 (
                     0.0f,
                     (tHeight - newHeight) * 0.5f,
@@ -426,40 +471,146 @@ ID2D1Bitmap1* PlaybackScene::_Draw(Graphics g)
             }
             else
             {
-                destRect = D2D1::RectF(0.0f, 0.0f, tWidth, tHeight);
-            }
-
-            // Draw frame
-            g.target->DrawBitmap(frame, destRect, 1.0f, D2D1_INTERPOLATION_MODE_CUBIC, srcRect);
-            frame->Release();
-
-            // Apply subtitles
-            if (subtitleFrame.GetWidth() && subtitleFrame.GetHeight())
-            {
-                D2D1_BITMAP_PROPERTIES props;
-                props.dpiX = 96.0f;
-                props.dpiY = 96.0f;
-                props.pixelFormat = D2D1::PixelFormat
-                (
-                    DXGI_FORMAT_B8G8R8A8_UNORM,
-                    D2D1_ALPHA_MODE_PREMULTIPLIED
-                );
-                ID2D1Bitmap* subframe;
-                HRESULT hr = g.target->CreateBitmap
-                (
-                    D2D1::SizeU(subtitleFrame.GetWidth(), subtitleFrame.GetHeight()),
-                    props,
-                    &subframe
-                );
-                D2D1_RECT_U rect = D2D1::RectU(0, 0, subtitleFrame.GetWidth(), subtitleFrame.GetHeight());
-                subframe->CopyFromMemory(&rect, subtitleFrame.GetBytes(), subtitleFrame.GetWidth() * 4);
-
-                srcRect = D2D1::RectF(0.0f, 0.0f, subtitleFrame.GetWidth(), subtitleFrame.GetHeight());
-
-                g.target->DrawBitmap(subframe, destRect, 1.0f, D2D1_INTERPOLATION_MODE_CUBIC, srcRect);
-                subframe->Release();
+                destRectVideo = D2D1::RectF(0.0f, 0.0f, tWidth, tHeight);
             }
         }
+
+        // Determine subtitle destination dimensions
+        D2D1_RECT_F destRectSubtitles;
+        D2D1_RECT_F srcRectSubtitles;
+        if (_videoFrameBitmap)
+        {
+            destRectSubtitles = destRectVideo;
+        }
+        else
+        {
+            // Scale frame to preserve aspect ratio
+            srcRectSubtitles = D2D1::RectF(0.0f, 0.0f, subtitleFrame.GetWidth(), subtitleFrame.GetHeight());
+            float tWidth = g.target->GetSize().width;
+            float tHeight = g.target->GetSize().height;
+            if (subtitleFrame.GetWidth() / (float)subtitleFrame.GetHeight() < tWidth / tHeight)
+            {
+                float scale = subtitleFrame.GetHeight() / tHeight;
+                float newWidth = subtitleFrame.GetWidth() / scale;
+                destRectSubtitles = D2D1::Rect
+                (
+                    (tWidth - newWidth) * 0.5f,
+                    0.0f,
+                    (tWidth - newWidth) * 0.5f + newWidth,
+                    tHeight
+                );
+            }
+            else if (subtitleFrame.GetWidth() / (float)subtitleFrame.GetHeight() > tWidth / tHeight)
+            {
+                float scale = subtitleFrame.GetWidth() / tWidth;
+                float newHeight = subtitleFrame.GetHeight() / scale;
+                destRectSubtitles = D2D1::Rect
+                (
+                    0.0f,
+                    (tHeight - newHeight) * 0.5f,
+                    tWidth,
+                    (tHeight - newHeight) * 0.5f + newHeight
+                );
+            }
+            else
+            {
+                destRectSubtitles = D2D1::RectF(0.0f, 0.0f, tWidth, tHeight);
+            }
+        }
+
+        // Draw video
+        if (_videoFrameBitmap)
+            g.target->DrawBitmap(_videoFrameBitmap, destRectVideo, 1.0f, D2D1_INTERPOLATION_MODE_CUBIC, srcRectVideo);
+
+        // Draw subtitles
+        if (_subtitleFrameBitmap)
+            g.target->DrawBitmap(_subtitleFrameBitmap, destRectSubtitles, 1.0f, D2D1_INTERPOLATION_MODE_CUBIC, srcRectSubtitles);
+
+        //if (videoFrame.GetWidth() && videoFrame.GetHeight())
+        //{
+        //    D2D1_BITMAP_PROPERTIES props;
+        //    props.dpiX = 96.0f;
+        //    props.dpiY = 96.0f;
+        //    props.pixelFormat = D2D1::PixelFormat
+        //    (
+        //        DXGI_FORMAT_B8G8R8A8_UNORM,
+        //        D2D1_ALPHA_MODE_IGNORE
+        //    );
+        //    ID2D1Bitmap* frame;
+        //    g.target->CreateBitmap
+        //    (
+        //        D2D1::SizeU(videoFrame.GetWidth(), videoFrame.GetHeight()),
+        //        props,
+        //        &frame
+        //    );
+        //    D2D1_RECT_U rect = D2D1::RectU(0, 0, videoFrame.GetWidth(), videoFrame.GetHeight());
+        //    frame->CopyFromMemory(&rect, videoFrame.GetBytes(), videoFrame.GetWidth() * 4);
+
+        //    // Scale frame to preserve aspect ratio
+        //    D2D1_RECT_F srcRect = D2D1::RectF(0.0f, 0.0f, videoFrame.GetWidth(), videoFrame.GetHeight());
+        //    D2D1_RECT_F destRect;
+        //    float tWidth = g.target->GetSize().width;
+        //    float tHeight = g.target->GetSize().height;
+        //    if (videoFrame.GetWidth() / (float)videoFrame.GetHeight() < tWidth / tHeight)
+        //    {
+        //        float scale = videoFrame.GetHeight() / tHeight;
+        //        float newWidth = videoFrame.GetWidth() / scale;
+        //        destRect = D2D1::Rect
+        //        (
+        //            (tWidth - newWidth) * 0.5f,
+        //            0.0f,
+        //            (tWidth - newWidth) * 0.5f + newWidth,
+        //            tHeight
+        //        );
+        //    }
+        //    else if (videoFrame.GetWidth() / (float)videoFrame.GetHeight() > tWidth / tHeight)
+        //    {
+        //        float scale = videoFrame.GetWidth() / tWidth;
+        //        float newHeight = videoFrame.GetHeight() / scale;
+        //        destRect = D2D1::Rect
+        //        (
+        //            0.0f,
+        //            (tHeight - newHeight) * 0.5f,
+        //            tWidth,
+        //            (tHeight - newHeight) * 0.5f + newHeight
+        //        );
+        //    }
+        //    else
+        //    {
+        //        destRect = D2D1::RectF(0.0f, 0.0f, tWidth, tHeight);
+        //    }
+
+        //    // Draw frame
+        //    g.target->DrawBitmap(frame, destRect, 1.0f, D2D1_INTERPOLATION_MODE_CUBIC, srcRect);
+        //    frame->Release();
+
+        //    // Apply subtitles
+        //    if (subtitleFrame.GetWidth() && subtitleFrame.GetHeight())
+        //    {
+        //        D2D1_BITMAP_PROPERTIES props;
+        //        props.dpiX = 96.0f;
+        //        props.dpiY = 96.0f;
+        //        props.pixelFormat = D2D1::PixelFormat
+        //        (
+        //            DXGI_FORMAT_B8G8R8A8_UNORM,
+        //            D2D1_ALPHA_MODE_PREMULTIPLIED
+        //        );
+        //        ID2D1Bitmap* subframe;
+        //        HRESULT hr = g.target->CreateBitmap
+        //        (
+        //            D2D1::SizeU(subtitleFrame.GetWidth(), subtitleFrame.GetHeight()),
+        //            props,
+        //            &subframe
+        //        );
+        //        D2D1_RECT_U rect = D2D1::RectU(0, 0, subtitleFrame.GetWidth(), subtitleFrame.GetHeight());
+        //        subframe->CopyFromMemory(&rect, subtitleFrame.GetBytes(), subtitleFrame.GetWidth() * 4);
+
+        //        srcRect = D2D1::RectF(0.0f, 0.0f, subtitleFrame.GetWidth(), subtitleFrame.GetHeight());
+
+        //        g.target->DrawBitmap(subframe, destRect, 1.0f, D2D1_INTERPOLATION_MODE_CUBIC, srcRect);
+        //        subframe->Release();
+        //    }
+        //}
     }
 
     // Draw UI
