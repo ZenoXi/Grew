@@ -14,15 +14,15 @@ public:
     IVideoOutputAdapter() : _videoData(0, 0, -1), _subtitleData(0, 0, -1) {}
     virtual ~IVideoOutputAdapter() {}
 
-    void SetVideoData(const VideoFrame& frame)
+    void SetVideoData(VideoFrame&& frame)
     {
-        _videoData = frame;
+        _videoData = std::move(frame);
         _videoDataChanged.store(true);
     }
 
-    void SetSubtitleData(const VideoFrame& frame)
+    void SetSubtitleData(VideoFrame&& frame)
     {
-        _subtitleData = frame;
+        _subtitleData = std::move(frame);
         _subtitleDataChanged.store(true);
     }
 

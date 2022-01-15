@@ -209,7 +209,7 @@ void MediaPlayer::Update(double timeLimit)
                 currentFrame = (VideoFrame*)_videoData.currentFrame.get();
                 if (!_recovering && TimerRunning()) // Prevent ugly fast forwarding after seeking
                 {
-                    _videoOutputAdapter->SetVideoData(*currentFrame);
+                    _videoOutputAdapter->SetVideoData(std::move(*currentFrame));
                 }
                 frameAdvanced = true;
             }
@@ -245,7 +245,7 @@ void MediaPlayer::Update(double timeLimit)
             if ((_playbackTimer.Now() - _lastSubtitleRender).GetDuration(MILLISECONDS) > 50)
             {
                 VideoFrame subtitle = ((SubtitleDecoder*)_subtitleData.decoder)->RenderFrame(_playbackTimer.Now());
-                _videoOutputAdapter->SetSubtitleData(subtitle);
+                _videoOutputAdapter->SetSubtitleData(std::move(subtitle));
                 _lastSubtitleRender = _playbackTimer.Now();
             }
         }
