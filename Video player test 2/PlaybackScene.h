@@ -18,6 +18,13 @@
 #include "PlayButton.h"
 #include "Button.h"
 
+class PlaybackShortcutHandler : public KeyboardEventHandler
+{
+    void _OnKeyDown(BYTE vkCode) {}
+    void _OnKeyUp(BYTE vkCode) {}
+    void _OnChar(wchar_t ch) {}
+};
+
 struct PlaybackSceneOptions : public SceneOptionsBase
 {
     std::string fileName = "";
@@ -43,6 +50,8 @@ class PlaybackScene : public Scene
     zcom::Button* _overlayButton = nullptr;
     zcom::Button* _audioStreamButton = nullptr;
     zcom::Button* _subtitleStreamButton = nullptr;
+
+    std::unique_ptr<PlaybackShortcutHandler> _shortcutHandler = nullptr;
 
     IMediaDataProvider* _dataProvider = nullptr;
     IAudioOutputAdapter* _audioAdapter = nullptr;
@@ -72,4 +81,7 @@ public:
 public:
     // Playback reached the end
     bool Finished() const;
+
+private:
+    bool _HandleKeyDown(BYTE keyCode);
 };

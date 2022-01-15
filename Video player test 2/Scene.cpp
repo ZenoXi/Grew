@@ -28,6 +28,7 @@ void Scene::Focus()
     _focused = true;
     App::Instance()->mouseManager.AddHandler(_canvas);
     App::Instance()->keyboardManager.AddHandler(_canvas);
+    _Focus();
 }
 
 void Scene::Unfocus()
@@ -39,6 +40,7 @@ void Scene::Unfocus()
     _canvas->OnMouseLeave();
     App::Instance()->mouseManager.RemoveHandler(_canvas);
     App::Instance()->keyboardManager.RemoveHandler(_canvas);
+    _Unfocus();
 }
 
 bool Scene::Focused() const
