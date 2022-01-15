@@ -536,7 +536,7 @@ void DisplayWindow::HandleFullscreenChange()
 
             int w = desktop.right - desktop.left;
             int h = desktop.bottom - desktop.top;
-            SetWindowLongPtr(_hwnd, GWL_STYLE, WS_VISIBLE | WS_POPUP);
+            SetWindowLongPtr(_hwnd, GWL_STYLE, /*WS_VISIBLE |*/ WS_POPUP);
             SetWindowPos(_hwnd, HWND_TOP, 0, 0, w, h, SWP_FRAMECHANGED);
 
             ShowWindow(_hwnd, SW_SHOWDEFAULT);
