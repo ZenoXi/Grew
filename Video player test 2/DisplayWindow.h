@@ -172,6 +172,11 @@ public:
     bool GetFullscreen();
     void SetWindowDimensions(unsigned w, unsigned h);
     void HandleFullscreenChange();
+    // Shows/Hides the cursor until it is moved or this function is called
+    void SetCursorVisibility(bool visible);
+    void HandleCursorVisibility();
+    // Resets screen shutoff timer
+    void ResetScreenTimer();
 private:
     static LRESULT WINAPI _HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
     static LRESULT WINAPI _HandleMsgThunk(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -191,6 +196,8 @@ private:
     bool _maximized = false;
     RECT _windowedRect;
     bool _windowedMaximized;
+    bool _cursorVisible = true;
+    bool _cursorVisibilityChanged = false;
 
     RECT _last2Moves[2];
 

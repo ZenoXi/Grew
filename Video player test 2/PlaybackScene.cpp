@@ -184,6 +184,9 @@ void PlaybackScene::_Unfocus()
 
 void PlaybackScene::_Update()
 {
+    // Prevent screen turning off
+    App::Instance()->window.ResetScreenTimer();
+
     if (_mediaPlayer)
     {
         // Check for play button click
@@ -519,12 +522,16 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
     }
     case VK_UP: // Volume up
     {
+        App::Instance()->window.SetCursorVisibility(true);
+
         _volumeSlider->SetValue(_volumeSlider->GetValue() + 0.05f);
         _controller->SetVolume(_volumeSlider->GetVolume());
         break;
     }
     case VK_DOWN: // Volume down
     {
+        App::Instance()->window.SetCursorVisibility(false);
+
         _volumeSlider->SetValue(_volumeSlider->GetValue() - 0.05f);
         _controller->SetVolume(_volumeSlider->GetVolume());
         break;

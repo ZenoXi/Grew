@@ -563,6 +563,41 @@ void DisplayWindow::HandleFullscreenChange()
     }
 }
 
+void DisplayWindow::SetCursorVisibility(bool visible)
+{
+    if (visible != _cursorVisible)
+    {
+        _cursorVisible = visible;
+        _cursorVisibilityChanged = true;
+    }
+}
+
+void DisplayWindow::HandleCursorVisibility()
+{
+    if (_cursorVisibilityChanged)
+    {
+        _cursorVisibilityChanged = false;
+
+        if (!_cursorVisible)
+        {
+            int value;
+            while ((value = ShowCursor(false)) > -1);
+            while (value < -1) ShowCursor(true);
+        }
+        else
+        {
+            int value;
+            while ((value = ShowCursor(true)) < 1);
+            while (value > 1) ShowCursor(false);
+        }
+    }
+}
+
+void DisplayWindow::ResetScreenTimer()
+{
+    SetThreadExecutionState(ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED);
+}
+
 void DisplayWindow::AddMouseHandler(MouseEventHandler* handler)
 {
     _mouseHandlers.push_back(handler);
