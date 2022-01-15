@@ -3,6 +3,11 @@
 SubtitleDecoder::SubtitleDecoder(const MediaStream& stream)
     : _stream(stream)
 {
+    AVCodec* codec = avcodec_find_decoder(stream.GetParams()->codec_id);
+    _codecContext = avcodec_alloc_context3(codec);
+    avcodec_parameters_to_context(_codecContext, stream.GetParams());
+    avcodec_open2(_codecContext, codec, NULL);
+
     _library = ass_library_init();
     _track = ass_new_track(_library);
     ass_process_data(_track, (char*)_stream.GetParams()->extradata, _stream.GetParams()->extradata_size);
@@ -24,8 +29,8 @@ SubtitleDecoder::~SubtitleDecoder()
     _decoderThreadStop = true;
     if (_decoderThread.joinable())
         _decoderThread.join();
-    //avcodec_close(_codecContext);
-    //avcodec_free_context(&_codecContext);
+    avcodec_close(_codecContext);
+    avcodec_free_context(&_codecContext);
 
     ass_free_track(_track);
     ass_renderer_done(_renderer);
@@ -63,7 +68,7 @@ void SubtitleDecoder::_DecoderThread()
         if (_packets.empty())
         {
             _m_packets.unlock();
-            std::this_thread::sleep_for(std::chrono::milliseconds(0));
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
             continue;
         }
         MediaPacket packet = std::move(_packets.front());
@@ -76,7 +81,7 @@ void SubtitleDecoder::_DecoderThread()
         //    packet.GetPacket()->data[i] %= 128;
         //}
 
-        //// Decode
+        // Decode
         //AVSubtitle sub;
         //int gotSub;
         //int bytesUsed = avcodec_decode_subtitle2(_codecContext, &sub, &gotSub, packet.GetPacket());

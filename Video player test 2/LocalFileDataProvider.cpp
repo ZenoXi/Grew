@@ -335,6 +335,11 @@ void LocalFileDataProvider::_ReadPackets()
             {
                 av_packet_unref(packet);
             }
+
+            if (holdPacket)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
         }
         else
         {
