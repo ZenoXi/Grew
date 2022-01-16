@@ -344,7 +344,7 @@ namespace zcom
             _selected = false;
             _OnDeselected();
         }
-    private:
+    protected:
         virtual Base* _OnMouseMove(int x, int y) { return this; }
         virtual void _OnMouseEnter() {}
         virtual void _OnMouseLeave() {}

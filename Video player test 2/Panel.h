@@ -9,7 +9,7 @@ namespace zcom
     class Panel : public Base
     {
 #pragma region base_class
-    private:
+    protected:
         void _OnUpdate()
         {
             for (auto item : _items)
