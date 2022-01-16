@@ -107,6 +107,7 @@ namespace zcom
         {
             std::vector<Base*> hoveredComponents;
 
+            Base* handledItem = nullptr;
             for (auto& item : _items)
             {
                 if (!item->GetVisible()) continue;
@@ -116,22 +117,37 @@ namespace zcom
                 {
                     if (item->GetMouseLeftClicked() || item->GetMouseRightClicked())
                     {
-                        return item->OnMouseMove(x - item->GetX(), y - item->GetY());
+                        if (handledItem == nullptr)
+                            handledItem = item->OnMouseMove(x - item->GetX(), y - item->GetY());
                     }
                     hoveredComponents.push_back(item);
-                }
-                else if (item->GetMouseInside())
-                {
-                    if (item->GetMouseLeftClicked() || item->GetMouseRightClicked())
+                    if (!item->GetMouseInsideArea())
                     {
-                        return item->OnMouseMove(x - item->GetX(), y - item->GetY());
+                        item->OnMouseEnterArea();
                     }
-                    else
+                }
+                else
+                {
+                    if (item->GetMouseInside())
+                    {
+                        if (item->GetMouseLeftClicked() || item->GetMouseRightClicked())
+                        {
+                            if (handledItem == nullptr)
+                                handledItem = item->OnMouseMove(x - item->GetX(), y - item->GetY());
+                        }
+                        else
+                        {
+                            item->OnMouseLeave();
+                        }
+                    }
+                    if (item->GetMouseInsideArea())
                     {
                         item->OnMouseLeave();
                     }
                 }
             }
+            if (handledItem)
+                return handledItem;
 
             //std::cout << hoveredComponents.size() << std::endl;
 
@@ -201,6 +217,24 @@ namespace zcom
         }
 
         void _OnMouseEnter()
+        {
+
+            //std::cout << "Mouse enter\n";
+        }
+
+        void _OnMouseLeaveArea()
+        {
+            //std::cout << "Mouse leave\n";
+            for (auto& item : _items)
+            {
+                if (item->GetMouseInsideArea())
+                {
+                    item->OnMouseLeaveArea();
+                }
+            }
+        }
+
+        void _OnMouseEnterArea()
         {
 
             //std::cout << "Mouse enter\n";

@@ -128,6 +128,11 @@ namespace zcom
 
         void _OnMouseMove(int x, int y)
         {
+            if (!_panel->GetMouseInside())
+                _panel->OnMouseEnter();
+            if (!_panel->GetMouseInsideArea())
+                _panel->OnMouseEnterArea();
+
             Base* target = _panel->OnMouseMove(x, y);
             if (target != _panel.get())
             {
@@ -138,6 +143,7 @@ namespace zcom
         void _OnMouseLeave()
         {
             _panel->OnMouseLeave();
+            _panel->OnMouseLeaveArea();
         }
 
         void _OnMouseEnter()

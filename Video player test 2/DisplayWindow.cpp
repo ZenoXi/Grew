@@ -205,6 +205,11 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
             int x = (short)LOWORD(lParam);
             int y = (short)HIWORD(lParam);
             //std::cout << x << "," << y << std::endl;
+            if (GetCapture() != _hwnd)
+            {
+                _mouseInWindow = false;
+            }
+
             if (x >= 0 && x < width && y >= 0 && y < height)
             {
                 if (!_mouseInWindow)
@@ -582,13 +587,13 @@ void DisplayWindow::HandleCursorVisibility()
         {
             int value;
             while ((value = ShowCursor(false)) > -1);
-            while (value < -1) ShowCursor(true);
+            while ((value = ShowCursor(true)) < -1);
         }
         else
         {
             int value;
             while ((value = ShowCursor(true)) < 1);
-            while (value > 1) ShowCursor(false);
+            while ((value = ShowCursor(false)) > 1);
         }
     }
 }

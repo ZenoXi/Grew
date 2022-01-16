@@ -60,6 +60,7 @@ namespace zcom
 
         // Events
         bool _mouseInside = false;
+        bool _mouseInsideArea = false;
         bool _mouseLeftClicked = false;
         bool _mouseRightClicked = false;
         int _mousePosX = 0;
@@ -286,6 +287,22 @@ namespace zcom
             _mouseInside = false;
             _OnMouseLeave();
         }
+        void OnMouseEnterArea()
+        {
+            if (!_active) return;
+            if (_mouseInsideArea) return;
+
+            _mouseInsideArea = true;
+            _OnMouseEnterArea();
+        }
+        void OnMouseLeaveArea()
+        {
+            if (!_active) return;
+            if (!_mouseInsideArea) return;
+
+            _mouseInsideArea = false;
+            _OnMouseLeaveArea();
+        }
         Base* OnLeftPressed(int x, int y)
         {
             if (!_active) return nullptr;
@@ -348,6 +365,8 @@ namespace zcom
         virtual Base* _OnMouseMove(int x, int y) { return this; }
         virtual void _OnMouseEnter() {}
         virtual void _OnMouseLeave() {}
+        virtual void _OnMouseEnterArea() {}
+        virtual void _OnMouseLeaveArea() {}
         virtual Base* _OnLeftPressed(int x, int y) { return this; }
         virtual Base* _OnRightPressed(int x, int y) { return this; }
         virtual Base* _OnLeftReleased(int x, int y) { return this; }
@@ -358,6 +377,7 @@ namespace zcom
         virtual void _OnDeselected() {}
     public:
         bool GetMouseInside() const { return _mouseInside; }
+        bool GetMouseInsideArea() const { return _mouseInsideArea; }
         bool GetMouseLeftClicked() const { return _mouseLeftClicked; }
         bool GetMouseRightClicked() const { return _mouseRightClicked; }
         int GetMousePosX() const { return _mousePosX; }
