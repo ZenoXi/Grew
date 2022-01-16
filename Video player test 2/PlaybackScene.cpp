@@ -72,7 +72,8 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     // Initialize scene
     _controlBar = new zcom::Panel();
     _controlBar->SetParentWidthPercent(1.0f);
-    _controlBar->SetParentHeightPercent(1.0f);
+    _controlBar->SetBaseHeight(100);
+    _controlBar->SetVerticalAlignment(zcom::Alignment::END);
     _controlBar->SetBackgroundColor(D2D1::ColorF::ColorF(0.0f, 0.0f, 0.0f, 0.7f));
 
     _seekBar = new zcom::SeekBar(1000000); // Placeholder duration until data provider loads
@@ -140,21 +141,22 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _controlBar->AddItem(_audioStreamButton);
     _controlBar->AddItem(_subtitleStreamButton);
 
-    _bottomControlPanel = new zcom::BottomControlPanel(_controlBar);
-    _bottomControlPanel->SetParentWidthPercent(1.0f);
-    _bottomControlPanel->SetBaseHeight(100);
-    _bottomControlPanel->SetVerticalAlignment(zcom::Alignment::END);
+    _playbackControllerPanel = new zcom::PlaybackControllerPanel(_controlBar);
+    _playbackControllerPanel->SetParentSizePercent(1.0f, 1.0f);
+    _playbackControllerPanel->AddItem(_controlBar);
     //_bottomControlPanel->SetZIndex(1);
 
-    _canvas->AddComponent(_bottomControlPanel);
+    _canvas->AddComponent(_playbackControllerPanel);
     //componentCanvas.AddComponent(controlBar);
 }
 
 void PlaybackScene::_Uninit()
 {
+    App::Instance()->window.SetFullscreen(false);
+
     _canvas->ClearComponents();
     _controlBar->ClearItems();
-    delete _bottomControlPanel;
+    delete _playbackControllerPanel;
     delete _controlBar;
     delete _seekBar;
     delete _volumeSlider;
@@ -180,6 +182,7 @@ void PlaybackScene::_Focus()
 void PlaybackScene::_Unfocus()
 {
     App::Instance()->keyboardManager.RemoveHandler(_shortcutHandler.get());
+    App::Instance()->window.SetCursorVisibility(true);
 }
 
 void PlaybackScene::_Update()

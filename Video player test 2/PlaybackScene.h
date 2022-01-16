@@ -12,7 +12,7 @@
 
 #include "ComponentBase.h"
 #include "Panel.h"
-#include "BottomControlPanel.h"
+#include "PlaybackControllerPanel.h"
 #include "SeekBar.h"
 #include "VolumeSlider.h"
 #include "PlayButton.h"
@@ -46,7 +46,7 @@ class PlaybackScene : public Scene
     zcom::SeekBar* _seekBar = nullptr;
     zcom::VolumeSlider* _volumeSlider = nullptr;
     zcom::PlayButton* _playButton = nullptr;
-    zcom::BottomControlPanel* _bottomControlPanel = nullptr;
+    zcom::PlaybackControllerPanel* _playbackControllerPanel = nullptr;
     zcom::Button* _overlayButton = nullptr;
     zcom::Button* _audioStreamButton = nullptr;
     zcom::Button* _subtitleStreamButton = nullptr;

@@ -48,7 +48,7 @@ namespace zcom
                 color = _color;
                 image = _image;
             }
-
+            
             ID2D1SolidColorBrush* brush;
             g.target->CreateSolidColorBrush(color, &brush);
             g.target->FillRectangle

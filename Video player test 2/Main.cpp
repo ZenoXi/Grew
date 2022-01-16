@@ -64,6 +64,7 @@ int WINAPI main(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
         if (!wm.handled) exit(0);
 
         window.HandleFullscreenChange();
+        window.HandleCursorVisibility();
 
         // Limit cpu usage
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
