@@ -585,4 +585,5 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
         break;
     }
     }
+    return false;
 }
