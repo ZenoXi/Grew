@@ -32,7 +32,7 @@ namespace zcom
                     _startOpacity = GetOpacity();
                     _targetOpacity = 0.0f;
 
-                    //if (GetMouseInside())
+                    if (GetMouseInsideArea())
                         App::Instance()->window.SetCursorVisibility(false);
                 }
             }
@@ -135,9 +135,9 @@ namespace zcom
             return target;
         }
 
-        void _OnMouseLeave()
+        void _OnMouseLeaveArea()
         {
-            Panel::_OnMouseLeave();
+            Panel::_OnMouseLeaveArea();
             if (_panelShown)
             {
                 _hanging = true;
