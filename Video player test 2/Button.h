@@ -33,15 +33,18 @@ namespace zcom
         {
             D2D1_COLOR_F color;
             ID2D1Bitmap* image;
-            if (GetMouseLeftClicked())
+            if (GetMouseInsideArea())
             {
-                color = _colorClicked;
-                image = _imageClicked;
-            }
-            else if (GetMouseInside())
-            {
-                color = _colorHovered;
-                image = _imageHovered;
+                if (GetMouseLeftClicked())
+                {
+                    color = _colorClicked;
+                    image = _imageClicked;
+                }
+                else
+                {
+                    color = _colorHovered;
+                    image = _imageHovered;
+                }
             }
             else
             {
@@ -88,16 +91,6 @@ namespace zcom
             return this;
         }
 
-        void _OnMouseLeave()
-        {
-
-        }
-
-        void _OnMouseEnter()
-        {
-
-        }
-
         Base* _OnLeftPressed(int x, int y)
         {
             if (_activation == ButtonActivation::PRESS || _activation == ButtonActivation::PRESS_AND_RELEASE)
@@ -110,10 +103,13 @@ namespace zcom
 
         Base* _OnLeftReleased(int x, int y)
         {
-            if (_activation == ButtonActivation::RELEASE || _activation == ButtonActivation::PRESS_AND_RELEASE)
+            if (GetMouseInsideArea())
             {
-                _activated = true;
-                _OnActivated.InvokeAll();
+                if (_activation == ButtonActivation::RELEASE || _activation == ButtonActivation::PRESS_AND_RELEASE)
+                {
+                    _activated = true;
+                    _OnActivated.InvokeAll();
+                }
             }
             return this;
         }
