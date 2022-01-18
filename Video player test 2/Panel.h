@@ -142,7 +142,7 @@ namespace zcom
                     }
                     if (item->GetMouseInsideArea())
                     {
-                        item->OnMouseLeave();
+                        item->OnMouseLeaveArea();
                     }
                 }
             }
