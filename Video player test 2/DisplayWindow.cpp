@@ -587,13 +587,13 @@ void DisplayWindow::HandleCursorVisibility()
         {
             int value;
             while ((value = ShowCursor(false)) > -1);
-            while ((value = ShowCursor(true)) < -1);
+            while (value < -1) value = ShowCursor(true);
         }
         else
         {
             int value;
             while ((value = ShowCursor(true)) < 1);
-            while ((value = ShowCursor(false)) > 1);
+            while (value > 1) value = ShowCursor(false);
         }
     }
 }
