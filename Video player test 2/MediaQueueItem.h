@@ -74,6 +74,16 @@ namespace zcom
             _mainPanel->OnMouseEnter();
         }
 
+        void _OnMouseLeaveArea()
+        {
+            _mainPanel->OnMouseLeaveArea();
+        }
+
+        void _OnMouseEnterArea()
+        {
+            _mainPanel->OnMouseEnterArea();
+        }
+
         Base* _OnLeftPressed(int x, int y)
         {
             return _mainPanel->OnLeftPressed(x, y);
