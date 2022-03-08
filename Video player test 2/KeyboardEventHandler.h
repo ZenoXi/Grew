@@ -7,15 +7,17 @@
 #include "Event.h"
 
 #define _KEY_COUNT 256
+// Used for clarity and consistency
+#define EVENT_HANDLED(expr) expr == true
 
 class KeyboardEventHandler
 {
 protected:
     BYTE _keyStates[_KEY_COUNT]{ 0 };
 
-    virtual void _OnKeyDown(BYTE vkCode) = 0;
-    virtual void _OnKeyUp(BYTE vkCode) = 0;
-    virtual void _OnChar(wchar_t ch) = 0;
+    virtual bool _OnKeyDown(BYTE vkCode) = 0;
+    virtual bool _OnKeyUp(BYTE vkCode) = 0;
+    virtual bool _OnChar(wchar_t ch) = 0;
     
     Event<bool, BYTE> _OnKeyDownHandlers;
     Event<bool, BYTE> _OnKeyUpHandlers;
@@ -24,42 +26,42 @@ protected:
 public:
     KeyboardEventHandler() {}
 
-    void OnKeyDown(BYTE vkCode)
+    bool OnKeyDown(BYTE vkCode)
     {
         _keyStates[vkCode] = 0x80;
         for (auto& hnd : _OnKeyDownHandlers)
         {
-            if (hnd(vkCode))
+            if (EVENT_HANDLED(hnd(vkCode)))
             {
-                return;
+                return true;
             }
         }
-        _OnKeyDown(vkCode);
+        return _OnKeyDown(vkCode);
     }
 
-    void OnKeyUp(BYTE vkCode)
+    bool OnKeyUp(BYTE vkCode)
     {
         _keyStates[vkCode] = 0;
         for (auto& hnd : _OnKeyUpHandlers)
         {
-            if (hnd(vkCode))
+            if (EVENT_HANDLED(hnd(vkCode)))
             {
-                return;
+                return true;
             }
         }
-        _OnKeyUp(vkCode);
+        return _OnKeyUp(vkCode);
     }
 
-    void OnChar(wchar_t ch)
+    bool OnChar(wchar_t ch)
     {
         for (auto& hnd : _OnCharHandlers)
         {
-            if (hnd(ch))
+            if (EVENT_HANDLED(hnd(ch)))
             {
-                return;
+                return true;
             }
         }
-        _OnChar(ch);
+        return _OnChar(ch);
     }
 
     void AddOnKeyDown(const std::function<bool(BYTE)>& func)

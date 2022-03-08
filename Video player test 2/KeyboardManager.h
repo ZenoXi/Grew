@@ -39,12 +39,14 @@ public:
     }
 
 private:  // Keyboard event handling
-    void _OnKeyDown(BYTE vkCode)
+    bool _OnKeyDown(BYTE vkCode)
     {
         if (_exclusiveHandler)
         {
-            _exclusiveHandler->OnKeyDown(vkCode);
-            return;
+            if (EVENT_HANDLED(_exclusiveHandler->OnKeyDown(vkCode)))
+            {
+                return;
+            }
         }
 
         for (auto& handler : _handlers)
@@ -53,12 +55,14 @@ private:  // Keyboard event handling
         }
     }
 
-    void _OnKeyUp(BYTE vkCode)
+    bool _OnKeyUp(BYTE vkCode)
     {
         if (_exclusiveHandler)
         {
-            _exclusiveHandler->OnKeyUp(vkCode);
-            return;
+            if (EVENT_HANDLED(_exclusiveHandler->OnKeyUp(vkCode)))
+            {
+                return;
+            }
         }
 
         for (auto& handler : _handlers)
@@ -67,12 +71,14 @@ private:  // Keyboard event handling
         }
     }
 
-    void _OnChar(wchar_t ch)
+    bool _OnChar(wchar_t ch)
     {
         if (_exclusiveHandler)
         {
-            _exclusiveHandler->OnChar(ch);
-            return;
+            if (EVENT_HANDLED(_exclusiveHandler->OnChar(ch)))
+            {
+                return;
+            }
         }
 
         for (auto& handler : _handlers)

@@ -219,17 +219,17 @@ namespace zcom
         // KEYBOARD EVENT MANAGER FUNCTIONS
         //
 
-        void _OnKeyDown(BYTE vkCode)
+        bool _OnKeyDown(BYTE vkCode)
         {
 
         }
 
-        void _OnKeyUp(BYTE vkCode)
+        bool _OnKeyUp(BYTE vkCode)
         {
 
         }
 
-        void _OnChar(wchar_t ch)
+        bool _OnChar(wchar_t ch)
         {
             // Advance selected element
             Base* item = _panel->IterateTab();

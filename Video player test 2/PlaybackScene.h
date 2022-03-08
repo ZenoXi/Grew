@@ -20,9 +20,9 @@
 
 class PlaybackShortcutHandler : public KeyboardEventHandler
 {
-    void _OnKeyDown(BYTE vkCode) {}
-    void _OnKeyUp(BYTE vkCode) {}
-    void _OnChar(wchar_t ch) {}
+    bool _OnKeyDown(BYTE vkCode) {}
+    bool _OnKeyUp(BYTE vkCode) {}
+    bool _OnChar(wchar_t ch) {}
 };
 
 struct PlaybackSceneOptions : public SceneOptionsBase

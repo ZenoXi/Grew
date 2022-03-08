@@ -151,7 +151,7 @@ namespace zcom
             SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
         }
 
-        void _OnKeyDown(BYTE vkCode)
+        bool _OnKeyDown(BYTE vkCode)
         {
             switch (vkCode)
             {
@@ -184,14 +184,16 @@ namespace zcom
             default:
                 break;
             }
+
+            return true;
         }
 
-        void _OnKeyUp(BYTE vkCode)
+        bool _OnKeyUp(BYTE vkCode)
         {
-
+            return true;
         }
 
-        void _OnChar(wchar_t ch)
+        bool _OnChar(wchar_t ch)
         {
             bool handled = false;
             if (ch == L'\b')
@@ -218,6 +220,8 @@ namespace zcom
                 _cursorPos++;
                 _CreateTextLayout();
             }
+
+            return true;
         }
 
         void _CreateTextLayout()
