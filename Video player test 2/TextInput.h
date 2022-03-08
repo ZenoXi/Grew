@@ -381,6 +381,7 @@ namespace zcom
     public:
         TextInput()
         {
+            SetSelectable(true);
             SetBorderVisibility(true);
             SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
             SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));

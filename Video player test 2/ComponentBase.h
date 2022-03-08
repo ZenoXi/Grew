@@ -54,6 +54,7 @@ namespace zcom
         bool _visible = true;
 
         // Selection
+        bool _selectable = false;
         bool _selected = false;
         int _tabIndex = -1;
         int _zIndex = -1;
@@ -237,12 +238,23 @@ namespace zcom
         }
 
         // Selection
+        bool GetSelectable() const { return _selectable; }
         bool Selected() const { return _selected; }
         int GetZIndex() const { return _zIndex; }
         int GetTabIndex() const { return _tabIndex; }
 
-        void SetZIndex(int index) { _zIndex = index; }
-        void SetTabIndex(int index) { _tabIndex = index; }
+        void SetSelectable(bool selectable)
+        {
+            _selectable = selectable;
+        }
+        void SetZIndex(int index)
+        {
+            _zIndex = index;
+        }
+        void SetTabIndex(int index)
+        {
+            _tabIndex = index;
+        }
 
         // Border
         bool GetBorderVisibility() const { return _borderVisible; }

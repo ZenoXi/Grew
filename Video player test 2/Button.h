@@ -207,6 +207,7 @@ namespace zcom
     public:
         Button(std::wstring text = L"") : _text(new Label(text))
         {
+            SetSelectable(true);
             _text->SetSize(GetWidth(), GetHeight());
             _text->SetHorizontalTextAlignment(TextAlignment::CENTER);
             _text->SetVerticalTextAlignment(Alignment::CENTER);
