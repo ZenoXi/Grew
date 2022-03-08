@@ -45,7 +45,7 @@ private:  // Keyboard event handling
         {
             if (EVENT_HANDLED(_exclusiveHandler->OnKeyDown(vkCode)))
             {
-                return;
+                return true;
             }
         }
 
@@ -53,6 +53,7 @@ private:  // Keyboard event handling
         {
             handler->OnKeyDown(vkCode);
         }
+        return true;
     }
 
     bool _OnKeyUp(BYTE vkCode)
@@ -61,7 +62,7 @@ private:  // Keyboard event handling
         {
             if (EVENT_HANDLED(_exclusiveHandler->OnKeyUp(vkCode)))
             {
-                return;
+                return true;
             }
         }
 
@@ -69,6 +70,7 @@ private:  // Keyboard event handling
         {
             handler->OnKeyUp(vkCode);
         }
+        return true;
     }
 
     bool _OnChar(wchar_t ch)
@@ -77,7 +79,7 @@ private:  // Keyboard event handling
         {
             if (EVENT_HANDLED(_exclusiveHandler->OnChar(ch)))
             {
-                return;
+                return true;
             }
         }
 
@@ -85,5 +87,6 @@ private:  // Keyboard event handling
         {
             handler->OnChar(ch);
         }
+        return true;
     }
 };
