@@ -465,7 +465,7 @@ namespace zcom
             // Remove duplicates
             for (int i = 1; i < _selectableItems.size(); i++)
             {
-                if (_selectableItems[i - 1]->GetZIndex() == _selectableItems[i]->GetZIndex())
+                if (_selectableItems[i - 1]->GetTabIndex() == _selectableItems[i]->GetTabIndex())
                 {
                     _selectableItems.erase(_selectableItems.begin() + i);
                     i--;
