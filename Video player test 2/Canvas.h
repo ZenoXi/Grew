@@ -221,26 +221,27 @@ namespace zcom
 
         bool _OnKeyDown(BYTE vkCode)
         {
-
+            if (vkCode == VK_TAB)
+            {
+                // Advance selected element
+                Base* item = _panel->IterateTab();
+                ClearSelection();
+                if (item != nullptr)
+                {
+                    item->OnSelected();
+                }
+            }
+            return false;
         }
 
         bool _OnKeyUp(BYTE vkCode)
         {
-
+            return false;
         }
 
         bool _OnChar(wchar_t ch)
         {
-            // Advance selected element
-            Base* item = _panel->IterateTab();
-            if (item == nullptr)
-            {
-                ClearSelection();
-            }
-            else
-            {
-                item->OnSelected();
-            }
+            return false;
         }
 
 

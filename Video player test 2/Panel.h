@@ -363,27 +363,49 @@ namespace zcom
         {
             if (_selectableItems.empty())
             {
-                if (Selected())
-                    return nullptr;
-                else
-                    return this;
+                return nullptr;
+                //if (Selected())
+                //    return nullptr;
+                //else
+                //    return this;
             }
+
+            // While searching == true, _selectableItems is iterated until the first
+            // available to select item is found (IterateTab() returns itself). If no
+            // available item is found return null to signal end of tab selection.
+            // 'Available' means visible, active, can be selected (returns !nullptr).
+            bool searching = false;
 
             for (int i = 0; i < _selectableItems.size(); i++)
             {
+                if (!_selectableItems[i]->GetVisible() || !_selectableItems[i]->GetActive())
+                    continue;
+
                 Base* item = _selectableItems[i]->IterateTab();
                 if (item == nullptr)
                 {
-                    if (_selectableItems.size() > i + 1)
-                        return _selectableItems[i + 1];
-                    else
-                        return nullptr;
+                    if (!searching)
+                    {
+                        searching = true;
+                        continue;
+                    }
+                    //if (_selectableItems.size() > i + 1)
+                    //    return _selectableItems[i + 1];
+                    //else
+                    //    return nullptr;
                 }
                 else if (item != _selectableItems[i])
                 {
                     return item;
                 }
+                else if (searching)
+                {
+                    return item;
+                }
             }
+
+            if (searching)
+                return nullptr;
 
             return _selectableItems[0];
         }
@@ -404,7 +426,11 @@ namespace zcom
         bool _verticalScrollable = true;
 
     public:
-        Panel() {}
+        Panel()
+        {
+            // By default allow iterating nested components
+            SetTabIndex(0);
+        }
         ~Panel() {}
         Panel(Panel&&) = delete;
         Panel& operator=(Panel&&) = delete;
@@ -414,6 +440,7 @@ namespace zcom
         void AddItem(Base* item)
         {
             _items.push_back(item);
+            ReindexTabOrder();
         }
 
         void RemoveItem(Base* item)
@@ -463,14 +490,14 @@ namespace zcom
             std::sort(_selectableItems.begin(), _selectableItems.end(), [](Base* a, Base* b) { return a->GetTabIndex() < b->GetTabIndex(); });
 
             // Remove duplicates
-            for (int i = 1; i < _selectableItems.size(); i++)
-            {
-                if (_selectableItems[i - 1]->GetTabIndex() == _selectableItems[i]->GetTabIndex())
-                {
-                    _selectableItems.erase(_selectableItems.begin() + i);
-                    i--;
-                }
-            }
+            //for (int i = 1; i < _selectableItems.size(); i++)
+            //{
+            //    if (_selectableItems[i - 1]->GetTabIndex() == _selectableItems[i]->GetTabIndex())
+            //    {
+            //        _selectableItems.erase(_selectableItems.begin() + i);
+            //        i--;
+            //    }
+            //}
         }
 
         // Scrolling
