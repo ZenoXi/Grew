@@ -216,17 +216,21 @@ namespace zcom
         }
         void SetActive(bool active)
         {
-            if (!active && _selected)
+            if (!active)
             {
                 OnDeselected();
+                OnLeftReleased();
+                OnRightReleased();
             }
             _active = active;
         }
         void SetVisible(bool visible)
         {
-            if (!visible && _selected)
+            if (!visible)
             {
                 OnDeselected();
+                OnLeftReleased();
+                OnRightReleased();
             }
             _visible = visible;
         }
@@ -319,7 +323,7 @@ namespace zcom
             _mouseLeftClicked = true;
             return _OnLeftPressed(x, y);
         }
-        Base* OnLeftReleased(int x, int y)
+        Base* OnLeftReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min())
         {
             if (!_active) return nullptr;
             if (!_mouseLeftClicked) return nullptr;
@@ -335,7 +339,7 @@ namespace zcom
             _mouseRightClicked = true;
             return _OnRightPressed(x, y);
         }
-        Base* OnRightReleased(int x, int y)
+        Base* OnRightReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min())
         {
             if (!_active) return nullptr;
             if (!_mouseRightClicked) return nullptr;
@@ -358,6 +362,7 @@ namespace zcom
         void OnSelected()
         {
             if (!_active) return;
+            if (_selected) return;
 
             _selected = true;
             _OnSelected();
@@ -365,6 +370,7 @@ namespace zcom
         void OnDeselected()
         {
             if (!_active) return;
+            if (!_selected) return;
 
             _selected = false;
             _OnDeselected();
@@ -377,8 +383,8 @@ namespace zcom
         virtual void _OnMouseLeaveArea() {}
         virtual Base* _OnLeftPressed(int x, int y) { return this; }
         virtual Base* _OnRightPressed(int x, int y) { return this; }
-        virtual Base* _OnLeftReleased(int x, int y) { return this; }
-        virtual Base* _OnRightReleased(int x, int y) { return this; }
+        virtual Base* _OnLeftReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min()) { return this; }
+        virtual Base* _OnRightReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min()) { return this; }
         virtual Base* _OnWheelUp(int x, int y) { return this; }
         virtual Base* _OnWheelDown(int x, int y) { return this; }
         virtual void _OnSelected() {}
