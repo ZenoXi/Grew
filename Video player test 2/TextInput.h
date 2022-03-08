@@ -1,6 +1,10 @@
 #pragma once
 
+#include "App.h"
 #include "ComponentBase.h"
+#include "KeyboardEventHandler.h"
+
+#include "GameTime.h"
 
 namespace zcom
 {
