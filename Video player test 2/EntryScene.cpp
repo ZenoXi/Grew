@@ -388,6 +388,7 @@ void EntryScene::_Update()
     {
         if (_fileDialog.Done())
         {
+            _fileLoading = false;
             //std::wstring filename = OpenFile();
             std::wstring filename = _fileDialog.Result();
             if (filename != L"")
