@@ -17,6 +17,13 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     {
         opt = *reinterpret_cast<const PlaybackOverlaySceneOptions*>(options);
     }
+
+    // Set up shortcut handler
+    _shortcutHandler = std::make_unique<PlaybackOverlayShortcutHandler>();
+    _shortcutHandler->AddOnKeyDown([&](BYTE keyCode)
+    {
+        return _HandleKeyDown(keyCode);
+    });
     
     _playbackQueuePanel = std::make_unique<zcom::Panel>();
     _playbackQueuePanel->SetParentHeightPercent(1.0f);
@@ -86,12 +93,13 @@ void PlaybackOverlayScene::_Uninit()
 
 void PlaybackOverlayScene::_Focus()
 {
-
+    App::Instance()->keyboardManager.AddHandler(_shortcutHandler.get());
+    GetKeyboardState(_shortcutHandler->KeyStates());
 }
 
 void PlaybackOverlayScene::_Unfocus()
 {
-
+    App::Instance()->keyboardManager.RemoveHandler(_shortcutHandler.get());
 }
 
 void PlaybackOverlayScene::_Update()
@@ -463,6 +471,8 @@ void PlaybackOverlayScene::_CheckForStartResponse()
     {
         auto packetPair = _playbackStartResponseReceiver->GetPacket();
         int8_t response = packetPair.first.Cast<int8_t>();
+
+        // TODO: Check response value, for declined playbacks
 
         if (_loadingPlayback < 0)
             continue;
@@ -883,4 +893,17 @@ void PlaybackOverlayScene::_RearrangeQueuePanel()
         _loadingItems[i]->SetVerticalOffsetPixels(25 * (i + _readyItems.size()));
     }
     _playbackQueuePanel->Resize();
+}
+
+bool PlaybackOverlayScene::_HandleKeyDown(BYTE keyCode)
+{
+    switch (keyCode)
+    {
+    case VK_ESCAPE:
+    {
+        App::Instance()->MoveSceneToBack(this->GetName());
+        return true;
+    }
+    }
+    return false;
 }

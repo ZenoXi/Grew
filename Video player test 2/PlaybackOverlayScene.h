@@ -9,6 +9,13 @@
 
 #include "FileDialog.h"
 
+class PlaybackOverlayShortcutHandler : public KeyboardEventHandler
+{
+    bool _OnKeyDown(BYTE vkCode) { return false; }
+    bool _OnKeyUp(BYTE vkCode) { return false; }
+    bool _OnChar(wchar_t ch) { return false; }
+};
+
 struct PlaybackOverlaySceneOptions : public SceneOptionsBase
 {
 
@@ -34,6 +41,8 @@ class PlaybackOverlayScene : public Scene
     std::unique_ptr<zcom::Button> _closeOverlayButton = nullptr;
     std::unique_ptr<zcom::Label> _networkStatusLabel = nullptr;
     std::unique_ptr<zcom::Label> _connectedUserLabel = nullptr;
+
+    std::unique_ptr<PlaybackOverlayShortcutHandler> _shortcutHandler = nullptr;
 
     znet::NetworkMode _networkMode = znet::NetworkMode::OFFLINE;
     std::unique_ptr<znet::PacketReceiver> _queueAddRequestReceiver = nullptr;
@@ -90,4 +99,7 @@ public:
 
 private:
     void _RearrangeQueuePanel();
+
+private:
+    bool _HandleKeyDown(BYTE keyCode);
 };
