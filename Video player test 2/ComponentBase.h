@@ -216,10 +216,18 @@ namespace zcom
         }
         void SetActive(bool active)
         {
+            if (!active && _selected)
+            {
+                OnDeselected();
+            }
             _active = active;
         }
         void SetVisible(bool visible)
         {
+            if (!visible && _selected)
+            {
+                OnDeselected();
+            }
             _visible = visible;
         }
 
