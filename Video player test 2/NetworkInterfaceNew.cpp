@@ -105,7 +105,23 @@ znet::IConnectionManager::User znet::NetworkInterface::ThisUser()
 void znet::NetworkInterface::Send(Packet&& packet, std::vector<int64_t> userIds, int priority)
 {
     if (_connectionManager)
+    {
+        // Immediatelly distribute self-addressed packets
+        // This avoids unnecessary latency of packet processing threads
+        for (int j = 0; j < userIds.size(); j++)
+        {
+            if (userIds[j] == ThisUser().id)
+            {
+                _DistributePacket(packet.Reference(), userIds[j]);
+                userIds.erase(userIds.begin() + j);
+                break;
+            }
+        }
+        if (userIds.empty())
+            return;
+
         _connectionManager->Send(std::move(packet), userIds, priority);
+    }
 }
 
 void znet::NetworkInterface::AddToQueue(Packet&& packet, std::vector<int64_t> userIds)

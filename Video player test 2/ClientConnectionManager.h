@@ -1,8 +1,9 @@
 #pragma once
 
 #include "IConnectionManager.h"
-
 #include "PacketTypes.h"
+
+#include "FixedQueue.h"
 
 namespace znet
 {
@@ -222,7 +223,18 @@ namespace znet
             TCPClientRef connection = _client.Connection(_connectionId);
 
             size_t bytesUnconfirmed = 0;
-            size_t maxUnconfirmedBytes = 1000000; // 1 MB
+            size_t maxUnconfirmedBytes = 250000; // 1 MB
+
+            Clock threadTimer = Clock();
+            std::queue<TimePoint> packetsInTransmittion;
+            FixedQueue<Duration> packetLatencies(16);
+            packetLatencies.Fill(Duration(0));
+
+            size_t bytesSentSinceLastPrint = 0;
+            size_t bytesReceivedSinceLastPrint = 0;
+            TimePoint lastPrintTime = ztime::Main();
+            Duration printInterval = Duration(3, SECONDS);
+            bool printSpeed = true;
 
             while (!_MANAGEMENT_THR_STOP)
             {
@@ -241,6 +253,14 @@ namespace znet
                     if (pack1.id == (int32_t)PacketType::BYTE_CONFIRMATION)
                     {
                         bytesUnconfirmed -= pack1.Cast<size_t>();
+                        // Increment connection speed counter
+                        bytesSentSinceLastPrint += pack1.Cast<size_t>();
+                        // Calculate latency
+                        threadTimer.Update();
+                        TimePoint returnTime = threadTimer.Now();
+                        TimePoint sendTime = packetsInTransmittion.front();
+                        packetsInTransmittion.pop();
+                        packetLatencies.Push(returnTime - sendTime);
                     }
                     else if (pack1.id == (int32_t)PacketType::DISCONNECT_REQUEST)
                     {
@@ -281,6 +301,9 @@ namespace znet
                         {
                             Packet pack2 = connection->GetPacket();
 
+                            // Increment connection speed counter
+                            bytesReceivedSinceLastPrint += pack2.size;
+
                             // Send confirmation packet
                             connection->Send(Packet((int)PacketType::BYTE_CONFIRMATION).From(pack2.size), 1);
 
@@ -302,20 +325,6 @@ namespace znet
                 {
                     for (int i = 0; i < _outPackets.size(); i++)
                     {
-                        // If the client is sending the packet to itself, no additional processing is necessary
-                        std::vector<int64_t> destinationUsers = _outPackets[i].first.userIds;
-                        for (int j = 0; j < _outPackets[i].first.userIds.size(); j++)
-                        {
-                            if (_outPackets[i].first.userIds[j] == ThisUser().id)
-                            {
-                                _PacketData data = { _outPackets[i].first.packet.Reference(), { ThisUser().id } };
-                                _outPackets[i].first.userIds.erase(_outPackets[i].first.userIds.begin() + j);
-                                std::unique_lock<std::mutex> lock(_m_inPackets);
-                                _inPackets.push(std::move(data));
-                                break;
-                            }
-                        }
-
                         // Erase packet if no destination is specified
                         if (_outPackets[i].first.userIds.empty())
                         {
@@ -348,6 +357,8 @@ namespace znet
                         lock.unlock();
 
                         bytesUnconfirmed += data.packet.size;
+                        threadTimer.Update();
+                        packetsInTransmittion.push(threadTimer.Now());
 
                         // Construct packets
                         size_t userIdDataSize = data.userIds.size() * sizeof(int64_t);
@@ -368,6 +379,23 @@ namespace znet
                 else
                 {
                     lock.unlock();
+                }
+
+                // Print connection speed
+                Duration timeElapsed = ztime::Main() - lastPrintTime;
+                if (printSpeed && timeElapsed >= printInterval)
+                {
+                    int64_t latency = 0;
+                    for (int i = 0; i < packetLatencies.Size(); i++)
+                        latency += packetLatencies[i].GetDuration();
+                    latency /= packetLatencies.Size();
+
+                    lastPrintTime = ztime::Main();
+                    std::cout << "[INFO] Avg. send speed: " << bytesSentSinceLastPrint / timeElapsed.GetDuration(MILLISECONDS) << "kb/s" << std::endl;
+                    std::cout << "[INFO] Avg. receive speed: " << bytesReceivedSinceLastPrint / timeElapsed.GetDuration(MILLISECONDS) << "kb/s" << std::endl;
+                    std::cout << "[INFO] Avg. latency over " << packetLatencies.Size() << " packets: " << latency << "us" << std::endl;
+                    bytesSentSinceLastPrint = 0;
+                    bytesReceivedSinceLastPrint = 0;
                 }
 
                 // Sleep if no immediate work needs to be done

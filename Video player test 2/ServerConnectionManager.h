@@ -173,7 +173,13 @@ namespace znet
         void _ManageConnections()
         {
             size_t bytesUnconfirmed = 0;
-            size_t maxUnconfirmedBytes = 1000000; // 1 MB
+            size_t maxUnconfirmedBytes = 250000; // 1 MB
+
+            size_t bytesSentSinceLastPrint = 0;
+            size_t bytesReceivedSinceLastPrint = 0;
+            TimePoint lastPrintTime = ztime::Main();
+            Duration printInterval = Duration(3, SECONDS);
+            bool printSpeed = true;
 
             while (!_MANAGEMENT_THR_STOP)
             {
@@ -246,6 +252,8 @@ namespace znet
                             if (pack1.id == (int32_t)PacketType::BYTE_CONFIRMATION)
                             {
                                 _userBytesUnconfirmed[i] -= pack1.Cast<size_t>();
+                                // Increment connection speed counter
+                                bytesSentSinceLastPrint += pack1.Cast<size_t>();
                             }
                             else if (pack1.id == (int32_t)PacketType::DISCONNECT_REQUEST)
                             {
@@ -257,12 +265,8 @@ namespace znet
                                 {
                                     Packet pack2 = client->GetPacket();
 
-                                    if (pack2.id == (int)PacketType::PAUSE)
-                                    {
-                                        ztime::clock[3].Update();
-                                        TimePoint now = ztime::clock[3].Now();
-                                        std::cout << "[ServerConMgr] " << now.GetTime(SECONDS) << "." << now.GetTime(MICROSECONDS) % 1000000 << std::endl;
-                                    }
+                                    // Increment connection speed counter
+                                    bytesReceivedSinceLastPrint += pack2.size;
 
                                     // Send confirmation packet
                                     Packet confirmation = Packet((int32_t)PacketType::BYTE_CONFIRMATION);
@@ -311,20 +315,6 @@ namespace znet
                 // Loop through packets until 1 is sent
                 for (int i = 0; i < _outPackets.size(); i++)
                 {
-                    // If the server is sending the packet to itself, no additional processing is necessary
-                    std::vector<int64_t> destinationUsers = _outPackets[i].first.userIds;
-                    for (int j = 0; j < _outPackets[i].first.userIds.size(); j++)
-                    {
-                        if (_outPackets[i].first.userIds[j] == ThisUser().id)
-                        {
-                            _PacketData data = { _outPackets[i].first.packet.Reference(), { ThisUser().id } };
-                            std::unique_lock<std::mutex> lock(_m_inPackets);
-                            _inPackets.push(std::move(data));
-                            _outPackets[i].first.userIds.erase(_outPackets[i].first.userIds.begin() + j);
-                            break;
-                        }
-                    }
-
                     // Erase packet if no destination is specified
                     if (_outPackets[i].first.userIds.empty())
                     {
@@ -414,6 +404,17 @@ namespace znet
                     if (sent) break;
                 }
                 lock.unlock();
+
+                // Print connection speed
+                Duration timeElapsed = ztime::Main() - lastPrintTime;
+                if (printSpeed && timeElapsed >= printInterval)
+                {
+                    lastPrintTime = ztime::Main();
+                    std::cout << "[INFO] Avg. send speed: " << bytesSentSinceLastPrint / timeElapsed.GetDuration(MILLISECONDS) << "kb/s" << std::endl;
+                    std::cout << "[INFO] Avg. receive speed: " << bytesReceivedSinceLastPrint / timeElapsed.GetDuration(MILLISECONDS) << "kb/s" << std::endl;
+                    bytesSentSinceLastPrint = 0;
+                    bytesReceivedSinceLastPrint = 0;
+                }
 
                 // Sleep if no immediate work needs to be done
                 bool packetsIncoming = false;
