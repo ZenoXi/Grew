@@ -181,6 +181,17 @@ namespace zcom
                 _cursorPos = _text.length();
                 break;
             }
+            case VK_TAB:
+            {
+                if (_tabAllowed)
+                {
+                    break;
+                }
+                else
+                {
+                    return false;
+                }
+            }
             default:
                 break;
             }
@@ -209,6 +220,13 @@ namespace zcom
             else if (ch == L'\n' || ch == L'\r')
             {
                 if (!_multiline)
+                {
+                    handled = true;
+                }
+            }
+            else if (ch == L'\t')
+            {
+                if (!_tabAllowed)
                 {
                     handled = true;
                 }
@@ -316,6 +334,7 @@ namespace zcom
         std::wstring _text;
         std::wstring _placeholderText;
         bool _multiline = false;
+        bool _tabAllowed = false;
 
         unsigned int _cursorPos = 0;
         unsigned int _selectionStart = 0;
@@ -401,6 +420,11 @@ namespace zcom
             return _multiline;
         }
 
+        bool GetTabAllowed() const
+        {
+            return _tabAllowed;
+        }
+
         void SetPlaceholderText(std::wstring text)
         {
             _placeholderText = text;
@@ -425,6 +449,11 @@ namespace zcom
                 _CreateTextLayout();
                 _CreatePlaceholderTextLayout();
             }
+        }
+
+        void SetTabAllowed(bool allowed)
+        {
+            _tabAllowed = allowed;
         }
     };
 }
