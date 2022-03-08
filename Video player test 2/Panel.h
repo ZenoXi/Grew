@@ -326,11 +326,11 @@ namespace zcom
 
         void _OnSelected()
         {
-            if (!_selectableItems.empty())
-            {
-                OnDeselected();
-                _selectableItems[0]->OnSelected();
-            }
+            //if (!_selectableItems.empty())
+            //{
+            //    OnDeselected();
+            //    _selectableItems[0]->OnSelected();
+            //}
         }
 
     public:
