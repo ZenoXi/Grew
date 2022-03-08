@@ -36,6 +36,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectButton->SetButtonClickImage(ResourceManager::GetImage("connect_bright"));
         _connectButton->SetButtonHoverColor(D2D1::ColorF(0, 0.0f));
         _connectButton->SetOnActivated([&]() { OnConnectSelected(); });
+        _connectButton->SetTabIndex(0);
 
         _connectLabel = new zcom::Label(L"Connect");
         _connectLabel->SetHorizontalOffsetPixels(20);
@@ -57,6 +58,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _shareButton->SetButtonClickImage(ResourceManager::GetImage("share_bright"));
         _shareButton->SetButtonHoverColor(D2D1::ColorF(0, 0.0f));
         _shareButton->SetOnActivated([&]() { OnShareSelected(); });
+        _shareButton->SetTabIndex(1);
 
         _shareLabel = new zcom::Label(L"Share");
         _shareLabel->SetHorizontalOffsetPixels(140);
@@ -78,6 +80,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _fileButton->SetButtonClickImage(ResourceManager::GetImage("file_bright"));
         _fileButton->SetButtonHoverColor(D2D1::ColorF(0, 0.0f));
         _fileButton->SetOnActivated([&]() { OnFileSelected(); });
+        _fileButton->SetTabIndex(2);
 
         _fileLabel = new zcom::Label(L"Offline");
         _fileLabel->SetHorizontalOffsetPixels(260);
@@ -116,16 +119,17 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectIpInput->SetBaseWidth(110);
         _connectIpInput->SetBaseHeight(20);
         _connectIpInput->SetPlaceholderText(L"IP address");
-        _connectIpInput->AddOnChar([&](wchar_t ch) -> bool
-        {
-            if (ch == '\t')
-            {
-                _canvas->ClearSelection();
-                _connectPortInput->OnSelected();
-                return true;
-            }
-            return false;
-        });
+        _connectIpInput->SetTabIndex(0);
+        //_connectIpInput->AddOnChar([&](wchar_t ch) -> bool
+        //{
+        //    if (ch == '\t')
+        //    {
+        //        _canvas->ClearSelection();
+        //        _connectPortInput->OnSelected();
+        //        return true;
+        //    }
+        //    return false;
+        //});
 
         _connectPortInput = new zcom::TextInput();
         _connectPortInput->SetHorizontalOffsetPixels(140);
@@ -133,6 +137,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectPortInput->SetBaseWidth(50);
         _connectPortInput->SetBaseHeight(20);
         _connectPortInput->SetPlaceholderText(L"Port");
+        _connectPortInput->SetTabIndex(1);
 
         _connectConfirmButton = new zcom::Button(L"Connect");
         _connectConfirmButton->SetHorizontalOffsetPercent(0.5f);
@@ -143,6 +148,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectConfirmButton->SetBorderVisibility(true);
         _connectConfirmButton->SetBorderColor(D2D1::ColorF(0.4f, 0.4f, 0.4f));
         _connectConfirmButton->SetOnActivated([&]() { OnConnectConfirmed(); });
+        _connectConfirmButton->SetTabIndex(2);
 
         _connectCancelButton = new zcom::Button(L"Cancel");
         _connectCancelButton->SetHorizontalOffsetPercent(0.5f);
@@ -153,6 +159,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectCancelButton->SetBorderVisibility(true);
         _connectCancelButton->SetBorderColor(D2D1::ColorF(0.4f, 0.4f, 0.4f));
         _connectCancelButton->SetOnActivated([&]() { OnConnectCanceled(); });
+        _connectCancelButton->SetTabIndex(3);
 
         _connectLoadingImage = new zcom::LoadingImage();
         _connectLoadingImage->SetHorizontalOffsetPercent(0.5f);
@@ -207,6 +214,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _sharePortInput->SetBaseWidth(140);
         _sharePortInput->SetBaseHeight(20);
         _sharePortInput->SetPlaceholderText(L"Port");
+        _sharePortInput->SetTabIndex(0);
 
         _shareConfirmButton = new zcom::Button(L"Share");
         _shareConfirmButton->SetHorizontalOffsetPercent(0.5f);
@@ -217,6 +225,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _shareConfirmButton->SetBorderVisibility(true);
         _shareConfirmButton->SetBorderColor(D2D1::ColorF(0.4f, 0.4f, 0.4f));
         _shareConfirmButton->SetOnActivated([&]() { OnShareConfirmed(); });
+        _shareConfirmButton->SetTabIndex(1);
 
         _shareCancelButton = new zcom::Button(L"Cancel");
         _shareCancelButton->SetHorizontalOffsetPercent(0.5f);
@@ -227,6 +236,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _shareCancelButton->SetBorderVisibility(true);
         _shareCancelButton->SetBorderColor(D2D1::ColorF(0.4f, 0.4f, 0.4f));
         _shareCancelButton->SetOnActivated([&]() { OnShareCanceled(); });
+        _shareCancelButton->SetTabIndex(2);
 
         _shareLoadingImage = new zcom::LoadingImage();
         _shareLoadingImage->SetHorizontalOffsetPercent(0.5f);
