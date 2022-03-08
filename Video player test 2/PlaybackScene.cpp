@@ -525,17 +525,19 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
     }
     case VK_UP: // Volume up
     {
-        App::Instance()->window.SetCursorVisibility(true);
-
-        _volumeSlider->SetValue(_volumeSlider->GetValue() + 0.05f);
+        float volumeChange = 0.05f;
+        if (_shortcutHandler->KeyState(VK_CONTROL)) volumeChange = 0.2f;
+        if (_shortcutHandler->KeyState(VK_SHIFT)) volumeChange = 0.01f;
+        _volumeSlider->SetValue(_volumeSlider->GetValue() + volumeChange);
         _controller->SetVolume(_volumeSlider->GetVolume());
         break;
     }
     case VK_DOWN: // Volume down
     {
-        App::Instance()->window.SetCursorVisibility(false);
-
-        _volumeSlider->SetValue(_volumeSlider->GetValue() - 0.05f);
+        float volumeChange = 0.05f;
+        if (_shortcutHandler->KeyState(VK_CONTROL)) volumeChange = 0.2f;
+        if (_shortcutHandler->KeyState(VK_SHIFT)) volumeChange = 0.01f;
+        _volumeSlider->SetValue(_volumeSlider->GetValue() - volumeChange);
         _controller->SetVolume(_volumeSlider->GetVolume());
         break;
     }
