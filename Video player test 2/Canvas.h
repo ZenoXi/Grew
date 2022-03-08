@@ -161,7 +161,7 @@ namespace zcom
             if (target != nullptr && target != _panel.get())
             {
                 // Set selection
-                if (!target->Selected())
+                if (!target->Selected() && target->GetSelectable())
                 {
                     target->OnSelected();
                 }
