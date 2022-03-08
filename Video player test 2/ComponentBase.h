@@ -69,7 +69,8 @@ namespace zcom
         // Border
         bool _borderVisible = false;
         float _borderWidth = 1.0f;
-        D2D1_COLOR_F _borderColor = D2D1::ColorF(1.0, 1.0, 1.0);
+        D2D1_COLOR_F _borderColor = D2D1::ColorF(1.0f, 1.0f, 1.0f);
+        D2D1_COLOR_F _selectedBorderColor = D2D1::ColorF(0.0f, 0.5f, 0.8f);
 
         // Background
         D2D1_COLOR_F _backgroundColor = D2D1::ColorF(0, 0);
@@ -247,6 +248,7 @@ namespace zcom
         bool GetBorderVisibility() const { return _borderVisible; }
         float GetBorderWidth() const { return _borderWidth; }
         D2D1_COLOR_F GetBorderColor() const { return _borderColor; }
+        D2D1_COLOR_F GetSelectedBorderColor() const { return _selectedBorderColor; }
 
         void SetBorderVisibility(bool visible)
         {
@@ -259,6 +261,10 @@ namespace zcom
         void SetBorderColor(D2D1_COLOR_F color)
         {
             _borderColor = color;
+        }
+        void SetSelectedBorderColor(D2D1_COLOR_F color)
+        {
+            _selectedBorderColor = color;
         }
 
         // Background
@@ -452,6 +458,17 @@ namespace zcom
                 {
                     ID2D1SolidColorBrush* borderBrush = nullptr;
                     g.target->CreateSolidColorBrush(_borderColor, &borderBrush);
+                    if (borderBrush)
+                    {
+                        float offset = _borderWidth * 0.5f;
+                        g.target->DrawRectangle(D2D1::RectF(offset, offset, _width - offset, _height - offset), borderBrush, _borderWidth);
+                        borderBrush->Release();
+                    }
+                }
+                if (_selected)
+                {
+                    ID2D1SolidColorBrush* borderBrush = nullptr;
+                    g.target->CreateSolidColorBrush(_selectedBorderColor, &borderBrush);
                     if (borderBrush)
                     {
                         float offset = _borderWidth * 0.5f;

@@ -144,15 +144,12 @@ namespace zcom
         void _OnSelected()
         {
             App::Instance()->keyboardManager.SetExclusiveHandler(this);
-            SetBorderColor(D2D1::ColorF(0.0f, 0.5f, 0.8f));
-
             GetKeyboardState(_keyStates);
         }
 
         void _OnDeselected()
         {
             App::Instance()->keyboardManager.ResetExclusiveHandler();
-            SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
         }
 
         bool _OnKeyDown(BYTE vkCode)
