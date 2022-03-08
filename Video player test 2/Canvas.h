@@ -134,7 +134,7 @@ namespace zcom
                 _panel->OnMouseEnterArea();
 
             Base* target = _panel->OnMouseMove(x, y);
-            if (target != _panel.get())
+            if (target != nullptr && target != _panel.get())
             {
                 _mouseMoveHandlers.InvokeAll(target, x, y);
             }
@@ -158,7 +158,7 @@ namespace zcom
             // Clear selection
             ClearSelection(target);
 
-            if (target != _panel.get())
+            if (target != nullptr && target != _panel.get())
             {
                 // Set selection
                 if (!target->Selected())
@@ -173,7 +173,7 @@ namespace zcom
         void _OnLeftReleased(int x, int y)
         {
             Base* target = _panel->OnLeftReleased(x, y);
-            if (target != _panel.get())
+            if (target != nullptr && target != _panel.get())
             {
                 _leftReleasedHandlers.InvokeAll(target, x, y);
             }
@@ -182,7 +182,7 @@ namespace zcom
         void _OnRightPressed(int x, int y)
         {
             Base* target = _panel->OnRightPressed(x, y);
-            if (target != _panel.get())
+            if (target != nullptr && target != _panel.get())
             {
                 _rightPressedHandlers.InvokeAll(target, x, y);
             }
@@ -191,7 +191,7 @@ namespace zcom
         void _OnRightReleased(int x, int y)
         {
             Base* target = _panel->OnRightReleased(x, y);
-            if (target != _panel.get())
+            if (target != nullptr && target != _panel.get())
             {
                 _rightReleasedHandlers.InvokeAll(target, x, y);
             }
@@ -200,7 +200,7 @@ namespace zcom
         void _OnWheelUp(int x, int y)
         {
             Base* target = _panel->OnWheelUp(x, y);
-            if (target != _panel.get())
+            if (target != nullptr && target != _panel.get())
             {
                 _wheelUpHandlers.InvokeAll(target, x, y);
             }
@@ -209,7 +209,7 @@ namespace zcom
         void _OnWheelDown(int x, int y)
         {
             Base* target = _panel->OnWheelDown(x, y);
-            if (target != _panel.get())
+            if (target != nullptr && target != _panel.get())
             {
                 _wheelDownHandlers.InvokeAll(target, x, y);
             }
