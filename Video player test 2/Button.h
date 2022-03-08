@@ -1,9 +1,11 @@
 #pragma once
 
+#include "App.h"
 #include "ComponentBase.h"
 #include "Label.h"
 
 #include "Event.h"
+#include "KeyboardEventHandler.h"
 
 namespace zcom
 {
@@ -20,7 +22,7 @@ namespace zcom
         PRESS_AND_RELEASE
     };
 
-    class Button : public Base
+    class Button : public Base, public KeyboardEventHandler
     {
 #pragma region base_class
     private:
@@ -134,6 +136,47 @@ namespace zcom
             return this;
         }
 
+        void _OnSelected()
+        {
+            _borderColor = GetBorderColor();
+            SetBorderColor(_borderColorSelected);
+            App::Instance()->keyboardManager.SetExclusiveHandler(this);
+        }
+
+        void _OnDeselected()
+        {
+            // If the color wasn't manually changed while selected, return to the previous value
+            D2D1_COLOR_F curBorderColor = GetBorderColor();
+            if (curBorderColor.a == _borderColorSelected.a &&
+                curBorderColor.b == _borderColorSelected.b &&
+                curBorderColor.g == _borderColorSelected.g &&
+                curBorderColor.r == _borderColorSelected.r)
+            {
+                SetBorderColor(_borderColor);
+            }
+            App::Instance()->keyboardManager.ResetExclusiveHandler();
+        }
+
+        bool _OnKeyDown(BYTE vkCode)
+        {
+            if (vkCode == VK_RETURN)
+            {
+                _OnActivated.InvokeAll();
+                return true;
+            }
+            return false;
+        }
+
+        bool _OnKeyUp(BYTE vkCode)
+        {
+            return false;
+        }
+
+        bool _OnChar(wchar_t ch)
+        {
+            return false;
+        }
+
     public:
         std::list<Base*> GetChildren()
         {
@@ -171,6 +214,8 @@ namespace zcom
         D2D1_COLOR_F _colorHovered = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f);
         ID2D1Bitmap* _imageClicked = nullptr;
         D2D1_COLOR_F _colorClicked = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.1f);
+        D2D1_COLOR_F _borderColor = D2D1::ColorF(0, 0.0f);
+        D2D1_COLOR_F _borderColorSelected = D2D1::ColorF(0.0f, 0.5f, 0.8f);
 
     public:
         Button(std::wstring text = L"") : _text(new Label(text))
@@ -220,6 +265,11 @@ namespace zcom
         void SetButtonClickColor(D2D1_COLOR_F color)
         {
             _colorClicked = color;
+        }
+
+        void SetSelectedBorderColor(D2D1_COLOR_F color = D2D1::ColorF(0, 0.0f))
+        {
+            _borderColorSelected = color;
         }
 
         void SetPreset(ButtonPreset preset)
