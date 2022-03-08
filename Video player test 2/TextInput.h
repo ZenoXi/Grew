@@ -232,6 +232,34 @@ namespace zcom
                     handled = true;
                 }
             }
+            else if (ch == L'\x16')
+            {
+                // Paste
+                std::wstring text;
+                if (OpenClipboard(nullptr))
+                {
+                    HANDLE hData = GetClipboardData(CF_UNICODETEXT);
+                    if (hData != nullptr)
+                    {
+                        wchar_t* pszText = static_cast<wchar_t*>(GlobalLock(hData));
+                        if (pszText != nullptr)
+                        {
+                            text = pszText;
+                        }
+                        GlobalUnlock(hData);
+                    }
+                    CloseClipboard();
+                }
+
+                if (!text.empty())
+                {
+                    _text.insert(_text.begin() + _cursorPos, text.begin(), text.end());
+                    _cursorPos += text.length();
+                    _CreateTextLayout();
+                }
+
+                handled = true;
+            }
 
             if (!handled)
             {
