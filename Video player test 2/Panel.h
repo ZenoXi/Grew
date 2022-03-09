@@ -415,6 +415,7 @@ namespace zcom
 
     private:
         std::vector<Base*> _items;
+        std::vector<bool> _owned;
         std::vector<Base*> _selectableItems;
 
         // Scrolling
@@ -431,15 +432,19 @@ namespace zcom
             // By default allow iterating nested components
             SetTabIndex(0);
         }
-        ~Panel() {}
+        ~Panel()
+        {
+            ClearItems();
+        }
         Panel(Panel&&) = delete;
         Panel& operator=(Panel&&) = delete;
         Panel(const Panel&) = delete;
         Panel& operator=(const Panel&) = delete;
 
-        void AddItem(Base* item)
+        void AddItem(Base* item, bool transferOwnership = false)
         {
             _items.push_back(item);
+            _owned.push_back(transferOwnership);
             ReindexTabOrder();
         }
 
@@ -449,6 +454,8 @@ namespace zcom
             {
                 if (_items[i] == item)
                 {
+                    if (_owned[i])
+                        delete _items[i];
                     _items.erase(_items.begin() + i);
                     return;
                 }
@@ -457,7 +464,10 @@ namespace zcom
 
         void RemoveItem(int index)
         {
+            if (_owned[index])
+                delete _items[index];
             _items.erase(_items.begin() + index);
+            _owned.erase(_owned.begin() + index);
         }
 
         int ItemCount() const
@@ -472,7 +482,15 @@ namespace zcom
 
         void ClearItems()
         {
+            for (int i = 0; i < _items.size(); i++)
+            {
+                if (_owned[i])
+                {
+                    delete _items[i];
+                }
+            }
             _items.clear();
+            _owned.clear();
         }
 
         void ReindexTabOrder()
