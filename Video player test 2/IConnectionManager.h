@@ -21,12 +21,13 @@ namespace znet
     public:
         struct User
         {
-            std::string name;
+            std::wstring name;
             int64_t id;
         };
 
         virtual std::vector<User> Users() = 0;
         virtual User ThisUser() = 0;
+        virtual void SetUsername(std::wstring username) = 0;
         virtual void Send(Packet&& packet, std::vector<int64_t> userIds, int priority = 0) = 0;
         virtual void AddToQueue(Packet&& packet, std::vector<int64_t> userIds) = 0;
         virtual void SendQueue(std::vector<int64_t> userIds, int priority = 0) = 0;

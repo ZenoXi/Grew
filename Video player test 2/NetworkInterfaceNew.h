@@ -33,6 +33,7 @@ namespace znet
 
         NetworkMode _mode = NetworkMode::OFFLINE;
 
+        std::wstring _username = L"";
 
         // Singleton interface
     private:
@@ -57,6 +58,7 @@ namespace znet
     public:
         std::vector<IConnectionManager::User> Users();
         IConnectionManager::User ThisUser();
+        void SetUsername(std::wstring username);
         void Send(Packet&& packet, std::vector<int64_t> userIds, int priority = 0);
         void AddToQueue(Packet&& packet, std::vector<int64_t> userIds);
         void SendQueue(std::vector<int64_t> userIds, int priority = 0);

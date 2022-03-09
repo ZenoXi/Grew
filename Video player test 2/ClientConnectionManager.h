@@ -13,6 +13,7 @@ namespace znet
         {
             Packet packet;
             std::vector<int64_t> userIds;
+            bool prefixed = true;
         };
 
         TCPClient _client;
@@ -119,6 +120,19 @@ namespace znet
                 }
                 _thisUser.id = idPacket.Cast<int64_t>();
 
+                // Send self username
+                if (!_thisUser.name.empty())
+                {
+                    size_t byteCount = sizeof(int64_t) + sizeof(wchar_t) * _thisUser.name.length();
+                    auto usernameBytes = std::make_unique<int8_t[]>(byteCount);
+                    ((int64_t*)usernameBytes.get())[0] = 0;
+                    for (int j = 0; j < _thisUser.name.length(); j++)
+                    {
+                        ((wchar_t*)(usernameBytes.get() + sizeof(int64_t)))[j] = _thisUser.name[j];
+                    }
+                    connection->Send(Packet(std::move(usernameBytes), byteCount, (int)PacketType::USER_DATA), 2);
+                }
+
                 // Start management thread
                 _managementThread = std::thread(&ClientConnectionManager::_ManageConnections, this);
             }
@@ -135,6 +149,22 @@ namespace znet
         User ThisUser()
         {
             return _thisUser;
+        }
+
+        void SetUsername(std::wstring username)
+        {
+            _thisUser.name = username;
+
+            // Send new username
+            size_t byteCount = sizeof(int64_t) + sizeof(wchar_t) * _thisUser.name.length();
+            auto usernameBytes = std::make_unique<int8_t[]>(byteCount);
+            ((int64_t*)usernameBytes.get())[0] = 0;
+            for (int j = 0; j < _thisUser.name.length(); j++)
+            {
+                ((wchar_t*)(usernameBytes.get() + sizeof(int64_t)))[j] = _thisUser.name[j];
+            }
+            std::cout << "Username change sent" << std::endl;
+            Send(Packet(std::move(usernameBytes), byteCount, (int)PacketType::USER_DATA), { 0 }, 2);
         }
 
         // PACKET INPUT/OUTPUT
@@ -270,9 +300,30 @@ namespace znet
                     }
                     else if (pack1.id == (int32_t)PacketType::NEW_USER)
                     {
-                        int64_t newUserId = pack1.Cast<int32_t>();
+                        int64_t newUserId = pack1.Cast<int64_t>();
                         std::lock_guard<std::mutex> lock(_m_users);
-                        _users.push_back({ "", newUserId });
+                        _users.push_back({ L"", newUserId });
+                    }
+                    else if (pack1.id == (int32_t)PacketType::USER_DATA)
+                    {
+                        int64_t userId = pack1.Cast<int64_t>();
+                        size_t nameLength = (pack1.size - sizeof(int64_t)) / sizeof(wchar_t);
+                        std::wstring username;
+                        username.resize(nameLength);
+                        for (int i = 0; i < nameLength; i++)
+                        {
+                            username[i] = *((wchar_t*)(pack1.Bytes() + sizeof(int64_t)) + i);
+                        }
+
+                        std::lock_guard<std::mutex> lock(_m_users);
+                        for (int i = 0; i < _users.size(); i++)
+                        {
+                            if (_users[i].id == userId)
+                            {
+                                _users[i].name = username;
+                                break;
+                            }
+                        }
                     }
                     else if (pack1.id == (int32_t)PacketType::DISCONNECTED_USER)
                     {
@@ -293,7 +344,7 @@ namespace znet
                         std::lock_guard<std::mutex> lock(_m_users);
                         _users.resize(userCount);
                         for (int i = 0; i < userCount; i++)
-                            _users[i] = { "", ((int64_t*)pack1.Bytes())[i] };
+                            _users[i] = { L"", ((int64_t*)pack1.Bytes())[i] };
                     }
                     else if (pack1.id == (int32_t)PacketType::USER_ID)
                     {
@@ -360,14 +411,23 @@ namespace znet
                         threadTimer.Update();
                         packetsInTransmittion.push(threadTimer.Now());
 
+                        // Some packet types don't need a prefix
+                        bool prefixed = !(
+                            view.id == (int32_t)PacketType::USER_DATA
+                        );
+
+
                         // Construct packets
-                        size_t userIdDataSize = data.userIds.size() * sizeof(int64_t);
-                        auto userIdData = std::make_unique<int8_t[]>(userIdDataSize);
-                        for (int j = 0; j < data.userIds.size(); j++)
+                        if (prefixed)
                         {
-                            ((int64_t*)userIdData.get())[j] = data.userIds[j];
+                            size_t userIdDataSize = data.userIds.size() * sizeof(int64_t);
+                            auto userIdData = std::make_unique<int8_t[]>(userIdDataSize);
+                            for (int j = 0; j < data.userIds.size(); j++)
+                            {
+                                ((int64_t*)userIdData.get())[j] = data.userIds[j];
+                            }
+                            connection->AddToQueue(Packet(std::move(userIdData), userIdDataSize, (int)PacketType::USER_ID));
                         }
-                        connection->AddToQueue(Packet(std::move(userIdData), userIdDataSize, (int)PacketType::USER_ID));
                         connection->AddToQueue(std::move(data.packet));
                         connection->SendQueue(priority);
 

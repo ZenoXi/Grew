@@ -99,7 +99,14 @@ znet::IConnectionManager::User znet::NetworkInterface::ThisUser()
     if (_connectionManager)
         return _connectionManager->ThisUser();
     else
-        return { "", -1 };
+        return { L"", -1 };
+}
+
+void znet::NetworkInterface::SetUsername(std::wstring username)
+{
+    _username = username;
+    if (_connectionManager)
+        _connectionManager->SetUsername(username);
 }
 
 void znet::NetworkInterface::Send(Packet&& packet, std::vector<int64_t> userIds, int priority)
