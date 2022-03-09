@@ -2,6 +2,8 @@
 #include "EntryScene.h"
 
 #include "ResourceManager.h"
+#include "Options.h"
+#include "LastIpOptionAdapter.h"
 #include "Functions.h"
 #include "PlaybackScene.h"
 #include "PlaybackOverlayScene.h"
@@ -441,8 +443,20 @@ void EntryScene::OnConnectSelected()
 
     _connectPanel->SetActive(true);
     _connectPanel->SetVisible(true);
-    _connectIpInput->SetText(L"");
-    _connectPortInput->SetText(L"");
+    LastIpOptionAdapter optAdapter(Options::Instance()->GetValue("lastIps"));
+    auto ipList = optAdapter.GetList();
+    if (!ipList.empty())
+    {
+        std::array<std::string, 2> ipParts;
+        split_str(ipList[0], ipParts, ':');
+        _connectIpInput->SetText(string_to_wstring(ipParts[0]));
+        _connectPortInput->SetText(string_to_wstring(ipParts[1]));
+    }
+    else
+    {
+        _connectIpInput->SetText(L"");
+        _connectPortInput->SetText(L"");
+    }
     _setConnectFocus = true;
 }
 
@@ -468,9 +482,19 @@ void EntryScene::OnFileSelected()
 
 void EntryScene::OnConnectConfirmed()
 {
-    std::string ip = wstring_to_string(_connectIpInput->GetText());
-    USHORT port = str_to_int(wstring_to_string(_connectPortInput->GetText()));
-    znet::NetworkInterface::Instance()->Connect(ip, port);
+    std::string ipStr = wstring_to_string(_connectIpInput->GetText());
+    std::string portStr = wstring_to_string(_connectPortInput->GetText());
+    LastIpOptionAdapter optAdapter(Options::Instance()->GetValue("lastIps"));
+    bool ipValid = optAdapter.AddIp(ipStr, portStr);
+    if (!ipValid)
+    {
+        // Add visual error indication
+        return;
+    }
+    Options::Instance()->SetValue("lastIps", optAdapter.ToOptionString());
+
+    USHORT port = str_to_int(portStr);
+    znet::NetworkInterface::Instance()->Connect(ipStr, port);
     App::Instance()->UninitScene(GetName());
     return;
 
