@@ -257,9 +257,33 @@ int64_t str_to_int(std::string str, int base)
     return fnum;
 }
 
+float str_to_float(std::string str)
+{
+    return std::stof(str);
+}
+
+double str_to_double(std::string str)
+{
+    return std::stod(str);
+}
+
 std::string int_to_str(int64_t num)
 {
     std::ostringstream ss;
+    ss << num;
+    return ss.str();
+}
+
+std::string float_to_str(float num)
+{
+    std::ostringstream ss("");
+    ss << num;
+    return ss.str();
+}
+
+std::string double_to_str(double num)
+{
+    std::ostringstream ss("");
     ss << num;
     return ss.str();
 }

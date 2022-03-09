@@ -105,7 +105,11 @@ void split_str(std::string str, std::vector<std::string>& output, char split = '
 template<size_t Count>
 void split_str(std::string str, std::array<std::string, Count>& output, char split = ' ', bool ignoreEmpty = false);
 int64_t str_to_int(std::string str, int base = 10);
+float str_to_float(std::string str);
+double str_to_double(std::string str);
 std::string int_to_str(int64_t num);
+std::string float_to_str(float num);
+std::string double_to_str(double num);
 std::string to_uppercase(std::string str);
 std::string to_lowercase(std::string str);
 int find_text_in_vec(std::string str, std::vector<std::string> vec);
