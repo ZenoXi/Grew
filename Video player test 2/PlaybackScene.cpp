@@ -274,7 +274,15 @@ void PlaybackScene::_Update()
                 _controller->Play();
 
             _seekBar->SetDuration(_dataProvider->MediaDuration());
-            _volumeSlider->SetValue(std::stof(Options::Instance()->GetValue("volume")));
+
+            float volume = 0.2f;
+            try
+            {
+                volume = std::stof(Options::Instance()->GetValue("volume"));
+            }
+            catch (std::out_of_range) {}
+            catch (std::invalid_argument) {}
+            _volumeSlider->SetValue(volume);
             _controller->SetVolume(_volumeSlider->GetVolume());
         }
         if (_dataProvider->InitFailed())
