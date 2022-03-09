@@ -5,6 +5,7 @@
 #include "PacketSubscriber.h"
 
 #include "Label.h"
+#include "TextInput.h"
 #include "MediaQueueItem.h"
 
 #include "FileDialog.h"
@@ -40,7 +41,10 @@ class PlaybackOverlayScene : public Scene
     std::unique_ptr<zcom::Button> _addFileButton = nullptr;
     std::unique_ptr<zcom::Button> _closeOverlayButton = nullptr;
     std::unique_ptr<zcom::Label> _networkStatusLabel = nullptr;
-    std::unique_ptr<zcom::Label> _connectedUserLabel = nullptr;
+    std::unique_ptr<zcom::Panel> _connectedUsersPanel = nullptr;
+    std::unique_ptr<zcom::TextInput> _usernameInput = nullptr;
+    std::unique_ptr<zcom::Button> _usernameButton = nullptr;
+
 
     std::unique_ptr<PlaybackOverlayShortcutHandler> _shortcutHandler = nullptr;
 
@@ -99,6 +103,7 @@ public:
 
 private:
     void _RearrangeQueuePanel();
+    void _RearrangeNetworkPanel();
 
 private:
     bool _HandleKeyDown(BYTE keyCode);

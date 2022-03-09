@@ -68,18 +68,40 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _networkStatusLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
     _networkStatusLabel->SetBackgroundColor(D2D1::ColorF(0.25f, 0.25f, 0.25f));
 
-    _connectedUserLabel = std::make_unique<zcom::Label>(L"");
-    _connectedUserLabel->SetBaseSize(300, 25);
-    _connectedUserLabel->SetOffsetPixels(-40, 120);
-    _connectedUserLabel->SetHorizontalAlignment(zcom::Alignment::END);
-    _connectedUserLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
-    _connectedUserLabel->SetBackgroundColor(D2D1::ColorF(0.25f, 0.25f, 0.25f));
+    _connectedUsersPanel = std::make_unique<zcom::Panel>();
+    _connectedUsersPanel->SetBaseSize(300, 200);
+    _connectedUsersPanel->SetOffsetPixels(-40, 120);
+    _connectedUsersPanel->SetHorizontalAlignment(zcom::Alignment::END);
+    _connectedUsersPanel->SetBorderVisibility(true);
+    _connectedUsersPanel->SetBorderColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
+    _connectedUsersPanel->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
+
+    _usernameInput = std::make_unique<zcom::TextInput>();
+    _usernameInput->SetBaseSize(200, 25);
+    _usernameInput->SetOffsetPixels(-140, 330);
+    _usernameInput->SetPlaceholderText(L"New username");
+    _usernameInput->SetHorizontalAlignment(zcom::Alignment::END);
+
+    _usernameButton = std::make_unique<zcom::Button>(L"Change");
+    _usernameButton->SetBaseSize(80, 25);
+    _usernameButton->SetOffsetPixels(-40, 330);
+    _usernameButton->SetHorizontalAlignment(zcom::Alignment::END);
+    _usernameButton->SetBorderVisibility(true);
+    _usernameButton->SetActivation(zcom::ButtonActivation::RELEASE);
+    _usernameButton->SetOnActivated([&]()
+    {
+        znet::NetworkInterface::Instance()->SetUsername(_usernameInput->GetText());
+        _usernameInput->SetText(L"");
+    });
+
 
     _canvas->AddComponent(_playbackQueuePanel.get());
     _canvas->AddComponent(_addFileButton.get());
     _canvas->AddComponent(_closeOverlayButton.get());
     _canvas->AddComponent(_networkStatusLabel.get());
-    _canvas->AddComponent(_connectedUserLabel.get());
+    _canvas->AddComponent(_connectedUsersPanel.get());
+    _canvas->AddComponent(_usernameInput.get());
+    _canvas->AddComponent(_usernameButton.get());
     _canvas->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.75f));
 
     // Set up packet receivers
@@ -105,6 +127,7 @@ void PlaybackOverlayScene::_Unfocus()
 void PlaybackOverlayScene::_Update()
 {
     _playbackQueuePanel->Update();
+    _connectedUsersPanel->Update();
 
     znet::NetworkMode netMode = znet::NetworkInterface::Instance()->Mode();
     if (netMode != _networkMode)
@@ -135,17 +158,7 @@ void PlaybackOverlayScene::_Update()
     // Autoplay
     _PlayNextItem();
 
-    // Update network and user labels
-    std::string statusString = znet::NetworkInterface::Instance()->StatusString();
-    _networkStatusLabel->SetText(string_to_wstring(statusString));
-
-    auto users = znet::NetworkInterface::Instance()->Users();
-    std::ostringstream ss("");
-    for (int i = 0; i < users.size(); i++)
-    {
-        ss << users[i].id << " ";
-    }
-    _connectedUserLabel->SetText(string_to_wstring(ss.str()));
+    _RearrangeNetworkPanel();
 }
 
 void PlaybackOverlayScene::_SetUpPacketReceivers(znet::NetworkMode netMode)
@@ -893,6 +906,48 @@ void PlaybackOverlayScene::_RearrangeQueuePanel()
         _loadingItems[i]->SetVerticalOffsetPixels(25 * (i + _readyItems.size()));
     }
     _playbackQueuePanel->Resize();
+}
+
+void PlaybackOverlayScene::_RearrangeNetworkPanel()
+{
+    if (!_focused)
+        return;
+
+    // Update network label
+    std::string statusString = znet::NetworkInterface::Instance()->StatusString();
+    _networkStatusLabel->SetText(string_to_wstring(statusString));
+
+    // Add all users
+    auto users = znet::NetworkInterface::Instance()->Users();
+    _connectedUsersPanel->ClearItems();
+
+    { // This client
+        auto user = znet::NetworkInterface::Instance()->ThisUser();
+        std::wstring name = L"[User " + string_to_wstring(int_to_str(user.id)) + L"] " + user.name;
+        zcom::Label* usernameLabel = new zcom::Label(name);
+        usernameLabel->SetBaseHeight(25);
+        usernameLabel->SetParentWidthPercent(1.0f);
+        usernameLabel->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
+        usernameLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+        usernameLabel->SetMargins({ 5.0f, 0.0f, 5.0f, 0.0f });
+        _connectedUsersPanel->AddItem(usernameLabel, true);
+    }
+    
+    // Others
+    for (int i = 0; i < users.size(); i++)
+    {
+        std::wstring name = L"[User " + string_to_wstring(int_to_str(users[i].id)) + L"] " + users[i].name;
+
+        zcom::Label* usernameLabel = new zcom::Label(name);
+        usernameLabel->SetBaseHeight(25);
+        usernameLabel->SetParentWidthPercent(1.0f);
+        usernameLabel->SetVerticalOffsetPixels(25 + 25 * i);
+        usernameLabel->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f * (i % 2)));
+        usernameLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+        usernameLabel->SetMargins({ 5.0f, 0.0f, 5.0f, 0.0f });
+        _connectedUsersPanel->AddItem(usernameLabel, true);
+    }
+    _connectedUsersPanel->Resize();
 }
 
 bool PlaybackOverlayScene::_HandleKeyDown(BYTE keyCode)
