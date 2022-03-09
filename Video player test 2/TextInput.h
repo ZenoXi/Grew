@@ -464,10 +464,7 @@ namespace zcom
         void SetText(std::wstring text)
         {
             _text = text;
-            if (_cursorPos > _text.length())
-            {
-                _cursorPos = _text.length();
-            }
+            _cursorPos = _text.length();
             _CreateTextLayout();
         }
 
