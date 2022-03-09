@@ -496,6 +496,8 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
     }
     case VK_SPACE: // Pause toggle
     {
+        if (!_controller) break;
+
         if (_controller->Paused())
         {
             _controller->Play();
@@ -510,6 +512,8 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
     }
     case VK_LEFT: // Seek back
     {
+        if (!_controller) break;
+
         int seekAmount = 15;
         if (_shortcutHandler->KeyState(VK_CONTROL)) seekAmount = 60;
         if (_shortcutHandler->KeyState(VK_SHIFT)) seekAmount = 5;
@@ -518,6 +522,8 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
     }
     case VK_RIGHT: // Seek forward
     {
+        if (!_controller) break;
+
         int seekAmount = 15;
         if (_shortcutHandler->KeyState(VK_CONTROL)) seekAmount = 60;
         if (_shortcutHandler->KeyState(VK_SHIFT)) seekAmount = 5;
@@ -535,6 +541,8 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
     }
     case VK_DOWN: // Volume down
     {
+        if (!_controller) break;
+
         float volumeChange = 0.05f;
         if (_shortcutHandler->KeyState(VK_CONTROL)) volumeChange = 0.2f;
         if (_shortcutHandler->KeyState(VK_SHIFT)) volumeChange = 0.01f;
@@ -544,46 +552,64 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
     }
     case VK_NUMPAD1: // Video stream 1
     {
+        if (!_controller) break;
+
         _controller->SetVideoStream(0);
         break;
     }
     case VK_NUMPAD2: // Video stream 2
     {
+        if (!_controller) break;
+
         _controller->SetVideoStream(1);
         break;
     }
     case VK_NUMPAD3: // Video stream 3
     {
+        if (!_controller) break;
+
         _controller->SetVideoStream(2);
         break;
     }
     case VK_NUMPAD4: // Audio stream 1
     {
+        if (!_controller) break;
+
         _controller->SetAudioStream(0);
         break;
     }
     case VK_NUMPAD5: // Audio stream 2
     {
+        if (!_controller) break;
+
         _controller->SetAudioStream(1);
         break;
     }
     case VK_NUMPAD6: // Audio stream 3
     {
+        if (!_controller) break;
+
         _controller->SetAudioStream(2);
         break;
     }
     case VK_NUMPAD7: // Subtitle stream 1
     {
+        if (!_controller) break;
+
         _controller->SetSubtitleStream(0);
         break;
     }
     case VK_NUMPAD8: // Subtitle stream 2
     {
+        if (!_controller) break;
+
         _controller->SetSubtitleStream(1);
         break;
     }
     case VK_NUMPAD9: // Subtitle stream 3
     {
+        if (!_controller) break;
+
         _controller->SetSubtitleStream(2);
         break;
     }
