@@ -170,23 +170,52 @@ std::wstring string_to_wstring(std::string s)
     return converter.from_bytes(s);
 }
 
-void split_str(std::string str, std::vector<std::string> &v, char split)
+void split_str(std::string str, std::vector<std::string>& output, char split, bool ignoreEmpty)
 {
-    std::string t; t.reserve(10);
-    for (int i = 0; i < str.length(); i++) {
-        if (str[i] != split) {
-            t.push_back(str[i]);
+    int beginIndex = 0;
+    while (beginIndex < str.length())
+    {
+        // Find start point
+        if (ignoreEmpty)
+        {
+            while (str[beginIndex] == split)
+                beginIndex++;
         }
-        else if (str[i] == split && t.length() > 0) {
-            v.push_back(t);
-            t.clear();
+        if (beginIndex == str.length())
+            break;
+
+        int i = beginIndex;
+        for (; i < str.length(); i++)
+        {
+            if (str[i] == split)
+            {
+                output.push_back(str.substr(beginIndex, i - beginIndex));
+                beginIndex = i + 1;
+                break;
+            }
+        }
+        if (i == str.length())
+        {
+            output.push_back(str.substr(beginIndex));
+            break;
         }
     }
 
-    if (t.length() > 0) {
-        v.push_back(t);
-        t.clear();
-    }
+    //std::string t; t.reserve(10);
+    //for (int i = 0; i < str.length(); i++) {
+    //    if (str[i] != split) {
+    //        t.push_back(str[i]);
+    //    }
+    //    else if (str[i] == split && t.length() > 0) {
+    //        output.push_back(t);
+    //        t.clear();
+    //    }
+    //}
+
+    //if (t.length() > 0) {
+    //    output.push_back(t);
+    //    t.clear();
+    //}
 }
 
 int64_t str_to_int(std::string str, int base)
