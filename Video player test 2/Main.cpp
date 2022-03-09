@@ -11,6 +11,7 @@
 //#pragma comment( lib,"xaudio2.lib" )
 //#include <xaudio2.h>
 
+#include "Options.h"
 #include "NetBase2.h"
 #include "ResourceManager.h"
 #include "FileDialog.h"
@@ -51,9 +52,14 @@ int WINAPI main(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
     ztime::clock[CLOCK_GAME].Stop();
 
     // Initialize singleton objects
+
     znet::NetworkInterface::Init();
+    Options::Init();
     App::Init(window, EntryScene::StaticName());
     //App app(window, "entry_scene");
+
+    //Options::Instance()->SetValue("volume", "0.2");
+    //Options::Instance()->SetValue("lastIp", "193.219.91.103:7099");
 
     // Main window loop
     while (true)
