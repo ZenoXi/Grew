@@ -3,6 +3,7 @@
 #include "PlaybackOverlayScene.h"
 #include "HostPlaybackController.h"
 #include "ReceiverPlaybackController.h"
+#include "Options.h"
 
 bool leftClicked = false;
 bool rightClicked = false;
@@ -273,7 +274,7 @@ void PlaybackScene::_Update()
                 _controller->Play();
 
             _seekBar->SetDuration(_dataProvider->MediaDuration());
-            _volumeSlider->SetValue(0.1f);
+            _volumeSlider->SetValue(std::stof(Options::Instance()->GetValue("volume")));
             _controller->SetVolume(_volumeSlider->GetVolume());
         }
         if (_dataProvider->InitFailed())

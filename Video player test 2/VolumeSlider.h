@@ -5,6 +5,8 @@
 
 #include "ComponentBase.h"
 #include "GameTime.h"
+#include "Options.h"
+#include "Functions.h"
 
 #include <sstream>
 
@@ -111,7 +113,7 @@ namespace zcom
                 if (xPos < 0) xPos = 0;
                 if (xPos > volumeSliderWidth) xPos = volumeSliderWidth;
                 float xPosNorm = xPos / (float)volumeSliderWidth;
-                _value = xPosNorm;
+                SetValue(xPosNorm);
             }
             return this;
         }
@@ -134,7 +136,7 @@ namespace zcom
             if (xPos >= 0 && xPos <= volumeSliderWidth)
             {
                 float xPosNorm = xPos / (float)volumeSliderWidth;
-                _value = xPosNorm;
+                SetValue(xPosNorm);
                 _held = true;
             }
             return this;
@@ -158,11 +160,19 @@ namespace zcom
 
         Base* _OnWheelUp(int x, int y)
         {
+            if (!_held)
+            {
+                SetValue(_value + 0.05f);
+            }
             return this;
         }
 
         Base* _OnWheelDown(int x, int y)
         {
+            if (!_held)
+            {
+                SetValue(_value - 0.05f);
+            }
             return this;
         }
 
@@ -271,6 +281,7 @@ namespace zcom
             if (value > 1.0f) value = 1.0f;
             else if (value < 0.0f) value = 0.0f;
             _value = value;
+            Options::Instance()->SetValue("volume", float_to_str(_value));
         }
 
         float GetVolume() const
@@ -282,7 +293,7 @@ namespace zcom
         {
             if (volume > 1.0f) volume = 1.0f;
             else if (volume < 0.0f) volume = 0.0f;
-            _value = powf(volume, 1.0f / _exponent);
+            SetValue(powf(volume, 1.0f / _exponent));
         }
 
         float GetExponent() const
