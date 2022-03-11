@@ -8,6 +8,7 @@
 
 #include <WinUser.h>
 #pragma comment( lib,"User32.lib" )
+#include <Shellapi.h>
 
 std::wstring DisplayWindow::WINDOW_NAME = L"Grew";
 
@@ -56,7 +57,7 @@ DisplayWindow::DisplayWindow(HINSTANCE hInst, wchar_t* pArgs, LPCWSTR name) : _a
 
     // Create and show window
     _hwnd = CreateWindowEx(
-        0,
+        WS_EX_ACCEPTFILES,
         _wndClassName,
         WINDOW_NAME.c_str(),
         WS_OVERLAPPEDWINDOW,
@@ -83,7 +84,7 @@ DisplayWindow::DisplayWindow(HINSTANCE hInst, wchar_t* pArgs, LPCWSTR name) : _a
     _last2Moves[0] = _windowedRect;
     _last2Moves[1] = _windowedRect;
     
-    ShowWindow(_hwnd, SW_SHOWMAXIMIZED);
+    ShowWindow(_hwnd, SW_SHOWNORMAL);
     UpdateWindow(_hwnd);
 
     // Start message handle thread
@@ -197,6 +198,17 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
         }
         case WM_KILLFOCUS:
         {
+            break;
+        }
+        case WM_DROPFILES:
+        {
+            HDROP hDropInfo = (HDROP)wParam;
+            wchar_t sItem[MAX_PATH];
+            for (int i = 0; DragQueryFile(hDropInfo, i, sItem, sizeof(sItem)); i++)
+            {
+                std::wcout << sItem << std::endl;
+            }
+            DragFinish(hDropInfo);
             break;
         }
         case WM_MOUSEMOVE:
