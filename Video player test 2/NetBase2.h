@@ -177,6 +177,10 @@ namespace znet
         {
             if (_socket == SOCKET_ERROR) return;
 
+            // Set socket to non-blocking
+            u_long mode = 1;
+            ioctlsocket(_socket, FIONBIO, &mode);
+
             _inPacketHandler = std::thread(&TCPConnection::HandleIncomingPackets, this);
             _outPacketHandler = std::thread(&TCPConnection::HandleOutgoingPackets, this);
         }
@@ -294,6 +298,7 @@ namespace znet
         void SendQueue(int priority = 0)
         {
             if (!Connected()) return;
+            if (_packetQueue.empty()) return;
 
             LOCK_GUARD(lock, _m_outPackets);
             if (priority != 0)
@@ -302,11 +307,8 @@ namespace znet
                 {
                     if (_outPackets[i].second < priority)
                     {
-                        if (!_packetQueue.empty())
-                        {
-                            _outPackets.insert(_outPackets.begin() + i, { Packet(MULTIPLE_PACKETS).From(_packetQueue.size()), priority });
-                            i++;
-                        }
+                        _outPackets.insert(_outPackets.begin() + i, { Packet(MULTIPLE_PACKETS).From(_packetQueue.size()), priority });
+                        i++;
                         while (!_packetQueue.empty())
                         {
                             _outPackets.insert(_outPackets.begin() + i, { std::move(_packetQueue.front()), priority });
@@ -318,58 +320,12 @@ namespace znet
                 }
             }
 
-            if (!_packetQueue.empty())
-            {
-                _outPackets.push_back({ Packet(MULTIPLE_PACKETS).From(_packetQueue.size()), priority });
-            }
+            _outPackets.push_back({ Packet(MULTIPLE_PACKETS).From(_packetQueue.size()), priority });
             while (!_packetQueue.empty())
             {
                 _outPackets.push_back({ std::move(_packetQueue.front()), priority });
                 _packetQueue.pop();
             }
-
-            //if (priority == 0)
-            //{
-            //    LOCK_GUARD(lock, _m_outPackets);
-            //    if (!_packetQueue.empty())
-            //    {
-            //        _outPackets.push_back({ Packet(MULTIPLE_PACKETS).From(_packetQueue.size()), priority });
-            //    }
-            //    while (!_packetQueue.empty())
-            //    {
-            //        _outPackets.push_back({ std::move(_packetQueue.front()), priority });
-            //        _packetQueue.pop();
-            //    }
-            //    return;
-            //}
-
-            //LOCK_GUARD(lock, _m_outPackets);
-            //for (int i = 0; i < _outPackets.size(); i++)
-            //{
-            //    if (_outPackets[i].second < priority)
-            //    {
-            //        if (!_packetQueue.empty())
-            //        {
-            //            _outPackets.push_back({ Packet(MULTIPLE_PACKETS).From(_packetQueue.size()), priority });
-            //        }
-            //        while (!_packetQueue.empty())
-            //        {
-            //            _outPackets.insert(_outPackets.begin() + i, { std::move(_packetQueue.front()), priority });
-            //            _packetQueue.pop();
-            //            i++;
-            //        }
-            //        return;
-            //    }
-            //}
-            //if (!_packetQueue.empty())
-            //{
-            //    _outPackets.push_back({ Packet(MULTIPLE_PACKETS).From(_packetQueue.size()), priority });
-            //}
-            //while (!_packetQueue.empty())
-            //{
-            //    _outPackets.push_back({ std::move(_packetQueue.front()), priority });
-            //    _packetQueue.pop();
-            //}
         }
 
     private:
@@ -379,7 +335,16 @@ namespace znet
             while (totalBytesReceived < byteCount)
             {
                 int bytesReceived = recv(_socket, (char*)buffer + totalBytesReceived, byteCount - totalBytesReceived, 0);
-                if (bytesReceived == SOCKET_ERROR || bytesReceived == 0)
+                if (bytesReceived == SOCKET_ERROR)
+                {
+                    if (WSAGetLastError() != WSAEWOULDBLOCK)
+                    {
+                        return bytesReceived;
+                    }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    continue;
+                }
+                else if (bytesReceived == 0)
                 {
                     return bytesReceived;
                 }
@@ -396,7 +361,12 @@ namespace znet
                 int bytesSent = send(_socket, (char*)buffer + totalBytesSent, byteCount - totalBytesSent, 0);
                 if (bytesSent == SOCKET_ERROR)
                 {
-                    return bytesSent;
+                    if (WSAGetLastError() != WSAEWOULDBLOCK)
+                    {
+                        return bytesSent;
+                    }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    continue;
                 }
                 totalBytesSent += bytesSent;
             }
@@ -519,7 +489,11 @@ namespace znet
             std::vector<Packet> packets;
             while (true)
             {
-                packets.clear();
+                if (_socket == SOCKET_ERROR)
+                {
+                    break;
+                }
+
                 _m_outPackets.lock();
                 if (_outPackets.empty())
                 {
@@ -527,6 +501,7 @@ namespace znet
                     std::this_thread::sleep_for(std::chrono::milliseconds(1));
                     continue;
                 }
+                packets.clear();
                 packets.push_back(std::move(_outPackets.front().first));
                 _outPackets.pop_front();
 
@@ -1333,18 +1308,11 @@ namespace znet
         }
         ~TCPClient()
         {
-            while (true)
+            TCPClientRef ref = _connectionManager->GetFront();
+            if (ref.Valid())
             {
-                TCPClientRef ref = _connectionManager->GetFront();
-                if (ref.Valid())
-                {
-                    ref->BlockPackets();
-                    ref->Disconnect();
-                }
-                else
-                {
-                    break;
-                }
+                ref->BlockPackets();
+                ref->Disconnect();
             }
             _connectionManager->AllowSelfDestruct();
         }
