@@ -30,10 +30,14 @@ void MediaHostDataProvider::Start()
 void MediaHostDataProvider::Stop()
 {
     _INIT_THREAD_STOP = true;
+    _PACKET_THREAD_STOP = true;
+
+    znet::NetworkInterface::Instance()->AbortSend((int32_t)znet::PacketType::VIDEO_PACKET);
+    znet::NetworkInterface::Instance()->AbortSend((int32_t)znet::PacketType::AUDIO_PACKET);
+    znet::NetworkInterface::Instance()->AbortSend((int32_t)znet::PacketType::SUBTITLE_PACKET);
+
     if (_initializationThread.joinable())
         _initializationThread.join();
-
-    _PACKET_THREAD_STOP = true;
     if (_packetReadingThread.joinable())
         _packetReadingThread.join();
 }
