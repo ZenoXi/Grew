@@ -266,11 +266,20 @@ namespace znet
             Duration printInterval = Duration(3, SECONDS);
             bool printSpeed = true;
 
+            TimePoint lastKeepAliveReceiveTime = ztime::Main();
+
             while (!_MANAGEMENT_THR_STOP)
             {
                 // Check if connection still exists
                 if (!connection->Connected())
                 {
+                    _connectionId = -1;
+                    _connectionLost = true;
+                    break;
+                }
+                if ((ztime::Main() - lastKeepAliveReceiveTime).GetDuration(MILLISECONDS) > 5000)
+                {
+                    connection->Disconnect();
                     _connectionId = -1;
                     _connectionLost = true;
                     break;
@@ -292,8 +301,13 @@ namespace znet
                         packetsInTransmittion.pop();
                         packetLatencies.Push(returnTime - sendTime);
                     }
+                    else if (pack1.id == (int32_t)PacketType::KEEP_ALIVE)
+                    {
+                        lastKeepAliveReceiveTime = ztime::Main();
+                    }
                     else if (pack1.id == (int32_t)PacketType::DISCONNECT_REQUEST)
                     {
+                        connection->Disconnect();
                         _connectionId = -1;
                         _disconnected = true;
                         break;

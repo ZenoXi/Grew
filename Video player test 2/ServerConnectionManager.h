@@ -16,6 +16,11 @@ namespace znet
             int64_t sourceUserId = -1;
         };
 
+        struct _UserData
+        {
+            int64_t bytesUnconfirmed = 0;
+        };
+
         class ServerIDGenerator : public TCPServer::IDGenerator
         {
             int64_t _ID_COUNTER = 1;
@@ -28,8 +33,8 @@ namespace znet
 
         TCPServer _server;
         std::vector<User> _users;
+        std::vector<_UserData> _usersData;
         User _thisUser;
-        std::vector<int64_t> _userBytesUnconfirmed;
         std::mutex _m_users;
         std::unique_ptr<ServerIDGenerator> _generator;
 
@@ -203,13 +208,15 @@ namespace znet
             Duration printInterval = Duration(3, SECONDS);
             bool printSpeed = true;
 
+            TimePoint lastKeepAliveSendTime = ztime::Main();
+
             while (!_MANAGEMENT_THR_STOP)
             {
                 // Get new connections
                 int64_t newUser;
                 while ((newUser = _server.GetNewConnection()) != -1)
                 {
-                    _userBytesUnconfirmed.push_back(0);
+                    _usersData.push_back({});
                     std::lock_guard<std::mutex> lock(_m_users);
 
                     // Send new user id to other users
@@ -272,7 +279,7 @@ namespace znet
                         {
                             disconnects.push_back(disconnectedUser);
                             _users.erase(_users.begin() + i);
-                            _userBytesUnconfirmed.erase(_userBytesUnconfirmed.begin() + i);
+                            _usersData.erase(_usersData.begin() + i);
                             break;
                         }
                     }
@@ -282,6 +289,18 @@ namespace znet
                     {
                         TCPClientRef connection = _server.Connection(_users[i].id);
                         connection->Send(Packet((int)PacketType::DISCONNECTED_USER).From(disconnectedUser), 2);
+                    }
+                }
+
+                // Send keep-alive packets
+                if ((ztime::Main() - lastKeepAliveSendTime).GetDuration(MILLISECONDS) >= 1000)
+                {
+                    lastKeepAliveSendTime = ztime::Main();
+                    std::lock_guard<std::mutex> lock(_m_users);
+                    for (int i = 0; i < _users.size(); i++)
+                    {
+                        auto connection = _server.Connection(_users[i].id);
+                        connection->Send(znet::Packet((int)znet::PacketType::KEEP_ALIVE).From(int8_t(0)), 2);
                     }
                 }
 
@@ -298,7 +317,7 @@ namespace znet
                             Packet pack1 = client->GetPacket();
                             if (pack1.id == (int32_t)PacketType::BYTE_CONFIRMATION)
                             {
-                                _userBytesUnconfirmed[i] -= pack1.Cast<size_t>();
+                                _usersData[i].bytesUnconfirmed -= pack1.Cast<size_t>();
                                 // Increment connection speed counter
                                 bytesSentSinceLastPrint += pack1.Cast<size_t>();
                             }
@@ -448,7 +467,7 @@ namespace znet
                         }
 
                         // Postpone sending heavy packets if unconfirmed byte count exceeds max value
-                        if (_userBytesUnconfirmed[userIndex] > maxUnconfirmedBytes && heavyPacket)
+                        if (_usersData[userIndex].bytesUnconfirmed > maxUnconfirmedBytes && heavyPacket)
                             continue;
 
                         // Some packet types don't need a prefix
@@ -469,7 +488,7 @@ namespace znet
                         connection->AddToQueue(_outPackets[i].first.packet.Reference());
                         connection->SendQueue(_outPackets[i].second);
 
-                        _userBytesUnconfirmed[userIndex] += _outPackets[i].first.packet.size;
+                        _usersData[userIndex].bytesUnconfirmed += _outPackets[i].first.packet.size;
                         sent = true;
 
                         // Remove destination from list

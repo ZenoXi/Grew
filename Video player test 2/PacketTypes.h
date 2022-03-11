@@ -49,6 +49,11 @@ namespace znet
         //  array of int64_t - currently connected user ids
         USER_LIST,
 
+        // Sent by the server periodically to check whether connection is broken
+        // Contains:
+        //  1 byte - anything
+        KEEP_ALIVE,
+
         // // // // // // // // // // // // // // // // // // //
         // // // // // // // // // // // // // // // // // // //
         // PLAYBACK // // // // // // // // // // // // // // //
