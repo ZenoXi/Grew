@@ -66,7 +66,7 @@ namespace znet
 
         Packet() : _bytes(nullptr), size(0), id(-1)
         {}
-        Packet(std::unique_ptr<int8_t[]>&& bytes, int size, int id)
+        Packet(std::unique_ptr<int8_t[]>&& bytes, size_t size, int id)
             : _bytes(std::move(bytes)), size(size), id(id)
         {}
         Packet(int packetId)
