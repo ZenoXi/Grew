@@ -273,7 +273,7 @@ void MediaHostDataProvider::_Initialize()
     // Wait for confirmation
     while (!metadataTracker.AllReceived() && !_INIT_THREAD_STOP)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    std::cout << "Metadata received!" << std::endl;
+    std::cout << "Metadata receive confirmed!" << std::endl;
 
     // Wait for all controllers to be ready
     while (!controllerTracker.AllReceived() && !_INIT_THREAD_STOP)
