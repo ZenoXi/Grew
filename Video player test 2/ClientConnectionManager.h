@@ -35,6 +35,7 @@ namespace znet
         std::mutex _m_inPackets;
         std::mutex _m_outPackets;
         std::queue<_PacketData> _packetQueue;
+        int64_t _splitIdCounter = 0;
 
     public:
         ClientConnectionManager(std::string ip, uint16_t port)
@@ -171,6 +172,51 @@ namespace znet
     public:
         void Send(Packet&& packet, std::vector<int64_t> userIds, int priority = 0)
         {
+            // Split large packets
+            size_t splitThreshold = 50000; // Bytes
+            std::vector<Packet> packets;
+            if (packet.size > splitThreshold)
+            {
+                size_t partCount = packet.size / splitThreshold;
+                if (packet.size % splitThreshold != 0)
+                    partCount++;
+                int64_t splitId = _splitIdCounter++;
+
+                // Create head packet
+                struct SplitHead
+                {
+                    int64_t splitId;
+                    int32_t packetId;
+                    int32_t partCount;
+                    size_t packetSize;
+                };
+                packets.push_back(Packet((int)PacketType::SPLIT_PACKET_HEAD).From(SplitHead{ splitId, packet.id, (int32_t)partCount, packet.size }));
+
+                // Create part packets
+                size_t bytesUsed = 0;
+                size_t bytesLeft = packet.size;
+                while (bytesLeft > 0)
+                {
+                    size_t dataSize = splitThreshold;
+                    if (bytesLeft < splitThreshold)
+                        dataSize = bytesLeft;
+
+                    size_t packetSize = sizeof(int64_t) + sizeof(int32_t) + dataSize;
+                    auto bytes = std::make_unique<int8_t[]>(packetSize);
+                    *(int64_t*)bytes.get() = splitId;
+                    *(int32_t*)(bytes.get() + sizeof(int64_t)) = packet.id;
+                    std::copy_n(packet.Bytes() + bytesUsed, dataSize, bytes.get() + sizeof(int64_t) + sizeof(int32_t));
+                    packets.push_back(Packet(std::move(bytes), packetSize, (int)PacketType::SPLIT_PACKET_PART));
+                    bytesUsed += dataSize;
+                    bytesLeft -= dataSize;
+                }
+            }
+            else
+            {
+                packets.push_back(std::move(packet));
+            }
+
+            // Send packets
             std::lock_guard<std::mutex> lock(_m_outPackets);
             if (priority != 0)
             {
@@ -178,14 +224,36 @@ namespace znet
                 {
                     if (_outPackets[i].second < priority)
                     {
-                        _PacketData data = { std::move(packet), std::move(userIds) };
-                        _outPackets.insert(_outPackets.begin() + i, { std::move(data), priority });
+                        for (int j = 0; j < packets.size(); j++)
+                        {
+                            _PacketData data = { std::move(packets[j]), userIds };
+                            _outPackets.insert(_outPackets.begin() + i, { std::move(data), priority });
+                            i++;
+                        }
                         return;
                     }
                 }
             }
-            _PacketData data = { std::move(packet), std::move(userIds) };
-            _outPackets.push_back({ std::move(data), priority });
+            for (int j = 0; j < packets.size(); j++)
+            {
+                _PacketData data = { std::move(packets[j]), userIds };
+                _outPackets.push_back({ std::move(data), priority });
+            }
+            //std::lock_guard<std::mutex> lock(_m_outPackets);
+            //if (priority != 0)
+            //{
+            //    for (int i = 0; i < _outPackets.size(); i++)
+            //    {
+            //        if (_outPackets[i].second < priority)
+            //        {
+            //            _PacketData data = { std::move(packet), std::move(userIds) };
+            //            _outPackets.insert(_outPackets.begin() + i, { std::move(data), priority });
+            //            return;
+            //        }
+            //    }
+            //}
+            //_PacketData data = { std::move(packet), std::move(userIds) };
+            //_outPackets.push_back({ std::move(data), priority });
         }
 
         void AddToQueue(Packet&& packet, std::vector<int64_t> userIds)
@@ -225,7 +293,45 @@ namespace znet
             std::unique_lock<std::mutex> lock(_m_outPackets);
             for (int i = 0; i < _outPackets.size(); i++)
             {
-                if (_outPackets[i].first.packet.id == packetId)
+                // Check split packets
+                if (_outPackets[i].first.packet.id == (int32_t)PacketType::SPLIT_PACKET_HEAD)
+                {
+                    // Extract packet id
+                    struct SplitHead
+                    {
+                        int64_t splitId;
+                        int32_t packetId;
+                        int32_t partCount;
+                        size_t packetSize;
+                    };
+                    auto headData = _outPackets[i].first.packet.Cast<SplitHead>();
+
+                    if (headData.packetId == packetId)
+                    {
+                        _outPackets.erase(_outPackets.begin() + i, _outPackets.begin() + i + headData.partCount + 1);
+                        i--;
+                    }
+                }
+                else if (_outPackets[i].first.packet.id == (int32_t)PacketType::SPLIT_PACKET_PART)
+                {
+                    // Extract split id
+                    int64_t splitId = _outPackets[i].first.packet.Cast<int64_t>();
+
+                    while (true)
+                    {
+                        _outPackets.erase(_outPackets.begin() + i);
+
+                        if (_outPackets.size() == i)
+                            break;
+                        if (_outPackets[i].first.packet.id != (int32_t)PacketType::SPLIT_PACKET_PART)
+                            break;
+                        if (_outPackets[i].first.packet.Cast<int64_t>() != splitId)
+                            break;
+                    }
+
+                    i--;
+                }
+                else if (_outPackets[i].first.packet.id == packetId)
                 {
                     _outPackets.erase(_outPackets.begin() + i);
                     i--;
@@ -253,6 +359,15 @@ namespace znet
             TCPClientRef connection = _client.Connection(_connectionId);
 
             size_t bytesUnconfirmed = 0;
+            struct SplitPacket
+            {
+                int64_t splitId;
+                int32_t packetId;
+                int32_t partCount;
+                size_t packetSize;
+                std::vector<Packet> parts;
+            };
+            std::vector<SplitPacket> splitPackets;
             size_t maxUnconfirmedBytes = 250000; // 1 MB
 
             Clock threadTimer = Clock();
@@ -282,6 +397,7 @@ namespace znet
                     connection->Disconnect();
                     _connectionId = -1;
                     _connectionLost = true;
+                    std::cout << "Keep alive packet not received within 5 seconds, closing connection.." << std::endl;
                     break;
                 }
 
@@ -372,10 +488,78 @@ namespace znet
                             // Send confirmation packet
                             connection->Send(Packet((int)PacketType::BYTE_CONFIRMATION).From(pack2.size), 1);
 
-                            int64_t from = pack1.Cast<int32_t>();
-                            std::unique_lock<std::mutex> lock(_m_inPackets);
-                            _PacketData data = { std::move(pack2), { from } };
-                            _inPackets.push(std::move(data));
+                            // Process split packet
+                            if (pack2.id == (int)PacketType::SPLIT_PACKET_HEAD)
+                            {
+                                struct SplitHead
+                                {
+                                    int64_t splitId;
+                                    int32_t packetId;
+                                    int32_t partCount;
+                                    size_t packetSize;
+                                };
+                                auto headData = pack2.Cast<SplitHead>();
+                                splitPackets.push_back({ headData.splitId, headData.packetId, headData.partCount, headData.packetSize });
+                            }
+                            else if (pack2.id == (int)PacketType::SPLIT_PACKET_PART)
+                            {
+                                int64_t splitId = pack2.Cast<int64_t>();
+                                int index = -1;
+                                for (int i = 0; i < splitPackets.size(); i++)
+                                {
+                                    if (splitPackets[i].splitId == splitId)
+                                    {
+                                        splitPackets[i].parts.push_back(pack2.Reference());
+                                        index = i;
+                                        break;
+                                    }
+                                }
+
+                                // Check if all parts received
+                                if (index != -1)
+                                {
+                                    if (splitPackets[index].parts.size() == splitPackets[index].partCount)
+                                    {
+                                        // Combine
+                                        auto bytes = std::make_unique<int8_t[]>(splitPackets[index].packetSize);
+                                        size_t bytePos = 0;
+                                        size_t partDataOffset = sizeof(int64_t) + sizeof(int32_t);
+                                        for (auto& part : splitPackets[index].parts)
+                                        {
+                                            size_t byteCount = part.size - partDataOffset;
+                                            std::copy_n(part.Bytes() + partDataOffset, byteCount, bytes.get() + bytePos);
+                                            bytePos += byteCount;
+                                        }
+                                        Packet combined = Packet(std::move(bytes), splitPackets[index].packetSize, splitPackets[index].packetId);
+                                        splitPackets.erase(splitPackets.begin() + index);
+
+                                        // Add to queue
+                                        int64_t from = pack1.Cast<int32_t>();
+                                        std::unique_lock<std::mutex> lock(_m_inPackets);
+                                        _PacketData data = { std::move(combined), { from } };
+                                        _inPackets.push(std::move(data));
+                                    }
+                                }
+                            }
+                            else if (pack2.id == (int)PacketType::SPLIT_PACKET_ABORT)
+                            {
+                                int64_t splitId = pack2.Cast<int64_t>();
+                                for (int i = 0; i < splitPackets.size(); i++)
+                                {
+                                    if (splitPackets[i].splitId == splitId)
+                                    {
+                                        splitPackets.erase(splitPackets.begin() + i);
+                                        break;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                int64_t from = pack1.Cast<int32_t>();
+                                std::unique_lock<std::mutex> lock(_m_inPackets);
+                                _PacketData data = { std::move(pack2), { from } };
+                                _inPackets.push(std::move(data));
+                            }
                         }
                         else
                         {
@@ -402,6 +586,7 @@ namespace znet
 
                         // Heavy packets will be postponed until unconfirmed byte count is below a certain value
                         bool heavyPacket = (
+                            view.id == (int32_t)PacketType::SPLIT_PACKET_PART ||
                             view.id == (int32_t)PacketType::VIDEO_PACKET ||
                             view.id == (int32_t)PacketType::AUDIO_PACKET ||
                             view.id == (int32_t)PacketType::SUBTITLE_PACKET ||
