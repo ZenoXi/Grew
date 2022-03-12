@@ -279,12 +279,12 @@ namespace zcom
 
         Base* _OnWheelUp(int x, int y)
         {
-            return this;
+            return nullptr;
         }
 
         Base* _OnWheelDown(int x, int y)
         {
-            return this;
+            return nullptr;
         }
 
     public:

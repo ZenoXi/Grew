@@ -403,8 +403,8 @@ namespace zcom
         virtual Base* _OnRightPressed(int x, int y) { return this; }
         virtual Base* _OnLeftReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min()) { return this; }
         virtual Base* _OnRightReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min()) { return this; }
-        virtual Base* _OnWheelUp(int x, int y) { return this; }
-        virtual Base* _OnWheelDown(int x, int y) { return this; }
+        virtual Base* _OnWheelUp(int x, int y) { return nullptr; }
+        virtual Base* _OnWheelDown(int x, int y) { return nullptr; }
         virtual void _OnSelected() {}
         virtual void _OnDeselected() {}
     public:
