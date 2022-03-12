@@ -213,10 +213,19 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
         }
         case WM_MOUSEMOVE:
         {
-            _m_msg.lock();
             int x = (short)LOWORD(lParam);
             int y = (short)HIWORD(lParam);
+            if (x != _lastMouseMove.x || y != _lastMouseMove.y)
+            {
+                _lastMouseMove.x = x;
+                _lastMouseMove.y = y;
+            }
+            else
+            {
+                break;
+            }
             //std::cout << x << "," << y << std::endl;
+            _m_msg.lock();
             if (GetCapture() != _hwnd)
             {
                 _mouseInWindow = false;

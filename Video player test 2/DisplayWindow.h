@@ -200,6 +200,7 @@ private:
     bool _cursorVisibilityChanged = false;
 
     RECT _last2Moves[2];
+    POINT _lastMouseMove;
 
     bool _fullscreenChanged = false;
     std::mutex _m_fullscreen;
