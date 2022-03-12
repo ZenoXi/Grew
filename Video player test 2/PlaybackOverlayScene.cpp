@@ -253,6 +253,24 @@ void PlaybackOverlayScene::_ProcessCurrentUsers()
     }
     _currentUserIds = std::move(newIdList);
     _currentUserNames = std::move(newNameList);
+
+    // Send queue items to new connections
+    if (!newUsers.empty())
+    {
+        for (auto& item : _readyItems)
+        {
+            std::wstring filename = item->GetFilename();
+            size_t packetSize = sizeof(int32_t) + sizeof(int32_t) + sizeof(int64_t) + sizeof(int64_t) + sizeof(wchar_t) * filename.length();
+            auto bytes = std::make_unique<int8_t[]>(packetSize);
+            *((int32_t*)bytes.get()) = item->GetMediaId();
+            *((int32_t*)(bytes.get() + 4)) = -1;
+            *((int64_t*)(bytes.get() + 8)) = item->GetUserId();
+            *((int64_t*)(bytes.get() + 16)) = item->GetDuration().GetDuration(NANOSECONDS);
+            std::copy_n(filename.begin(), filename.length(), (wchar_t*)(bytes.get() + 24));
+
+            znet::NetworkInterface::Instance()->Send(znet::Packet(std::move(bytes), packetSize, (int)znet::PacketType::QUEUE_ITEM_ADD), newUsers);
+        }
+    }
 }
 
 void PlaybackOverlayScene::_CheckFileDialogCompletion()
