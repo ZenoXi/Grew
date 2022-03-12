@@ -50,9 +50,28 @@ namespace znet
         USER_LIST,
 
         // Sent by the server periodically to check whether connection is broken
-        // Contains:
-        //  1 byte - anything
         KEEP_ALIVE,
+
+        // Data about a packet that will arrive split into multiple small packets
+        // Contains:
+        //  int64_t - split id, used to identify packets belonging to this split
+        //  int32_t - packet id
+        //  int32_t - number of parts
+        //  size_t - total packet size
+        SPLIT_PACKET_HEAD,
+
+        // Part of split packet data
+        // Contains:
+        //  int64_t - split id
+        //  int32_t - packet id (included here as well to allow AbortSend() to work corectly)
+        //  remaining bytes - data
+        SPLIT_PACKET_PART,
+
+        // Signals that the specified number of parts will not arrive and already
+        // received parts should be discarded
+        // Contains:
+        //  int64_t - split id
+        SPLIT_PACKET_ABORT,
 
         // // // // // // // // // // // // // // // // // // //
         // // // // // // // // // // // // // // // // // // //
@@ -150,7 +169,7 @@ namespace znet
         // Sent by the receiver when its playback controller sets up its packet receivers
         CONTROLLER_READY,
 
-        // Sent to all receivers when host's 
+        // Sent to all receivers when hosts' controller is ready
         HOST_CONTROLLER_READY,
 
         // Sent by the receiver after their media player loads
