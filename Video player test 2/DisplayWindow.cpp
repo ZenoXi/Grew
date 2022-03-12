@@ -288,8 +288,8 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
         {
             if (!_fullscreen)
             {
-                int x = LOWORD(lParam);
-                int y = HIWORD(lParam);
+                int x = (int)(short)LOWORD(lParam);
+                int y = (int)(short)HIWORD(lParam);
                 int w = _windowedRect.right - _windowedRect.left;
                 int h = _windowedRect.bottom - _windowedRect.top;
                 _last2Moves[0] = _last2Moves[1];
@@ -556,7 +556,7 @@ void DisplayWindow::HandleFullscreenChange()
             SetWindowLongPtr(_hwnd, GWL_STYLE, /*WS_VISIBLE |*/ WS_POPUP);
             SetWindowPos(_hwnd, HWND_TOP, 0, 0, w, h, SWP_FRAMECHANGED);
 
-            ShowWindow(_hwnd, SW_SHOWDEFAULT);
+            ShowWindow(_hwnd, SW_SHOW);
         }
         else
         {
@@ -574,7 +574,7 @@ void DisplayWindow::HandleFullscreenChange()
             if (_windowedMaximized)
                 ShowWindow(_hwnd, SW_SHOWMAXIMIZED);
             else
-                ShowWindow(_hwnd, SW_SHOWDEFAULT);
+                ShowWindow(_hwnd, SW_SHOW);
         }
         //UpdateWindow(_hwnd);
     }
