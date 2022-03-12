@@ -44,11 +44,14 @@ class PlaybackOverlayScene : public Scene
     std::unique_ptr<zcom::Panel> _connectedUsersPanel = nullptr;
     std::unique_ptr<zcom::TextInput> _usernameInput = nullptr;
     std::unique_ptr<zcom::Button> _usernameButton = nullptr;
+    std::unique_ptr<zcom::Button> _disconnectButton = nullptr;
 
 
     std::unique_ptr<PlaybackOverlayShortcutHandler> _shortcutHandler = nullptr;
 
     znet::NetworkMode _networkMode = znet::NetworkMode::OFFLINE;
+    std::vector<int64_t> _currentUserIds;
+    std::vector<std::wstring> _currentUserNames;
     std::unique_ptr<znet::PacketReceiver> _queueAddRequestReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _queueAddReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _queueRemoveRequestReceiver = nullptr;
@@ -73,6 +76,7 @@ public:
     void _Update();
 private:
     void _SetUpPacketReceivers(znet::NetworkMode netMode);
+    void _ProcessCurrentUsers();
     void _CheckFileDialogCompletion();
     void _CheckForItemAddRequest();
     void _CheckForItemAdd();

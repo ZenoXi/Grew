@@ -94,6 +94,17 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         _usernameInput->SetText(L"");
     });
 
+    _disconnectButton = std::make_unique<zcom::Button>(L"Disconnect");
+    _disconnectButton->SetBaseSize(80, 25);
+    _disconnectButton->SetOffsetPixels(-40, 365);
+    _disconnectButton->SetHorizontalAlignment(zcom::Alignment::END);
+    _disconnectButton->SetBorderVisibility(true);
+    _disconnectButton->SetActivation(zcom::ButtonActivation::RELEASE);
+    _disconnectButton->SetOnActivated([&]()
+    {
+        znet::NetworkInterface::Instance()->Disconnect();
+    });
+
 
     _canvas->AddComponent(_playbackQueuePanel.get());
     _canvas->AddComponent(_addFileButton.get());
@@ -102,6 +113,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _canvas->AddComponent(_connectedUsersPanel.get());
     _canvas->AddComponent(_usernameInput.get());
     _canvas->AddComponent(_usernameButton.get());
+    _canvas->AddComponent(_disconnectButton.get());
     _canvas->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.75f));
 
     // Set up packet receivers
@@ -135,6 +147,9 @@ void PlaybackOverlayScene::_Update()
         _networkMode = netMode;
         _SetUpPacketReceivers(netMode);
     }
+
+    // Process connected user changes
+    _ProcessCurrentUsers();
 
     // File dialog
     _CheckFileDialogCompletion();
@@ -193,6 +208,51 @@ void PlaybackOverlayScene::_SetUpPacketReceivers(znet::NetworkMode netMode)
         _playbackStartOrderReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_START_ORDER);
         _playbackStartReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_START);
     }
+}
+
+void PlaybackOverlayScene::_ProcessCurrentUsers()
+{
+    if (_networkMode != znet::NetworkMode::SERVER)
+    {
+        if (!_currentUserIds.empty())
+            _currentUserIds.clear();
+        if (!_currentUserNames.empty())
+            _currentUserNames.clear();
+        return;
+    }
+
+    // Create an updated list of connected users, new users, and gone users
+    auto users = znet::NetworkInterface::Instance()->Users();
+    std::vector<int64_t> newIdList;
+    std::vector<std::wstring> newNameList;
+    for (int i = 0; i < users.size(); i++)
+    {
+        newIdList.push_back(users[i].id);
+        newNameList.push_back(users[i].name);
+    }
+    std::vector<int64_t> newUsers;
+    for (int i = 0; i < newIdList.size(); i++)
+    {
+        if (std::find(_currentUserIds.begin(), _currentUserIds.end(), newIdList[i]) == _currentUserIds.end())
+        {
+            newUsers.push_back(newIdList[i]);
+        }
+    }
+    std::vector<int64_t> goneUsers;
+    for (int i = 0; i < _currentUserIds.size(); i++)
+    {
+        if (std::find(newIdList.begin(), newIdList.end(), _currentUserIds[i]) == newIdList.end())
+        {
+            goneUsers.push_back(_currentUserIds[i]);
+        }
+    }
+
+    if (newUsers.empty() && goneUsers.empty())
+    {
+        return;
+    }
+    _currentUserIds = std::move(newIdList);
+    _currentUserNames = std::move(newNameList);
 }
 
 void PlaybackOverlayScene::_CheckFileDialogCompletion()
@@ -262,12 +322,7 @@ void PlaybackOverlayScene::_CheckForItemAddRequest()
         *((int64_t*)(bytes.get() + 16)) = mediaDuration;
         std::copy_n(filename.begin(), filename.length(), (wchar_t*)(bytes.get() + 24));
 
-        std::vector<int64_t> destinationUsers;
-        auto users = znet::NetworkInterface::Instance()->Users();
-        for (auto& user : users)
-            destinationUsers.push_back(user.id);
-
-        znet::NetworkInterface::Instance()->Send(znet::Packet(std::move(bytes), packetSize, (int)znet::PacketType::QUEUE_ITEM_ADD), destinationUsers);
+        znet::NetworkInterface::Instance()->Send(znet::Packet(std::move(bytes), packetSize, (int)znet::PacketType::QUEUE_ITEM_ADD), _currentUserIds);
     }
 }
 
@@ -364,11 +419,7 @@ void PlaybackOverlayScene::_CheckForItemRemoveRequest()
         if (itemRemoved)
         {
             // Send remove order to all clients
-            std::vector<int64_t> destinationUsers;
-            auto users = znet::NetworkInterface::Instance()->Users();
-            for (auto& user : users)
-                destinationUsers.push_back(user.id);
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::QUEUE_ITEM_REMOVE).From(mediaId), destinationUsers);
+            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::QUEUE_ITEM_REMOVE).From(mediaId), _currentUserIds);
 
             _RearrangeQueuePanel();
         }
@@ -504,12 +555,11 @@ void PlaybackOverlayScene::_CheckForStartResponse()
 
         // Notify everyone of playback start (including the server itself, except if it is the host)
         std::vector<int64_t> destinationUsers;
-        auto users = znet::NetworkInterface::Instance()->Users();
-        for (auto& user : users)
+        for (auto& user : _currentUserIds)
         {
-            if (_readyItems[itemIndex]->GetUserId() != user.id)
+            if (_readyItems[itemIndex]->GetUserId() != user)
             {
-                destinationUsers.push_back(user.id);
+                destinationUsers.push_back(user);
             }
         }
         if (_readyItems[itemIndex]->GetUserId() != 0)
@@ -572,11 +622,7 @@ void PlaybackOverlayScene::_CheckForStopRequest()
             _currentlyPlaying = -1;
 
             // Sent playback stop order to all clients
-            std::vector<int64_t> destinationUsers;
-            auto users = znet::NetworkInterface::Instance()->Users();
-            for (auto& user : users)
-                destinationUsers.push_back(user.id);
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP), destinationUsers);
+            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP), _currentUserIds);
             _RearrangeQueuePanel();
         }
     }
@@ -668,12 +714,7 @@ bool PlaybackOverlayScene::_ManageLoadingItems()
                     *((int64_t*)(bytes.get() + 16)) = _loadingItems[i]->DataProvider()->MediaDuration().GetTicks();
                     std::copy_n(filename.begin(), filename.length(), (wchar_t*)(bytes.get() + 24));
 
-                    std::vector<int64_t> destinationUsers;
-                    auto users = znet::NetworkInterface::Instance()->Users();
-                    for (auto& user : users)
-                        destinationUsers.push_back(user.id);
-
-                    znet::NetworkInterface::Instance()->Send(znet::Packet(std::move(bytes), packetSize, (int)znet::PacketType::QUEUE_ITEM_ADD), destinationUsers);
+                    znet::NetworkInterface::Instance()->Send(znet::Packet(std::move(bytes), packetSize, (int)znet::PacketType::QUEUE_ITEM_ADD), _currentUserIds);
                 }
 
                 _readyItems.push_back(std::move(_loadingItems[i]));
@@ -730,11 +771,7 @@ bool PlaybackOverlayScene::_ManageReadyItems()
                 if (netMode == znet::NetworkMode::SERVER)
                 {
                     // Send stop order to all clients
-                    std::vector<int64_t> destinationUsers;
-                    auto users = znet::NetworkInterface::Instance()->Users();
-                    for (auto& user : users)
-                        destinationUsers.push_back(user.id);
-                    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP), destinationUsers);
+                    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP), _currentUserIds);
                 }
 
                 // Stop playback
@@ -759,11 +796,7 @@ bool PlaybackOverlayScene::_ManageReadyItems()
                     int32_t mediaId = _readyItems[i]->GetMediaId();
 
                     // Send remove order to all clients
-                    std::vector<int64_t> destinationUsers;
-                    auto users = znet::NetworkInterface::Instance()->Users();
-                    for (auto& user : users)
-                        destinationUsers.push_back(user.id);
-                    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::QUEUE_ITEM_REMOVE).From(mediaId), destinationUsers);
+                    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::QUEUE_ITEM_REMOVE).From(mediaId), _currentUserIds);
                 }
 
                 _readyItems.erase(_readyItems.begin() + i);
@@ -918,7 +951,6 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel()
     _networkStatusLabel->SetText(string_to_wstring(statusString));
 
     // Add all users
-    auto users = znet::NetworkInterface::Instance()->Users();
     _connectedUsersPanel->ClearItems();
 
     { // This client
@@ -934,9 +966,9 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel()
     }
     
     // Others
-    for (int i = 0; i < users.size(); i++)
+    for (int i = 0; i < _currentUserIds.size(); i++)
     {
-        std::wstring name = L"[User " + string_to_wstring(int_to_str(users[i].id)) + L"] " + users[i].name;
+        std::wstring name = L"[User " + string_to_wstring(int_to_str(_currentUserIds[i])) + L"] " + _currentUserNames[i];
 
         zcom::Label* usernameLabel = new zcom::Label(name);
         usernameLabel->SetBaseHeight(25);
