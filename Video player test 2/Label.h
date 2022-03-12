@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ComponentBase.h"
+#include "ComHelper.h"
 
 #include <string_view>
 
@@ -12,32 +13,6 @@ namespace zcom
         CENTER,
         JUSTIFIED,
         TRAILING
-    };
-
-    struct RECT_F
-    {
-        float left;
-        float top;
-        float right;
-        float bottom;
-
-        bool operator!=(const RECT_F& other)
-        {
-            return
-                left != other.left ||
-                top != other.top ||
-                right != other.right ||
-                bottom != other.bottom;
-        }
-
-        bool operator==(const RECT_F& other)
-        {
-            return
-                left == other.left &&
-                top == other.top &&
-                right == other.right &&
-                bottom == other.bottom;
-        }
     };
 
     class Label : public Base
@@ -148,12 +123,12 @@ namespace zcom
 
         Base* _OnWheelUp(int x, int y)
         {
-            return this;
+            return nullptr;
         }
 
         Base* _OnWheelDown(int x, int y)
         {
-            return this;
+            return nullptr;
         }
 
         void _OnSelected()
