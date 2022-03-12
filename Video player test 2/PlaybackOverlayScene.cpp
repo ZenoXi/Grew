@@ -212,7 +212,7 @@ void PlaybackOverlayScene::_SetUpPacketReceivers(znet::NetworkMode netMode)
 
 void PlaybackOverlayScene::_ProcessCurrentUsers()
 {
-    if (_networkMode != znet::NetworkMode::SERVER)
+    if (_networkMode == znet::NetworkMode::OFFLINE)
     {
         if (!_currentUserIds.empty())
             _currentUserIds.clear();
@@ -233,9 +233,24 @@ void PlaybackOverlayScene::_ProcessCurrentUsers()
     std::vector<int64_t> newUsers;
     for (int i = 0; i < newIdList.size(); i++)
     {
-        if (std::find(_currentUserIds.begin(), _currentUserIds.end(), newIdList[i]) == _currentUserIds.end())
+        int index = -1;
+        for (int j = 0; j < _currentUserIds.size(); j++)
+        {
+            if (_currentUserIds[j] == newIdList[i])
+            {
+                index = j;
+                break;
+            }
+        }
+
+        if (index == -1)
         {
             newUsers.push_back(newIdList[i]);
+        }
+        else
+        {
+            // Update user names
+            _currentUserNames[index] = newNameList[i];
         }
     }
     std::vector<int64_t> goneUsers;
