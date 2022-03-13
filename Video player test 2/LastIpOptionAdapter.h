@@ -8,6 +8,7 @@
 class LastIpOptionAdapter
 {
     std::vector<std::string> _ipList;
+    int _maxEntries = 10;
 
 public:
     LastIpOptionAdapter(std::string optionStr = "")
@@ -30,6 +31,11 @@ public:
                 _ipList.erase(_ipList.begin() + i);
                 i--;
             }
+        }
+        // Remove excess ips
+        while (_ipList.size() > _maxEntries)
+        {
+            _ipList.pop_back();
         }
     }
 
@@ -65,13 +71,33 @@ public:
             }
         }
 
-        _ipList.insert(_ipList.begin(), fullip);
-        return true;
+        if (_ipList.size() < _maxEntries)
+        {
+            _ipList.insert(_ipList.begin(), fullip);
+            return true;
+        }
+        return false;
     }
 
     bool AddIp(std::string ip, std::string port)
     {
         return AddIp(ip + ':' + port);
+    }
+
+    bool RemoveIp(std::string fullip)
+    {
+        auto it = std::find(_ipList.begin(), _ipList.end(), fullip);
+        if (it != _ipList.end())
+        {
+            _ipList.erase(it);
+            return true;
+        }
+        return false;
+    }
+
+    bool RemoveIp(std::string ip, std::string port)
+    {
+        return RemoveIp(ip + ':' + port);
     }
 
     static bool ValidateFullIp(std::string fullip)
