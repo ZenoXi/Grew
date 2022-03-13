@@ -201,17 +201,21 @@ void MediaPlayer::Update(double timeLimit)
         bool frameAdvanced = false;
         if (_videoData.nextFrame)
         {
-            VideoFrame* currentFrame = (VideoFrame*)_videoData.currentFrame.get();
             VideoFrame* nextFrame = (VideoFrame*)_videoData.nextFrame.get();
             if (nextFrame->GetTimestamp() <= _playbackTimer.Now().GetTime())
             {
                 _videoData.currentFrame.reset(_videoData.nextFrame.release());
-                currentFrame = (VideoFrame*)_videoData.currentFrame.get();
                 if (!_recovering && TimerRunning()) // Prevent ugly fast forwarding after seeking
                 {
-                    _videoOutputAdapter->SetVideoData(std::move(*currentFrame));
+                    _videoOutputAdapter->SetVideoData(std::move(*(VideoFrame*)_videoData.currentFrame.get()));
+                    _videoData.currentFrame.reset();
                 }
                 frameAdvanced = true;
+            }
+            else if (_videoData.currentFrame)
+            {
+                _videoOutputAdapter->SetVideoData(std::move(*(VideoFrame*)_videoData.currentFrame.get()));
+                _videoData.currentFrame.reset();
             }
         }
         if (_audioData.nextFrame)
