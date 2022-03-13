@@ -26,6 +26,7 @@ class EntryScene : public Scene
     zcom::Label* _connectLabel = nullptr;
     zcom::Label* _shareLabel = nullptr;
     zcom::Label* _fileLabel = nullptr;
+    zcom::Button* _testButton = nullptr;
 
     // Connect input
     zcom::Panel* _connectPanel = nullptr;

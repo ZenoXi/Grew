@@ -27,6 +27,8 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _mainPanel->SetBaseWidth(380);
         _mainPanel->SetBaseHeight(180);
         _mainPanel->SetBackgroundColor(D2D1::ColorF(0.5f, 0.5f, 0.5f, 0.25f));
+        _mainPanel->VerticalScrollable(true);
+        _mainPanel->HorizontalScrollable(true);
 
         _connectButton = new zcom::Button();
         _connectButton->SetHorizontalOffsetPixels(20);
@@ -93,6 +95,11 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _fileLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
         _fileLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _fileLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
+
+        _testButton = new zcom::Button(L"Hi");
+        _testButton->SetOffsetPixels(1000, 300);
+        _testButton->SetBaseSize(100, 25);
+        _testButton->SetBorderVisibility(true);
     }
 
     // Connect input
@@ -275,6 +282,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _mainPanel->AddItem(_shareLabel);
         _mainPanel->AddItem(_fileButton);
         _mainPanel->AddItem(_fileLabel);
+        _mainPanel->AddItem(_testButton);
 
         _connectPanel->AddItem(_connectPanelLabel);
         _connectPanel->AddItem(_connectIpInput);
@@ -348,6 +356,8 @@ void EntryScene::_Unfocus()
 
 void EntryScene::_Update()
 {
+    _canvas->Update();
+
     if (_setConnectFocus)
     {
         _canvas->ClearSelection(_connectIpInput);
