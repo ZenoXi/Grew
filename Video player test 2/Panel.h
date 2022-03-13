@@ -14,6 +14,67 @@ namespace zcom
     protected:
         void _OnUpdate()
         {
+            // Fade vertical scrollbar
+            if (_verticalScrollBar.visible)
+            {
+                if (_verticalScrollBar.hangDuration == 0)
+                {
+                    _verticalScrollBar.opacity = 1.0f;
+                }
+                else
+                {
+                    Duration timeElapsed = ztime::Main() - _verticalScrollBar.showTime;
+                    if (timeElapsed > _verticalScrollBar.hangDuration)
+                    {
+                        timeElapsed -= _verticalScrollBar.hangDuration;
+                        if (timeElapsed > _verticalScrollBar.fadeDuration)
+                        {
+                            _verticalScrollBar.visible = false;
+                            _verticalScrollBar.opacity = 0.0f;
+                        }
+                        else
+                        {
+                            float fadeProgress = timeElapsed.GetDuration() / (float)_verticalScrollBar.fadeDuration.GetDuration();
+                            _verticalScrollBar.opacity = 1.0f - powf(fadeProgress, 0.5f);
+                        }
+                    }
+                    else
+                    {
+                        _verticalScrollBar.opacity = 1.0f;
+                    }
+                }
+            }
+            // Fade horizontal scrollbar
+            if (_horizontalScrollBar.visible)
+            {
+                if (_horizontalScrollBar.hangDuration == 0)
+                {
+                    _horizontalScrollBar.opacity = 1.0f;
+                }
+                else
+                {
+                    Duration timeElapsed = ztime::Main() - _horizontalScrollBar.showTime;
+                    if (timeElapsed > _horizontalScrollBar.hangDuration)
+                    {
+                        timeElapsed -= _horizontalScrollBar.hangDuration;
+                        if (timeElapsed > _horizontalScrollBar.fadeDuration)
+                        {
+                            _horizontalScrollBar.visible = false;
+                            _horizontalScrollBar.opacity = 0.0f;
+                        }
+                        else
+                        {
+                            float fadeProgress = timeElapsed.GetDuration() / (float)_horizontalScrollBar.fadeDuration.GetDuration();
+                            _horizontalScrollBar.opacity = 1.0f - powf(fadeProgress, 0.5f);
+                        }
+                    }
+                    else
+                    {
+                        _horizontalScrollBar.opacity = 1.0f;
+                    }
+                }
+            }
+
             // Animate vertical scroll
             if (_verticalScrollAnimation.inProgress)
             {
@@ -106,6 +167,65 @@ namespace zcom
                     ),
                     it.second->GetOpacity()
                 );
+            }
+
+            // Draw vertical scrollbar
+            if (MaxVerticalScroll() > 0 && _verticalScrollBar.visible)
+            {
+                float lengthOffset = 10.0f;
+                float widthOffset = 5.0f;
+                float barWidth = 5.0f;
+                float heightToContentRatio = GetHeight() / (float)_contentHeight;
+                float scrollBarMaxLength = GetHeight() - lengthOffset * 2;
+                float scrollBarLength = scrollBarMaxLength * heightToContentRatio;
+                float scrollBarPosition = (scrollBarMaxLength - scrollBarLength) * (_verticalScroll / (float)MaxVerticalScroll());
+
+                D2D1_POINT_2F top = { GetWidth() - widthOffset, lengthOffset + scrollBarPosition };
+                D2D1_POINT_2F bottom = { top.x, top.y + scrollBarLength };
+
+                float opacity = 0.5f * _verticalScrollBar.opacity;
+                ID2D1SolidColorBrush* brush = nullptr;
+                g.target->CreateSolidColorBrush(D2D1::ColorF(1.0f, 1.0f, 1.0f, opacity), &brush);
+                ID2D1StrokeStyle1* style = nullptr;
+                g.factory->CreateStrokeStyle
+                (
+                    D2D1::StrokeStyleProperties1(D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND),
+                    nullptr,
+                    0,
+                    &style
+                );
+                g.target->DrawLine(top, bottom, brush, barWidth, style);
+                style->Release();
+                brush->Release();
+            }
+            // Draw horizontal scrollbar
+            if (MaxHorizontalScroll() > 0 && _horizontalScrollBar.visible)
+            {
+                float lengthOffset = 10.0f;
+                float widthOffset = 5.0f;
+                float barWidth = 5.0f;
+                float widthToContentRatio = GetWidth() / (float)_contentWidth;
+                float scrollBarMaxLength = GetWidth() - lengthOffset * 2;
+                float scrollBarLength = scrollBarMaxLength * widthToContentRatio;
+                float scrollBarPosition = (scrollBarMaxLength - scrollBarLength) * (_horizontalScroll / (float)MaxHorizontalScroll());
+
+                D2D1_POINT_2F left = { lengthOffset + scrollBarPosition, GetHeight() - widthOffset };
+                D2D1_POINT_2F right = { left.x + scrollBarLength, left.y };
+
+                float opacity = 0.5f * _horizontalScrollBar.opacity;
+                ID2D1SolidColorBrush* brush = nullptr;
+                g.target->CreateSolidColorBrush(D2D1::ColorF(0.7f, 0.7f, 0.7f, opacity), &brush);
+                ID2D1StrokeStyle1* style = nullptr;
+                g.factory->CreateStrokeStyle
+                (
+                    D2D1::StrokeStyleProperties1(D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND),
+                    nullptr,
+                    0,
+                    &style
+                );
+                g.target->DrawLine(left, right, brush, barWidth, style);
+                style->Release();
+                brush->Release();
             }
         }
 
@@ -571,14 +691,26 @@ namespace zcom
             int endPos = 0;
             std::function<float(float)> progressFunction;
         };
-
+        struct _ScrollBar
+        {
+            bool alwaysVisible = false;
+            bool visibleOnScroll = true;
+            bool interactable = false;
+            bool visible = false;
+            TimePoint showTime = 0;
+            Duration hangDuration = Duration(1, SECONDS);
+            Duration fadeDuration = Duration(150, MILLISECONDS);
+            float opacity = 1.0f;
+        };
         int _contentWidth = 0;
         int _contentHeight = 0;
         int _horizontalScroll = 0;
         int _verticalScroll = 0;
         int _scrollStepSize = 100;
-        _ScrollAnimation _verticalScrollAnimation = {};
         _ScrollAnimation _horizontalScrollAnimation = {};
+        _ScrollAnimation _verticalScrollAnimation = {};
+        _ScrollBar _horizontalScrollBar = {};
+        _ScrollBar _verticalScrollBar = {};
         bool _horizontalScrollable = false;
         bool _verticalScrollable = false;
 
@@ -791,6 +923,12 @@ namespace zcom
             _verticalScrollAnimation.startPos = _verticalScroll;
             _verticalScrollAnimation.endPos = to;
             _verticalScrollAnimation.progressFunction = progressFunction;
+
+            if (_verticalScrollBar.visibleOnScroll)
+            {
+                _verticalScrollBar.visible = true;
+                _verticalScrollBar.showTime = ztime::Main();
+            }
         }
 
         void ScrollHorizontally(int to, Duration scrollDuration = Duration(150, MILLISECONDS), std::function<float(float)> progressFunction = std::function<float(float)>())
@@ -806,6 +944,12 @@ namespace zcom
             _horizontalScrollAnimation.startPos = _horizontalScroll;
             _horizontalScrollAnimation.endPos = to;
             _horizontalScrollAnimation.progressFunction = progressFunction;
+
+            if (_horizontalScrollBar.visibleOnScroll)
+            {
+                _horizontalScrollBar.visible = true;
+                _horizontalScrollBar.showTime = ztime::Main();
+            }
         }
     };
 }
