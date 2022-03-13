@@ -101,6 +101,7 @@ namespace zcom
                     _verticalScroll = startPos + (endPos - startPos) * moveProgress;
                 }
                 Resize();
+                OnMouseMove(GetMousePosX(), GetMousePosY());
             }
             // Animate horizontal scroll
             if (_horizontalScrollAnimation.inProgress)
@@ -128,6 +129,7 @@ namespace zcom
                     _horizontalScroll = startPos + (endPos - startPos) * moveProgress;
                 }
                 Resize();
+                OnMouseMove(GetMousePosX(), GetMousePosY());
             }
 
             for (auto item : _items)
@@ -623,11 +625,10 @@ namespace zcom
         {
             if (_selectableItems.empty())
             {
-                return nullptr;
-                //if (Selected())
-                //    return nullptr;
-                //else
-                //    return this;
+                if (Selected())
+                    return nullptr;
+                else
+                    return this;
             }
 
             // While searching == true, _selectableItems is iterated until the first
