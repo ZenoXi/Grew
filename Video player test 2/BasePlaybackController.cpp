@@ -157,6 +157,11 @@ bool BasePlaybackController::Paused() const
     return _paused;
 }
 
+bool BasePlaybackController::Loading() const
+{
+    return _loading;
+}
+
 bool BasePlaybackController::Finished() const
 {
     return _finished;
