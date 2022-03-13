@@ -19,38 +19,40 @@ struct EntrySceneOptions : public SceneOptionsBase
 class EntryScene : public Scene
 {
     // Main selection
-    zcom::Panel* _mainPanel = nullptr;
-    zcom::Button* _connectButton = nullptr;
-    zcom::Button* _shareButton = nullptr;
-    zcom::Button* _fileButton = nullptr;
-    zcom::Label* _connectLabel = nullptr;
-    zcom::Label* _shareLabel = nullptr;
-    zcom::Label* _fileLabel = nullptr;
-    zcom::Button* _testButton = nullptr;
+    std::unique_ptr<zcom::Panel> _mainPanel = nullptr;
+    std::unique_ptr<zcom::Button> _connectButton = nullptr;
+    std::unique_ptr<zcom::Button> _shareButton = nullptr;
+    std::unique_ptr<zcom::Button> _fileButton = nullptr;
+    std::unique_ptr<zcom::Label> _connectLabel = nullptr;
+    std::unique_ptr<zcom::Label> _shareLabel = nullptr;
+    std::unique_ptr<zcom::Label> _fileLabel = nullptr;
+    std::unique_ptr<zcom::Button> _testButton = nullptr;
 
     // Connect input
-    zcom::Panel* _connectPanel = nullptr;
-    zcom::Label* _connectPanelLabel = nullptr;
-    zcom::TextInput* _connectIpInput = nullptr;
-    zcom::TextInput* _connectPortInput = nullptr;
-    zcom::Button* _connectConfirmButton = nullptr;
-    zcom::Button* _connectCancelButton = nullptr;
+    std::unique_ptr<zcom::Panel> _connectPanel = nullptr;
+    std::unique_ptr<zcom::Label> _connectPanelLabel = nullptr;
+    std::unique_ptr<zcom::TextInput> _connectIpInput = nullptr;
+    std::unique_ptr<zcom::TextInput> _connectPortInput = nullptr;
+    std::unique_ptr<zcom::Button> _connectConfirmButton = nullptr;
+    std::unique_ptr<zcom::Button> _connectCancelButton = nullptr;
     bool _setConnectFocus = false;
-    zcom::LoadingImage* _connectLoadingImage = nullptr;
-    zcom::Label* _connectLoadingInfoLabel = nullptr;
-    zcom::Button* _connectLoadingCancelButton = nullptr;
+    std::unique_ptr<zcom::Label> _recentConnectionsLabel = nullptr;
+    std::unique_ptr<zcom::Panel> _recentConnectionsPanel = nullptr;
+    std::unique_ptr<zcom::LoadingImage> _connectLoadingImage = nullptr;
+    std::unique_ptr<zcom::Label> _connectLoadingInfoLabel = nullptr;
+    std::unique_ptr<zcom::Button> _connectLoadingCancelButton = nullptr;
     bool _connectLoading = false;
 
     // Share input
-    zcom::Panel* _sharePanel = nullptr;
-    zcom::Label* _sharePanelLabel = nullptr;
-    zcom::TextInput* _sharePortInput = nullptr;
-    zcom::Button* _shareConfirmButton = nullptr;
-    zcom::Button* _shareCancelButton = nullptr;
+    std::unique_ptr<zcom::Panel> _sharePanel = nullptr;
+    std::unique_ptr<zcom::Label> _sharePanelLabel = nullptr;
+    std::unique_ptr<zcom::TextInput> _sharePortInput = nullptr;
+    std::unique_ptr<zcom::Button> _shareConfirmButton = nullptr;
+    std::unique_ptr<zcom::Button> _shareCancelButton = nullptr;
     bool _setShareFocus = false;
-    zcom::LoadingImage* _shareLoadingImage = nullptr;
-    zcom::Label* _shareLoadingInfoLabel = nullptr;
-    zcom::Button* _shareLoadingCancelButton = nullptr;
+    std::unique_ptr<zcom::LoadingImage> _shareLoadingImage = nullptr;
+    std::unique_ptr<zcom::Label> _shareLoadingInfoLabel = nullptr;
+    std::unique_ptr<zcom::Button> _shareLoadingCancelButton = nullptr;
     bool _shareLoading = false;
     std::string _shareFilename = "";
 

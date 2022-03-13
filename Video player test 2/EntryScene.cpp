@@ -21,7 +21,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
 
     // Main selection
     {
-        _mainPanel = new zcom::Panel();
+        _mainPanel = std::make_unique<zcom::Panel>();
         _mainPanel->SetHorizontalOffsetPercent(0.5f);
         _mainPanel->SetVerticalOffsetPercent(0.5f);
         _mainPanel->SetBaseWidth(380);
@@ -30,7 +30,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _mainPanel->VerticalScrollable(true);
         _mainPanel->HorizontalScrollable(true);
 
-        _connectButton = new zcom::Button();
+        _connectButton = std::make_unique<zcom::Button>();
         _connectButton->SetHorizontalOffsetPixels(20);
         _connectButton->SetVerticalOffsetPixels(20);
         _connectButton->SetBaseWidth(100);
@@ -42,7 +42,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectButton->SetOnActivated([&]() { OnConnectSelected(); });
         _connectButton->SetTabIndex(0);
 
-        _connectLabel = new zcom::Label(L"Connect");
+        _connectLabel = std::make_unique<zcom::Label>(L"Connect");
         _connectLabel->SetHorizontalOffsetPixels(20);
         _connectLabel->SetVerticalOffsetPixels(120);
         _connectLabel->SetBaseWidth(100);
@@ -52,7 +52,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _connectLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
 
-        _shareButton = new zcom::Button();
+        _shareButton = std::make_unique<zcom::Button>();
         _shareButton->SetHorizontalOffsetPixels(140);
         _shareButton->SetVerticalOffsetPixels(20);
         _shareButton->SetBaseWidth(100);
@@ -64,7 +64,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _shareButton->SetOnActivated([&]() { OnShareSelected(); });
         _shareButton->SetTabIndex(1);
 
-        _shareLabel = new zcom::Label(L"Share");
+        _shareLabel = std::make_unique<zcom::Label>(L"Share");
         _shareLabel->SetHorizontalOffsetPixels(140);
         _shareLabel->SetVerticalOffsetPixels(120);
         _shareLabel->SetBaseWidth(100);
@@ -74,7 +74,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _shareLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _shareLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
 
-        _fileButton = new zcom::Button();
+        _fileButton = std::make_unique<zcom::Button>();
         _fileButton->SetHorizontalOffsetPixels(260);
         _fileButton->SetVerticalOffsetPixels(20);
         _fileButton->SetBaseWidth(100);
@@ -86,7 +86,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _fileButton->SetOnActivated([&]() { OnFileSelected(); });
         _fileButton->SetTabIndex(2);
 
-        _fileLabel = new zcom::Label(L"Offline");
+        _fileLabel = std::make_unique<zcom::Label>(L"Offline");
         _fileLabel->SetHorizontalOffsetPixels(260);
         _fileLabel->SetVerticalOffsetPixels(120);
         _fileLabel->SetBaseWidth(100);
@@ -96,7 +96,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _fileLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _fileLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
 
-        _testButton = new zcom::Button(L"Hi");
+        _testButton = std::make_unique<zcom::Button>(L"Hi");
         _testButton->SetOffsetPixels(1000, 300);
         _testButton->SetBaseSize(100, 25);
         _testButton->SetBorderVisibility(true);
@@ -104,7 +104,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
 
     // Connect input
     {
-        _connectPanel = new zcom::Panel();
+        _connectPanel = std::make_unique<zcom::Panel>();
         _connectPanel->SetHorizontalOffsetPercent(0.5f);
         _connectPanel->SetVerticalOffsetPercent(0.5f);
         _connectPanel->SetBaseWidth(210);
@@ -113,7 +113,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectPanel->SetActive(false);
         _connectPanel->SetVisible(false);
 
-        _connectPanelLabel = new zcom::Label(L"Connect");
+        _connectPanelLabel = std::make_unique<zcom::Label>(L"Connect");
         _connectPanelLabel->SetHorizontalOffsetPercent(0.5f);
         _connectPanelLabel->SetVerticalOffsetPixels(10);
         _connectPanelLabel->SetBaseWidth(150);
@@ -122,7 +122,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectPanelLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
         _connectPanelLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
 
-        _connectIpInput = new zcom::TextInput();
+        _connectIpInput = std::make_unique<zcom::TextInput>();
         _connectIpInput->SetHorizontalOffsetPixels(20);
         _connectIpInput->SetVerticalOffsetPixels(60);
         _connectIpInput->SetBaseWidth(110);
@@ -140,7 +140,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         //    return false;
         //});
 
-        _connectPortInput = new zcom::TextInput();
+        _connectPortInput = std::make_unique<zcom::TextInput>();
         _connectPortInput->SetHorizontalOffsetPixels(140);
         _connectPortInput->SetVerticalOffsetPixels(60);
         _connectPortInput->SetBaseWidth(50);
@@ -148,7 +148,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectPortInput->SetPlaceholderText(L"Port");
         _connectPortInput->SetTabIndex(1);
 
-        _connectConfirmButton = new zcom::Button(L"Connect");
+        _connectConfirmButton = std::make_unique<zcom::Button>(L"Connect");
         _connectConfirmButton->SetHorizontalOffsetPercent(0.5f);
         _connectConfirmButton->SetHorizontalOffsetPixels(-40);
         _connectConfirmButton->SetVerticalOffsetPixels(100);
@@ -159,7 +159,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectConfirmButton->SetOnActivated([&]() { OnConnectConfirmed(); });
         _connectConfirmButton->SetTabIndex(2);
 
-        _connectCancelButton = new zcom::Button(L"Cancel");
+        _connectCancelButton = std::make_unique<zcom::Button>(L"Cancel");
         _connectCancelButton->SetHorizontalOffsetPercent(0.5f);
         _connectCancelButton->SetHorizontalOffsetPixels(40);
         _connectCancelButton->SetVerticalOffsetPixels(100);
@@ -170,14 +170,14 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectCancelButton->SetOnActivated([&]() { OnConnectCanceled(); });
         _connectCancelButton->SetTabIndex(3);
 
-        _connectLoadingImage = new zcom::LoadingImage();
+        _connectLoadingImage = std::make_unique<zcom::LoadingImage>();
         _connectLoadingImage->SetHorizontalOffsetPercent(0.5f);
         _connectLoadingImage->SetVerticalOffsetPixels(40);
         _connectLoadingImage->SetBaseWidth(50);
         _connectLoadingImage->SetBaseHeight(50);
         _connectLoadingImage->SetVisible(false);
 
-        _connectLoadingInfoLabel = new zcom::Label(L"Connecting...");
+        _connectLoadingInfoLabel = std::make_unique<zcom::Label>(L"Connecting...");
         _connectLoadingInfoLabel->SetHorizontalOffsetPercent(0.5f);
         _connectLoadingInfoLabel->SetVerticalOffsetPixels(70);
         _connectLoadingInfoLabel->SetBaseWidth(100);
@@ -186,7 +186,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectLoadingInfoLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _connectLoadingInfoLabel->SetVisible(false);
 
-        _connectLoadingCancelButton = new zcom::Button(L"Cancel");
+        _connectLoadingCancelButton = std::make_unique<zcom::Button>(L"Cancel");
         _connectLoadingCancelButton->SetHorizontalOffsetPercent(0.5f);
         _connectLoadingCancelButton->SetVerticalOffsetPixels(100);
         _connectLoadingCancelButton->SetBaseWidth(60);
@@ -199,7 +199,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
 
     // Share input
     {
-        _sharePanel = new zcom::Panel();
+        _sharePanel = std::make_unique<zcom::Panel>();
         _sharePanel->SetHorizontalOffsetPercent(0.5f);
         _sharePanel->SetVerticalOffsetPercent(0.5f);
         _sharePanel->SetBaseWidth(180);
@@ -208,7 +208,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _sharePanel->SetActive(false);
         _sharePanel->SetVisible(false);
 
-        _sharePanelLabel = new zcom::Label(L"Share");
+        _sharePanelLabel = std::make_unique<zcom::Label>(L"Share");
         _sharePanelLabel->SetHorizontalOffsetPercent(0.5f);
         _sharePanelLabel->SetVerticalOffsetPixels(10);
         _sharePanelLabel->SetBaseWidth(150);
@@ -217,7 +217,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _sharePanelLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
         _sharePanelLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
 
-        _sharePortInput = new zcom::TextInput();
+        _sharePortInput = std::make_unique<zcom::TextInput>();
         _sharePortInput->SetHorizontalOffsetPixels(20);
         _sharePortInput->SetVerticalOffsetPixels(60);
         _sharePortInput->SetBaseWidth(140);
@@ -225,7 +225,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _sharePortInput->SetPlaceholderText(L"Port");
         _sharePortInput->SetTabIndex(0);
 
-        _shareConfirmButton = new zcom::Button(L"Share");
+        _shareConfirmButton = std::make_unique<zcom::Button>(L"Share");
         _shareConfirmButton->SetHorizontalOffsetPercent(0.5f);
         _shareConfirmButton->SetHorizontalOffsetPixels(-40);
         _shareConfirmButton->SetVerticalOffsetPixels(100);
@@ -236,7 +236,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _shareConfirmButton->SetOnActivated([&]() { OnShareConfirmed(); });
         _shareConfirmButton->SetTabIndex(1);
 
-        _shareCancelButton = new zcom::Button(L"Cancel");
+        _shareCancelButton = std::make_unique<zcom::Button>(L"Cancel");
         _shareCancelButton->SetHorizontalOffsetPercent(0.5f);
         _shareCancelButton->SetHorizontalOffsetPixels(40);
         _shareCancelButton->SetVerticalOffsetPixels(100);
@@ -247,14 +247,14 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _shareCancelButton->SetOnActivated([&]() { OnShareCanceled(); });
         _shareCancelButton->SetTabIndex(2);
 
-        _shareLoadingImage = new zcom::LoadingImage();
+        _shareLoadingImage = std::make_unique<zcom::LoadingImage>();
         _shareLoadingImage->SetHorizontalOffsetPercent(0.5f);
         _shareLoadingImage->SetVerticalOffsetPixels(40);
         _shareLoadingImage->SetBaseWidth(50);
         _shareLoadingImage->SetBaseHeight(50);
         _shareLoadingImage->SetVisible(false);
 
-        _shareLoadingInfoLabel = new zcom::Label(L"Waiting for connection...");
+        _shareLoadingInfoLabel = std::make_unique<zcom::Label>(L"Waiting for connection...");
         _shareLoadingInfoLabel->SetHorizontalOffsetPercent(0.5f);
         _shareLoadingInfoLabel->SetVerticalOffsetPixels(70);
         _shareLoadingInfoLabel->SetBaseWidth(150);
@@ -263,7 +263,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _shareLoadingInfoLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _shareLoadingInfoLabel->SetVisible(false);
 
-        _shareLoadingCancelButton = new zcom::Button(L"Cancel");
+        _shareLoadingCancelButton = std::make_unique<zcom::Button>(L"Cancel");
         _shareLoadingCancelButton->SetHorizontalOffsetPercent(0.5f);
         _shareLoadingCancelButton->SetVerticalOffsetPixels(100);
         _shareLoadingCancelButton->SetBaseWidth(60);
@@ -276,39 +276,39 @@ void EntryScene::_Init(const SceneOptionsBase* options)
 
     // Nesting
     {
-        _mainPanel->AddItem(_connectButton);
-        _mainPanel->AddItem(_connectLabel);
-        _mainPanel->AddItem(_shareButton);
-        _mainPanel->AddItem(_shareLabel);
-        _mainPanel->AddItem(_fileButton);
-        _mainPanel->AddItem(_fileLabel);
-        _mainPanel->AddItem(_testButton);
+        _mainPanel->AddItem(_connectButton.get());
+        _mainPanel->AddItem(_connectLabel.get());
+        _mainPanel->AddItem(_shareButton.get());
+        _mainPanel->AddItem(_shareLabel.get());
+        _mainPanel->AddItem(_fileButton.get());
+        _mainPanel->AddItem(_fileLabel.get());
+        _mainPanel->AddItem(_testButton.get());
 
-        _connectPanel->AddItem(_connectPanelLabel);
-        _connectPanel->AddItem(_connectIpInput);
-        _connectPanel->AddItem(_connectPortInput);
-        _connectPanel->AddItem(_connectConfirmButton);
-        _connectPanel->AddItem(_connectCancelButton);
-        _connectPanel->AddItem(_connectLoadingImage);
-        _connectPanel->AddItem(_connectLoadingInfoLabel);
-        _connectPanel->AddItem(_connectLoadingCancelButton);
+        _connectPanel->AddItem(_connectPanelLabel.get());
+        _connectPanel->AddItem(_connectIpInput.get());
+        _connectPanel->AddItem(_connectPortInput.get());
+        _connectPanel->AddItem(_connectConfirmButton.get());
+        _connectPanel->AddItem(_connectCancelButton.get());
+        _connectPanel->AddItem(_connectLoadingImage.get());
+        _connectPanel->AddItem(_connectLoadingInfoLabel.get());
+        _connectPanel->AddItem(_connectLoadingCancelButton.get());
 
-        _sharePanel->AddItem(_sharePanelLabel);
-        _sharePanel->AddItem(_sharePortInput);
-        _sharePanel->AddItem(_shareConfirmButton);
-        _sharePanel->AddItem(_shareCancelButton);
-        _sharePanel->AddItem(_shareLoadingImage);
-        _sharePanel->AddItem(_shareLoadingInfoLabel);
-        _sharePanel->AddItem(_shareLoadingCancelButton);
+        _sharePanel->AddItem(_sharePanelLabel.get());
+        _sharePanel->AddItem(_sharePortInput.get());
+        _sharePanel->AddItem(_shareConfirmButton.get());
+        _sharePanel->AddItem(_shareCancelButton.get());
+        _sharePanel->AddItem(_shareLoadingImage.get());
+        _sharePanel->AddItem(_shareLoadingInfoLabel.get());
+        _sharePanel->AddItem(_shareLoadingCancelButton.get());
 
         //zcom::Panel* yeet = new zcom::Panel();
         //yeet->SetBaseSize(100, 100);
         //yeet->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Red));
         //_mainPanel->AddItem(yeet);
 
-        _canvas->AddComponent(_mainPanel);
-        _canvas->AddComponent(_connectPanel);
-        _canvas->AddComponent(_sharePanel);
+        _canvas->AddComponent(_mainPanel.get());
+        _canvas->AddComponent(_connectPanel.get());
+        _canvas->AddComponent(_sharePanel.get());
         _canvas->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     }
 }
@@ -316,32 +316,6 @@ void EntryScene::_Init(const SceneOptionsBase* options)
 void EntryScene::_Uninit()
 {
     _canvas->ClearComponents();
-    delete _mainPanel;
-    delete _connectButton;
-    delete _shareButton;
-    delete _fileButton;
-    delete _connectLabel;
-    delete _shareLabel;
-    delete _fileLabel;
-    delete _connectPanel;
-    delete _connectPanelLabel;
-    delete _connectIpInput;
-    delete _connectPortInput;
-    delete _connectConfirmButton;
-    delete _connectCancelButton;
-    _mainPanel = nullptr;
-    _connectButton = nullptr;
-    _shareButton = nullptr;
-    _fileButton = nullptr;
-    _connectLabel = nullptr;
-    _shareLabel = nullptr;
-    _fileLabel = nullptr;
-    _connectPanel = nullptr;
-    _connectPanelLabel = nullptr;
-    _connectIpInput = nullptr;
-    _connectPortInput = nullptr;
-    _connectConfirmButton = nullptr;
-    _connectCancelButton = nullptr;
 }
 
 void EntryScene::_Focus()
@@ -360,7 +334,7 @@ void EntryScene::_Update()
 
     if (_setConnectFocus)
     {
-        _canvas->ClearSelection(_connectIpInput);
+        _canvas->ClearSelection(_connectIpInput.get());
         if (!_connectIpInput->Selected())
         {
             _connectIpInput->OnSelected();
@@ -369,7 +343,7 @@ void EntryScene::_Update()
     }
     if (_setShareFocus)
     {
-        _canvas->ClearSelection(_sharePortInput);
+        _canvas->ClearSelection(_sharePortInput.get());
         if (!_sharePortInput->Selected())
         {
             _sharePortInput->OnSelected();
