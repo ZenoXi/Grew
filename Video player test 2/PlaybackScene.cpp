@@ -135,6 +135,11 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
         }
     });
 
+    _loadingCircle = new zcom::LoadingCircle();
+    _loadingCircle->SetBaseSize(100, 100);
+    _loadingCircle->SetOffsetPercent(0.5f, 0.5f);
+    _loadingCircle->SetVisible(false);
+
     _controlBar->AddItem(_seekBar);
     _controlBar->AddItem(_volumeSlider);
     _controlBar->AddItem(_playButton);
@@ -148,6 +153,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     //_bottomControlPanel->SetZIndex(1);
 
     _canvas->AddComponent(_playbackControllerPanel);
+    _canvas->AddComponent(_loadingCircle);
     //componentCanvas.AddComponent(controlBar);
 }
 
@@ -163,6 +169,7 @@ void PlaybackScene::_Uninit()
     delete _volumeSlider;
     delete _playButton;
     delete _overlayButton;
+    delete _loadingCircle;
 
     delete _controller;
     delete _mediaPlayer;
@@ -188,11 +195,19 @@ void PlaybackScene::_Unfocus()
 
 void PlaybackScene::_Update()
 {
-    // Prevent screen turning off
-    App::Instance()->window.ResetScreenTimer();
+    _loadingCircle->SetVisible(false);
+    if (!_mediaPlayer)
+        _loadingCircle->SetVisible(true);
+    if (_controller && _controller->Loading())
+        _loadingCircle->SetVisible(true);
+
 
     if (_mediaPlayer)
     {
+        // Prevent screen turning off while playing
+        if (!_controller->Paused())
+            App::Instance()->window.ResetScreenTimer();
+
         // Check for play button click
         if (_controller->Paused() != _playButton->GetPaused())
         {

@@ -17,6 +17,7 @@
 #include "VolumeSlider.h"
 #include "PlayButton.h"
 #include "Button.h"
+#include "LoadingCircle.h"
 
 class PlaybackShortcutHandler : public KeyboardEventHandler
 {
@@ -50,6 +51,7 @@ class PlaybackScene : public Scene
     zcom::Button* _overlayButton = nullptr;
     zcom::Button* _audioStreamButton = nullptr;
     zcom::Button* _subtitleStreamButton = nullptr;
+    zcom::LoadingCircle* _loadingCircle = nullptr;
 
     std::unique_ptr<PlaybackShortcutHandler> _shortcutHandler = nullptr;
 
