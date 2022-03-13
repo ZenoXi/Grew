@@ -288,6 +288,11 @@ inline bool operator== (const Duration& d1, const Duration& d2)
     return d1.GetTicks() == d2.GetTicks();
 }
 
+inline bool operator!= (const Duration& d1, const Duration& d2)
+{
+    return d1.GetTicks() != d2.GetTicks();
+}
+
 inline Duration operator- (const TimePoint& t1, const TimePoint& t2)
 {
     return t1.GetTicks() - t2.GetTicks();
