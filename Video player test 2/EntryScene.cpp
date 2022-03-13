@@ -108,7 +108,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectPanel->SetHorizontalOffsetPercent(0.5f);
         _connectPanel->SetVerticalOffsetPercent(0.5f);
         _connectPanel->SetBaseWidth(210);
-        _connectPanel->SetBaseHeight(140);
+        _connectPanel->SetBaseHeight(220);
         _connectPanel->SetBackgroundColor(D2D1::ColorF(0.5f, 0.5f, 0.5f, 0.25f));
         _connectPanel->SetActive(false);
         _connectPanel->SetVisible(false);
@@ -149,26 +149,34 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectPortInput->SetTabIndex(1);
 
         _connectConfirmButton = std::make_unique<zcom::Button>(L"Connect");
-        _connectConfirmButton->SetHorizontalOffsetPercent(0.5f);
-        _connectConfirmButton->SetHorizontalOffsetPixels(-40);
-        _connectConfirmButton->SetVerticalOffsetPixels(100);
-        _connectConfirmButton->SetBaseWidth(60);
-        _connectConfirmButton->SetBaseHeight(20);
+        _connectConfirmButton->SetOffsetPixels(20, 180);
+        _connectConfirmButton->SetBaseSize(60, 20);
         _connectConfirmButton->SetBorderVisibility(true);
         _connectConfirmButton->SetBorderColor(D2D1::ColorF(0.4f, 0.4f, 0.4f));
         _connectConfirmButton->SetOnActivated([&]() { OnConnectConfirmed(); });
         _connectConfirmButton->SetTabIndex(2);
 
         _connectCancelButton = std::make_unique<zcom::Button>(L"Cancel");
-        _connectCancelButton->SetHorizontalOffsetPercent(0.5f);
-        _connectCancelButton->SetHorizontalOffsetPixels(40);
-        _connectCancelButton->SetVerticalOffsetPixels(100);
-        _connectCancelButton->SetBaseWidth(60);
-        _connectCancelButton->SetBaseHeight(20);
+        _connectCancelButton->SetOffsetPixels(130, 180);
+        _connectCancelButton->SetBaseSize(60, 20);
         _connectCancelButton->SetBorderVisibility(true);
         _connectCancelButton->SetBorderColor(D2D1::ColorF(0.4f, 0.4f, 0.4f));
         _connectCancelButton->SetOnActivated([&]() { OnConnectCanceled(); });
         _connectCancelButton->SetTabIndex(3);
+
+        _recentConnectionsLabel = std::make_unique<zcom::Label>(L"Recent:");
+        _recentConnectionsLabel->SetOffsetPixels(20, 80);
+        _recentConnectionsLabel->SetBaseSize(60, 20);
+        _recentConnectionsLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+
+        _recentConnectionsPanel = std::make_unique<zcom::Panel>();
+        _recentConnectionsPanel->SetOffsetPixels(20, 100);
+        _recentConnectionsPanel->SetBaseSize(170, 70);
+        _recentConnectionsPanel->SetBorderVisibility(true);
+        _recentConnectionsPanel->SetBorderColor(_connectIpInput->GetBorderColor());
+        _recentConnectionsPanel->SetBackgroundColor(_connectIpInput->GetBackgroundColor());
+        _recentConnectionsPanel->VerticalScrollable(true);
+        _recentConnectionsPanel->SetTabIndex(-1);
 
         _connectLoadingImage = std::make_unique<zcom::LoadingImage>();
         _connectLoadingImage->SetHorizontalOffsetPercent(0.5f);
@@ -289,6 +297,8 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectPanel->AddItem(_connectPortInput.get());
         _connectPanel->AddItem(_connectConfirmButton.get());
         _connectPanel->AddItem(_connectCancelButton.get());
+        _connectPanel->AddItem(_recentConnectionsLabel.get());
+        _connectPanel->AddItem(_recentConnectionsPanel.get());
         _connectPanel->AddItem(_connectLoadingImage.get());
         _connectPanel->AddItem(_connectLoadingInfoLabel.get());
         _connectPanel->AddItem(_connectLoadingCancelButton.get());
@@ -427,20 +437,32 @@ void EntryScene::OnConnectSelected()
 
     _connectPanel->SetActive(true);
     _connectPanel->SetVisible(true);
+
+    // Init recent connections panel
     LastIpOptionAdapter optAdapter(Options::Instance()->GetValue("lastIps"));
     auto ipList = optAdapter.GetList();
-    if (!ipList.empty())
+    _recentConnectionsPanel->ClearItems();
+    for (int i = 0; i < ipList.size(); i++)
     {
-        std::array<std::string, 2> ipParts;
-        split_str(ipList[0], ipParts, ':');
-        _connectIpInput->SetText(string_to_wstring(ipParts[0]));
-        _connectPortInput->SetText(string_to_wstring(ipParts[1]));
+        std::string ip = ipList[i];
+        zcom::Button* button = new zcom::Button(string_to_wstring(ip));
+        button->SetParentWidthPercent(1.0f);
+        button->SetBaseHeight(20);
+        button->SetVerticalOffsetPixels(i * 20);
+        button->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
+        button->Text()->SetMargins({ 5.0f, 0.0f, 5.0f, 0.0f });
+        button->SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
+        button->SetOnActivated([&, ip]()
+        {
+            std::array<std::string, 2> ipParts;
+            split_str(ip, ipParts, ':');
+            _connectIpInput->SetText(string_to_wstring(ipParts[0]));
+            _connectPortInput->SetText(string_to_wstring(ipParts[1]));
+        });
+        _recentConnectionsPanel->AddItem(button);
     }
-    else
-    {
-        _connectIpInput->SetText(L"");
-        _connectPortInput->SetText(L"");
-    }
+    _recentConnectionsPanel->Resize();
+
     _setConnectFocus = true;
 }
 
