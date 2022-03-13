@@ -50,7 +50,7 @@ void znet::NetworkInterface::Disconnect()
     std::lock_guard<std::mutex> lock(_m_conMng);
     delete _connectionManager;
     _connectionManager = nullptr;
-    _mode = NetworkMode::SERVER;
+    _mode = NetworkMode::OFFLINE;
 }
 
 void znet::NetworkInterface::_ManageIncomingPackets()
