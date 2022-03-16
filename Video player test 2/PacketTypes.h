@@ -82,13 +82,13 @@ namespace znet
         // Sent by media receiver after pausing
         PAUSE_REQUEST = 100,
 
-        // Sent by media host to all receivers after pausing, or after receiving the PAUSE packet
+        // Sent by media host to all receivers after pausing, or after receiving the PAUSE_REQUEST packet
         PAUSE,
 
-        // See PAUSE
+        // See PAUSE_REQUEST
         RESUME_REQUEST,
 
-        // See PAUSE_CONFIRMED
+        // See PAUSE
         RESUME,
 
         // Sent to the host when a receiver wants to seek/change stream
@@ -204,6 +204,16 @@ namespace znet
         // Contains:
         //  a serialized MediaStream object
         UNKNOWN_STREAM,
+
+        // Current receiver playback position
+        // Contains:
+        //  int64_t - TimePoint ticks
+        PLAYBACK_POSITION,
+
+        // Sent by the host to synchronize playback
+        // Contains:
+        //  int64_t - Duration ticks how long to pause for
+        SYNC_PAUSE,
 
         // // // // // // // // // // // // // // // // // // //
         // // // // // // // // // // // // // // // // // // //
