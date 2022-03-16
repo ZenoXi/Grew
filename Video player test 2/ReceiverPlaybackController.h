@@ -15,9 +15,16 @@ protected:
     std::unique_ptr<znet::PacketReceiver> _pauseReceiver;
     std::unique_ptr<znet::PacketReceiver> _initiateSeekReceiver;
     std::unique_ptr<znet::PacketReceiver> _hostSeekFinishedReceiver;
+    std::unique_ptr<znet::PacketReceiver> _syncPauseReceiver;
+
+    TimePoint _lastPositionNotification = 0;
 
     bool _waitingForSeek = false;
     bool _waitingForResume = false;
+
+    Clock _waitTimer = Clock();
+    Duration _waitLeft = 0;
+    bool _waiting = false;
 
 public:
     ReceiverPlaybackController(MediaPlayer* player, MediaReceiverDataProvider* dataProvider);
@@ -29,15 +36,20 @@ private: // Packet handlers
     void _CheckForPause();
     void _CheckForInitiateSeek();
     void _CheckForHostSeekFinished();
+    void _CheckForSyncPause();
 
 public:
     void Play();
     void Pause();
 private:
     void _Play();
+    void _Pause();
+    bool _CanPlay() const;
 public:
     void Seek(TimePoint time);
     void SetVideoStream(int index);
     void SetAudioStream(int index);
     void SetSubtitleStream(int index);
+public:
+    LoadingInfo Loading() const;
 };

@@ -10,7 +10,9 @@ protected:
     struct _UserData
     {
         int64_t id;
-        TimePoint currentTime;
+        TimePoint currentTime; // User playback position
+        TimePoint receiveTime; // Time at which 'currentTime' was received
+        Duration timeOffset; // How far ahead the user is
         bool seekCompleted;
     };
     //struct _SeekData
@@ -28,9 +30,17 @@ protected:
     std::unique_ptr<znet::PacketReceiver> _pauseRequestReceiver;
     std::unique_ptr<znet::PacketReceiver> _seekRequestReceiver;
     std::unique_ptr<znet::PacketReceiver> _seekFinishedReceiver;
+    std::unique_ptr<znet::PacketReceiver> _playbackPositionReceiver;
+    std::unique_ptr<znet::PacketReceiver> _syncPauseReceiver;
 
     IMediaDataProvider::SeekData _bufferedSeekData;
     bool _seeking = false;
+    TimePoint _lastSeek = 0;
+    TimePoint _lastSync = 0;
+
+    Clock _waitTimer = Clock();
+    Duration _waitLeft = 0;
+    bool _waiting = false;
 
 public:
     HostPlaybackController(MediaPlayer* player, MediaHostDataProvider* dataProvider);
@@ -41,17 +51,24 @@ private: // Packet handlers
     void _CheckForPauseRequest();
     void _CheckForSeekRequest();
     void _CheckForSeekFinished();
+    void _CheckForPlaybackPosition();
+    void _CheckForSyncPause();
 
 public:
     void Play();
     void Pause();
 private:
     void _Play();
+    void _Pause();
+    bool _CanPlay() const;
 public:
     void Seek(TimePoint time);
     void SetVideoStream(int index);
     void SetAudioStream(int index);
     void SetSubtitleStream(int index);
+public:
+    LoadingInfo Loading() const;
 private:
     void _StartSeeking();
+    void _SyncPlayback();
 };

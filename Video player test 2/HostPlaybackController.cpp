@@ -11,6 +11,8 @@ HostPlaybackController::HostPlaybackController(MediaPlayer* player, MediaHostDat
     _pauseRequestReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PAUSE_REQUEST);
     _seekRequestReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::SEEK_REQUEST);
     _seekFinishedReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::SEEK_FINISHED);
+    _playbackPositionReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_POSITION);
+    _syncPauseReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::SYNC_PAUSE);
 
     _StartSeeking();
     znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::HOST_CONTROLLER_READY), _GetUserIds());
@@ -18,11 +20,15 @@ HostPlaybackController::HostPlaybackController(MediaPlayer* player, MediaHostDat
 
 void HostPlaybackController::Update()
 {
+    _SyncPlayback();
+
     // Process packets
     _CheckForPlayRequest();
     _CheckForPauseRequest();
     _CheckForSeekRequest();
     _CheckForSeekFinished();
+    _CheckForPlaybackPosition();
+    _CheckForSyncPause();
 
 
     if (_loading)
@@ -38,13 +44,28 @@ void HostPlaybackController::Update()
         }
     }
 
+    _waitTimer.Update();
+    if (_waiting && !_paused && _waitTimer.Now().GetTicks() > _waitLeft)
+    {
+        std::cout << "Finished waiting" << std::endl;
+        _waiting = false;
+    }
+
+    if (!_waiting && !_paused && !_player->TimerRunning())
+    {
+        // Bypass _Play() check
+        _paused = true;
+        // _Play() also checks Loading()
+        _Play();
+    }
+
     if (_player->TimerRunning())
     {
         Duration duration = _dataProvider->MediaDuration();
         if (_player->TimerPosition().GetTicks() >= duration.GetTicks())
         {
-            _player->StopTimer();
             _finished = true;
+            _Pause();
         }
     }
 }
@@ -160,6 +181,7 @@ void HostPlaybackController::_CheckForSeekFinished()
     if (_seeking && allSeekCompleted && !_loading)
     {
         _seeking = false;
+        _lastSeek = ztime::Main();
 
         // Check for buffered seek
         if (!_bufferedSeekData.Default())
@@ -200,28 +222,109 @@ void HostPlaybackController::_CheckForSeekFinished()
             if (!_paused)
                 _Play();
             znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::HOST_SEEK_FINISHED), _GetUserIds(), 1);
+            _lastSeek = ztime::Main();
+        }
+    }
+}
+
+void HostPlaybackController::_CheckForPlaybackPosition()
+{
+    if (!_playbackPositionReceiver)
+        return;
+
+    while (_playbackPositionReceiver->PacketCount() > 0)
+    {
+        auto packetPair = _playbackPositionReceiver->GetPacket();
+
+        for (auto& user : _destinationUsers)
+        {
+            if (user.id == packetPair.second)
+            {
+                user.currentTime = TimePoint(packetPair.first.Cast<int64_t>());
+                user.receiveTime = ztime::Main();
+                user.timeOffset = user.currentTime - _player->TimerPosition();
+                break;
+            }
+        }
+    }
+}
+
+void HostPlaybackController::_CheckForSyncPause()
+{
+    if (!_syncPauseReceiver)
+        return;
+
+    while (_syncPauseReceiver->PacketCount() > 0)
+    {
+        auto packetPair = _syncPauseReceiver->GetPacket();
+        
+        _waitTimer.Reset();
+        _waitTimer.Stop();
+        _waitLeft = packetPair.first.Cast<int64_t>();
+        _waiting = true;
+        std::cout << "Started waiting" << std::endl;
+
+        if (_player->TimerRunning())
+        {
+            _waitTimer.Start();
+            _player->StopTimer();
         }
     }
 }
 
 void HostPlaybackController::Play()
 {
-    BasePlaybackController::Play();
+    _Play();
     znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::RESUME), _GetUserIds(), 1);
 }
 
 void HostPlaybackController::Pause()
 {
-    BasePlaybackController::Pause();
+    _Pause();
     znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PAUSE), _GetUserIds(), 1);
 }
 
 void HostPlaybackController::_Play()
 {
-    _paused = false;
-    if (_seeking)
-        return;
-    _player->StartTimer();
+    if (_paused)
+    {
+        if (_finished)
+        {
+            Seek(0);
+        }
+        if (_CanPlay())
+        {
+            if (_waiting)
+            {
+                _waitTimer.Reset();
+            }
+            else
+            {
+                _player->StartTimer();
+            }
+        }
+        _paused = false;
+    }
+}
+
+void HostPlaybackController::_Pause()
+{
+    if (!_paused)
+    {
+        if (_waiting)
+        {
+            _waitTimer.Update();
+            _waitTimer.Stop();
+            _waitLeft -= _waitTimer.Now().GetTicks();
+        }
+        _player->StopTimer();
+        _paused = true;
+    }
+}
+
+bool HostPlaybackController::_CanPlay() const
+{
+    return !_loading && !_seeking;
 }
 
 void HostPlaybackController::Seek(TimePoint time)
@@ -319,9 +422,78 @@ void HostPlaybackController::SetSubtitleStream(int index)
     _finished = false;
 }
 
+IPlaybackController::LoadingInfo HostPlaybackController::Loading() const
+{
+    if (_waiting)
+        return { true, L"Syncing" };
+    return { !_CanPlay(), L"" };
+}
+
 void HostPlaybackController::_StartSeeking()
 {
+    _waiting = false;
     _seeking = true;
     for (auto& user : _destinationUsers)
         user.seekCompleted = false;
+}
+
+void HostPlaybackController::_SyncPlayback()
+{
+    // Do not sync if playback isn't happening
+    if (!_CanPlay())
+        return;
+    // Do not sync for a couple of seconds after seeking
+    if ((ztime::Main() - _lastSeek).GetDuration(SECONDS) < 2)
+        return;
+    // Do not sync again right after syncing
+    if ((ztime::Main() - _lastSync).GetDuration(SECONDS) < 5)
+        return;
+
+    // Find largest sync gap between user
+    Duration mostAheadOffset = 0;
+    Duration mostBehindOffset = 0;
+    int indexAhead = -1;
+    int indexBehind = -1;
+    for (int i = 0; i < _destinationUsers.size(); i++)
+    {
+        if (_destinationUsers[i].timeOffset > mostAheadOffset)
+        {
+            mostAheadOffset = _destinationUsers[i].timeOffset;
+            indexAhead = i;
+        }
+        if (_destinationUsers[i].timeOffset < mostBehindOffset)
+        {
+            mostBehindOffset = _destinationUsers[i].timeOffset;
+            indexBehind = i;
+        }
+    }
+
+    // Fix large offsets
+    Duration deltaOffset = mostAheadOffset - mostBehindOffset;
+    if (deltaOffset.GetDuration(MILLISECONDS) > 1000)
+    {
+        std::cout << "Fix offset of " << deltaOffset.GetDuration(MILLISECONDS) << "ms" << std::endl;
+
+        // Pause host itself
+        if (indexBehind != -1)
+        {
+            int64_t thisId = znet::NetworkInterface::Instance()->ThisUser().id;
+            int64_t pauseTicks = -mostBehindOffset.GetTicks();
+            znet::NetworkInterface::Instance()->Send(
+                znet::Packet((int)znet::PacketType::SYNC_PAUSE).From(pauseTicks), { thisId });
+        }
+
+        // Pause others
+        for (int i = 0; i < _destinationUsers.size(); i++)
+        {
+            if (i == indexBehind)
+                continue;
+
+            int64_t pauseTicks = (_destinationUsers[i].timeOffset - mostBehindOffset).GetTicks();
+            znet::NetworkInterface::Instance()->Send(
+                znet::Packet((int)znet::PacketType::SYNC_PAUSE).From(pauseTicks), { _destinationUsers[i].id }, 2);
+        }
+
+        _lastSync = ztime::Main();
+    }
 }
