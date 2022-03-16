@@ -198,8 +198,12 @@ void PlaybackScene::_Update()
     _loadingCircle->SetVisible(false);
     if (!_mediaPlayer)
         _loadingCircle->SetVisible(true);
-    if (_controller && _controller->Loading())
-        _loadingCircle->SetVisible(true);
+    if (_controller)
+    {
+        auto info = _controller->Loading();
+        _loadingCircle->SetVisible(info.loading);
+        _loadingCircle->SetLoadingText(info.message);
+    }
 
 
     if (_mediaPlayer)
