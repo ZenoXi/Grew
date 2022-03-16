@@ -40,7 +40,7 @@ public:
     void SetSubtitleStream(int index);
 
     bool Paused() const;
-    bool Loading() const;
+    LoadingInfo Loading() const;
     bool Finished() const;
     float GetVolume() const;
     float GetBalance() const;

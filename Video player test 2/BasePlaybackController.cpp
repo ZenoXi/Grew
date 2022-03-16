@@ -40,7 +40,7 @@ void BasePlaybackController::Play()
     {
         Seek(0);
     }
-    if (!_loading)
+    if (!Loading().loading)
     {
         _player->StartTimer();
     }
@@ -157,9 +157,9 @@ bool BasePlaybackController::Paused() const
     return _paused;
 }
 
-bool BasePlaybackController::Loading() const
+IPlaybackController::LoadingInfo BasePlaybackController::Loading() const
 {
-    return _loading;
+    return { _loading, L"" };
 }
 
 bool BasePlaybackController::Finished() const
