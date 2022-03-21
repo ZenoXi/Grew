@@ -46,10 +46,10 @@ Duration IMediaDataProvider::BufferedDuration()
     Duration videoBuffer = _BufferedDuration(_videoData);
     Duration audioBuffer = _BufferedDuration(_audioData);
     Duration subtitleBuffer = _BufferedDuration(_subtitleData);
-    Duration buffered = Duration::Min();
-    if (videoBuffer > buffered) buffered = videoBuffer;
-    if (audioBuffer > buffered) buffered = audioBuffer;
-    if (subtitleBuffer > buffered) buffered = subtitleBuffer;
+    Duration buffered = Duration::Max();
+    if (videoBuffer < buffered) buffered = videoBuffer;
+    if (audioBuffer < buffered) buffered = audioBuffer;
+    if (subtitleBuffer < buffered) buffered = subtitleBuffer;
     return buffered;
 }
 
@@ -235,6 +235,35 @@ std::unique_ptr<MediaStream> IMediaDataProvider::_CurrentStream(MediaData& media
     if (mediaData.currentStream != -1)
     {
         return std::make_unique<MediaStream>(mediaData.streams[mediaData.currentStream]);
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+std::unique_ptr<MediaStream> IMediaDataProvider::CurrentVideoStreamView()
+{
+    return _CurrentStreamView(_videoData);
+}
+
+std::unique_ptr<MediaStream> IMediaDataProvider::CurrentAudioStreamView()
+{
+    return _CurrentStreamView(_audioData);
+}
+
+std::unique_ptr<MediaStream> IMediaDataProvider::CurrentSubtitleStreamView()
+{
+    return _CurrentStreamView(_subtitleData);
+}
+
+std::unique_ptr<MediaStream> IMediaDataProvider::_CurrentStreamView(MediaData& mediaData)
+{
+    if (mediaData.currentStream != -1)
+    {
+        auto stream = std::make_unique<MediaStream>();
+        stream->CopyFields(mediaData.streams[mediaData.currentStream]);
+        return stream;
     }
     else
     {
