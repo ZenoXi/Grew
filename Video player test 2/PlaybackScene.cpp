@@ -136,8 +136,9 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     });
 
     _loadingCircle = new zcom::LoadingCircle();
-    _loadingCircle->SetBaseSize(100, 100);
+    _loadingCircle->SetBaseSize(100, 180);
     _loadingCircle->SetOffsetPercent(0.5f, 0.5f);
+    _loadingCircle->SetVerticalOffsetPixels(40);
     _loadingCircle->SetVisible(false);
 
     _controlBar->AddItem(_seekBar);
