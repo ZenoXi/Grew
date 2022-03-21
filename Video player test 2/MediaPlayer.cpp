@@ -185,6 +185,59 @@ void MediaPlayer::Update(double timeLimit)
         //    _subtitleData.nextFrame.reset(_subtitleData.decoder->GetFrame().release());
         //}
 
+        // Check if video/audio is lagging
+        bool lagging = false;
+        if (!_recovering && !_waiting)
+        {
+            Duration buffered = _dataProvider->BufferedDuration();
+
+            // Video
+            if (_videoData.decoder && !_videoData.nextFrame)
+            {
+                auto streamView = _dataProvider->CurrentVideoStreamView();
+                Duration duration = Duration(av_rescale_q(
+                    streamView->duration,
+                    streamView->timeBase,
+                    { 1, AV_TIME_BASE }
+                ), MICROSECONDS);
+                Duration startTime = Duration(av_rescale_q(
+                    streamView->startTime,
+                    streamView->timeBase,
+                    { 1, AV_TIME_BASE }
+                ), MICROSECONDS);
+                if (buffered < duration + startTime)
+                {
+                    if (buffered < _playbackTimer.Now().GetTicks())
+                    {
+                        lagging = true;
+                    }
+                }
+            }
+            // Audio
+            if (_audioData.decoder && !_audioData.nextFrame)
+            {
+                auto streamView = _dataProvider->CurrentAudioStreamView();
+                Duration duration = Duration(av_rescale_q(
+                    streamView->duration,
+                    streamView->timeBase,
+                    { 1, AV_TIME_BASE }
+                ), MICROSECONDS);
+                Duration startTime = Duration(av_rescale_q(
+                    streamView->startTime,
+                    streamView->timeBase,
+                    { 1, AV_TIME_BASE }
+                ), MICROSECONDS);
+                if (buffered < duration + startTime)
+                {
+                    if (buffered < _playbackTimer.Now().GetTicks())
+                    {
+                        lagging = true;
+                    }
+                }
+            }
+        }
+        _lagging = lagging;
+
         // Update subtitle decoder output dimensions
         if (_subtitleData.decoder && _videoData.nextFrame)
         {
