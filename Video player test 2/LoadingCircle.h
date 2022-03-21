@@ -26,33 +26,38 @@ namespace zcom
             }
 
             auto size = g.target->GetSize();
-            D2D1_RECT_F rect1;
-            rect1.left = 0;
-            rect1.top = 0;
-            rect1.right = size.width;
-            rect1.bottom = size.height;
-            D2D1_RECT_F rect2;
-            rect2.left = size.width / 2.0f - 32.0f;
-            rect2.right = size.width / 2.0f + 32.0f;
-            rect2.top = size.width / 2.0f - 32.0f;
-            rect2.bottom = size.width / 2.0f + 32.0f;
-            D2D1_ROUNDED_RECT rrect;
-            rrect.radiusX = 5.0f;
-            rrect.radiusY = 5.0f;
-            rrect.rect = rect1;
-            g.target->FillRoundedRectangle(rrect, _brush);
+
+            D2D1_RECT_F circlerect;
+            circlerect.left = size.width / 2.0f - 32.0f;
+            circlerect.right = size.width / 2.0f + 32.0f;
+            circlerect.top = size.width / 2.0f - 32.0f;
+            circlerect.bottom = size.width / 2.0f + 32.0f;
+
+            D2D1_RECT_F textrect;
+            textrect.left = (size.width - _textLabel->GetWidth()) / 2;
+            textrect.right = textrect.left + _textLabel->GetWidth();
+            textrect.top = circlerect.bottom + 10;
+            textrect.bottom = circlerect.bottom + 10 + _textLabel->GetHeight();
+
+            D2D1_ROUNDED_RECT roundedrect;
+            roundedrect.radiusX = 5.0f;
+            roundedrect.radiusY = 5.0f;
+            roundedrect.rect.left = 0;
+            roundedrect.rect.top = 0;
+            roundedrect.rect.right = size.width;
+            if (_textLabel->GetText().empty())
+                roundedrect.rect.bottom = size.width;
+            else
+                roundedrect.rect.bottom = textrect.bottom + 10;
+
+            g.target->FillRoundedRectangle(roundedrect, _brush);
             auto rDuration = _rotationDuration.GetDuration(MILLISECONDS);
             float angle = (ztime::Main().GetTime(MILLISECONDS) % rDuration) / (float)rDuration * 360.0f;
             g.target->SetTransform(D2D1::Matrix3x2F::Rotation(angle, { size.width / 2.0f, size.width / 2.0f }));
-            g.target->DrawBitmap(_circleBitmap, rect2);
+            g.target->DrawBitmap(_circleBitmap, circlerect);
             g.target->SetTransform(D2D1::Matrix3x2F::Identity());
+            g.target->DrawBitmap(_textLabel->Draw(g), textrect);
 
-            D2D1_RECT_F brect;
-            brect.left = (size.width - _textLabel->GetWidth()) / 2;
-            brect.right = brect.left + _textLabel->GetWidth();
-            brect.top = size.height - 10 - _textLabel->GetHeight();
-            brect.bottom = size.height - 10;
-            g.target->DrawBitmap(_textLabel->Draw(g), brect);
         }
 
         void _OnResize(int width, int height)
@@ -98,6 +103,9 @@ namespace zcom
             _textLabel->SetSize(GetWidth() - 10, 20);
             _textLabel->SetHorizontalTextAlignment(TextAlignment::CENTER);
             _textLabel->SetVerticalTextAlignment(Alignment::CENTER);
+            _textLabel->SetFontSize(16.0f);
+            //_textLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
+            _textLabel->SetWordWrap(true);
             _textLabel->Resize();
         }
         ~LoadingCircle()
@@ -116,7 +124,12 @@ namespace zcom
 
         void SetLoadingText(std::wstring text)
         {
-
+            if (_textLabel->GetText() != text)
+            {
+                _textLabel->SetText(text);
+                _textLabel->SetHeight(ceil(_textLabel->GetTextHeight()));
+                _textLabel->Resize();
+            }
         }
     };
 }
