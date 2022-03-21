@@ -152,11 +152,15 @@ public:
     std::unique_ptr<MediaStream> CurrentVideoStream();
     std::unique_ptr<MediaStream> CurrentAudioStream();
     std::unique_ptr<MediaStream> CurrentSubtitleStream();
+    std::unique_ptr<MediaStream> CurrentVideoStreamView();
+    std::unique_ptr<MediaStream> CurrentAudioStreamView();
+    std::unique_ptr<MediaStream> CurrentSubtitleStreamView();
     int CurrentVideoStreamIndex() const;
     int CurrentAudioStreamIndex() const;
     int CurrentSubtitleStreamIndex() const;
 protected:
     std::unique_ptr<MediaStream> _CurrentStream(MediaData& mediaData);
+    std::unique_ptr<MediaStream> _CurrentStreamView(MediaData& mediaData);
     int _CurrentStreamIndex(const MediaData& mediaData) const;
 protected:
     virtual void _Seek(SeekData seekData) = 0;
