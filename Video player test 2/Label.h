@@ -367,6 +367,20 @@ namespace zcom
             return _fontColor;
         }
 
+        float GetTextWidth() const
+        {
+            DWRITE_TEXT_METRICS textMetrics;
+            _dwriteTextLayout->GetMetrics(&textMetrics);
+            return textMetrics.width;
+        }
+
+        float GetTextHeight() const
+        {
+            DWRITE_TEXT_METRICS textMetrics;
+            _dwriteTextLayout->GetMetrics(&textMetrics);
+            return textMetrics.height;
+        }
+
         void SetText(std::wstring text)
         {
             _text = text;
