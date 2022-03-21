@@ -1,8 +1,9 @@
 #include "BasePlaybackController.h"
 
 BasePlaybackController::BasePlaybackController(MediaPlayer* player, IMediaDataProvider* dataProvider)
-    : _player(player), _dataProvider(dataProvider)
+    : _player(player), _dataProvider(dataProvider), _timerController(player, true)
 {
+    _timerController.AddStop("loading");
     _videoStreams = _dataProvider->GetAvailableVideoStreams();
     _audioStreams = _dataProvider->GetAvailableAudioStreams();
     _subtitleStreams = _dataProvider->GetAvailableSubtitleStreams();

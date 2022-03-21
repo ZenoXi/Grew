@@ -38,9 +38,7 @@ protected:
     TimePoint _lastSeek = 0;
     TimePoint _lastSync = 0;
 
-    Clock _waitTimer = Clock();
-    Duration _waitLeft = 0;
-    bool _waiting = false;
+    bool _buffering = false;
 
 public:
     HostPlaybackController(MediaPlayer* player, MediaHostDataProvider* dataProvider);

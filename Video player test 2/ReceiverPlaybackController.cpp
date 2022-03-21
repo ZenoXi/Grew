@@ -38,32 +38,32 @@ void ReceiverPlaybackController::Update()
         if (_player->Recovered())
         {
             std::cout << "Loading finished!" << std::endl;
+            _timerController.RemoveStop("loading");
+            _timerController.AddStop("waitresume");
             _loading = false;
             _waitingForResume = true;
 
             // Notify host of seek finish
             znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::SEEK_FINISHED), { _hostId }, 1);
-
-            //if (!_paused)
-            //{
-            //    _player->StartTimer();
-            //}
         }
     }
 
-    _waitTimer.Update();
-    if (_waiting && !_paused && _waitTimer.Now().GetTicks() > _waitLeft)
+    if (_player->Lagging())
     {
-        std::cout << "Finished waiting" << std::endl;
-        _waiting = false;
+        if (!_buffering)
+        {
+            _timerController.AddStop("buffering");
+            _timerController.AddTimer(Duration(1, SECONDS));
+            _buffering = true;
+        }
     }
-
-    if (!_waiting && !_paused && !_player->TimerRunning())
+    else
     {
-        // Bypass _Play() check
-        _paused = true;
-        // _Play() also checks Loading()
-        _Play();
+        if (_buffering)
+        {
+            _timerController.RemoveStop("buffering");
+            _buffering = false;
+        }
     }
 
     if (_player->TimerRunning())
@@ -71,10 +71,14 @@ void ReceiverPlaybackController::Update()
         Duration duration = _dataProvider->MediaDuration();
         if (_player->TimerPosition().GetTicks() >= duration.GetTicks())
         {
-            _player->StopTimer();
+            _timerController.AddStop("finished");
+            //_player->StopTimer();
             _finished = true;
+            _Pause();
         }
     }
+
+    _timerController.Update();
 }
 
 void ReceiverPlaybackController::_CheckForHostControllerReady()
@@ -129,12 +133,20 @@ void ReceiverPlaybackController::_CheckForInitiateSeek()
             << " | s:" << seekData.subtitleStreamIndex << ")" << std::endl;
 
         // Seek
-        _player->StopTimer();
+        _timerController.ClearTimers();
+        _timerController.ClearPlayTimers();
+        _timerController.AddStop("loading");
+        _timerController.RemoveStop("finished");
+        _timerController.RemoveStop("waitseek");
+        _timerController.RemoveStop("waitresume");
+        _loading = true;
+        _finished = false;
+        _waitingForSeek = false;
+        _waitingForResume = false;
         _player->SetTimerPosition(seekData.time);
         _player->WaitDiscontinuity();
 
         IMediaDataProvider::SeekResult seekResult = _dataProvider->Seek(seekData);
-
         if (seekData.videoStreamIndex != std::numeric_limits<int>::min())
         {
             _player->SetVideoStream(std::move(seekResult.videoStream));
@@ -150,12 +162,6 @@ void ReceiverPlaybackController::_CheckForInitiateSeek()
             _player->SetSubtitleStream(std::move(seekResult.subtitleStream));
             _currentSubtitleStream = seekData.subtitleStreamIndex;
         }
-
-        _loading = true;
-        _waiting = false;
-        _finished = false;
-        _waitingForSeek = false;
-        _waitingForResume = false;
     }
 }
 
@@ -169,12 +175,8 @@ void ReceiverPlaybackController::_CheckForHostSeekFinished()
         auto packetPair = _hostSeekFinishedReceiver->GetPacket();
 
         std::cout << "Playback resumed" << std::endl;
+        _timerController.RemoveStop("waitresume");
         _waitingForResume = false;
-        _waiting = false;
-        if (!_paused)
-        {
-            _Play();
-        }
     }
 }
 
@@ -187,17 +189,7 @@ void ReceiverPlaybackController::_CheckForSyncPause()
     {
         auto packetPair = _syncPauseReceiver->GetPacket();
 
-        _waitTimer.Reset();
-        _waitTimer.Stop();
-        _waitLeft = packetPair.first.Cast<int64_t>();
-        _waiting = true;
-        std::cout << "Started waiting" << std::endl;
-
-        if (_player->TimerRunning())
-        {
-            _waitTimer.Start();
-            _player->StopTimer();
-        }
+        _timerController.AddPlayTimer(packetPair.first.Cast<int64_t>());
     }
 }
 
@@ -221,40 +213,14 @@ void ReceiverPlaybackController::Pause()
 
 void ReceiverPlaybackController::_Play()
 {
-    if (_paused)
-    {
-        if (_finished)
-        {
-            Seek(0);
-        }
-        if (_CanPlay())
-        {
-            if (_waiting)
-            {
-                _waitTimer.Reset();
-            }
-            else
-            {
-                _player->StartTimer();
-            }
-        }
-        _paused = false;
-    }
+    _timerController.Play();
+    _paused = false;
 }
 
 void ReceiverPlaybackController::_Pause()
 {
-    if (!_paused)
-    {
-        if (_waiting)
-        {
-            _waitTimer.Update();
-            _waitTimer.Stop();
-            _waitLeft -= _waitTimer.Now().GetTicks();
-        }
-        _player->StopTimer();
-        _paused = true;
-    }
+    _timerController.Pause();
+    _paused = true;
 }
 
 bool ReceiverPlaybackController::_CanPlay() const
@@ -284,9 +250,8 @@ void ReceiverPlaybackController::Seek(TimePoint time)
     seekData.time = time;
     znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::SEEK_REQUEST).From(seekData), { _hostId }, 1);
 
+    _timerController.AddStop("waitseek");
     _waitingForSeek = true;
-    _waiting = false;
-    _player->StopTimer();
     _player->SetTimerPosition(time);
 }
 
@@ -301,9 +266,8 @@ void ReceiverPlaybackController::SetVideoStream(int index)
     znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::SEEK_REQUEST).From(seekData), { _hostId }, 1);
 
     _currentVideoStream = index;
+    _timerController.AddStop("waitseek");
     _waitingForSeek = true;
-    _waiting = false;
-    _player->StopTimer();
 }
 
 void ReceiverPlaybackController::SetAudioStream(int index)
@@ -317,9 +281,8 @@ void ReceiverPlaybackController::SetAudioStream(int index)
     znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::SEEK_REQUEST).From(seekData), { _hostId }, 1);
 
     _currentAudioStream = index;
+    _timerController.AddStop("waitseek");
     _waitingForSeek = true;
-    _waiting = false;
-    _player->StopTimer();
 }
 
 void ReceiverPlaybackController::SetSubtitleStream(int index)
@@ -333,14 +296,16 @@ void ReceiverPlaybackController::SetSubtitleStream(int index)
     znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::SEEK_REQUEST).From(seekData), { _hostId }, 1);
 
     _currentSubtitleStream = index;
+    _timerController.AddStop("waitseek");
     _waitingForSeek = true;
-    _waiting = false;
-    _player->StopTimer();
 }
 
 IPlaybackController::LoadingInfo ReceiverPlaybackController::Loading() const
 {
-    if (_waiting)
-        return { true, L"Syncing" };
-    return { !_CanPlay(), L"" };
+    return { _timerController.Stopped(), L"" };
+    //if (_waiting)
+    //    return { true, L"Synchronizing" };
+    //if (_player->Lagging())
+    //    return { true, L"" };
+    //return { !_CanPlay(), L"" };
 }

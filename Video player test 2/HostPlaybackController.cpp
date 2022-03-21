@@ -30,33 +30,32 @@ void HostPlaybackController::Update()
     _CheckForPlaybackPosition();
     _CheckForSyncPause();
 
-
     if (_loading)
     {
         if (_player->Recovered())
         {
             std::cout << "Loading finished!" << std::endl;
+            _timerController.RemoveStop("loading");
             _loading = false;
-            //if (!_paused)
-            //{
-            //    _player->StartTimer();
-            //}
         }
     }
 
-    _waitTimer.Update();
-    if (_waiting && !_paused && _waitTimer.Now().GetTicks() > _waitLeft)
+    if (_player->Lagging())
     {
-        std::cout << "Finished waiting" << std::endl;
-        _waiting = false;
+        if (!_buffering)
+        {
+            _timerController.AddStop("buffering");
+            _timerController.AddTimer(Duration(1, SECONDS));
+            _buffering = true;
+        }
     }
-
-    if (!_waiting && !_paused && !_player->TimerRunning())
+    else
     {
-        // Bypass _Play() check
-        _paused = true;
-        // _Play() also checks Loading()
-        _Play();
+        if (_buffering)
+        {
+            _timerController.RemoveStop("buffering");
+            _buffering = false;
+        }
     }
 
     if (_player->TimerRunning())
@@ -64,10 +63,13 @@ void HostPlaybackController::Update()
         Duration duration = _dataProvider->MediaDuration();
         if (_player->TimerPosition().GetTicks() >= duration.GetTicks())
         {
+            _timerController.AddStop("finished");
             _finished = true;
             _Pause();
         }
     }
+
+    _timerController.Update();
 }
 
 void HostPlaybackController::_CheckForPlayRequest()
@@ -121,12 +123,16 @@ void HostPlaybackController::_CheckForSeekRequest()
         // Seek
         if (seekData.time.GetTicks() == -1)
             seekData.time = _player->TimerPosition();
-        _player->StopTimer();
+
+        _StartSeeking();
+        _timerController.AddStop("loading");
+        _timerController.RemoveStop("finished");
+        _loading = true;
+        _finished = false;
         _player->SetTimerPosition(seekData.time);
         _player->WaitDiscontinuity();
 
         IMediaDataProvider::SeekResult seekResult = _dataProvider->Seek(seekData);
-
         if (seekData.videoStreamIndex != std::numeric_limits<int>::min())
         {
             _player->SetVideoStream(std::move(seekResult.videoStream));
@@ -142,11 +148,7 @@ void HostPlaybackController::_CheckForSeekRequest()
             _player->SetSubtitleStream(std::move(seekResult.subtitleStream));
             _currentSubtitleStream = seekData.subtitleStreamIndex;
         }
-
         _bufferedSeekData = IMediaDataProvider::SeekData();
-        _StartSeeking();
-        _loading = true;
-        _finished = false;
     }
 }
 
@@ -180,7 +182,6 @@ void HostPlaybackController::_CheckForSeekFinished()
     }
     if (_seeking && allSeekCompleted && !_loading)
     {
-        _seeking = false;
         _lastSeek = ztime::Main();
 
         // Check for buffered seek
@@ -212,6 +213,8 @@ void HostPlaybackController::_CheckForSeekFinished()
 
             _bufferedSeekData = IMediaDataProvider::SeekData();
             _StartSeeking();
+            _timerController.AddStop("loading");
+            _timerController.RemoveStop("finished");
             _loading = true;
             _finished = false;
         }
@@ -219,8 +222,9 @@ void HostPlaybackController::_CheckForSeekFinished()
         {
             // Resume playback
             std::cout << "Playback Resumed" << std::endl;
-            if (!_paused)
-                _Play();
+            _timerController.RemoveStop("seeking");
+            _seeking = false;
+
             znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::HOST_SEEK_FINISHED), _GetUserIds(), 1);
             _lastSeek = ztime::Main();
         }
@@ -258,17 +262,7 @@ void HostPlaybackController::_CheckForSyncPause()
     {
         auto packetPair = _syncPauseReceiver->GetPacket();
         
-        _waitTimer.Reset();
-        _waitTimer.Stop();
-        _waitLeft = packetPair.first.Cast<int64_t>();
-        _waiting = true;
-        std::cout << "Started waiting" << std::endl;
-
-        if (_player->TimerRunning())
-        {
-            _waitTimer.Start();
-            _player->StopTimer();
-        }
+        _timerController.AddPlayTimer(packetPair.first.Cast<int64_t>());
     }
 }
 
@@ -286,40 +280,14 @@ void HostPlaybackController::Pause()
 
 void HostPlaybackController::_Play()
 {
-    if (_paused)
-    {
-        if (_finished)
-        {
-            Seek(0);
-        }
-        if (_CanPlay())
-        {
-            if (_waiting)
-            {
-                _waitTimer.Reset();
-            }
-            else
-            {
-                _player->StartTimer();
-            }
-        }
-        _paused = false;
-    }
+    _timerController.Play();
+    _paused = false;
 }
 
 void HostPlaybackController::_Pause()
 {
-    if (!_paused)
-    {
-        if (_waiting)
-        {
-            _waitTimer.Update();
-            _waitTimer.Stop();
-            _waitLeft -= _waitTimer.Now().GetTicks();
-        }
-        _player->StopTimer();
-        _paused = true;
-    }
+    _timerController.Pause();
+    _paused = true;
 }
 
 bool HostPlaybackController::_CanPlay() const
@@ -348,15 +316,16 @@ void HostPlaybackController::Seek(TimePoint time)
         }
     }
 
-    _player->StopTimer();
+    _StartSeeking();
+    _timerController.AddStop("loading");
+    _timerController.RemoveStop("finished");
+    _loading = true;
+    _finished = false;
     _player->SetTimerPosition(time);
     _player->WaitDiscontinuity();
     IMediaDataProvider::SeekData seekData;
     seekData.time = time;
     _dataProvider->Seek(seekData);
-    _StartSeeking();
-    _loading = true;
-    _finished = false;
 }
 
 void HostPlaybackController::SetVideoStream(int index)
@@ -367,7 +336,11 @@ void HostPlaybackController::SetVideoStream(int index)
         return;
     }
 
-    _player->StopTimer();
+    _StartSeeking();
+    _timerController.AddStop("loading");
+    _timerController.RemoveStop("finished");
+    _loading = true;
+    _finished = false;
     IMediaDataProvider::SeekData seekData;
     seekData.time = _player->TimerPosition();
     seekData.videoStreamIndex = index;
@@ -375,9 +348,6 @@ void HostPlaybackController::SetVideoStream(int index)
     _player->SetVideoStream(std::move(seekResult.videoStream));
     _player->WaitDiscontinuity();
     _currentVideoStream = index;
-    _StartSeeking();
-    _loading = true;
-    _finished = false;
 }
 
 void HostPlaybackController::SetAudioStream(int index)
@@ -388,7 +358,11 @@ void HostPlaybackController::SetAudioStream(int index)
         return;
     }
 
-    _player->StopTimer();
+    _StartSeeking();
+    _timerController.AddStop("loading");
+    _timerController.RemoveStop("finished");
+    _loading = true;
+    _finished = false;
     IMediaDataProvider::SeekData seekData;
     seekData.time = _player->TimerPosition();
     seekData.audioStreamIndex = index;
@@ -396,9 +370,6 @@ void HostPlaybackController::SetAudioStream(int index)
     _player->SetAudioStream(std::move(seekResult.audioStream));
     _player->WaitDiscontinuity();
     _currentAudioStream = index;
-    _StartSeeking();
-    _loading = true;
-    _finished = false;
 }
 
 void HostPlaybackController::SetSubtitleStream(int index)
@@ -409,7 +380,11 @@ void HostPlaybackController::SetSubtitleStream(int index)
         return;
     }
 
-    _player->StopTimer();
+    _StartSeeking();
+    _timerController.AddStop("loading");
+    _timerController.RemoveStop("finished");
+    _loading = true;
+    _finished = false;
     IMediaDataProvider::SeekData seekData;
     seekData.time = _player->TimerPosition();
     seekData.subtitleStreamIndex = index;
@@ -417,21 +392,23 @@ void HostPlaybackController::SetSubtitleStream(int index)
     _player->SetSubtitleStream(std::move(seekResult.subtitleStream));
     _player->WaitDiscontinuity();
     _currentSubtitleStream = index;
-    _StartSeeking();
-    _loading = true;
-    _finished = false;
 }
 
 IPlaybackController::LoadingInfo HostPlaybackController::Loading() const
 {
-    if (_waiting)
-        return { true, L"Syncing" };
-    return { !_CanPlay(), L"" };
+    return { _timerController.Stopped(), L"" };
+    //if (_waiting)
+    //    return { true, L"Synchronizing" };
+    //if (_player->Lagging())
+    //    return { true, L"" };
+    //return { !_CanPlay(), L"" };
 }
 
 void HostPlaybackController::_StartSeeking()
 {
-    _waiting = false;
+    _timerController.ClearTimers();
+    _timerController.ClearPlayTimers();
+    _timerController.AddStop("seeking");
     _seeking = true;
     for (auto& user : _destinationUsers)
         user.seekCompleted = false;

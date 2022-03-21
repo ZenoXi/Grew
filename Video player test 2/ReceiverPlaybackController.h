@@ -21,10 +21,7 @@ protected:
 
     bool _waitingForSeek = false;
     bool _waitingForResume = false;
-
-    Clock _waitTimer = Clock();
-    Duration _waitLeft = 0;
-    bool _waiting = false;
+    bool _buffering = false;
 
 public:
     ReceiverPlaybackController(MediaPlayer* player, MediaReceiverDataProvider* dataProvider);
