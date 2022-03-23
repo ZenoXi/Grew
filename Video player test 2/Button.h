@@ -1,6 +1,5 @@
 #pragma once
 
-#include "App.h"
 #include "ComponentBase.h"
 #include "Label.h"
 
@@ -136,15 +135,9 @@ namespace zcom
             return nullptr;
         }
 
-        void _OnSelected()
-        {
-            App::Instance()->keyboardManager.SetExclusiveHandler(this);
-        }
+        void _OnSelected();
 
-        void _OnDeselected()
-        {
-            App::Instance()->keyboardManager.ResetExclusiveHandler();
-        }
+        void _OnDeselected();
 
         bool _OnKeyDown(BYTE vkCode)
         {

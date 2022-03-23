@@ -141,16 +141,9 @@ namespace zcom
             return nullptr;
         }
 
-        void _OnSelected()
-        {
-            App::Instance()->keyboardManager.SetExclusiveHandler(this);
-            GetKeyboardState(_keyStates);
-        }
+        void _OnSelected(); // Uses 'App'
 
-        void _OnDeselected()
-        {
-            App::Instance()->keyboardManager.ResetExclusiveHandler();
-        }
+        void _OnDeselected(); // Uses 'App'
 
         bool _OnKeyDown(BYTE vkCode)
         {
