@@ -524,9 +524,23 @@ namespace zcom
         }
 
         // Additional functions
-        virtual std::list<Base*> GetChildren() = 0;
-        virtual std::list<Base*> GetAllChildren() = 0;
-        virtual Base* IterateTab() = 0;
+        virtual std::list<Base*> GetChildren()
+        {
+            return std::list<Base*>();
+        }
+
+        virtual std::list<Base*> GetAllChildren()
+        {
+            return std::list<Base*>();
+        }
+
+        virtual Base* IterateTab()
+        {
+            if (!Selected())
+                return this;
+            else
+                return nullptr;
+        }
 
     protected:
         virtual void _OnUpdate() = 0;
