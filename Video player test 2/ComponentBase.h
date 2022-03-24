@@ -77,6 +77,9 @@ namespace zcom
         D2D1_COLOR_F _backgroundColor = D2D1::ColorF(0, 0);
         ID2D1Bitmap* _background = nullptr;
 
+        // Rounding
+        float _cornerRounding = 0.0f;
+
     public:
         Base() {}
         virtual ~Base()
@@ -292,6 +295,14 @@ namespace zcom
             _background = image;
         }
 
+        // Corner rounding
+        float GetCornerRounding() const { return _cornerRounding; }
+
+        void SetCornerRounding(float rounding)
+        {
+            _cornerRounding = rounding;
+        }
+
         // Events
         Base* OnMouseMove(int x, int y)
         {
@@ -447,10 +458,32 @@ namespace zcom
 
             // Set canvas as target
             g.target->SetTarget(_canvas);
+            g.target->Clear();
             //g.target->BeginDraw();
 
             if (_visible)
             {
+                ID2D1Image* stash = nullptr;
+                ID2D1Bitmap1* contentBitmap = nullptr;
+                const float rounding = _cornerRounding; // Use const value in this function in case '_cornerRouding' is modified
+
+                if (rounding > 0.0f)
+                {
+                    // Create separate target for content
+                    g.target->CreateBitmap(
+                        D2D1::SizeU(_width, _height),
+                        nullptr,
+                        0,
+                        D2D1::BitmapProperties1(
+                            D2D1_BITMAP_OPTIONS_TARGET,
+                            { DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED }
+                        ),
+                        &contentBitmap
+                    );
+                    g.target->GetTarget(&stash);
+                    g.target->SetTarget(contentBitmap);
+                }
+
                 // Draw background
                 g.target->Clear(GetBackgroundColor());
                 if (_background)
@@ -473,7 +506,18 @@ namespace zcom
                     if (borderBrush)
                     {
                         float offset = _borderWidth * 0.5f;
-                        g.target->DrawRectangle(D2D1::RectF(offset, offset, _width - offset, _height - offset), borderBrush, _borderWidth);
+                        if (rounding > 0.0f)
+                        {
+                            D2D1_ROUNDED_RECT roundedrect;
+                            roundedrect.radiusX = _cornerRounding - offset;
+                            roundedrect.radiusY = _cornerRounding - offset;
+                            roundedrect.rect = D2D1::RectF(offset, offset, _width - offset, _height - offset);
+                            g.target->DrawRoundedRectangle(roundedrect, borderBrush, _borderWidth);
+                        }
+                        else
+                        {
+                            g.target->DrawRectangle(D2D1::RectF(offset, offset, _width - offset, _height - offset), borderBrush, _borderWidth);
+                        }
                         borderBrush->Release();
                     }
                 }
@@ -484,9 +528,71 @@ namespace zcom
                     if (borderBrush)
                     {
                         float offset = _borderWidth * 0.5f;
-                        g.target->DrawRectangle(D2D1::RectF(offset, offset, _width - offset, _height - offset), borderBrush, _borderWidth);
+                        if (rounding > 0.0f)
+                        {
+                            D2D1_ROUNDED_RECT roundedrect;
+                            roundedrect.radiusX = _cornerRounding - offset;
+                            roundedrect.radiusY = _cornerRounding - offset;
+                            roundedrect.rect = D2D1::RectF(offset, offset, _width - offset, _height - offset);
+                            g.target->DrawRoundedRectangle(roundedrect, borderBrush, _borderWidth);
+                        }
+                        else
+                        {
+                            g.target->DrawRectangle(D2D1::RectF(offset, offset, _width - offset, _height - offset), borderBrush, _borderWidth);
+                        }
                         borderBrush->Release();
                     }
+                }
+
+                if (rounding > 0.0f)
+                {
+                    // Round corners
+                    ID2D1Bitmap1* opacityMask = nullptr;
+                    g.target->CreateBitmap(
+                        D2D1::SizeU(_width, _height),
+                        nullptr,
+                        0,
+                        D2D1::BitmapProperties1(
+                            D2D1_BITMAP_OPTIONS_TARGET,
+                            { DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED }
+                        ),
+                        &opacityMask
+                    );
+                    g.target->SetTarget(opacityMask);
+                    g.target->Clear();
+
+                    D2D1_ROUNDED_RECT roundedrect;
+                    roundedrect.radiusX = _cornerRounding;
+                    roundedrect.radiusY = _cornerRounding;
+                    roundedrect.rect.left = 0;
+                    roundedrect.rect.top = 0;
+                    roundedrect.rect.right = _width;
+                    roundedrect.rect.bottom = _height;
+                    ID2D1SolidColorBrush* opacityBrush;
+                    g.target->CreateSolidColorBrush(D2D1::ColorF(0), &opacityBrush);
+                    g.target->FillRoundedRectangle(roundedrect, opacityBrush);
+                    opacityBrush->Release();
+
+                    g.target->SetTarget(stash);
+
+                    ID2D1BitmapBrush* bitmapBrush;
+                    g.target->CreateBitmapBrush(
+                        contentBitmap,
+                        D2D1::BitmapBrushProperties(
+                            D2D1_EXTEND_MODE_CLAMP,
+                            D2D1_EXTEND_MODE_CLAMP,
+                            D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR
+                        ),
+                        &bitmapBrush
+                    );
+
+                    g.target->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
+                    g.target->FillOpacityMask(opacityMask, bitmapBrush, D2D1_OPACITY_MASK_CONTENT_GRAPHICS);
+                    g.target->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+                    g.target->Flush();
+                    bitmapBrush->Release();
+                    opacityMask->Release();
+                    contentBitmap->Release();
                 }
             }
             else
