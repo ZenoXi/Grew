@@ -8,6 +8,36 @@
 
 namespace zcom
 {
+    class PROP_Shadow : public Property
+    {
+        void _CopyFields(const PROP_Shadow& other)
+        {
+            valid = other.valid;
+            offsetX = other.offsetX;
+            offsetY = other.offsetY;
+            blurStandardDeviation = other.blurStandardDeviation;
+            color = other.color;
+        }
+    public:
+        static std::string _NAME_() { return "shadow"; }
+
+        PROP_Shadow() {}
+        PROP_Shadow(const PROP_Shadow& other)
+        {
+            _CopyFields(other);
+        }
+        PROP_Shadow& operator=(const PROP_Shadow& other)
+        {
+            _CopyFields(other);
+            return *this;
+        }
+
+        float offsetX = 0.0f;
+        float offsetY = 0.0f;
+        float blurStandardDeviation = 10.0f;
+        D2D1_COLOR_F color = D2D1::ColorF(0, 0.75f);
+    };
+
     class Panel : public Base
     {
 #pragma region base_class
@@ -134,40 +164,100 @@ namespace zcom
 
             for (auto item : _items)
             {
-                item->Update();
+                item.item->Update();
             }
         }
 
         void _OnDraw(Graphics g)
         {
             // Get bitmaps of all items
-            std::list<std::pair<ID2D1Bitmap*, Base*>> bitmaps;
+            std::list<std::pair<ID2D1Bitmap*, Item>> bitmaps;
             for (auto& item : _items)
             {
                 // Order by z-index
                 auto it = bitmaps.rbegin();
                 for (; it != bitmaps.rend(); it++)
                 {
-                    if (item->GetZIndex() >= it->second->GetZIndex())
+                    if (item.item->GetZIndex() >= it->second.item->GetZIndex())
                     {
                         break;
                     }
                 }
-                bitmaps.insert(it.base(), { item->Draw(g), item });
+                bitmaps.insert(it.base(), { item.item->Draw(g), item });
             }
 
             // Draw the bitmaps
             for (auto& it : bitmaps)
             {
+                if (it.second.item->GetOpacity() <= 0.0f)
+                    continue;
+
+                // Draw shadow
+                auto prop = it.second.item->GetProperty<PROP_Shadow>();
+                if (prop.valid)
+                {
+                    ID2D1Effect* shadowEffect = nullptr;
+                    g.target->CreateEffect(CLSID_D2D1Shadow, &shadowEffect);
+                    shadowEffect->SetInput(0, it.first);
+                    shadowEffect->SetValue(D2D1_SHADOW_PROP_COLOR, D2D1::Vector4F(prop.color.r, prop.color.g, prop.color.b, prop.color.a));
+                    shadowEffect->SetValue(D2D1_SHADOW_PROP_BLUR_STANDARD_DEVIATION, prop.blurStandardDeviation);
+
+                    if (it.second.item->GetOpacity() < 1.0f)
+                    {
+#ifdef CLSID_D2D1Opacity
+                        ID2D1Effect* opacityEffect = nullptr;
+                        g.target->CreateEffect(CLSID_D2D1Opacity, &opacityEffect);
+                        opacityEffect->SetValue(D2D1_OPACITY_PROP_OPACITY, it.second.item->GetOpacity());
+
+                        ID2D1Effect* compositeEffect = nullptr;
+                        g.target->CreateEffect(CLSID_D2D1Composite, &compositeEffect);
+                        compositeEffect->SetInputEffect(0, shadowEffect);
+                        compositeEffect->SetInputEffect(1, opacityEffect);
+
+                        g.target->DrawImage(compositeEffect, D2D1::Point2F(it.second.item->GetX() + prop.offsetX, it.second.item->GetY() + prop.offsetY));
+                        compositeEffect->Release();
+                        opacityEffect->Release();
+#else
+                        // Draw to separate render target and use 'DrawBitmap' with opacity
+                        ID2D1Image* stash = nullptr;
+                        ID2D1Bitmap1* contentBitmap = nullptr;
+                        g.target->CreateBitmap(
+                            D2D1::SizeU(GetWidth(), GetHeight()),
+                            nullptr,
+                            0,
+                            D2D1::BitmapProperties1(
+                                D2D1_BITMAP_OPTIONS_TARGET,
+                                { DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED }
+                            ),
+                            &contentBitmap
+                        );
+
+                        g.target->GetTarget(&stash);
+                        g.target->SetTarget(contentBitmap);
+                        g.target->Clear();
+                        g.target->DrawImage(shadowEffect, D2D1::Point2F(it.second.item->GetX() + prop.offsetX, it.second.item->GetY() + prop.offsetY));
+                        g.target->SetTarget(stash);
+                        g.target->DrawBitmap(contentBitmap, (const D2D1_RECT_F*)0, it.second.item->GetOpacity());
+
+                        contentBitmap->Release();
+#endif
+                    }
+                    else
+                    {
+                        g.target->DrawImage(shadowEffect, D2D1::Point2F(it.second.item->GetX() + prop.offsetX, it.second.item->GetY() + prop.offsetY));
+                    }
+                    shadowEffect->Release();
+                }
+
                 g.target->DrawBitmap(
                     it.first,
                     D2D1::RectF(
-                        it.second->GetX() - _horizontalScroll,
-                        it.second->GetY() - _verticalScroll,
-                        it.second->GetX() - _horizontalScroll + it.second->GetWidth(),
-                        it.second->GetY() - _verticalScroll + it.second->GetHeight()
+                        it.second.item->GetX() - _horizontalScroll,
+                        it.second.item->GetY() - _verticalScroll,
+                        it.second.item->GetX() - _horizontalScroll + it.second.item->GetWidth(),
+                        it.second.item->GetY() - _verticalScroll + it.second.item->GetHeight()
                     ),
-                    it.second->GetOpacity()
+                    it.second.item->GetOpacity()
                 );
             }
 
@@ -236,8 +326,10 @@ namespace zcom
             // Calculate item sizes and positions
             int maxRightEdge = 0;
             int maxBottomEdge = 0;
-            for (auto& item : _items)
+            for (auto& _item : _items)
             {
+                Base* item = _item.item;
+
                 int newWidth = (int)std::round(GetWidth() * item->GetParentWidthPercent()) + item->GetBaseWidth();
                 int newHeight = (int)std::round(GetHeight() * item->GetParentHeightPercent()) + item->GetBaseHeight();
                 // SetSize does limit checking so the resulting size and newWidth/newHeight can mismatch
@@ -302,8 +394,10 @@ namespace zcom
             int adjY = y + _verticalScroll;
 
             Base* handledItem = nullptr;
-            for (auto& item : _items)
+            for (auto& _item : _items)
             {
+                Base* item = _item.item;
+
                 if (!item->GetVisible()) continue;
 
                 if (adjX >= item->GetX() && adjX < item->GetX() + item->GetWidth() &&
@@ -373,8 +467,10 @@ namespace zcom
 
             return this;
 
-            for (auto& item : _items)
+            for (auto& _item : _items)
             {
+                Base* item = _item.item;
+
                 if (adjX >= item->GetX() && adjX < item->GetX() + item->GetWidth() &&
                     adjY >= item->GetY() && adjY < item->GetY() + item->GetHeight())
                 {
@@ -403,9 +499,9 @@ namespace zcom
             //std::cout << "Mouse leave\n";
             for (auto& item : _items)
             {
-                if (item->GetMouseInside())
+                if (item.item->GetMouseInside())
                 {
-                    item->OnMouseLeave();
+                    item.item->OnMouseLeave();
                 }
             }
         }
@@ -421,9 +517,9 @@ namespace zcom
             //std::cout << "Mouse leave\n";
             for (auto& item : _items)
             {
-                if (item->GetMouseInsideArea())
+                if (item.item->GetMouseInsideArea())
                 {
-                    item->OnMouseLeaveArea();
+                    item.item->OnMouseLeaveArea();
                 }
             }
         }
@@ -442,11 +538,11 @@ namespace zcom
 
             for (auto& item : _items)
             {
-                if (!item->GetVisible()) continue;
+                if (!item.item->GetVisible()) continue;
 
-                if (item->GetMouseInside())
+                if (item.item->GetMouseInside())
                 {
-                    return item->OnLeftPressed(adjX - item->GetX(), adjY - item->GetY());
+                    return item.item->OnLeftPressed(adjX - item.item->GetX(), adjY - item.item->GetY());
                 }
             }
             return this;
@@ -460,11 +556,11 @@ namespace zcom
 
             for (auto& item : _items)
             {
-                if (!item->GetVisible()) continue;
+                if (!item.item->GetVisible()) continue;
 
-                if (item->GetMouseInside())
+                if (item.item->GetMouseInside())
                 {
-                    return item->OnLeftReleased(adjX - item->GetX(), adjY - item->GetY());
+                    return item.item->OnLeftReleased(adjX - item.item->GetX(), adjY - item.item->GetY());
                 }
             }
             return this;
@@ -478,11 +574,11 @@ namespace zcom
 
             for (auto& item : _items)
             {
-                if (!item->GetVisible()) continue;
+                if (!item.item->GetVisible()) continue;
 
-                if (item->GetMouseInside())
+                if (item.item->GetMouseInside())
                 {
-                    return item->OnRightPressed(adjX - item->GetX(), adjY - item->GetY());
+                    return item.item->OnRightPressed(adjX - item.item->GetX(), adjY - item.item->GetY());
                 }
             }
             return this;
@@ -496,11 +592,11 @@ namespace zcom
 
             for (auto& item : _items)
             {
-                if (!item->GetVisible()) continue;
+                if (!item.item->GetVisible()) continue;
 
-                if (item->GetMouseInside())
+                if (item.item->GetMouseInside())
                 {
-                    return item->OnRightReleased(adjX - item->GetX(), adjY - item->GetY());
+                    return item.item->OnRightReleased(adjX - item.item->GetX(), adjY - item.item->GetY());
                 }
             }
             return this;
@@ -515,11 +611,11 @@ namespace zcom
             Base* target = nullptr;
             for (auto& item : _items)
             {
-                if (!item->GetVisible()) continue;
+                if (!item.item->GetVisible()) continue;
 
-                if (item->GetMouseInside())
+                if (item.item->GetMouseInside())
                 {
-                    target = item->OnWheelUp(adjX - item->GetX(), adjY - item->GetY());
+                    target = item.item->OnWheelUp(adjX - item.item->GetX(), adjY - item.item->GetY());
                     break;
                 }
             }
@@ -555,11 +651,11 @@ namespace zcom
             Base* target = nullptr;
             for (auto& item : _items)
             {
-                if (!item->GetVisible()) continue;
+                if (!item.item->GetVisible()) continue;
 
-                if (item->GetMouseInside())
+                if (item.item->GetMouseInside())
                 {
-                    target = item->OnWheelDown(adjX - item->GetX(), adjY - item->GetY());
+                    target = item.item->OnWheelDown(adjX - item.item->GetX(), adjY - item.item->GetY());
                     break;
                 }
             }
@@ -601,7 +697,7 @@ namespace zcom
             std::list<Base*> children;
             for (auto& item : _items)
             {
-                children.push_back(item);
+                children.push_back(item.item);
             }
             return children;
         }
@@ -611,8 +707,8 @@ namespace zcom
             std::list<Base*> children;
             for (auto& item : _items)
             {
-                children.push_back(item);
-                auto itemChildren = item->GetAllChildren();
+                children.push_back(item.item);
+                auto itemChildren = item.item->GetAllChildren();
                 if (!itemChildren.empty())
                 {
                     children.insert(children.end(), itemChildren.begin(), itemChildren.end());
@@ -675,8 +771,17 @@ namespace zcom
 #pragma endregion
 
     private:
-        std::vector<Base*> _items;
-        std::vector<bool> _owned;
+        struct Item
+        {
+            Base* item;
+            bool owned;
+            bool hasShadow;
+        };
+
+        std::vector<Item> _items;
+        //std::vector<Base*> _items;
+        //std::vector<bool> _owned;
+        //std::vector<bool> _hasShadow;
         std::vector<Base*> _selectableItems;
 
         // Margins
@@ -732,8 +837,7 @@ namespace zcom
 
         void AddItem(Base* item, bool transferOwnership = false)
         {
-            _items.push_back(item);
-            _owned.push_back(transferOwnership);
+            _items.push_back({ item, transferOwnership, false });
             ReindexTabOrder();
         }
 
@@ -741,10 +845,10 @@ namespace zcom
         {
             for (int i = 0; i < _items.size(); i++)
             {
-                if (_items[i] == item)
+                if (_items[i].item == item)
                 {
-                    if (_owned[i])
-                        delete _items[i];
+                    if (_items[i].owned)
+                        delete _items[i].item;
                     _items.erase(_items.begin() + i);
                     return;
                 }
@@ -753,10 +857,9 @@ namespace zcom
 
         void RemoveItem(int index)
         {
-            if (_owned[index])
-                delete _items[index];
+            if (_items[index].owned)
+                delete _items[index].item;
             _items.erase(_items.begin() + index);
-            _owned.erase(_owned.begin() + index);
         }
 
         int ItemCount() const
@@ -766,20 +869,19 @@ namespace zcom
 
         Base* GetItem(int index)
         {
-            return _items[index];
+            return _items[index].item;
         }
 
         void ClearItems()
         {
             for (int i = 0; i < _items.size(); i++)
             {
-                if (_owned[i])
+                if (_items[i].owned)
                 {
-                    delete _items[i];
+                    delete _items[i].item;
                 }
             }
             _items.clear();
-            _owned.clear();
         }
 
         void ReindexTabOrder()
@@ -787,9 +889,9 @@ namespace zcom
             _selectableItems.clear();
             for (int i = 0; i < _items.size(); i++)
             {
-                if (_items[i]->GetTabIndex() != -1)
+                if (_items[i].item->GetTabIndex() != -1)
                 {
-                    _selectableItems.push_back(_items[i]);
+                    _selectableItems.push_back(_items[i].item);
                 }
             }
 
