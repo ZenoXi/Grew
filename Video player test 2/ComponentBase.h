@@ -3,6 +3,8 @@
 #include <iostream>
 #include <vector>
 #include <list>
+#include <string>
+#include <unordered_map>
 
 #include "Graphics.h"
 #include "MouseEventHandler.h"
@@ -22,6 +24,20 @@ namespace zcom
 
     // Releases the resource
     void SafeRelease(IUnknown** res);
+
+    // Base class for component properties.
+    // Used to give components properties which can be used by specific objects without adding the property to 'Base'.
+    // Derived classes should implement (if necessary):
+    //  - Default constructor
+    //  - Copy assignment operator
+    // MUST IMPLEMENT:
+    //  - static std::string _NAME_();
+    class Property
+    {
+    public:
+        virtual ~Property() {};
+        bool valid;
+    };
 
     // The base component class
     class Base
@@ -79,6 +95,9 @@ namespace zcom
 
         // Rounding
         float _cornerRounding = 0.0f;
+
+        // Other properties
+        std::unordered_map<std::string, std::unique_ptr<Property>> _properties;
 
     public:
         Base() {}
@@ -301,6 +320,49 @@ namespace zcom
         void SetCornerRounding(float rounding)
         {
             _cornerRounding = rounding;
+        }
+
+        // Other properties
+        template<class _Prop>
+        void SetProperty(_Prop prop)
+        {
+            auto entry = _properties.find(_Prop::_NAME_());
+            if (entry != _properties.end())
+            {
+                // The cast only fails when two properties have same names
+                *dynamic_cast<_Prop*>(entry->second.get()) = prop;
+            }
+            else
+            {
+                auto propPtr = std::make_unique<_Prop>();
+                *propPtr = prop;
+                _properties.insert({ _Prop::_NAME_(), std::move(propPtr) });
+            }
+        }
+
+        template<class _Prop>
+        _Prop GetProperty()
+        {
+            auto entry = _properties.find(_Prop::_NAME_());
+            if (entry != _properties.end())
+            {
+                // The cast only fails when two properties have same names
+                _Prop prop = *dynamic_cast<_Prop*>(entry->second.get());
+                prop.valid = true;
+                return prop;
+            }
+            else
+            {
+                _Prop prop;
+                prop.valid = false;
+                return prop;
+            }
+        }
+
+        template<class _Prop>
+        void RemoveProperty()
+        {
+            _properties.erase(_Prop::_NAME_());
         }
 
         // Events
