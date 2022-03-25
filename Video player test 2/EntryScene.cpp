@@ -19,6 +19,10 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         opt = *reinterpret_cast<const EntrySceneOptions*>(options);
     }
 
+    zcom::PROP_Shadow shadowProps;
+    shadowProps.blurStandardDeviation = 5.0f;
+    shadowProps.color = D2D1::ColorF(0, 0.75f);
+
     // Main selection
     {
         _mainPanel = std::make_unique<zcom::Panel>();
@@ -26,9 +30,12 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _mainPanel->SetVerticalOffsetPercent(0.5f);
         _mainPanel->SetBaseWidth(380);
         _mainPanel->SetBaseHeight(180);
-        _mainPanel->SetBackgroundColor(D2D1::ColorF(0.5f, 0.5f, 0.5f, 0.25f));
+        _mainPanel->SetBackgroundColor(D2D1::ColorF(0.2f, 0.2f, 0.2f, 1.0f));
+        //_mainPanel->SetBackgroundColor(D2D1::ColorF(0.5f, 0.5f, 0.5f, 0.25f));
         _mainPanel->VerticalScrollable(true);
         _mainPanel->HorizontalScrollable(true);
+        _mainPanel->SetCornerRounding(5.0f);
+        _mainPanel->SetProperty(shadowProps);
 
         _connectButton = std::make_unique<zcom::Button>();
         _connectButton->SetHorizontalOffsetPixels(20);
@@ -109,9 +116,12 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectPanel->SetVerticalOffsetPercent(0.5f);
         _connectPanel->SetBaseWidth(210);
         _connectPanel->SetBaseHeight(220);
-        _connectPanel->SetBackgroundColor(D2D1::ColorF(0.5f, 0.5f, 0.5f, 0.25f));
+        //_connectPanel->SetBackgroundColor(D2D1::ColorF(0.5f, 0.5f, 0.5f, 0.25f));
+        _connectPanel->SetBackgroundColor(D2D1::ColorF(0.2f, 0.2f, 0.2f, 1.0f));
         _connectPanel->SetActive(false);
         _connectPanel->SetVisible(false);
+        _connectPanel->SetCornerRounding(5.0f);
+        _connectPanel->SetProperty(shadowProps);
 
         _connectPanelLabel = std::make_unique<zcom::Label>(L"Connect");
         _connectPanelLabel->SetHorizontalOffsetPercent(0.5f);
@@ -205,16 +215,19 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectLoadingCancelButton->SetVisible(false);
     }
 
-    // Share input
     {
+        // Share input
         _sharePanel = std::make_unique<zcom::Panel>();
         _sharePanel->SetHorizontalOffsetPercent(0.5f);
         _sharePanel->SetVerticalOffsetPercent(0.5f);
         _sharePanel->SetBaseWidth(180);
         _sharePanel->SetBaseHeight(140);
-        _sharePanel->SetBackgroundColor(D2D1::ColorF(0.5f, 0.5f, 0.5f, 0.25f));
+        //_sharePanel->SetBackgroundColor(D2D1::ColorF(0.5f, 0.5f, 0.5f, 0.25f));
+        _sharePanel->SetBackgroundColor(D2D1::ColorF(0.2f, 0.2f, 0.2f, 1.0f));
         _sharePanel->SetActive(false);
         _sharePanel->SetVisible(false);
+        _sharePanel->SetCornerRounding(5.0f);
+        _sharePanel->SetProperty(shadowProps);
 
         _sharePanelLabel = std::make_unique<zcom::Label>(L"Share");
         _sharePanelLabel->SetHorizontalOffsetPercent(0.5f);
@@ -311,11 +324,8 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _sharePanel->AddItem(_shareLoadingInfoLabel.get());
         _sharePanel->AddItem(_shareLoadingCancelButton.get());
 
-        //zcom::Panel* yeet = new zcom::Panel();
-        //yeet->SetBaseSize(100, 100);
-        //yeet->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Red));
-        //_mainPanel->AddItem(yeet);
-
+        //_canvas->AddComponent(_testNotification.get());
+        //_canvas->GetPanel()->AddItemShadow(_testNotification.get());
         _canvas->AddComponent(_mainPanel.get());
         _canvas->AddComponent(_connectPanel.get());
         _canvas->AddComponent(_sharePanel.get());
