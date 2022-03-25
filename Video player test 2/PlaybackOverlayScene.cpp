@@ -32,6 +32,12 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _playbackQueuePanel->SetBorderVisibility(true);
     _playbackQueuePanel->SetBorderColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
     _playbackQueuePanel->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
+    zcom::PROP_Shadow shadowProps;
+    shadowProps.offsetX = 5.0f;
+    shadowProps.offsetY = 5.0f;
+    shadowProps.blurStandardDeviation = 5.0f;
+    shadowProps.color = D2D1::ColorF(0, 1.0f);
+    _playbackQueuePanel->SetProperty(shadowProps);
 
     //_mediaQueueItem = new zcom::MediaQueueItem(L"E:\\aots4e5.mkv");
     //_mediaQueueItem->SetBaseSize(200, 35);
@@ -75,6 +81,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _connectedUsersPanel->SetBorderVisibility(true);
     _connectedUsersPanel->SetBorderColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
     _connectedUsersPanel->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
+    _connectedUsersPanel->SetProperty(shadowProps);
 
     _usernameInput = std::make_unique<zcom::TextInput>();
     _usernameInput->SetBaseSize(200, 25);
