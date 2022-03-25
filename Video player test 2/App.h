@@ -19,7 +19,7 @@ public:
     Mouse mouse;
     MouseManager mouseManager;
     KeyboardManager keyboardManager;
-    
+
 private: // Singleton interface
     App(DisplayWindow& dw, std::string startScene);
     static App* _instance;

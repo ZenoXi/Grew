@@ -1,12 +1,26 @@
 #pragma once
 
 #include "Canvas.h"
+#include "Notification.h"
+#include "GameTime.h"
+
+#include <functional>
 
 // Options for switching scenes
 struct SceneOptionsBase
 {
     
 };
+
+enum class NotificationPosition
+{
+    TOP_LEFT,
+    TOP_RIGHT,
+    BOTTOM_LEFT,
+    BOTTOM_RIGHT
+};
+
+#define NOTIF_PANEL_Z_INDEX 255
 
 class Scene
 {
@@ -39,4 +53,16 @@ private:
 
 public:
     virtual const char* GetName() const = 0;
+
+
+private: // Notifications
+    NotificationPosition _notificationPosition = NotificationPosition::BOTTOM_RIGHT;
+    std::unique_ptr<zcom::Panel> _notificationPanel;
+    std::vector<std::unique_ptr<zcom::Notification>> _notifications;
+public:
+    void SetNotificationPosition(NotificationPosition position);
+    void ShowNotification(zcom::NotificationInfo info);
+private:
+    void _UpdateNotifications();
+    void _RearrangeNotifications();
 };

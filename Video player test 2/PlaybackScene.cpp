@@ -39,7 +39,10 @@ bool ButtonPressed(bool& buttonClicked, int vkCode)
     return false;
 }
 
-PlaybackScene::PlaybackScene() {}
+PlaybackScene::PlaybackScene()
+{
+    SetNotificationPosition(NotificationPosition::TOP_RIGHT);
+}
 
 void PlaybackScene::_Init(const SceneOptionsBase* options)
 {
@@ -151,6 +154,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _playbackControllerPanel = new zcom::PlaybackControllerPanel(_controlBar);
     _playbackControllerPanel->SetParentSizePercent(1.0f, 1.0f);
     _playbackControllerPanel->AddItem(_controlBar);
+    //_playbackControllerPanel->SetZIndex(NOTIF_PANEL_Z_INDEX + 1); // Place above notification panel
     //_bottomControlPanel->SetZIndex(1);
 
     _canvas->AddComponent(_playbackControllerPanel);
