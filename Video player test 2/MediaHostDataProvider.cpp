@@ -328,7 +328,8 @@ void MediaHostDataProvider::_ReadPackets()
             znet::NetworkInterface::Instance()->AbortSend((int32_t)znet::PacketType::SUBTITLE_PACKET);
 
             // Send seek order
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(_seekData), { _destinationUsers });
+            //znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(_seekData), { _destinationUsers });
+            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::SEEK_DISCONTINUITY)/*.From(_seekData)*/, { _destinationUsers });
             std::cout << "Seek order sent" << std::endl;
 
             _waitForDiscontinuity = false;

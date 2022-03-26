@@ -8,13 +8,14 @@ MediaReceiverDataProvider::MediaReceiverDataProvider(int64_t hostId)
     _audioPacketReceiver(znet::PacketType::AUDIO_PACKET),
     _subtitlePacketReceiver(znet::PacketType::SUBTITLE_PACKET)
 {
-    _initiateSeekReceiver = std::make_unique<InitiateSeekReceiver>(
-        _videoPacketReceiver,
-        _audioPacketReceiver,
-        _subtitlePacketReceiver,
-        _m_seek,
-        _waitingForSeek
-    );
+    _initiateSeekReceiver = std::make_unique<InitiateSeekReceiver>([&]()
+    {
+        std::lock_guard<std::mutex> lock(_m_seek);
+        _videoPacketReceiver.Clear();
+        _audioPacketReceiver.Clear();
+        _subtitlePacketReceiver.Clear();
+        _waitingForSeek = true;
+    });
 
     _hostId = hostId;
     _initializing = true;

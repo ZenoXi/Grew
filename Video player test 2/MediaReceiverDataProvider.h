@@ -49,52 +49,26 @@ class MediaReceiverDataProvider : public IMediaDataProvider
 
     class InitiateSeekReceiver : public znet::PacketSubscriber
     {
-        PacketReceiver& _videoPacketReceiver;
-        PacketReceiver& _audioPacketReceiver;
-        PacketReceiver& _subtitlePacketReceiver;
-        std::mutex& _m_seek;
-        bool& _waitingForSeek;
+        std::function<void()> _onPacket;
         bool _packetReceived = false;
-        IMediaDataProvider::SeekData _seekData;
+
         void _OnPacketReceived(znet::Packet packet, int64_t userId)
         {
-            std::lock_guard<std::mutex> lock(_m_seek);
-            _videoPacketReceiver.Clear();
-            _audioPacketReceiver.Clear();
-            _subtitlePacketReceiver.Clear();
-            _seekData = packet.Cast<IMediaDataProvider::SeekData>();
-            _waitingForSeek = true;
+            _onPacket();
             _packetReceived = true;
         }
     public:
-        InitiateSeekReceiver(
-            PacketReceiver& video,
-            PacketReceiver& audio,
-            PacketReceiver& subtitle,
-            std::mutex& m_seek,
-            bool& waitingForSeek
-        ) :
-            PacketSubscriber((int32_t)znet::PacketType::INITIATE_SEEK),
-            _videoPacketReceiver(video),
-            _audioPacketReceiver(audio),
-            _subtitlePacketReceiver(subtitle),
-            _m_seek(m_seek),
-            _waitingForSeek(waitingForSeek)
-        {
-
-        }
+        InitiateSeekReceiver(std::function<void()> onPacket)
+          : PacketSubscriber((int32_t)znet::PacketType::SEEK_DISCONTINUITY),
+            _onPacket(onPacket)
+        { }
         bool SeekDataReceived()
         {
             return _packetReceived;
         }
-        IMediaDataProvider::SeekData SeekData()
-        {
-            return _seekData;
-        }
         void Reset()
         {
             _packetReceived = false;
-            _seekData = IMediaDataProvider::SeekData();
         }
     };
 
