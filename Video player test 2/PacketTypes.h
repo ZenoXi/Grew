@@ -83,6 +83,8 @@ namespace znet
         PAUSE_REQUEST = 100,
 
         // Sent by media host to all receivers after pausing, or after receiving the PAUSE_REQUEST packet
+        // Contains:
+        //  int64_t - pause issuer user id
         PAUSE,
 
         // See PAUSE_REQUEST
@@ -94,18 +96,26 @@ namespace znet
         // Sent to the host when a receiver wants to seek/change stream
         // Contains:
         //  int64_t - time point to seek to, in 'TimePoint' ticks
+        //  int8_t - unused
         //  int32_t - new video stream index
         //  int32_t - new audio stream index
         //  int32_t - new subtitle stream index
+        //  int64_t - unused
         SEEK_REQUEST,
 
         // Sent by the media host to all receivers after seeking, or receiving the SEEK_REQUEST packet
         // Contains:
         //  int64_t - time point to seek to, in 'TimePoint' ticks
+        //  int8_t - '1': the time point shouldn't be regarded as a time seek command (for notifications)
         //  int32_t - new video stream index
         //  int32_t - new audio stream index
         //  int32_t - new subtitle stream index
+        //  int64_t - seek issuer user id
         INITIATE_SEEK,
+
+        // Sent by the media host data provider to all receiver data providers when it seeks.
+        // It signals that media packets received after this one are from a different stream/time
+        SEEK_DISCONTINUITY,
 
         // Sent to the host when the media player recovers after a seek
         SEEK_FINISHED,
