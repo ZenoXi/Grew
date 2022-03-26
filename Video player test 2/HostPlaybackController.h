@@ -71,4 +71,5 @@ public:
 private:
     void _StartSeeking();
     void _SyncPlayback();
+    std::wstring _UsernameFromId(int64_t id);
 };

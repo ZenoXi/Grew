@@ -49,4 +49,6 @@ public:
     void SetSubtitleStream(int index);
 public:
     LoadingInfo Loading() const;
+private:
+    std::wstring _UsernameFromId(int64_t id);
 };

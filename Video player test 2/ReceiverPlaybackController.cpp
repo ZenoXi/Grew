@@ -1,5 +1,8 @@
 #include "ReceiverPlaybackController.h"
 
+#include "App.h"
+#include "PlaybackScene.h"
+
 ReceiverPlaybackController::ReceiverPlaybackController(MediaPlayer* player, MediaReceiverDataProvider* dataProvider)
     : BasePlaybackController(player, dataProvider)
 {
@@ -102,6 +105,18 @@ void ReceiverPlaybackController::_CheckForPlay()
     {
         auto packetPair = _playReceiver->GetPacket();
         _Play();
+
+        // Show notification
+        int64_t userId = packetPair.first.Cast<int64_t>();
+        Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
+        if (scene && userId != znet::NetworkInterface::Instance()->ThisUser().id)
+        {
+            zcom::NotificationInfo ninfo;
+            ninfo.duration = Duration(1, SECONDS);
+            ninfo.title = L"Playback resumed";
+            ninfo.text = _UsernameFromId(userId);
+            scene->ShowNotification(ninfo);
+        }
     }
 }
 
@@ -114,6 +129,18 @@ void ReceiverPlaybackController::_CheckForPause()
     {
         auto packetPair = _pauseReceiver->GetPacket();
         _Pause();
+
+        // Show notification
+        int64_t userId = packetPair.first.Cast<int64_t>();
+        Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
+        if (scene && userId != znet::NetworkInterface::Instance()->ThisUser().id)
+        {
+            zcom::NotificationInfo ninfo;
+            ninfo.duration = Duration(1, SECONDS);
+            ninfo.title = L"Playback paused";
+            ninfo.text = _UsernameFromId(userId);
+            scene->ShowNotification(ninfo);
+        }
     }
 }
 
@@ -146,6 +173,21 @@ void ReceiverPlaybackController::_CheckForInitiateSeek()
         _player->SetTimerPosition(seekData.time);
         _player->WaitDiscontinuity();
 
+        //Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
+        //if (scene && seekData.userId != znet::NetworkInterface::Instance()->ThisUser().id)
+        //{
+        //    zcom::NotificationInfo ninfo;
+        //    ninfo.duration = Duration(1, SECONDS);
+        //    ninfo.title = L"Playback resumed";
+        //    ninfo.text = _UsernameFromId(seekData.userId);
+        //    scene->ShowNotification(ninfo);
+        //}
+
+        //if (seekData.defaultTime == 1)
+        //{
+
+        //}
+
         IMediaDataProvider::SeekResult seekResult = _dataProvider->Seek(seekData);
         if (seekData.videoStreamIndex != std::numeric_limits<int>::min())
         {
@@ -161,6 +203,44 @@ void ReceiverPlaybackController::_CheckForInitiateSeek()
         {
             _player->SetSubtitleStream(std::move(seekResult.subtitleStream));
             _currentSubtitleStream = seekData.subtitleStreamIndex;
+        }
+
+        // Show notifications
+        Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
+        if (scene && seekData.userId != znet::NetworkInterface::Instance()->ThisUser().id)
+        {
+            zcom::NotificationInfo ninfo;
+            ninfo.duration = Duration(2, SECONDS);
+            ninfo.text = _UsernameFromId(seekData.userId);
+            if (!seekData.defaultTime)
+            {
+                std::wstringstream timeStr;
+                int h = seekData.time.GetTime(HOURS);
+                int m = seekData.time.GetTime(MINUTES) % 60;
+                int s = seekData.time.GetTime(SECONDS) % 60;
+                if (h > 0) timeStr << h << ":";
+                if (m < 10) timeStr << "0" << m << ":";
+                else timeStr << m << ":";
+                if (s < 10) timeStr << "0" << s;
+                else timeStr << s;
+                ninfo.title = L"Seek to " + timeStr.str();
+                scene->ShowNotification(ninfo);
+            }
+            if (seekData.videoStreamIndex != std::numeric_limits<int>::min())
+            {
+                ninfo.title = L"Video stream changed";
+                scene->ShowNotification(ninfo);
+            }
+            if (seekData.audioStreamIndex != std::numeric_limits<int>::min())
+            {
+                ninfo.title = L"Audio stream changed";
+                scene->ShowNotification(ninfo);
+            }
+            if (seekData.subtitleStreamIndex != std::numeric_limits<int>::min())
+            {
+                ninfo.title = L"Subtitle stream changed";
+                scene->ShowNotification(ninfo);
+            }
         }
     }
 }
@@ -308,4 +388,25 @@ IPlaybackController::LoadingInfo ReceiverPlaybackController::Loading() const
     //if (_player->Lagging())
     //    return { true, L"" };
     //return { !_CanPlay(), L"" };
+}
+
+std::wstring ReceiverPlaybackController::_UsernameFromId(int64_t id)
+{
+    std::wstringstream username(L"");
+    if (id == _hostId)
+        username << L"[Host] ";
+    else if (id == 0)
+        username << L"[Owner] ";
+    else
+        username << L"[User " << id << "] ";
+    auto users = znet::NetworkInterface::Instance()->Users();
+    for (auto& user : users)
+    {
+        if (user.id == id)
+        {
+            username << user.name;
+            break;
+        }
+    }
+    return username.str();
 }

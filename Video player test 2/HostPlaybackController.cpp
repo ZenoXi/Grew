@@ -90,22 +90,10 @@ void HostPlaybackController::_CheckForPlayRequest()
         Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
         if (scene)
         {
-            std::wstringstream username(L"");
-            username << "[User " << packetPair.second << "] ";
-            auto users = znet::NetworkInterface::Instance()->Users();
-            for (auto& user : users)
-            {
-                if (user.id == packetPair.second)
-                {
-                    username << user.name;
-                    break;
-                }
-            }
-
             zcom::NotificationInfo ninfo;
             ninfo.duration = Duration(1, SECONDS);
             ninfo.title = L"Playback resumed";
-            ninfo.text = username.str();
+            ninfo.text = _UsernameFromId(packetPair.second);
             scene->ShowNotification(ninfo);
         }
     }
@@ -126,22 +114,10 @@ void HostPlaybackController::_CheckForPauseRequest()
         Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
         if (scene)
         {
-            std::wstringstream username(L"");
-            username << "[User " << packetPair.second << "] ";
-            auto users = znet::NetworkInterface::Instance()->Users();
-            for (auto& user : users)
-            {
-                if (user.id == packetPair.second)
-                {
-                    username << user.name;
-                    break;
-                }
-            }
-
             zcom::NotificationInfo ninfo;
             ninfo.duration = Duration(1, SECONDS);
             ninfo.title = L"Playback paused";
-            ninfo.text = username.str();
+            ninfo.text = _UsernameFromId(packetPair.second);
             scene->ShowNotification(ninfo);
         }
     }
@@ -185,6 +161,44 @@ void HostPlaybackController::_CheckForSeekRequest()
 
         znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(seekData), _GetUserIds(), 1);
         _Seek(seekData);
+
+        // Show notifications
+        Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
+        if (scene)
+        {
+            zcom::NotificationInfo ninfo;
+            ninfo.duration = Duration(2, SECONDS);
+            ninfo.text = _UsernameFromId(seekData.userId);
+            if (!seekData.defaultTime)
+            {
+                std::wstringstream timeStr;
+                int h = seekData.time.GetTime(HOURS);
+                int m = seekData.time.GetTime(MINUTES) % 60;
+                int s = seekData.time.GetTime(SECONDS) % 60;
+                if (h > 0) timeStr << h << ":";
+                if (m < 10) timeStr << "0" << m << ":";
+                else timeStr << m << ":";
+                if (s < 10) timeStr << "0" << s;
+                else timeStr << s;
+                ninfo.title = L"Seek to " + timeStr.str();
+                scene->ShowNotification(ninfo);
+            }
+            if (seekData.videoStreamIndex != std::numeric_limits<int>::min())
+            {
+                ninfo.title = L"Video stream changed";
+                scene->ShowNotification(ninfo);
+            }
+            if (seekData.audioStreamIndex != std::numeric_limits<int>::min())
+            {
+                ninfo.title = L"Audio stream changed";
+                scene->ShowNotification(ninfo);
+            }
+            if (seekData.subtitleStreamIndex != std::numeric_limits<int>::min())
+            {
+                ninfo.title = L"Subtitle stream changed";
+                scene->ShowNotification(ninfo);
+            }
+        }
 
         //_StartSeeking();
         //_timerController.AddStop("loading");
@@ -610,4 +624,23 @@ void HostPlaybackController::_SyncPlayback()
 
         _lastSync = ztime::Main();
     }
+}
+
+std::wstring HostPlaybackController::_UsernameFromId(int64_t id)
+{
+    std::wstringstream username(L"");
+    if (id == 0)
+        username << L"[Owner] ";
+    else
+        username << L"[User " << id << "] ";
+    auto users = znet::NetworkInterface::Instance()->Users();
+    for (auto& user : users)
+    {
+        if (user.id == id)
+        {
+            username << user.name;
+            break;
+        }
+    }
+    return username.str();
 }
