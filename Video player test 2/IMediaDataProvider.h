@@ -30,9 +30,11 @@ public:
     struct SeekData
     {
         TimePoint time = -1;
+        int8_t defaultTime = 0;
         int videoStreamIndex = std::numeric_limits<int>::min();
         int audioStreamIndex = std::numeric_limits<int>::min();
         int subtitleStreamIndex = std::numeric_limits<int>::min();
+        int64_t userId = -1;
 
         SeekData() = default;
         SeekData(const SeekData&) = default;
