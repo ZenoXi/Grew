@@ -8,6 +8,8 @@ extern "C"
 #include <libavformat/avformat.h>
 }
 
+#include <atomic>
+
 #include <stdexcept>
 
 class MediaPacket : public ISerializable
@@ -139,6 +141,17 @@ public:
     {
         if (_packet)
         {
+            //struct AVBufferFake
+            //{
+            //    uint8_t* data;
+            //    uint32_t size;
+            //    std::atomic_uint refcount;
+            //    void (*free)(void* opaque, uint8_t* data);
+            //    void* opaque;
+            //    int flags;
+            //    int flags_internal;
+            //};
+            //AVBufferFake* buf = (AVBufferFake*)_packet->buf->buffer;
             if (!_packet->buf)
             {
                 av_free(_packet->data);
@@ -146,6 +159,13 @@ public:
             av_packet_free(&_packet);
             _packet = nullptr;
         }
+        last = 0;
+        flush = 0;
+    }
+
+    void ResetBad()
+    {
+        _packet = nullptr;
         last = 0;
         flush = 0;
     }
@@ -208,7 +228,9 @@ private:
 
         try
         {
-            packet = (AVPacket*)av_mallocz(avpSize);
+            packet = av_packet_alloc();
+            //av_packet_free_side_data();
+            //packet = (AVPacket*)av_mallocz(avpSize);
             _SafeCopy(data, memPos, (uchar*)packet, avpSize, dataSize);
             memPos += avpSize;
             packet->data = (uint8_t*)av_malloc(packet->size);
@@ -229,7 +251,13 @@ private:
             }
             packet->side_data = sideData;
             packet->buf = nullptr;
+
+            // 'av_packet_make_refcounted' for some fucking reason just copies packet->data
+            // and overwrites the pointer to it without deletion, resulting in a memory leak.
+            // I'm probably using av_packet_make_refcounted() wrong but w/e
+            uint8_t* data = packet->data;
             av_packet_make_refcounted(packet);
+            av_free(data);
 
             _packet = packet;
         }
