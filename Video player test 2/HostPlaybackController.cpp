@@ -1,5 +1,8 @@
 #include "HostPlaybackController.h"
 
+#include "App.h"
+#include "PlaybackScene.h"
+
 HostPlaybackController::HostPlaybackController(MediaPlayer* player, MediaHostDataProvider* dataProvider)
     : BasePlaybackController(player, dataProvider)
 {
@@ -80,7 +83,31 @@ void HostPlaybackController::_CheckForPlayRequest()
     while (_playRequestReceiver->PacketCount() > 0)
     {
         auto packetPair = _playRequestReceiver->GetPacket();
-        Play();
+        _Play();
+        znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::RESUME).From(packetPair.second), _GetUserIds(), 1);
+
+        // Show notification
+        Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
+        if (scene)
+        {
+            std::wstringstream username(L"");
+            username << "[User " << packetPair.second << "] ";
+            auto users = znet::NetworkInterface::Instance()->Users();
+            for (auto& user : users)
+            {
+                if (user.id == packetPair.second)
+                {
+                    username << user.name;
+                    break;
+                }
+            }
+
+            zcom::NotificationInfo ninfo;
+            ninfo.duration = Duration(1, SECONDS);
+            ninfo.title = L"Playback resumed";
+            ninfo.text = username.str();
+            scene->ShowNotification(ninfo);
+        }
     }
 }
 
@@ -92,7 +119,31 @@ void HostPlaybackController::_CheckForPauseRequest()
     while (_pauseRequestReceiver->PacketCount() > 0)
     {
         auto packetPair = _pauseRequestReceiver->GetPacket();
-        Pause();
+        _Pause();
+        znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PAUSE).From(packetPair.second), _GetUserIds(), 1);
+
+        // Show notification
+        Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
+        if (scene)
+        {
+            std::wstringstream username(L"");
+            username << "[User " << packetPair.second << "] ";
+            auto users = znet::NetworkInterface::Instance()->Users();
+            for (auto& user : users)
+            {
+                if (user.id == packetPair.second)
+                {
+                    username << user.name;
+                    break;
+                }
+            }
+
+            zcom::NotificationInfo ninfo;
+            ninfo.duration = Duration(1, SECONDS);
+            ninfo.title = L"Playback paused";
+            ninfo.text = username.str();
+            scene->ShowNotification(ninfo);
+        }
     }
 }
 
@@ -105,6 +156,9 @@ void HostPlaybackController::_CheckForSeekRequest()
     {
         auto packetPair = _seekRequestReceiver->GetPacket();
         auto seekData = packetPair.first.Cast<IMediaDataProvider::SeekData>();
+        if (seekData.Default())
+            continue;
+        seekData.userId = packetPair.second;
 
         // Buffer the seek data
         if (_seeking)
@@ -117,38 +171,46 @@ void HostPlaybackController::_CheckForSeekRequest()
                 _bufferedSeekData.audioStreamIndex = seekData.audioStreamIndex;
             if (seekData.subtitleStreamIndex != std::numeric_limits<int>::min())
                 _bufferedSeekData.subtitleStreamIndex = seekData.subtitleStreamIndex;
+            _bufferedSeekData.userId = seekData.userId;
             continue;
         }
 
         // Seek
+        seekData.defaultTime = 0;
         if (seekData.time.GetTicks() == -1)
+        {
             seekData.time = _player->TimerPosition();
+            seekData.defaultTime = 1;
+        }
 
-        _StartSeeking();
-        _timerController.AddStop("loading");
-        _timerController.RemoveStop("finished");
-        _loading = true;
-        _finished = false;
-        _player->SetTimerPosition(seekData.time);
-        _player->WaitDiscontinuity();
+        znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(seekData), _GetUserIds(), 1);
+        _Seek(seekData);
 
-        IMediaDataProvider::SeekResult seekResult = _dataProvider->Seek(seekData);
-        if (seekData.videoStreamIndex != std::numeric_limits<int>::min())
-        {
-            _player->SetVideoStream(std::move(seekResult.videoStream));
-            _currentVideoStream = seekData.videoStreamIndex;
-        }
-        if (seekData.audioStreamIndex != std::numeric_limits<int>::min())
-        {
-            _player->SetAudioStream(std::move(seekResult.audioStream));
-            _currentAudioStream = seekData.audioStreamIndex;
-        }
-        if (seekData.subtitleStreamIndex != std::numeric_limits<int>::min())
-        {
-            _player->SetSubtitleStream(std::move(seekResult.subtitleStream));
-            _currentSubtitleStream = seekData.subtitleStreamIndex;
-        }
-        _bufferedSeekData = IMediaDataProvider::SeekData();
+        //_StartSeeking();
+        //_timerController.AddStop("loading");
+        //_timerController.RemoveStop("finished");
+        //_loading = true;
+        //_finished = false;
+        //_player->SetTimerPosition(seekData.time);
+        //_player->WaitDiscontinuity();
+
+        //IMediaDataProvider::SeekResult seekResult = _dataProvider->Seek(seekData);
+        //if (seekData.videoStreamIndex != std::numeric_limits<int>::min())
+        //{
+        //    _player->SetVideoStream(std::move(seekResult.videoStream));
+        //    _currentVideoStream = seekData.videoStreamIndex;
+        //}
+        //if (seekData.audioStreamIndex != std::numeric_limits<int>::min())
+        //{
+        //    _player->SetAudioStream(std::move(seekResult.audioStream));
+        //    _currentAudioStream = seekData.audioStreamIndex;
+        //}
+        //if (seekData.subtitleStreamIndex != std::numeric_limits<int>::min())
+        //{
+        //    _player->SetSubtitleStream(std::move(seekResult.subtitleStream));
+        //    _currentSubtitleStream = seekData.subtitleStreamIndex;
+        //}
+        //_bufferedSeekData = IMediaDataProvider::SeekData();
     }
 }
 
@@ -189,34 +251,42 @@ void HostPlaybackController::_CheckForSeekFinished()
         {
             // Seek again
             if (_bufferedSeekData.time.GetTicks() == -1)
+            {
                 _bufferedSeekData.time = _player->TimerPosition();
-            _player->SetTimerPosition(_bufferedSeekData.time);
-            _player->WaitDiscontinuity();
-
-            IMediaDataProvider::SeekResult seekResult = _dataProvider->Seek(_bufferedSeekData);
-
-            if (_bufferedSeekData.videoStreamIndex != std::numeric_limits<int>::min())
-            {
-                _player->SetVideoStream(std::move(seekResult.videoStream));
-                _currentVideoStream = _bufferedSeekData.videoStreamIndex;
-            }
-            if (_bufferedSeekData.audioStreamIndex != std::numeric_limits<int>::min())
-            {
-                _player->SetAudioStream(std::move(seekResult.audioStream));
-                _currentAudioStream = _bufferedSeekData.audioStreamIndex;
-            }
-            if (_bufferedSeekData.subtitleStreamIndex != std::numeric_limits<int>::min())
-            {
-                _player->SetSubtitleStream(std::move(seekResult.subtitleStream));
-                _currentSubtitleStream = _bufferedSeekData.subtitleStreamIndex;
+                _bufferedSeekData.defaultTime = 1;
             }
 
+            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(_bufferedSeekData), _GetUserIds(), 1);
+            _Seek(_bufferedSeekData);
             _bufferedSeekData = IMediaDataProvider::SeekData();
-            _StartSeeking();
-            _timerController.AddStop("loading");
-            _timerController.RemoveStop("finished");
-            _loading = true;
-            _finished = false;
+
+            //_player->SetTimerPosition(_bufferedSeekData.time);
+            //_player->WaitDiscontinuity();
+
+            //IMediaDataProvider::SeekResult seekResult = _dataProvider->Seek(_bufferedSeekData);
+
+            //if (_bufferedSeekData.videoStreamIndex != std::numeric_limits<int>::min())
+            //{
+            //    _player->SetVideoStream(std::move(seekResult.videoStream));
+            //    _currentVideoStream = _bufferedSeekData.videoStreamIndex;
+            //}
+            //if (_bufferedSeekData.audioStreamIndex != std::numeric_limits<int>::min())
+            //{
+            //    _player->SetAudioStream(std::move(seekResult.audioStream));
+            //    _currentAudioStream = _bufferedSeekData.audioStreamIndex;
+            //}
+            //if (_bufferedSeekData.subtitleStreamIndex != std::numeric_limits<int>::min())
+            //{
+            //    _player->SetSubtitleStream(std::move(seekResult.subtitleStream));
+            //    _currentSubtitleStream = _bufferedSeekData.subtitleStreamIndex;
+            //}
+
+            //_bufferedSeekData = IMediaDataProvider::SeekData();
+            //_StartSeeking();
+            //_timerController.AddStop("loading");
+            //_timerController.RemoveStop("finished");
+            //_loading = true;
+            //_finished = false;
         }
         else
         {
@@ -269,13 +339,15 @@ void HostPlaybackController::_CheckForSyncPause()
 void HostPlaybackController::Play()
 {
     _Play();
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::RESUME), _GetUserIds(), 1);
+    int64_t thisId = znet::NetworkInterface::Instance()->ThisUser().id;
+    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::RESUME).From(thisId), _GetUserIds(), 1);
 }
 
 void HostPlaybackController::Pause()
 {
     _Pause();
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PAUSE), _GetUserIds(), 1);
+    int64_t thisId = znet::NetworkInterface::Instance()->ThisUser().id;
+    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PAUSE).From(thisId), _GetUserIds(), 1);
 }
 
 void HostPlaybackController::_Play()
@@ -300,6 +372,7 @@ void HostPlaybackController::Seek(TimePoint time)
     if (_seeking)
     {
         _bufferedSeekData.time = time;
+        _bufferedSeekData.userId = znet::NetworkInterface::Instance()->ThisUser().id;
         return;
     }
 
@@ -316,16 +389,22 @@ void HostPlaybackController::Seek(TimePoint time)
         }
     }
 
-    _StartSeeking();
-    _timerController.AddStop("loading");
-    _timerController.RemoveStop("finished");
-    _loading = true;
-    _finished = false;
-    _player->SetTimerPosition(time);
-    _player->WaitDiscontinuity();
     IMediaDataProvider::SeekData seekData;
     seekData.time = time;
-    _dataProvider->Seek(seekData);
+    seekData.userId = znet::NetworkInterface::Instance()->ThisUser().id;
+    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(seekData), _GetUserIds(), 1);
+    _Seek(seekData);
+
+    //_StartSeeking();
+    //_timerController.AddStop("loading");
+    //_timerController.RemoveStop("finished");
+    //_loading = true;
+    //_finished = false;
+    //_player->SetTimerPosition(time);
+    //_player->WaitDiscontinuity();
+    //IMediaDataProvider::SeekData seekData;
+    //seekData.time = time;
+    //_dataProvider->Seek(seekData);
 }
 
 void HostPlaybackController::SetVideoStream(int index)
@@ -333,21 +412,30 @@ void HostPlaybackController::SetVideoStream(int index)
     if (_seeking)
     {
         _bufferedSeekData.videoStreamIndex = index;
+        _bufferedSeekData.userId = znet::NetworkInterface::Instance()->ThisUser().id;
         return;
     }
 
-    _StartSeeking();
-    _timerController.AddStop("loading");
-    _timerController.RemoveStop("finished");
-    _loading = true;
-    _finished = false;
     IMediaDataProvider::SeekData seekData;
     seekData.time = _player->TimerPosition();
+    seekData.defaultTime = 1;
     seekData.videoStreamIndex = index;
-    IMediaDataProvider::SeekResult seekResult = _dataProvider->Seek(seekData);
-    _player->SetVideoStream(std::move(seekResult.videoStream));
-    _player->WaitDiscontinuity();
-    _currentVideoStream = index;
+    seekData.userId = znet::NetworkInterface::Instance()->ThisUser().id;
+    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(seekData), _GetUserIds(), 1);
+    _Seek(seekData);
+
+    //_StartSeeking();
+    //_timerController.AddStop("loading");
+    //_timerController.RemoveStop("finished");
+    //_loading = true;
+    //_finished = false;
+    //IMediaDataProvider::SeekData seekData;
+    //seekData.time = _player->TimerPosition();
+    //seekData.videoStreamIndex = index;
+    //IMediaDataProvider::SeekResult seekResult = _dataProvider->Seek(seekData);
+    //_player->SetVideoStream(std::move(seekResult.videoStream));
+    //_player->WaitDiscontinuity();
+    //_currentVideoStream = index;
 }
 
 void HostPlaybackController::SetAudioStream(int index)
@@ -355,21 +443,30 @@ void HostPlaybackController::SetAudioStream(int index)
     if (_seeking)
     {
         _bufferedSeekData.audioStreamIndex = index;
+        _bufferedSeekData.userId = znet::NetworkInterface::Instance()->ThisUser().id;
         return;
     }
 
-    _StartSeeking();
-    _timerController.AddStop("loading");
-    _timerController.RemoveStop("finished");
-    _loading = true;
-    _finished = false;
     IMediaDataProvider::SeekData seekData;
     seekData.time = _player->TimerPosition();
+    seekData.defaultTime = 1;
     seekData.audioStreamIndex = index;
-    IMediaDataProvider::SeekResult seekResult = _dataProvider->Seek(seekData);
-    _player->SetAudioStream(std::move(seekResult.audioStream));
-    _player->WaitDiscontinuity();
-    _currentAudioStream = index;
+    seekData.userId = znet::NetworkInterface::Instance()->ThisUser().id;
+    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(seekData), _GetUserIds(), 1);
+    _Seek(seekData);
+
+    //_StartSeeking();
+    //_timerController.AddStop("loading");
+    //_timerController.RemoveStop("finished");
+    //_loading = true;
+    //_finished = false;
+    //IMediaDataProvider::SeekData seekData;
+    //seekData.time = _player->TimerPosition();
+    //seekData.audioStreamIndex = index;
+    //IMediaDataProvider::SeekResult seekResult = _dataProvider->Seek(seekData);
+    //_player->SetAudioStream(std::move(seekResult.audioStream));
+    //_player->WaitDiscontinuity();
+    //_currentAudioStream = index;
 }
 
 void HostPlaybackController::SetSubtitleStream(int index)
@@ -377,21 +474,61 @@ void HostPlaybackController::SetSubtitleStream(int index)
     if (_seeking)
     {
         _bufferedSeekData.subtitleStreamIndex = index;
+        _bufferedSeekData.userId = znet::NetworkInterface::Instance()->ThisUser().id;
         return;
     }
 
+    IMediaDataProvider::SeekData seekData;
+    seekData.time = _player->TimerPosition();
+    seekData.defaultTime = 1;
+    seekData.subtitleStreamIndex = index;
+    seekData.userId = znet::NetworkInterface::Instance()->ThisUser().id;
+    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(seekData), _GetUserIds(), 1);
+    _Seek(seekData);
+
+    //_StartSeeking();
+    //_timerController.AddStop("loading");
+    //_timerController.RemoveStop("finished");
+    //_loading = true;
+    //_finished = false;
+    //IMediaDataProvider::SeekData seekData;
+    //seekData.time = _player->TimerPosition();
+    //seekData.subtitleStreamIndex = index;
+    //IMediaDataProvider::SeekResult seekResult = _dataProvider->Seek(seekData);
+    //_player->SetSubtitleStream(std::move(seekResult.subtitleStream));
+    //_player->WaitDiscontinuity();
+    //_currentSubtitleStream = index;
+}
+
+void HostPlaybackController::_Seek(IMediaDataProvider::SeekData seekData)
+{
     _StartSeeking();
     _timerController.AddStop("loading");
     _timerController.RemoveStop("finished");
     _loading = true;
     _finished = false;
-    IMediaDataProvider::SeekData seekData;
-    seekData.time = _player->TimerPosition();
-    seekData.subtitleStreamIndex = index;
+
+    if (seekData.time.GetTicks() == -1)
+        seekData.time = _player->TimerPosition();
+
     IMediaDataProvider::SeekResult seekResult = _dataProvider->Seek(seekData);
-    _player->SetSubtitleStream(std::move(seekResult.subtitleStream));
+    if (seekData.videoStreamIndex != std::numeric_limits<int>::min())
+    {
+        _player->SetVideoStream(std::move(seekResult.videoStream));
+        _currentVideoStream = seekData.videoStreamIndex;
+    }
+    if (seekData.audioStreamIndex != std::numeric_limits<int>::min())
+    {
+        _player->SetAudioStream(std::move(seekResult.audioStream));
+        _currentAudioStream = seekData.audioStreamIndex;
+    }
+    if (seekData.subtitleStreamIndex != std::numeric_limits<int>::min())
+    {
+        _player->SetSubtitleStream(std::move(seekResult.subtitleStream));
+        _currentSubtitleStream = seekData.subtitleStreamIndex;
+    }
+    _player->SetTimerPosition(seekData.time);
     _player->WaitDiscontinuity();
-    _currentSubtitleStream = index;
 }
 
 IPlaybackController::LoadingInfo HostPlaybackController::Loading() const

@@ -64,6 +64,8 @@ public:
     void SetVideoStream(int index);
     void SetAudioStream(int index);
     void SetSubtitleStream(int index);
+private:
+    void _Seek(IMediaDataProvider::SeekData seekData);
 public:
     LoadingInfo Loading() const;
 private:
