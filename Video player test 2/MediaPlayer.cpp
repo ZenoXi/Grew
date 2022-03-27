@@ -97,6 +97,10 @@ void MediaPlayer::Update(double timeLimit)
     //{
     //    _playbackTimer.AdvanceTime(timeDelta);
     //}
+    if (TimerRunning())
+    {
+        _audioOutputAdapter->SetTime(_playbackTimer.Now().GetTime());
+    }
 
     // Read and pass packets to decoders
     while (true)
