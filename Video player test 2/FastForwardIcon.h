@@ -3,7 +3,6 @@
 #include "ComponentBase.h"
 #include "Label.h"
 
-#include "ResourceManager.h"
 #include "GameTime.h"
 
 #include <sstream>
