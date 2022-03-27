@@ -156,7 +156,20 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _playbackControllerPanel->AddItem(_controlBar);
     //_playbackControllerPanel->SetZIndex(NOTIF_PANEL_Z_INDEX + 1); // Place above notification panel
     //_bottomControlPanel->SetZIndex(1);
+    
+    _skipBackwards = std::make_unique<zcom::FastForwardIcon>(zcom::FastForwardDirection::LEFT);
+    _skipBackwards->SetBaseSize(60, 60);
+    _skipBackwards->SetVerticalOffsetPercent(0.5f);
+    _skipBackwards->SetHorizontalOffsetPixels(100);
 
+    _skipForwards = std::make_unique<zcom::FastForwardIcon>(zcom::FastForwardDirection::RIGHT);
+    _skipForwards->SetBaseSize(60, 60);
+    _skipForwards->SetVerticalOffsetPercent(0.5f);
+    _skipForwards->SetHorizontalOffsetPixels(-100);
+    _skipForwards->SetHorizontalAlignment(zcom::Alignment::END);
+
+    _canvas->AddComponent(_skipBackwards.get());
+    _canvas->AddComponent(_skipForwards.get());
     _canvas->AddComponent(_playbackControllerPanel);
     _canvas->AddComponent(_loadingCircle);
     //componentCanvas.AddComponent(controlBar);
@@ -550,6 +563,7 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
         if (_shortcutHandler->KeyState(VK_CONTROL)) seekAmount = 60;
         if (_shortcutHandler->KeyState(VK_SHIFT)) seekAmount = 5;
         _controller->Seek(_controller->CurrentTime() - Duration(seekAmount, SECONDS));
+        _skipBackwards->Show(seekAmount);
         break;
     }
     case VK_RIGHT: // Seek forward
@@ -560,6 +574,7 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
         if (_shortcutHandler->KeyState(VK_CONTROL)) seekAmount = 60;
         if (_shortcutHandler->KeyState(VK_SHIFT)) seekAmount = 5;
         _controller->Seek(_controller->CurrentTime() + Duration(seekAmount, SECONDS));
+        _skipForwards->Show(seekAmount);
         break;
     }
     case VK_UP: // Volume up
