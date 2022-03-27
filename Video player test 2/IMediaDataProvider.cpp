@@ -41,7 +41,7 @@ bool IMediaDataProvider::Loading()
     return _loading;
 }
 
-Duration IMediaDataProvider::BufferedDuration()
+Duration IMediaDataProvider::BufferedDuration(bool ignoreSubtitles)
 {
     Duration videoBuffer = _BufferedDuration(_videoData);
     Duration audioBuffer = _BufferedDuration(_audioData);
@@ -49,7 +49,7 @@ Duration IMediaDataProvider::BufferedDuration()
     Duration buffered = Duration::Max();
     if (videoBuffer < buffered) buffered = videoBuffer;
     if (audioBuffer < buffered) buffered = audioBuffer;
-    if (subtitleBuffer < buffered) buffered = subtitleBuffer;
+    if (!ignoreSubtitles && subtitleBuffer < buffered) buffered = subtitleBuffer;
     return buffered;
 }
 

@@ -105,7 +105,7 @@ public:
     bool InitFailed();
     // Seeking/changing stream
     bool Loading();
-    Duration BufferedDuration();
+    Duration BufferedDuration(bool ignoreSubtitles = true);
 private:
     Duration _BufferedDuration(MediaData& packetData);
 
