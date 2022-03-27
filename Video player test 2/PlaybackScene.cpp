@@ -156,22 +156,46 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _playbackControllerPanel->AddItem(_controlBar);
     //_playbackControllerPanel->SetZIndex(NOTIF_PANEL_Z_INDEX + 1); // Place above notification panel
     //_bottomControlPanel->SetZIndex(1);
+
+    zcom::PROP_Shadow shadow;
+    shadow.color = D2D1::ColorF(0, 0.9f);
     
-    _skipBackwards = std::make_unique<zcom::FastForwardIcon>(zcom::FastForwardDirection::LEFT);
-    _skipBackwards->SetBaseSize(60, 60);
-    _skipBackwards->SetVerticalOffsetPercent(0.5f);
-    _skipBackwards->SetHorizontalOffsetPixels(100);
+    _skipBackwardsIcon = std::make_unique<zcom::FastForwardIcon>(zcom::FastForwardDirection::LEFT);
+    _skipBackwardsIcon->SetBaseSize(60, 60);
+    _skipBackwardsIcon->SetVerticalOffsetPercent(0.5f);
+    _skipBackwardsIcon->SetHorizontalOffsetPixels(100);
+    _skipBackwardsIcon->SetProperty(shadow);
 
-    _skipForwards = std::make_unique<zcom::FastForwardIcon>(zcom::FastForwardDirection::RIGHT);
-    _skipForwards->SetBaseSize(60, 60);
-    _skipForwards->SetVerticalOffsetPercent(0.5f);
-    _skipForwards->SetHorizontalOffsetPixels(-100);
-    _skipForwards->SetHorizontalAlignment(zcom::Alignment::END);
+    _skipForwardsIcon = std::make_unique<zcom::FastForwardIcon>(zcom::FastForwardDirection::RIGHT);
+    _skipForwardsIcon->SetBaseSize(60, 60);
+    _skipForwardsIcon->SetVerticalOffsetPercent(0.5f);
+    _skipForwardsIcon->SetHorizontalOffsetPixels(-100);
+    _skipForwardsIcon->SetHorizontalAlignment(zcom::Alignment::END);
+    _skipForwardsIcon->SetProperty(shadow);
 
-    _canvas->AddComponent(_skipBackwards.get());
-    _canvas->AddComponent(_skipForwards.get());
-    _canvas->AddComponent(_playbackControllerPanel);
+    _pauseIcon = std::make_unique<zcom::PauseIcon>();
+    _pauseIcon->SetBaseSize(60, 60);
+    _pauseIcon->SetOffsetPercent(0.5f, 0.5f);
+    _pauseIcon->SetProperty(shadow);
+
+    _resumeIcon = std::make_unique<zcom::ResumeIcon>();
+    _resumeIcon->SetBaseSize(60, 60);
+    _resumeIcon->SetOffsetPercent(0.5f, 0.5f);
+    _resumeIcon->SetProperty(shadow);
+
+    _volumeIcon = std::make_unique<zcom::VolumeIcon>();
+    _volumeIcon->SetBaseSize(60, 60);
+    _volumeIcon->SetHorizontalOffsetPercent(0.5f);
+    _volumeIcon->SetVerticalOffsetPixels(60);
+    _volumeIcon->SetProperty(shadow);
+
+    _canvas->AddComponent(_skipBackwardsIcon.get());
+    _canvas->AddComponent(_skipForwardsIcon.get());
     _canvas->AddComponent(_loadingCircle);
+    _canvas->AddComponent(_pauseIcon.get());
+    _canvas->AddComponent(_resumeIcon.get());
+    _canvas->AddComponent(_volumeIcon.get());
+    _canvas->AddComponent(_playbackControllerPanel);
     //componentCanvas.AddComponent(controlBar);
 }
 
@@ -547,11 +571,15 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
         {
             _controller->Play();
             _playButton->SetPaused(false);
+            _pauseIcon->SetVisible(false);
+            _resumeIcon->Show();
         }
         else
         {
             _controller->Pause();
             _playButton->SetPaused(true);
+            _resumeIcon->SetVisible(false);
+            _pauseIcon->Show();
         }
         break;
     }
@@ -563,7 +591,7 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
         if (_shortcutHandler->KeyState(VK_CONTROL)) seekAmount = 60;
         if (_shortcutHandler->KeyState(VK_SHIFT)) seekAmount = 5;
         _controller->Seek(_controller->CurrentTime() - Duration(seekAmount, SECONDS));
-        _skipBackwards->Show(seekAmount);
+        _skipBackwardsIcon->Show(seekAmount);
         break;
     }
     case VK_RIGHT: // Seek forward
@@ -574,7 +602,7 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
         if (_shortcutHandler->KeyState(VK_CONTROL)) seekAmount = 60;
         if (_shortcutHandler->KeyState(VK_SHIFT)) seekAmount = 5;
         _controller->Seek(_controller->CurrentTime() + Duration(seekAmount, SECONDS));
-        _skipForwards->Show(seekAmount);
+        _skipForwardsIcon->Show(seekAmount);
         break;
     }
     case VK_UP: // Volume up
@@ -584,6 +612,7 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
         if (_shortcutHandler->KeyState(VK_SHIFT)) volumeChange = 0.01f;
         _volumeSlider->SetValue(_volumeSlider->GetValue() + volumeChange);
         _controller->SetVolume(_volumeSlider->GetVolume());
+        _volumeIcon->Show(roundf(_volumeSlider->GetValue() * 100.0f));
         break;
     }
     case VK_DOWN: // Volume down
@@ -595,6 +624,7 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
         if (_shortcutHandler->KeyState(VK_SHIFT)) volumeChange = 0.01f;
         _volumeSlider->SetValue(_volumeSlider->GetValue() - volumeChange);
         _controller->SetVolume(_volumeSlider->GetVolume());
+        _volumeIcon->Show(roundf(_volumeSlider->GetValue() * 100.0f));
         break;
     }
     case VK_NUMPAD1: // Video stream 1

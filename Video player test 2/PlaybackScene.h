@@ -19,6 +19,9 @@
 #include "Button.h"
 #include "LoadingCircle.h"
 #include "FastForwardIcon.h"
+#include "PauseIcon.h"
+#include "ResumeIcon.h"
+#include "VolumeIcon.h"
 
 class PlaybackShortcutHandler : public KeyboardEventHandler
 {
@@ -53,8 +56,11 @@ class PlaybackScene : public Scene
     zcom::Button* _audioStreamButton = nullptr;
     zcom::Button* _subtitleStreamButton = nullptr;
     zcom::LoadingCircle* _loadingCircle = nullptr;
-    std::unique_ptr<zcom::FastForwardIcon> _skipBackwards = nullptr;
-    std::unique_ptr<zcom::FastForwardIcon> _skipForwards = nullptr;
+    std::unique_ptr<zcom::FastForwardIcon> _skipBackwardsIcon = nullptr;
+    std::unique_ptr<zcom::FastForwardIcon> _skipForwardsIcon = nullptr;
+    std::unique_ptr<zcom::PauseIcon> _pauseIcon = nullptr;
+    std::unique_ptr<zcom::ResumeIcon> _resumeIcon = nullptr;
+    std::unique_ptr<zcom::VolumeIcon> _volumeIcon = nullptr;
 
     std::unique_ptr<PlaybackShortcutHandler> _shortcutHandler = nullptr;
 
