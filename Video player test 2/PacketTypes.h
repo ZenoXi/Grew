@@ -171,6 +171,7 @@ namespace znet
         //  int8_t - current video stream
         //  int8_t - current audio stream
         //  int8_t - current subtitle stream
+        //  int8_t - chapter count
         STREAM_METADATA,
 
         // Sent by the receiver after receiving all metadata
@@ -214,6 +215,11 @@ namespace znet
         // Contains:
         //  a serialized MediaStream object
         UNKNOWN_STREAM,
+
+        // Chapter data
+        // Contains:
+        //  a serialized MediaChapter object
+        CHAPTER,
 
         // Current receiver playback position
         // Contains:
