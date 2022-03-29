@@ -129,6 +129,36 @@ void LocalFileDataProvider::_Initialize()
         return;
     }
 
+    // Read chapters
+    for (int i = 0; i < _avfContext->nb_chapters; i++)
+    {
+        std::string title = "";
+        AVDictionaryEntry* t = NULL;
+        while (t = av_dict_get(_avfContext->chapters[i]->metadata, "", t, AV_DICT_IGNORE_SUFFIX))
+        {
+            if (t->key == std::string("title"))
+            {
+                title = t->value;
+                break;
+            }
+        }
+
+        TimePoint start = AV_NOPTS_VALUE;
+        if (_avfContext->chapters[i]->start != AV_NOPTS_VALUE)
+            start = av_rescale_q(_avfContext->chapters[i]->start, _avfContext->chapters[i]->time_base, { 1, 1000000000 });
+        TimePoint end = AV_NOPTS_VALUE;
+        if (_avfContext->chapters[i]->end != AV_NOPTS_VALUE)
+            end = av_rescale_q(_avfContext->chapters[i]->end, _avfContext->chapters[i]->time_base, { 1, 1000000000 });
+
+        _chapters.push_back(
+        {
+            _avfContext->chapters[i]->id,
+            start,
+            end,
+            title
+        });
+    }
+
     // Process file
     MediaFileProcessing fprocessor(_avfContext);
     fprocessor.ExtractStreams();

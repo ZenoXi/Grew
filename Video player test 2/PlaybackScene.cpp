@@ -85,6 +85,76 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _seekBar->SetBaseWidth(-20);
     _seekBar->SetBaseHeight(50);
     _seekBar->SetHorizontalOffsetPercent(0.5f);
+    _seekBar->AddOnTimeHovered([&](int xpos, TimePoint time, std::wstring chapterName)
+    {
+        int totalWidth = 0;
+
+        // Time label
+        _timeLabel->SetText(string_to_wstring(TimeToString(time)));
+        _timeLabel->SetBaseWidth(std::ceil(_timeLabel->GetTextWidth()));
+        totalWidth += _timeLabel->GetBaseWidth() + 10;
+        
+        // Chapter label
+        _chapterLabel->SetVisible(false);
+        if (!chapterName.empty())
+        {
+            _chapterLabel->SetText(chapterName);
+            _chapterLabel->SetBaseWidth(std::ceil(_chapterLabel->GetTextWidth()));
+            totalWidth += _chapterLabel->GetBaseWidth() + 5;
+            _chapterLabel->SetVisible(true);
+        }
+
+        _timeHoverPanel->SetBaseWidth(totalWidth);
+        _timeHoverPanel->SetWidth(totalWidth);
+        _timeHoverPanel->Resize();
+
+        int absolutePos = _playbackControllerPanel->GetX() + _controlBar->GetX() + _seekBar->GetX() + xpos;
+        _timeHoverPanel->SetHorizontalOffsetPixels(absolutePos - _timeHoverPanel->GetWidth() / 2);
+        _timeHoverPanel->SetVisible(true);
+        _canvas->Resize();
+    });
+    _seekBar->AddOnHoverEnded([&]()
+    {
+        _timeHoverPanel->SetVisible(false);
+    });
+
+    _timeHoverPanel = std::make_unique<zcom::Panel>();
+    _timeHoverPanel->SetBaseSize(120, 20);
+    _timeHoverPanel->SetVerticalAlignment(zcom::Alignment::END);
+    _timeHoverPanel->SetVerticalOffsetPixels(-90);
+    _timeHoverPanel->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
+    _timeHoverPanel->SetBorderVisibility(true);
+    _timeHoverPanel->SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+    _timeHoverPanel->SetVisible(false);
+    zcom::PROP_Shadow timePanelShadow;
+    timePanelShadow.blurStandardDeviation = 2.0f;
+    timePanelShadow.color = D2D1::ColorF(0);
+    _timeHoverPanel->SetProperty(timePanelShadow);
+
+    _timeLabel = std::make_unique<zcom::Label>(L"");
+    _timeLabel->SetHorizontalOffsetPixels(5);
+    _timeLabel->SetParentHeightPercent(1.0f);
+    _timeLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+    _timeLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+    _timeLabel->SetFontColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
+
+    _chapterLabel = std::make_unique<zcom::Label>(L"");
+    _chapterLabel->SetHorizontalOffsetPixels(-5);
+    _chapterLabel->SetParentHeightPercent(1.0f);
+    _chapterLabel->SetHorizontalAlignment(zcom::Alignment::END);
+    _chapterLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+    _chapterLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+    _chapterLabel->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
+    _chapterLabel->SetFontColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
+    zcom::PROP_Shadow chapterLabelShadow;
+    chapterLabelShadow.blurStandardDeviation = 1.0f;
+    chapterLabelShadow.offsetX = 1.0f;
+    chapterLabelShadow.offsetY = 1.0f;
+    chapterLabelShadow.color = D2D1::ColorF(0);
+    _chapterLabel->SetProperty(chapterLabelShadow);
+
+    _timeHoverPanel->AddItem(_timeLabel.get());
+    _timeHoverPanel->AddItem(_chapterLabel.get());
 
     _volumeSlider = new zcom::VolumeSlider(0.0f);
     _volumeSlider->SetBaseWidth(150);
@@ -196,6 +266,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _canvas->AddComponent(_resumeIcon.get());
     _canvas->AddComponent(_volumeIcon.get());
     _canvas->AddComponent(_playbackControllerPanel);
+    _canvas->AddComponent(_timeHoverPanel.get());
     //componentCanvas.AddComponent(controlBar);
 }
 
@@ -311,6 +382,7 @@ void PlaybackScene::_Update()
         {
             _dataProvider->Start();
 
+            // Create adapters
             _videoAdapter = new IVideoOutputAdapter();
             auto audioStream = _dataProvider->CurrentAudioStream();
             if (audioStream)
@@ -318,12 +390,14 @@ void PlaybackScene::_Update()
             else
                 _audioAdapter = new XAudio2_AudioOutputAdapter(1, 1);
 
+            // Create media player
             _mediaPlayer = new MediaPlayer(
                 _dataProvider,
                 std::unique_ptr<IVideoOutputAdapter>(_videoAdapter),
                 std::unique_ptr<IAudioOutputAdapter>(_audioAdapter)
             );
 
+            // Create controller
             if (_playbackMode == PlaybackMode::OFFLINE)
                 _controller = new BasePlaybackController(_mediaPlayer, _dataProvider);
             else if (_playbackMode == PlaybackMode::SERVER)
@@ -334,8 +408,11 @@ void PlaybackScene::_Update()
             if (!_startPaused)
                 _controller->Play();
 
+            // Configure seekbar
             _seekBar->SetDuration(_dataProvider->MediaDuration());
+            _seekBar->SetChapters(_dataProvider->GetChapters());
 
+            // Get volume from saved options
             float volume = 0.2f;
             try
             {

@@ -86,6 +86,7 @@ void MediaReceiverDataProvider::_Initialize()
         int8_t currentVideoStream;
         int8_t currentAudioStream;
         int8_t currentSubtitleStream;
+        int8_t chapterCount;
     } streamMetadata;
     std::vector<int64_t> userList;
 
@@ -185,6 +186,44 @@ void MediaReceiverDataProvider::_Initialize()
     StreamReceiver dataStreamReceiver(PacketType::DATA_STREAM, _hostId);
     StreamReceiver unknownStreamReceiver(PacketType::UNKNOWN_STREAM, _hostId);
 
+    // Set up chapter receiver
+    class ChapterReceiver : public PacketSubscriber
+    {
+        int64_t _hostId;
+        std::vector<MediaChapter> _chapters;
+        std::mutex _m_chapters;
+        void _OnPacketReceived(Packet packet, int64_t userId)
+        {
+            if (userId != _hostId)
+                return;
+
+            MediaChapter chapter;
+            auto bytes = std::make_unique<uchar[]>(packet.size);
+            std::copy_n(packet.Bytes(), packet.size, bytes.get());
+            SerializedData data(packet.size, std::move(bytes));
+            chapter.Deserialize(std::move(data));
+
+            std::lock_guard<std::mutex> lock(_m_chapters);
+            _chapters.push_back(chapter);
+        }
+    public:
+        ChapterReceiver(PacketType streamType, int64_t hostId)
+            : PacketSubscriber((int32_t)streamType),
+            _hostId(hostId)
+        {}
+        std::vector<MediaChapter> GetChapters()
+        {
+            std::lock_guard<std::mutex> lock(_m_chapters);
+            return _chapters;
+        }
+        size_t ChapterCount()
+        {
+            std::lock_guard<std::mutex> lock(_m_chapters);
+            return _chapters.size();
+        }
+    };
+    ChapterReceiver chapterReceiver(PacketType::CHAPTER, _hostId);
+
     // Send ready notification
     NetworkInterface::Instance()->Send(Packet((int)PacketType::PLAYBACK_CONFIRMATION).From(int8_t(0)), { _hostId });
 
@@ -207,6 +246,7 @@ void MediaReceiverDataProvider::_Initialize()
         if (attachmentStreamReceiver.StreamCount() < streamMetadata.attachmentStreamCount) continue;
         if (dataStreamReceiver.StreamCount()       < streamMetadata.dataStreamCount) continue;
         if (unknownStreamReceiver.StreamCount()    < streamMetadata.unknownStreamCount) continue;
+        if (chapterReceiver.ChapterCount()         < streamMetadata.chapterCount) continue;
         break;
     }
     _videoData.streams    = videoStreamReceiver.MoveStreams();
@@ -218,6 +258,7 @@ void MediaReceiverDataProvider::_Initialize()
     _videoData.currentStream = streamMetadata.currentVideoStream;
     _audioData.currentStream = streamMetadata.currentAudioStream;
     _subtitleData.currentStream = streamMetadata.currentSubtitleStream;
+    _chapters = chapterReceiver.GetChapters();
 
     // Send receive confirmation
     NetworkInterface::Instance()->Send(Packet((int)PacketType::METADATA_CONFIRMATION), { _hostId });

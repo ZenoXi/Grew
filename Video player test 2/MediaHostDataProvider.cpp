@@ -204,6 +204,7 @@ void MediaHostDataProvider::_Initialize()
         int8_t currentVideoStream;
         int8_t currentAudioStream;
         int8_t currentSubtitleStream;
+        int8_t chapterCount;
     } streamMetadata
     {
         _videoData.streams.size(),
@@ -214,7 +215,8 @@ void MediaHostDataProvider::_Initialize()
         _unknownStreams.size(),
         _videoData.currentStream,
         _audioData.currentStream,
-        _subtitleData.currentStream
+        _subtitleData.currentStream,
+        _chapters.size()
     };
 
     // Send stream metadata
@@ -268,6 +270,15 @@ void MediaHostDataProvider::_Initialize()
         std::copy_n(serializedData.Bytes(), serializedData.Size(), bytes.get());
         znet::Packet streamPacket(std::move(bytes), serializedData.Size(), (int)znet::PacketType::UNKNOWN_STREAM);
         znet::NetworkInterface::Instance()->Send(std::move(streamPacket), _destinationUsers);
+    }
+    // Send chapters
+    for (int i = 0; i < _chapters.size(); i++)
+    {
+        auto serializedData = _chapters[i].Serialize();
+        auto bytes = std::make_unique<int8_t[]>(serializedData.Size());
+        std::copy_n(serializedData.Bytes(), serializedData.Size(), bytes.get());
+        znet::Packet chapterPacket(std::move(bytes), serializedData.Size(), (int)znet::PacketType::CHAPTER);
+        znet::NetworkInterface::Instance()->Send(std::move(chapterPacket), _destinationUsers);
     }
 
     // Wait for confirmation

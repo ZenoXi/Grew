@@ -61,6 +61,9 @@ class PlaybackScene : public Scene
     std::unique_ptr<zcom::PauseIcon> _pauseIcon = nullptr;
     std::unique_ptr<zcom::ResumeIcon> _resumeIcon = nullptr;
     std::unique_ptr<zcom::VolumeIcon> _volumeIcon = nullptr;
+    std::unique_ptr<zcom::Panel> _timeHoverPanel = nullptr;
+    std::unique_ptr<zcom::Label> _timeLabel = nullptr;
+    std::unique_ptr<zcom::Label> _chapterLabel = nullptr;
 
     std::unique_ptr<PlaybackShortcutHandler> _shortcutHandler = nullptr;
 

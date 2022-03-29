@@ -5,6 +5,9 @@
 
 #include "ComponentBase.h"
 #include "GameTime.h"
+#include "Functions.h"
+#include "Event.h"
+#include "MediaChapter.h"
 
 #include <sstream>
 
@@ -106,7 +109,38 @@ namespace zcom
                 ),
                 _viewedPartBrush
             );
+            // Chapter markers
+            for (int i = 0; i < _chapters.size(); i++)
+            {
+                // Start marker
+                int startXPos = (_chapters[i].start.GetTicks() / (double)_duration.GetTicks()) * seekBarWidth;
+                g.target->FillRectangle(
+                    D2D1::RectF(
+                        timeTextWidth + startXPos,
+                        GetHeight() / 2.0f + 1.0f,
+                        timeTextWidth + startXPos + 1.0f,
+                        GetHeight() / 2.0f + 5.0f
+                    ),
+                    _remainingPartBrush
+                );
 
+                // End marker
+                if (_chapters[i].end.GetTicks() != AV_NOPTS_VALUE)
+                {
+                    int endXPos = (_chapters[i].end.GetTicks() / (double)_duration.GetTicks()) * seekBarWidth;
+                    g.target->FillRectangle(
+                        D2D1::RectF(
+                            timeTextWidth + startXPos,
+                            GetHeight() / 2.0f + 1.0f,
+                            timeTextWidth + startXPos + 1.0f,
+                            GetHeight() / 2.0f + 5.0f
+                        ),
+                        _remainingPartBrush
+                    );
+                }
+            }
+
+            // 
             if (GetMouseInside())
             {
                 g.target->FillEllipse(
@@ -187,7 +221,7 @@ namespace zcom
             );
 
             // Draw hover time string
-            if (GetMouseInside())
+            if (false && GetMouseInside())
             {
                 int xPos = GetMousePosX() - timeTextWidth;
                 if (xPos < 0) xPos = 0;
@@ -236,12 +270,55 @@ namespace zcom
 
         Base* _OnMouseMove(int x, int y)
         {
+            int timeTextWidth = ceilf(_maxTimeWidth) + _margins * 2;
+            int seekBarWidth = GetWidth() - timeTextWidth * 2;
+            int xPos = GetMousePosX() - timeTextWidth;
+            if (xPos >= 0 && xPos <= seekBarWidth)
+            {
+                double xPosNorm = xPos / (double)seekBarWidth;
+                TimePoint time = _duration.GetTicks() * xPosNorm;
+
+                std::wstring title = L"";
+                for (int i = _chapters.size() - 1; i >= 0; i--)
+                {
+                    if (time >= _chapters[i].start)
+                    {
+                        if (_chapters[i].end.GetTicks() != AV_NOPTS_VALUE)
+                        {
+                            if (time > _chapters[i].end)
+                            {
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            title = string_to_wstring(_chapters[i].title);
+                            break;
+                        }
+                    }
+                }
+
+                _onTimeHovered.InvokeAll(x, time, title);
+                _timeHovered = true;
+            }
+            else
+            {
+                if (_timeHovered)
+                {
+                    _onHoverEnded.InvokeAll();
+                    _timeHovered = false;
+                }
+            }
             return this;
         }
 
         void _OnMouseLeave()
         {
-
+            if (_timeHovered)
+            {
+                _onHoverEnded.InvokeAll();
+                _timeHovered = false;
+            }
         }
 
         void _OnMouseEnter()
@@ -314,12 +391,18 @@ namespace zcom
         Duration _buffered = 0;
         TimePoint _currentTime = 0;
 
+        std::vector<MediaChapter> _chapters;
+
         bool _held = false;
         TimePoint _selectedTime = -1;
         float _textHeight = 0.0f;
         float _maxTimeWidth = 0.0f;
 
         float _margins = 5.0f;
+
+        bool _timeHovered = false;
+        Event<void, int, TimePoint, std::wstring> _onTimeHovered;
+        Event<void> _onHoverEnded;
 
         // Resources
         ID2D1SolidColorBrush* _viewedPartBrush = nullptr;
@@ -424,6 +507,50 @@ namespace zcom
         void SetDuration(Duration duration)
         {
             _duration = duration;
+        }
+
+        void AddOnTimeHovered(std::function<void(int, TimePoint, std::wstring)> func)
+        {
+            _onTimeHovered.Add(func);
+        }
+
+        void AddOnHoverEnded(std::function<void()> func)
+        {
+            _onHoverEnded.Add(func);
+        }
+
+        void SetChapters(std::vector<MediaChapter> chapters)
+        {
+            _chapters = chapters;
+
+            // Process times
+            for (int i = 0; i < _chapters.size(); i++)
+            {
+                if (_chapters[i].start.GetTicks() == AV_NOPTS_VALUE)
+                {
+                    _chapters.erase(_chapters.begin() + i);
+                    i--;
+                    continue;
+                }
+
+                if (i == 0)
+                    continue;
+
+                if (_chapters[i - 1].end > _chapters[i].start)
+                {
+                    _chapters[i].start = _chapters[i - 1].end;
+                    if (_chapters[i].start >= _chapters[i].end)
+                    {
+                        _chapters.erase(_chapters.begin() + i);
+                        i--;
+                        continue;
+                    }
+                }
+                //else if (_chapters[i - 1].end.GetTicks() == AV_NOPTS_VALUE)
+                //{
+                //    _chapters[i - 1].end = _chapters[i].start;
+                //}
+            }
         }
     };
 }
