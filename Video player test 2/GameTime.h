@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <limits>
+#include <sstream>
 
 class Clock;
 class TimePoint;
@@ -134,6 +135,14 @@ public:
         return TimePoint(std::numeric_limits<int64_t>::min(), NANOSECONDS);
     }
 };
+
+enum class TimeStringFormat
+{
+    HH_MM_SS,
+};
+
+std::string TimeToString(TimePoint time, TimeStringFormat format = TimeStringFormat::HH_MM_SS);
+std::string DurationToString(Duration duration, TimeStringFormat format = TimeStringFormat::HH_MM_SS);
 
 class Clock
 {
