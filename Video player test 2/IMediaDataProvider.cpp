@@ -24,6 +24,7 @@ IMediaDataProvider::IMediaDataProvider(IMediaDataProvider* other)
     _attachmentStreams = other->_attachmentStreams;
     _dataStreams = other->_dataStreams;
     _unknownStreams = other->_unknownStreams;
+    _chapters = other->_chapters;
 }
 
 bool IMediaDataProvider::Initializing()
@@ -358,6 +359,11 @@ std::vector<MediaStream> IMediaDataProvider::GetFontStreams()
     // Search unknown streams
 
     return fontStreams;
+}
+
+std::vector<MediaChapter> IMediaDataProvider::GetChapters()
+{
+    return _chapters;
 }
 
 size_t IMediaDataProvider::VideoPacketCount() const

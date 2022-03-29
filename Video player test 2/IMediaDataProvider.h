@@ -3,6 +3,7 @@
 #include "GameTime.h"
 #include "MediaPacket.h"
 #include "MediaStream.h"
+#include "MediaChapter.h"
 
 #include <vector>
 #include <thread>
@@ -77,6 +78,7 @@ protected:
     std::vector<MediaStream> _attachmentStreams;
     std::vector<MediaStream> _dataStreams;
     std::vector<MediaStream> _unknownStreams;
+    std::vector<MediaChapter> _chapters;
 
 
     //std::vector<MediaPacket> _videoPackets;
@@ -181,6 +183,7 @@ private:
     std::vector<std::string> _GetAvailableStreams(MediaData& mediaData);
 public:
     std::vector<MediaStream> GetFontStreams();
+    std::vector<MediaChapter> GetChapters();
 
 
     // PACKET OUTPUT
