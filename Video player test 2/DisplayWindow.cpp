@@ -763,9 +763,10 @@ void WindowGraphics::Initialize(HWND* hwnd_t)
     ));
     p_Target->SetTarget(p_Bitmap.Get());
 
-    float dpiX = 96.f, dpiY = 96.f;
+    //float dpiX = 96.f, dpiY = 96.f;
     //p_D2DFactory->GetDesktopDpi(&dpiX, &dpiY);
-    p_Target->SetDpi(dpiX, dpiY);
+    //p_Target->SetDpi(dpiX, dpiY);
+    //p_Target->SetDpi(72, 72);
 
     // Make background gray
     //BeginFrame();
