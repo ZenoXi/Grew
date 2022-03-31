@@ -33,7 +33,7 @@ namespace zcom
                     _targetOpacity = 0.0f;
 
                     if (GetMouseInsideArea())
-                        App::Instance()->window.SetCursorVisibility(false);
+                        _SetCursorVisibility(false);
                 }
             }
 
@@ -111,7 +111,7 @@ namespace zcom
 
         Base* _OnMouseMove(int x, int y)
         {
-            App::Instance()->window.SetCursorVisibility(true);
+            _SetCursorVisibility(true);
 
             if (!_panelShown)
             {
@@ -190,5 +190,8 @@ namespace zcom
         {
             return _fixed;
         }
+
+    private:
+        void _SetCursorVisibility(bool visible);
     };
 }
