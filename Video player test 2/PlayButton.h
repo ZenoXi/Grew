@@ -148,22 +148,7 @@ namespace zcom
 
         }
 
-        Base* _OnMouseMove(int x, int y)
-        {
-            return this;
-        }
-
-        void _OnMouseLeave()
-        {
-
-        }
-
-        void _OnMouseEnter()
-        {
-
-        }
-
-        Base* _OnLeftPressed(int x, int y)
+        EventTargets _OnLeftPressed(int x, int y)
         {
             _clicked = true;
             if (_paused)
@@ -174,53 +159,10 @@ namespace zcom
             {
                 _paused = true;
             }
-            return this;
-        }
-
-        Base* _OnLeftReleased(int x, int y)
-        {
-            return this;
-        }
-
-        Base* _OnRightPressed(int x, int y)
-        {
-            return this;
-        }
-
-        Base* _OnRightReleased(int x, int y)
-        {
-            return this;
-        }
-
-        Base* _OnWheelUp(int x, int y)
-        {
-            return nullptr;
-        }
-
-        Base* _OnWheelDown(int x, int y)
-        {
-            return nullptr;
+            return EventTargets().Add(this, x, y);
         }
 
     public:
-        std::list<Base*> GetChildren()
-        {
-            return std::list<Base*>();
-        }
-
-        std::list<Base*> GetAllChildren()
-        {
-            return std::list<Base*>();
-        }
-
-        Base* IterateTab()
-        {
-            if (!Selected())
-                return this;
-            else
-                return nullptr;
-        }
-
         const char* GetName() const { return "play_button"; }
 #pragma endregion
 

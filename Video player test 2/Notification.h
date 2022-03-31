@@ -55,14 +55,10 @@ namespace zcom
             
         }
 
-        Base* _OnMouseMove(int x, int y)
+        EventTargets _OnMouseMove(int x, int y)
         {
-            return _panel->OnMouseMove(x, y);
-        }
-
-        void _OnMouseEnter()
-        {
-            _panel->OnMouseEnter();
+            _panel->OnMouseMove(x, y);
+            return EventTargets().Add(this, x, y);
         }
 
         void _OnMouseLeave()
@@ -70,9 +66,9 @@ namespace zcom
             _panel->OnMouseLeave();
         }
 
-        void _OnMouseEnterArea()
+        void _OnMouseEnter()
         {
-            _panel->OnMouseEnterArea();
+            _panel->OnMouseEnter();
         }
 
         void _OnMouseLeaveArea()
@@ -80,34 +76,45 @@ namespace zcom
             _panel->OnMouseLeaveArea();
         }
 
-        Base* _OnLeftPressed(int x, int y)
+        void _OnMouseEnterArea()
         {
-            return _panel->OnLeftPressed(x, y);
+            _panel->OnMouseEnterArea();
         }
 
-        Base* _OnRightPressed(int x, int y)
+        EventTargets _OnLeftPressed(int x, int y)
         {
-            return _panel->OnRightPressed(x, y);
+            _panel->OnLeftPressed(x, y);
+            return EventTargets().Add(this, x, y);
         }
 
-        Base* _OnLeftReleased(int x, int y)
+        EventTargets _OnLeftReleased(int x, int y)
         {
-            return _panel->OnLeftReleased(x, y);
+            _panel->OnLeftReleased(x, y);
+            return EventTargets().Add(this, x, y);
         }
 
-        Base* _OnRightReleased(int x, int y)
+        EventTargets _OnRightPressed(int x, int y)
         {
-            return _panel->OnRightReleased(x, y);
+            _panel->OnRightPressed(x, y);
+            return EventTargets().Add(this, x, y);
         }
 
-        Base* _OnWheelUp(int x, int y)
+        EventTargets _OnRightReleased(int x, int y)
         {
-            return _panel->OnWheelUp(x, y);
+            _panel->OnRightReleased(x, y);
+            return EventTargets().Add(this, x, y);
         }
 
-        Base* _OnWheelDown(int x, int y)
+        EventTargets _OnWheelUp(int x, int y)
         {
-            return _panel->OnWheelDown(x, y);
+            _panel->OnWheelUp(x, y);
+            return EventTargets();
+        }
+
+        EventTargets _OnWheelDown(int x, int y)
+        {
+            _panel->OnWheelDown(x, y);
+            return EventTargets();
         }
 
     public:

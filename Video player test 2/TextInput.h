@@ -96,51 +96,6 @@ namespace zcom
 
         }
 
-        Base* _OnMouseMove(int x, int y)
-        {
-            return this;
-        }
-
-        void _OnMouseLeave()
-        {
-
-        }
-
-        void _OnMouseEnter()
-        {
-
-        }
-
-        Base* _OnLeftPressed(int x, int y)
-        {
-            return this;
-        }
-
-        Base* _OnLeftReleased(int x, int y)
-        {
-            return this;
-        }
-
-        Base* _OnRightPressed(int x, int y)
-        {
-            return this;
-        }
-
-        Base* _OnRightReleased(int x, int y)
-        {
-            return this;
-        }
-
-        Base* _OnWheelUp(int x, int y)
-        {
-            return nullptr;
-        }
-
-        Base* _OnWheelDown(int x, int y)
-        {
-            return nullptr;
-        }
-
         void _OnSelected(); // Uses 'App'
 
         void _OnDeselected(); // Uses 'App'
@@ -331,24 +286,6 @@ namespace zcom
         }
 
     public:
-        std::list<Base*> GetChildren()
-        {
-            return std::list<Base*>();
-        }
-
-        std::list<Base*> GetAllChildren()
-        {
-            return std::list<Base*>();
-        }
-
-        Base* IterateTab()
-        {
-            if (!Selected())
-                return this;
-            else
-                return nullptr;
-        }
-
         const char* GetName() const { return "text_input"; }
 #pragma endregion
 

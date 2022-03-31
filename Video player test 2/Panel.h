@@ -385,7 +385,7 @@ namespace zcom
             _contentHeight = maxBottomEdge + _margins.bottom;
         }
 
-        Base* _OnMouseMove(int x, int y)
+        EventTargets _OnMouseMove(int x, int y)
         {
             std::vector<Base*> hoveredComponents;
 
@@ -393,7 +393,9 @@ namespace zcom
             int adjX = x + _horizontalScroll;
             int adjY = y + _verticalScroll;
 
-            Base* handledItem = nullptr;
+            //Base* handledItem = nullptr;
+            bool itemHandled = false;
+            EventTargets targets;
             for (auto& _item : _items)
             {
                 Base* item = _item.item;
@@ -405,8 +407,11 @@ namespace zcom
                 {
                     if (item->GetMouseLeftClicked() || item->GetMouseRightClicked())
                     {
-                        if (handledItem == nullptr)
-                            handledItem = item->OnMouseMove(adjX - item->GetX(), adjY - item->GetY());
+                        if (!itemHandled)
+                        {
+                            targets = item->OnMouseMove(adjX - item->GetX(), adjY - item->GetY());
+                            itemHandled = true;
+                        }
                     }
                     hoveredComponents.push_back(item);
                     if (!item->GetMouseInsideArea())
@@ -420,8 +425,12 @@ namespace zcom
                     {
                         if (item->GetMouseLeftClicked() || item->GetMouseRightClicked())
                         {
-                            if (handledItem == nullptr)
-                                handledItem = item->OnMouseMove(adjX - item->GetX(), adjY - item->GetY());
+
+                            if (!itemHandled)
+                            {
+                                targets = item->OnMouseMove(adjX - item->GetX(), adjY - item->GetY());
+                                itemHandled = true;
+                            }
                         }
                         else
                         {
@@ -434,8 +443,8 @@ namespace zcom
                     }
                 }
             }
-            if (handledItem)
-                return handledItem;
+            if (itemHandled)
+                return std::move(targets.Add(this, x, y));
 
             //std::cout << hoveredComponents.size() << std::endl;
 
@@ -462,36 +471,36 @@ namespace zcom
                 {
                     topmost->OnMouseEnter();
                 }
-                return topmost->OnMouseMove(x - topmost->GetX(), y - topmost->GetY());
+                return topmost->OnMouseMove(x - topmost->GetX(), y - topmost->GetY()).Add(this, x, y);
             }
 
-            return this;
+            return std::move(targets.Add(this, x, y));
 
-            for (auto& _item : _items)
-            {
-                Base* item = _item.item;
+            //for (auto& _item : _items)
+            //{
+            //    Base* item = _item.item;
 
-                if (adjX >= item->GetX() && adjX < item->GetX() + item->GetWidth() &&
-                    adjY >= item->GetY() && adjY < item->GetY() + item->GetHeight())
-                {
-                    if (!item->GetMouseInside())
-                    {
-                        item->OnMouseEnter();
-                    }
-                    item->OnMouseMove(adjX - item->GetX(), adjY - item->GetY());
-                }
-                else if (item->GetMouseInside())
-                {
-                    if (item->GetMouseLeftClicked() || item->GetMouseRightClicked())
-                    {
-                        item->OnMouseMove(adjX - item->GetX(), adjY - item->GetY());
-                    }
-                    else
-                    {
-                        item->OnMouseLeave();
-                    }
-                }
-            }
+            //    if (adjX >= item->GetX() && adjX < item->GetX() + item->GetWidth() &&
+            //        adjY >= item->GetY() && adjY < item->GetY() + item->GetHeight())
+            //    {
+            //        if (!item->GetMouseInside())
+            //        {
+            //            item->OnMouseEnter();
+            //        }
+            //        item->OnMouseMove(adjX - item->GetX(), adjY - item->GetY());
+            //    }
+            //    else if (item->GetMouseInside())
+            //    {
+            //        if (item->GetMouseLeftClicked() || item->GetMouseRightClicked())
+            //        {
+            //            item->OnMouseMove(adjX - item->GetX(), adjY - item->GetY());
+            //        }
+            //        else
+            //        {
+            //            item->OnMouseLeave();
+            //        }
+            //    }
+            //}
         }
 
         void _OnMouseLeave()
@@ -530,7 +539,7 @@ namespace zcom
             //std::cout << "Mouse enter\n";
         }
 
-        Base* _OnLeftPressed(int x, int y)
+        EventTargets _OnLeftPressed(int x, int y)
         {
             // Adjust coordinates for scroll
             int adjX = x + _horizontalScroll;
@@ -542,13 +551,13 @@ namespace zcom
 
                 if (item.item->GetMouseInside())
                 {
-                    return item.item->OnLeftPressed(adjX - item.item->GetX(), adjY - item.item->GetY());
+                    return item.item->OnLeftPressed(adjX - item.item->GetX(), adjY - item.item->GetY()).Add(this, x, y);
                 }
             }
-            return this;
+            return EventTargets().Add(this, x, y);
         }
 
-        Base* _OnLeftReleased(int x, int y)
+        EventTargets _OnLeftReleased(int x, int y)
         {
             // Adjust coordinates for scroll
             int adjX = x + _horizontalScroll;
@@ -560,13 +569,13 @@ namespace zcom
 
                 if (item.item->GetMouseInside())
                 {
-                    return item.item->OnLeftReleased(adjX - item.item->GetX(), adjY - item.item->GetY());
+                    return item.item->OnLeftReleased(adjX - item.item->GetX(), adjY - item.item->GetY()).Add(this, x, y);
                 }
             }
-            return this;
+            return EventTargets().Add(this, x, y);
         }
 
-        Base* _OnRightPressed(int x, int y)
+        EventTargets _OnRightPressed(int x, int y)
         {
             // Adjust coordinates for scroll
             int adjX = x + _horizontalScroll;
@@ -578,13 +587,13 @@ namespace zcom
 
                 if (item.item->GetMouseInside())
                 {
-                    return item.item->OnRightPressed(adjX - item.item->GetX(), adjY - item.item->GetY());
+                    return item.item->OnRightPressed(adjX - item.item->GetX(), adjY - item.item->GetY()).Add(this, x, y);
                 }
             }
-            return this;
+            return EventTargets().Add(this, x, y);
         }
 
-        Base* _OnRightReleased(int x, int y)
+        EventTargets _OnRightReleased(int x, int y)
         {
             // Adjust coordinates for scroll
             int adjX = x + _horizontalScroll;
@@ -596,38 +605,38 @@ namespace zcom
 
                 if (item.item->GetMouseInside())
                 {
-                    return item.item->OnRightReleased(adjX - item.item->GetX(), adjY - item.item->GetY());
+                    return item.item->OnRightReleased(adjX - item.item->GetX(), adjY - item.item->GetY()).Add(this, x, y);
                 }
             }
-            return this;
+            return EventTargets().Add(this, x, y);
         }
 
-        Base* _OnWheelUp(int x, int y)
+        EventTargets _OnWheelUp(int x, int y)
         {
             // Adjust coordinates for scroll
             int adjX = x + _horizontalScroll;
             int adjY = y + _verticalScroll;
 
-            Base* target = nullptr;
+            EventTargets targets;
             for (auto& item : _items)
             {
                 if (!item.item->GetVisible()) continue;
 
                 if (item.item->GetMouseInside())
                 {
-                    target = item.item->OnWheelUp(adjX - item.item->GetX(), adjY - item.item->GetY());
+                    targets = item.item->OnWheelUp(adjX - item.item->GetX(), adjY - item.item->GetY());
                     break;
                 }
             }
 
-            if (target == nullptr)
+            if (targets.Empty())
             {
                 if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
                 {
                     if (_horizontalScrollable)
                     {
                         ScrollHorizontally(HorizontalScroll() - _scrollStepSize);
-                        return this;
+                        return EventTargets().Add(this, x, y);
                     }
                 }
                 else
@@ -635,39 +644,39 @@ namespace zcom
                     if (_verticalScrollable)
                     {
                         ScrollVertically(VerticalScroll() - _scrollStepSize);
-                        return this;
+                        return EventTargets().Add(this, x, y);
                     }
                 }
             }
-            return nullptr;
+            return EventTargets();
         }
 
-        Base* _OnWheelDown(int x, int y)
+        EventTargets _OnWheelDown(int x, int y)
         {
             // Adjust coordinates for scroll
             int adjX = x + _horizontalScroll;
             int adjY = y + _verticalScroll;
 
-            Base* target = nullptr;
+            EventTargets targets;
             for (auto& item : _items)
             {
                 if (!item.item->GetVisible()) continue;
 
                 if (item.item->GetMouseInside())
                 {
-                    target = item.item->OnWheelDown(adjX - item.item->GetX(), adjY - item.item->GetY());
+                    targets = item.item->OnWheelDown(adjX - item.item->GetX(), adjY - item.item->GetY());
                     break;
                 }
             }
 
-            if (target == nullptr)
+            if (targets.Empty())
             {
                 if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
                 {
                     if (_horizontalScrollable)
                     {
                         ScrollHorizontally(HorizontalScroll() + _scrollStepSize);
-                        return this;
+                        return EventTargets().Add(this, x, y);
                     }
                 }
                 else
@@ -675,11 +684,11 @@ namespace zcom
                     if (_verticalScrollable)
                     {
                         ScrollVertically(VerticalScroll() + _scrollStepSize);
-                        return this;
+                        return EventTargets().Add(this, x, y);
                     }
                 }
             }
-            return nullptr;
+            return EventTargets();
         }
 
         void _OnSelected()

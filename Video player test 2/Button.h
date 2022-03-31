@@ -87,22 +87,17 @@ namespace zcom
             _text->Resize();
         }
 
-        Base* _OnMouseMove(int x, int y)
-        {
-            return this;
-        }
-
-        Base* _OnLeftPressed(int x, int y)
+        EventTargets _OnLeftPressed(int x, int y)
         {
             if (_activation == ButtonActivation::PRESS || _activation == ButtonActivation::PRESS_AND_RELEASE)
             {
                 _activated = true;
                 _OnActivated.InvokeAll();
             }
-            return this;
+            return EventTargets().Add(this, x, y);
         }
 
-        Base* _OnLeftReleased(int x, int y)
+        EventTargets _OnLeftReleased(int x, int y)
         {
             if (GetMouseInsideArea())
             {
@@ -112,27 +107,7 @@ namespace zcom
                     _OnActivated.InvokeAll();
                 }
             }
-            return this;
-        }
-
-        Base* _OnRightPressed(int x, int y)
-        {
-            return this;
-        }
-
-        Base* _OnRightReleased(int x, int y)
-        {
-            return this;
-        }
-
-        Base* _OnWheelUp(int x, int y)
-        {
-            return nullptr;
-        }
-
-        Base* _OnWheelDown(int x, int y)
-        {
-            return nullptr;
+            return EventTargets().Add(this, x, y);
         }
 
         void _OnSelected();
@@ -160,24 +135,6 @@ namespace zcom
         }
 
     public:
-        std::list<Base*> GetChildren()
-        {
-            return std::list<Base*>();
-        }
-
-        std::list<Base*> GetAllChildren()
-        {
-            return std::list<Base*>();
-        }
-
-        Base* IterateTab()
-        {
-            if (!Selected())
-                return this;
-            else
-                return nullptr;
-        }
-
         const char* GetName() const { return "button"; }
 #pragma endregion
 

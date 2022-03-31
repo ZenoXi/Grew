@@ -52,64 +52,7 @@ namespace zcom
             }
         }
 
-        //void _OnDraw(Graphics g)
-        //{
-        //    Panel::_OnDraw(g);
-        //    g.target->Clear();
-        //    g.target->DrawBitmap(
-        //        _panel->Draw(g),
-        //        D2D1::RectF(
-        //            _panel->GetX(),
-        //            _panel->GetY(),
-        //            _panel->GetX() + _panel->GetWidth(),
-        //            _panel->GetY() + _panel->GetHeight()
-        //        ),
-        //        _panel->GetOpacity()
-        //    );
-        //}
-
-        //void _OnResize(int width, int height)
-        //{
-        //    Panel::_OnResize(width, height);
-        //    int newWidth = (int)std::round(GetWidth() * _panel->GetParentWidthPercent()) + _panel->GetBaseWidth();
-        //    int newHeight = (int)std::round(GetHeight() * _panel->GetParentHeightPercent()) + _panel->GetBaseHeight();
-        //    // SetSize does limit checking so the resulting size and newWidth/newHeight can mismatch
-        //    _panel->SetSize(newWidth, newHeight);
-
-        //    int newPosX = 0;
-        //    if (_panel->GetHorizontalAlignment() == Alignment::START)
-        //    {
-        //        newPosX += std::round((GetWidth() - _panel->GetWidth()) * _panel->GetHorizontalOffsetPercent());
-        //    }
-        //    else if (_panel->GetHorizontalAlignment() == Alignment::END)
-        //    {
-        //        newPosX = GetWidth() - _panel->GetWidth();
-        //        newPosX -= std::round((GetWidth() - _panel->GetWidth()) * _panel->GetHorizontalOffsetPercent());
-        //    }
-        //    newPosX += _panel->GetHorizontalOffsetPixels();
-        //    // Alternative (no branching):
-        //    // int align = item->GetHorizontalAlignment() == Alignment::END;
-        //    // newPosX += align * (_width - item->GetWidth());
-        //    // newPosX += (-1 * align) * std::round((_width - item->GetWidth()) * item->GetHorizontalOffsetPercent());
-        //    // newPosX += item->GetHorizontalOffsetPixels();
-        //    int newPosY = 0;
-        //    if (_panel->GetVerticalAlignment() == Alignment::START)
-        //    {
-        //        newPosY += std::round((GetHeight() - _panel->GetHeight()) * _panel->GetVerticalOffsetPercent());
-        //    }
-        //    else if (_panel->GetVerticalAlignment() == Alignment::END)
-        //    {
-        //        newPosY = GetHeight() - _panel->GetHeight();
-        //        newPosY -= std::round((GetHeight() - _panel->GetHeight()) * _panel->GetVerticalOffsetPercent());
-        //    }
-        //    newPosY += _panel->GetVerticalOffsetPixels();
-        //    _panel->SetPosition(newPosX, newPosY);
-
-        //    _panel->Resize(_panel->GetWidth(), _panel->GetHeight());
-        //    //_panel->Resize(width, height);
-        //}
-
-        Base* _OnMouseMove(int x, int y)
+        EventTargets _OnMouseMove(int x, int y)
         {
             _SetCursorVisibility(true);
 
@@ -122,8 +65,8 @@ namespace zcom
                 _targetOpacity = 1.0f;
             }
 
-            Base* target = Panel::_OnMouseMove(x, y);
-            if (target == this)
+            EventTargets targets = Panel::_OnMouseMove(x, y);
+            if (targets.Size() == 1)
             {
                 _hanging = true;
                 _hangStartTime = ztime::Main();
@@ -132,7 +75,7 @@ namespace zcom
             {
                 _hanging = false;
             }
-            return target;
+            return targets;
         }
 
         void _OnMouseLeaveArea()

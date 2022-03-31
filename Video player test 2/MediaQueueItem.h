@@ -59,9 +59,10 @@ namespace zcom
             _mainPanel->Resize();
         }
 
-        Base* _OnMouseMove(int x, int y)
+        EventTargets _OnMouseMove(int x, int y)
         {
-            return _mainPanel->OnMouseMove(x, y);
+            _mainPanel->OnMouseMove(x, y);
+            return EventTargets().Add(this, x, y);
         }
 
         void _OnMouseLeave()
@@ -84,55 +85,43 @@ namespace zcom
             _mainPanel->OnMouseEnterArea();
         }
 
-        Base* _OnLeftPressed(int x, int y)
+        EventTargets _OnLeftPressed(int x, int y)
         {
-            return _mainPanel->OnLeftPressed(x, y);
+            _mainPanel->OnLeftPressed(x, y);
+            return EventTargets().Add(this, x, y);
         }
 
-        Base* _OnLeftReleased(int x, int y)
+        EventTargets _OnLeftReleased(int x, int y)
         {
-            return _mainPanel->OnLeftReleased(x, y);
+            _mainPanel->OnLeftReleased(x, y);
+            return EventTargets().Add(this, x, y);
         }
 
-        Base* _OnRightPressed(int x, int y)
+        EventTargets _OnRightPressed(int x, int y)
         {
-            return _mainPanel->OnRightPressed(x, y);
+            _mainPanel->OnRightPressed(x, y);
+            return EventTargets().Add(this, x, y);
         }
 
-        Base* _OnRightReleased(int x, int y)
+        EventTargets _OnRightReleased(int x, int y)
         {
-            return _mainPanel->OnRightReleased(x, y);
+            _mainPanel->OnRightReleased(x, y);
+            return EventTargets().Add(this, x, y);
         }
 
-        Base* _OnWheelUp(int x, int y)
+        EventTargets _OnWheelUp(int x, int y)
         {
-            return _mainPanel->OnWheelUp(x, y);
+            _mainPanel->OnWheelUp(x, y);
+            return EventTargets();
         }
 
-        Base* _OnWheelDown(int x, int y)
+        EventTargets _OnWheelDown(int x, int y)
         {
-            return _mainPanel->OnWheelDown(x, y);
+            _mainPanel->OnWheelDown(x, y);
+            return EventTargets();
         }
 
     public:
-        std::list<Base*> GetChildren()
-        {
-            return std::list<Base*>();
-        }
-
-        std::list<Base*> GetAllChildren()
-        {
-            return std::list<Base*>();
-        }
-
-        Base* IterateTab()
-        {
-            if (!Selected())
-                return this;
-            else
-                return nullptr;
-        }
-
         const char* GetName() const { return "media_queue_item"; }
 #pragma endregion
 

@@ -39,6 +39,83 @@ namespace zcom
         bool valid;
     };
 
+    class Base;
+    // Class that contains all components that handled an event.
+    class EventTargets
+    {
+    public:
+        struct Params
+        {
+            Base* target;
+            int x;
+            int y;
+        };
+
+    private:
+        std::vector<Params> _targets;
+
+    public:
+        EventTargets()
+        {
+            // Reserve initial capacity to prevent reallocations in most cases
+            _targets.reserve(16);
+        }
+        EventTargets(EventTargets&& other)
+        {
+            _targets = std::move(other._targets);
+        }
+        EventTargets& operator=(EventTargets&& other)
+        {
+            if (this != &other)
+            {
+                _targets = std::move(other._targets);
+            }
+            return *this;
+        }
+        EventTargets(const EventTargets& other) = delete;
+        EventTargets& operator=(const EventTargets& other) = delete;
+
+        EventTargets Add(Base* item, int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min()) &&
+        {
+            _targets.push_back({ item, x, y });
+            return std::move(*this);
+        }
+
+        EventTargets& Add(Base* item, int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min()) &
+        {
+            _targets.push_back({ item, x, y });
+            return *this;
+        }
+
+        bool Empty() const
+        {
+            return _targets.empty();
+        }
+
+        size_t Size() const
+        {
+            return _targets.size();
+        }
+
+        bool Contains(Base* item) const
+        {
+            return std::find_if(_targets.begin(), _targets.end(), [item](Params p) { return p.target == item; }) != _targets.end();
+        }
+
+        Base* MainTarget() const
+        {
+            if (!_targets.empty())
+                return _targets.front().target;
+            else
+                return nullptr;
+        }
+
+        std::vector<Params> GetTargets() const
+        {
+            return _targets;
+        }
+    };
+
     // The base component class
     class Base
     {
@@ -366,9 +443,9 @@ namespace zcom
         }
 
         // Events
-        Base* OnMouseMove(int x, int y)
+        EventTargets OnMouseMove(int x, int y)
         {
-            if (!_active) return nullptr;
+            if (!_active) return EventTargets();
 
             _mousePosX = x;
             _mousePosY = y;
@@ -406,47 +483,47 @@ namespace zcom
             _mouseInsideArea = false;
             _OnMouseLeaveArea();
         }
-        Base* OnLeftPressed(int x, int y)
+        EventTargets OnLeftPressed(int x, int y)
         {
-            if (!_active) return nullptr;
-            if (_mouseLeftClicked) return nullptr;
+            if (!_active) return EventTargets();
+            if (_mouseLeftClicked) return EventTargets();
 
             _mouseLeftClicked = true;
             return _OnLeftPressed(x, y);
         }
-        Base* OnLeftReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min())
+        EventTargets OnLeftReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min())
         {
-            if (!_active) return nullptr;
-            if (!_mouseLeftClicked) return nullptr;
+            if (!_active) return EventTargets();
+            if (!_mouseLeftClicked) return EventTargets();
 
             _mouseLeftClicked = false;
             return _OnLeftReleased(x, y);
         }
-        Base* OnRightPressed(int x, int y)
+        EventTargets OnRightPressed(int x, int y)
         {
-            if (!_active) return nullptr;
-            if (_mouseRightClicked) return nullptr;
+            if (!_active) return EventTargets();
+            if (_mouseRightClicked) return EventTargets();
 
             _mouseRightClicked = true;
             return _OnRightPressed(x, y);
         }
-        Base* OnRightReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min())
+        EventTargets OnRightReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min())
         {
-            if (!_active) return nullptr;
-            if (!_mouseRightClicked) return nullptr;
+            if (!_active) return EventTargets();
+            if (!_mouseRightClicked) return EventTargets();
 
             _mouseRightClicked = false;
             return _OnRightReleased(x, y);
         }
-        Base* OnWheelUp(int x, int y)
+        EventTargets OnWheelUp(int x, int y)
         {
-            if (!_active) return nullptr;
+            if (!_active) return EventTargets();
 
             return _OnWheelUp(x, y);
         }
-        Base* OnWheelDown(int x, int y)
+        EventTargets OnWheelDown(int x, int y)
         {
-            if (!_active) return nullptr;
+            if (!_active) return EventTargets();
 
             return _OnWheelDown(x, y);
         }
@@ -467,17 +544,17 @@ namespace zcom
             _OnDeselected();
         }
     protected:
-        virtual Base* _OnMouseMove(int x, int y) { return this; }
+        virtual EventTargets _OnMouseMove(int x, int y) { return EventTargets().Add(this, x, y); }
         virtual void _OnMouseEnter() {}
         virtual void _OnMouseLeave() {}
         virtual void _OnMouseEnterArea() {}
         virtual void _OnMouseLeaveArea() {}
-        virtual Base* _OnLeftPressed(int x, int y) { return this; }
-        virtual Base* _OnRightPressed(int x, int y) { return this; }
-        virtual Base* _OnLeftReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min()) { return this; }
-        virtual Base* _OnRightReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min()) { return this; }
-        virtual Base* _OnWheelUp(int x, int y) { return nullptr; }
-        virtual Base* _OnWheelDown(int x, int y) { return nullptr; }
+        virtual EventTargets _OnLeftPressed(int x, int y) { return EventTargets().Add(this, x, y); }
+        virtual EventTargets _OnRightPressed(int x, int y) { return EventTargets().Add(this, x, y); }
+        virtual EventTargets _OnLeftReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min()) { return EventTargets().Add(this, x, y); }
+        virtual EventTargets _OnRightReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min()) { return EventTargets().Add(this, x, y); }
+        virtual EventTargets _OnWheelUp(int x, int y) { return EventTargets(); }
+        virtual EventTargets _OnWheelDown(int x, int y) { return EventTargets(); }
         virtual void _OnSelected() {}
         virtual void _OnDeselected() {}
     public:

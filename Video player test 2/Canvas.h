@@ -14,13 +14,13 @@ namespace zcom
         int _width;
         int _height;
 
-        Event<void, Base*, int, int> _mouseMoveHandlers;
-        Event<void, Base*, int, int> _leftPressedHandlers;
-        Event<void, Base*, int, int> _leftReleasedHandlers;
-        Event<void, Base*, int, int> _rightPressedHandlers;
-        Event<void, Base*, int, int> _rightReleasedHandlers;
-        Event<void, Base*, int, int> _wheelUpHandlers;
-        Event<void, Base*, int, int> _wheelDownHandlers;
+        Event<void, const EventTargets*> _mouseMoveHandlers;
+        Event<void, const EventTargets*> _leftPressedHandlers;
+        Event<void, const EventTargets*> _leftReleasedHandlers;
+        Event<void, const EventTargets*> _rightPressedHandlers;
+        Event<void, const EventTargets*> _rightReleasedHandlers;
+        Event<void, const EventTargets*> _wheelUpHandlers;
+        Event<void, const EventTargets*> _wheelDownHandlers;
 
         std::unique_ptr<Panel> _panel;
 
@@ -133,11 +133,8 @@ namespace zcom
             if (!_panel->GetMouseInsideArea())
                 _panel->OnMouseEnterArea();
 
-            Base* target = _panel->OnMouseMove(x, y);
-            if (target != nullptr && target != _panel.get())
-            {
-                _mouseMoveHandlers.InvokeAll(target, x, y);
-            }
+            auto targets = _panel->OnMouseMove(x, y);
+            _mouseMoveHandlers.InvokeAll(&targets);
         }
 
         void _OnMouseLeave()
@@ -153,66 +150,52 @@ namespace zcom
 
         void _OnLeftPressed(int x, int y)
         {
-            Base* target = _panel->OnLeftPressed(x, y);
+            auto targets = _panel->OnLeftPressed(x, y);
+            Base* mainTarget = targets.MainTarget();
 
             // Clear selection
-            ClearSelection(target);
+            ClearSelection(mainTarget);
 
-            if (target != nullptr && target != _panel.get())
+            if (mainTarget != nullptr && mainTarget != _panel.get())
             {
                 // Set selection
-                if (!target->Selected() && target->GetSelectable())
+                if (!mainTarget->Selected() && mainTarget->GetSelectable())
                 {
-                    target->OnSelected();
+                    mainTarget->OnSelected();
                 }
-
-                _leftPressedHandlers.InvokeAll(target, x, y);
             }
+
+            _leftPressedHandlers.InvokeAll(&targets);
         }
 
         void _OnLeftReleased(int x, int y)
         {
-            Base* target = _panel->OnLeftReleased(x, y);
-            if (target != nullptr && target != _panel.get())
-            {
-                _leftReleasedHandlers.InvokeAll(target, x, y);
-            }
+            auto targets = _panel->OnLeftReleased(x, y);
+            _leftReleasedHandlers.InvokeAll(&targets);
         }
 
         void _OnRightPressed(int x, int y)
         {
-            Base* target = _panel->OnRightPressed(x, y);
-            if (target != nullptr && target != _panel.get())
-            {
-                _rightPressedHandlers.InvokeAll(target, x, y);
-            }
+            auto targets = _panel->OnRightPressed(x, y);
+            _rightPressedHandlers.InvokeAll(&targets);
         }
 
         void _OnRightReleased(int x, int y)
         {
-            Base* target = _panel->OnRightReleased(x, y);
-            if (target != nullptr && target != _panel.get())
-            {
-                _rightReleasedHandlers.InvokeAll(target, x, y);
-            }
+            auto targets = _panel->OnRightReleased(x, y);
+            _rightReleasedHandlers.InvokeAll(&targets);
         }
 
         void _OnWheelUp(int x, int y)
         {
-            Base* target = _panel->OnWheelUp(x, y);
-            if (target != nullptr && target != _panel.get())
-            {
-                _wheelUpHandlers.InvokeAll(target, x, y);
-            }
+            auto targets = _panel->OnWheelUp(x, y);
+            _wheelUpHandlers.InvokeAll(&targets);
         }
 
         void _OnWheelDown(int x, int y)
         {
-            Base* target = _panel->OnWheelDown(x, y);
-            if (target != nullptr && target != _panel.get())
-            {
-                _wheelDownHandlers.InvokeAll(target, x, y);
-            }
+            auto targets = _panel->OnWheelDown(x, y);
+            _wheelDownHandlers.InvokeAll(&targets);
         }
 
         //
@@ -245,37 +228,37 @@ namespace zcom
         }
 
 
-        void AddOnMouseMove(std::function<void(Base*, int, int)> func)
+        void AddOnMouseMove(std::function<void(const EventTargets*)> func)
         {
             _mouseMoveHandlers.Add(func);
         }
 
-        void AddOnLeftPressed(std::function<void(Base*, int, int)> func)
+        void AddOnLeftPressed(std::function<void(const EventTargets*)> func)
         {
             _leftPressedHandlers.Add(func);
         }
 
-        void AddOnLeftReleased(std::function<void(Base*, int, int)> func)
+        void AddOnLeftReleased(std::function<void(const EventTargets*)> func)
         {
             _leftReleasedHandlers.Add(func);
         }
 
-        void AddOnRightPressed(std::function<void(Base*, int, int)> func)
+        void AddOnRightPressed(std::function<void(const EventTargets*)> func)
         {
             _rightPressedHandlers.Add(func);
         }
 
-        void AddOnRightReleased(std::function<void(Base*, int, int)> func)
+        void AddOnRightReleased(std::function<void(const EventTargets*)> func)
         {
             _rightReleasedHandlers.Add(func);
         }
 
-        void AddOnWheelUp(std::function<void(Base*, int, int)> func)
+        void AddOnWheelUp(std::function<void(const EventTargets*)> func)
         {
             _wheelUpHandlers.Add(func);
         }
 
-        void AddOnWheelDown(std::function<void(Base*, int, int)> func)
+        void AddOnWheelDown(std::function<void(const EventTargets*)> func)
         {
             _wheelDownHandlers.Add(func);
         }

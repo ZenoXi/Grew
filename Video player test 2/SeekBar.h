@@ -268,7 +268,7 @@ namespace zcom
 
         }
 
-        Base* _OnMouseMove(int x, int y)
+        EventTargets _OnMouseMove(int x, int y)
         {
             int timeTextWidth = ceilf(_maxTimeWidth) + _margins * 2;
             int seekBarWidth = GetWidth() - timeTextWidth * 2;
@@ -309,7 +309,7 @@ namespace zcom
                     _timeHovered = false;
                 }
             }
-            return this;
+            return EventTargets().Add(this, x, y);
         }
 
         void _OnMouseLeave()
@@ -326,12 +326,7 @@ namespace zcom
             _mouseHoverStart = ztime::Main();
         }
 
-        Base* _OnLeftPressed(int x, int y)
-        {
-            return this;
-        }
-
-        Base* _OnLeftReleased(int x, int y)
+        EventTargets _OnLeftReleased(int x, int y)
         {
             int timeTextWidth = ceilf(_maxTimeWidth) + _margins * 2;
             int seekBarWidth = GetWidth() - timeTextWidth * 2;
@@ -341,48 +336,10 @@ namespace zcom
                 double xPosNorm = xPos / (double)seekBarWidth;
                 _selectedTime = _duration.GetTicks() * xPosNorm;
             }
-            return this;
-        }
-
-        Base* _OnRightPressed(int x, int y)
-        {
-            return this;
-        }
-
-        Base* _OnRightReleased(int x, int y)
-        {
-            return this;
-        }
-
-        Base* _OnWheelUp(int x, int y)
-        {
-            return nullptr;
-        }
-
-        Base* _OnWheelDown(int x, int y)
-        {
-            return nullptr;
+            return EventTargets().Add(this, x, y);
         }
 
     public:
-        std::list<Base*> GetChildren()
-        {
-            return std::list<Base*>();
-        }
-
-        std::list<Base*> GetAllChildren()
-        {
-            return std::list<Base*>();
-        }
-
-        Base* IterateTab()
-        {
-            if (!Selected())
-                return this;
-            else
-                return nullptr;
-        }
-
         const char* GetName() const { return "seek_bar"; }
 #pragma endregion
 

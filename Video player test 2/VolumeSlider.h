@@ -103,7 +103,7 @@ namespace zcom
 
         }
 
-        Base* _OnMouseMove(int x, int y)
+        EventTargets _OnMouseMove(int x, int y)
         {
             if (_held)
             {
@@ -115,20 +115,10 @@ namespace zcom
                 float xPosNorm = xPos / (float)volumeSliderWidth;
                 SetValue(xPosNorm);
             }
-            return this;
+            return EventTargets().Add(this, x, y);
         }
 
-        void _OnMouseLeave()
-        {
-
-        }
-
-        void _OnMouseEnter()
-        {
-            _mouseHoverStart = ztime::Main();
-        }
-
-        Base* _OnLeftPressed(int x, int y)
+        EventTargets _OnLeftPressed(int x, int y)
         {
             int textWidth = ceilf(_maxTextWidth) + _margins * 2;
             int volumeSliderWidth = GetWidth() - textWidth - _margins;
@@ -139,62 +129,34 @@ namespace zcom
                 SetValue(xPosNorm);
                 _held = true;
             }
-            return this;
+            return EventTargets().Add(this, x, y);
         }
 
-        Base* _OnLeftReleased(int x, int y)
+        EventTargets _OnLeftReleased(int x, int y)
         {
             _held = false;
-            return this;
+            return EventTargets().Add(this, x, y);
         }
 
-        Base* _OnRightPressed(int x, int y)
-        {
-            return this;
-        }
-
-        Base* _OnRightReleased(int x, int y)
-        {
-            return this;
-        }
-
-        Base* _OnWheelUp(int x, int y)
+        EventTargets _OnWheelUp(int x, int y)
         {
             if (!_held)
             {
                 SetValue(_value + 0.05f);
             }
-            return this;
+            return EventTargets().Add(this, x, y);
         }
 
-        Base* _OnWheelDown(int x, int y)
+        EventTargets _OnWheelDown(int x, int y)
         {
             if (!_held)
             {
                 SetValue(_value - 0.05f);
             }
-            return this;
+            return EventTargets().Add(this, x, y);
         }
 
     public:
-        std::list<Base*> GetChildren()
-        {
-            return std::list<Base*>();
-        }
-
-        std::list<Base*> GetAllChildren()
-        {
-            return std::list<Base*>();
-        }
-
-        Base* IterateTab()
-        {
-            if (!Selected())
-                return this;
-            else
-                return nullptr;
-        }
-
         const char* GetName() const { return "volume_slider"; }
 #pragma endregion
 
