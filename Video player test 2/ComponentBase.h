@@ -87,6 +87,13 @@ namespace zcom
             return *this;
         }
 
+        void Remove(Base* item)
+        {
+            auto it = std::find_if(_targets.begin(), _targets.end(), [item](Params p) { return p.target == item; });
+            if (it != _targets.end())
+                _targets.erase(it);
+        }
+
         bool Empty() const
         {
             return _targets.empty();
