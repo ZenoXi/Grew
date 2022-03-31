@@ -134,6 +134,7 @@ namespace zcom
                 _panel->OnMouseEnterArea();
 
             auto targets = _panel->OnMouseMove(x, y);
+            targets.Remove(_panel.get());
             _mouseMoveHandlers.InvokeAll(&targets);
         }
 
@@ -151,12 +152,13 @@ namespace zcom
         void _OnLeftPressed(int x, int y)
         {
             auto targets = _panel->OnLeftPressed(x, y);
+            targets.Remove(_panel.get());
             Base* mainTarget = targets.MainTarget();
 
             // Clear selection
             ClearSelection(mainTarget);
 
-            if (mainTarget != nullptr && mainTarget != _panel.get())
+            if (mainTarget != nullptr)
             {
                 // Set selection
                 if (!mainTarget->Selected() && mainTarget->GetSelectable())
@@ -171,30 +173,35 @@ namespace zcom
         void _OnLeftReleased(int x, int y)
         {
             auto targets = _panel->OnLeftReleased(x, y);
+            targets.Remove(_panel.get());
             _leftReleasedHandlers.InvokeAll(&targets);
         }
 
         void _OnRightPressed(int x, int y)
         {
             auto targets = _panel->OnRightPressed(x, y);
+            targets.Remove(_panel.get());
             _rightPressedHandlers.InvokeAll(&targets);
         }
 
         void _OnRightReleased(int x, int y)
         {
             auto targets = _panel->OnRightReleased(x, y);
+            targets.Remove(_panel.get());
             _rightReleasedHandlers.InvokeAll(&targets);
         }
 
         void _OnWheelUp(int x, int y)
         {
             auto targets = _panel->OnWheelUp(x, y);
+            targets.Remove(_panel.get());
             _wheelUpHandlers.InvokeAll(&targets);
         }
 
         void _OnWheelDown(int x, int y)
         {
             auto targets = _panel->OnWheelDown(x, y);
+            targets.Remove(_panel.get());
             _wheelDownHandlers.InvokeAll(&targets);
         }
 
