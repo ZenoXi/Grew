@@ -74,6 +74,11 @@ void Scene::Resize(int width, int height)
     _Resize(width, height);
 }
 
+zcom::Canvas* Scene::GetCanvas() const
+{
+    return _canvas;
+}
+
 void Scene::SetNotificationPosition(NotificationPosition position)
 {
     if (_notificationPosition != position)

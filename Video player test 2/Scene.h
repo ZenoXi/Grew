@@ -41,6 +41,8 @@ public:
     ID2D1Bitmap1* Draw(Graphics g);
     void Resize(int width, int height);
 
+    zcom::Canvas* GetCanvas() const;
+
 private:
     virtual void _Init(const SceneOptionsBase* options) = 0;
     virtual void _Uninit() = 0;
