@@ -891,6 +891,7 @@ namespace zcom
                 }
             }
             _items.clear();
+            _selectableItems.clear();
         }
 
         void ReindexTabOrder()
