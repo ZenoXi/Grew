@@ -22,6 +22,7 @@
 #include "PauseIcon.h"
 #include "ResumeIcon.h"
 #include "VolumeIcon.h"
+#include "MenuPanel.h"
 
 class PlaybackShortcutHandler : public KeyboardEventHandler
 {
@@ -53,8 +54,6 @@ class PlaybackScene : public Scene
     zcom::PlayButton* _playButton = nullptr;
     zcom::PlaybackControllerPanel* _playbackControllerPanel = nullptr;
     zcom::Button* _overlayButton = nullptr;
-    zcom::Button* _audioStreamButton = nullptr;
-    zcom::Button* _subtitleStreamButton = nullptr;
     zcom::LoadingCircle* _loadingCircle = nullptr;
     std::unique_ptr<zcom::FastForwardIcon> _skipBackwardsIcon = nullptr;
     std::unique_ptr<zcom::FastForwardIcon> _skipForwardsIcon = nullptr;
@@ -64,6 +63,12 @@ class PlaybackScene : public Scene
     std::unique_ptr<zcom::Panel> _timeHoverPanel = nullptr;
     std::unique_ptr<zcom::Label> _timeLabel = nullptr;
     std::unique_ptr<zcom::Label> _chapterLabel = nullptr;
+
+    std::unique_ptr<zcom::Button> _streamButton = nullptr;
+    std::unique_ptr<zcom::MenuPanel> _streamMenuPanel = nullptr;
+    std::unique_ptr<zcom::MenuPanel> _videoStreamMenuPanel = nullptr;
+    std::unique_ptr<zcom::MenuPanel> _audioStreamMenuPanel = nullptr;
+    std::unique_ptr<zcom::MenuPanel> _subtitleStreamMenuPanel = nullptr;
 
     std::unique_ptr<PlaybackShortcutHandler> _shortcutHandler = nullptr;
 

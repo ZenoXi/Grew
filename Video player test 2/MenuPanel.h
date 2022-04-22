@@ -1,0 +1,267 @@
+#pragma once
+
+#include "Panel.h"
+#include "MenuItem.h"
+
+namespace zcom
+{
+    class Canvas;
+
+    class MenuPanel : public Panel
+    {
+#pragma region base_class
+    protected:
+        void _OnUpdate()
+        {
+            Panel::_OnUpdate();
+
+            // Hide panel
+            if (_childShouldHide && (ztime::Main() - _childHoverEndTime).GetDuration(MILLISECONDS) >= 250)
+            {
+                if (_openChildPanel)
+                {
+                    _openChildPanel->Hide();
+                    _openChildPanel = nullptr;
+                }
+                _childShouldHide = false;
+            }
+
+            // Show panel
+            if (_childToShow && (ztime::Main() - _childHoverStartTime).GetDuration(MILLISECONDS) >= 250)
+            {
+                if (_openChildPanel)
+                {
+                    _openChildPanel->Hide();
+                    _openChildPanel = nullptr;
+                }
+                _openChildPanel = _childToShow;
+                _openChildPanel->Show(_bounds, _parentRect, this);
+                _childToShow = nullptr;
+            }
+        }
+
+        EventTargets _OnMouseMove(int x, int y)
+        {
+            auto targets = Panel::_OnMouseMove(x, y);
+            Base* mainTarget = targets.MainTarget();
+            auto it = std::find_if(_menuItems.begin(), _menuItems.end(), [mainTarget](std::unique_ptr<MenuItem>& item) { return item.get() == mainTarget; });
+            if (it != _menuItems.end())
+            {
+                MenuItem* item = it->get();
+
+                if (_hoveredItem)
+                    _hoveredItem->SetBackgroundColor(D2D1::ColorF(0, 0.0f));
+                _hoveredItem = item;
+                if (!_hoveredItem->IsSeparator())
+                    _hoveredItem->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f));
+
+                // Stop scheduled hide
+                if (_openChildPanel && item->GetMenuPanel() == _openChildPanel)
+                {
+                    _childShouldHide = false;
+                }
+
+                // Stop scheduled show
+                if (_childToShow && item->GetMenuPanel() != _childToShow)
+                {
+                    _childToShow = nullptr;
+                }
+
+                // Prime open panel to hide
+                if (_openChildPanel && item->GetMenuPanel() != _openChildPanel)
+                {
+                    if (!_childShouldHide)
+                    {
+                        _childShouldHide = true;
+                        _childHoverEndTime = ztime::Main();
+                    }
+                }
+
+                // Prime panel to open
+                if (item->GetMenuPanel() && item->GetMenuPanel() != _openChildPanel)
+                {
+                    if (!_childToShow)
+                    {
+                        _childToShow = item->GetMenuPanel();
+                        _childHoverStartTime = ztime::Main();
+                        // RECT describing this 'item' in MenuPanel plane coordinates
+                        _parentRect = {
+                            GetX() + 0,
+                            GetY() + item->GetY(),
+                            GetX() + GetWidth(),
+                            GetY() + item->GetY() + item->GetHeight()
+                        };
+                    }
+                }
+
+            }
+
+            return std::move(targets.Add(this, x, y));
+        }
+
+    public:
+        const char* GetName() const { return "menu_panel"; }
+#pragma endregion
+
+    private:
+        Canvas* _sceneCanvas = nullptr;
+        MenuPanel* _parentPanel = nullptr;
+        MenuPanel* _openChildPanel = nullptr;
+        MenuItem* _hoveredItem = nullptr;
+
+        std::vector<std::unique_ptr<MenuItem>> _menuItems;
+
+        RECT _bounds = { 0, 0, 0, 0 };
+        RECT _parentRect = { 0, 0, 0, 0 };
+
+        TimePoint _childHoverStartTime = 0;
+        MenuPanel* _childToShow = nullptr;
+        TimePoint _childHoverEndTime = 0;
+        bool _childShouldHide = false;
+
+        TimePoint _showTime = 0;
+
+    public:
+        MenuPanel(Canvas* sceneCanvas)
+        {
+            _sceneCanvas = sceneCanvas;
+            _AddHandlerToCanvas();
+
+            SetBackgroundColor(D2D1::ColorF(0.05f, 0.05f, 0.05f));
+            SetBorderVisibility(true);
+            SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+            zcom::PROP_Shadow shadow;
+            shadow.color = D2D1::ColorF(0);
+            shadow.offsetX = 2.0f;
+            shadow.offsetY = 2.0f;
+            SetProperty(shadow);
+            SetVisible(false);
+        }
+        ~MenuPanel() {}
+        MenuPanel(MenuPanel&&) = delete;
+        MenuPanel& operator=(MenuPanel&&) = delete;
+        MenuPanel(const MenuPanel&) = delete;
+        MenuPanel& operator=(const MenuPanel&) = delete;
+
+        void AddMenuItem(std::unique_ptr<MenuItem> item)
+        {
+            AddItem(item.get());
+            _menuItems.push_back(std::move(item));
+            _RearrangeMenuItems();
+        }
+
+        void ClearMenuItems()
+        {
+            for (auto& item : _menuItems)
+            {
+                RemoveItem(item.get());
+            }
+            _menuItems.clear();
+            _RearrangeMenuItems();
+        }
+
+        void Show(RECT bounds, RECT parentRect, MenuPanel* parentPanel = nullptr)
+        {
+            _bounds = bounds;
+            _parentRect = parentRect;
+            _parentPanel = parentPanel;
+
+            _CalculatePlacement();
+            // Place this panel above parent
+            if (_parentPanel)
+                SetZIndex(_parentPanel->GetZIndex() + 1);
+            SetVisible(true);
+            _showTime = ztime::Main();
+        }
+
+        void Hide()
+        {
+            if (_openChildPanel)
+            {
+                _openChildPanel->Hide();
+                _openChildPanel = nullptr;
+            }
+            if (_hoveredItem)
+                _hoveredItem->SetBackgroundColor(D2D1::ColorF(0, 0.0f));
+            SetVisible(false);
+        }
+
+        // Called by child MenuPanel when it closes itself
+        void OnChildClosed(const EventTargets* targets)
+        {
+            _openChildPanel = nullptr;
+            if (!targets->Contains(this))
+            {
+                Hide();
+                if (_parentPanel)
+                    _parentPanel->OnChildClosed(targets);
+            }
+        }
+
+    private:
+        void _AddHandlerToCanvas();
+
+        void _RearrangeMenuItems()
+        {
+            Resize();
+            int totalHeight = 0;
+            for (int i = 0; i < _menuItems.size(); i++)
+            {
+                _menuItems[i]->SetVerticalOffsetPixels(totalHeight);
+                totalHeight += _menuItems[i]->GetHeight();
+            }
+            //Resize();
+            SetBaseHeight(totalHeight);
+            //SetHeight(totalHeight);
+            _CalculatePlacement();
+        }
+
+        void _CalculatePlacement()
+        {
+            constexpr int LEFT = 1;
+            constexpr int RIGHT = 2;
+            constexpr int UP = 1;
+            constexpr int DOWN = 2;
+
+            // Horizontal placement
+            int hPlacement;
+            if (_parentRect.right - 3 + GetWidth() < _bounds.right)
+                hPlacement = RIGHT;
+            else if (_parentRect.left + 3 - GetWidth() > _bounds.left)
+                hPlacement = LEFT;
+            else
+                if (_bounds.right - (_parentRect.right - 3) > (_parentRect.left + 3) - _bounds.left)
+                    hPlacement = RIGHT;
+                else
+                    hPlacement = LEFT;
+
+            // Vertical placement
+            int vPlacement;
+            if (_parentRect.top + GetHeight() < _bounds.bottom)
+                vPlacement = DOWN;
+            else if (_parentRect.bottom - GetHeight() > _bounds.top)
+                vPlacement = UP;
+            else
+                if (_bounds.bottom - _parentRect.top > _parentRect.bottom - _bounds.top)
+                    vPlacement = DOWN;
+                else
+                    vPlacement = UP;
+
+            // Final x position
+            int xPos;
+            if (hPlacement == RIGHT)
+                xPos = _parentRect.right - 3;
+            else
+                xPos = _parentRect.left + 3 - GetWidth();
+
+            // Final y position
+            int yPos;
+            if (vPlacement == DOWN)
+                yPos = _parentRect.top;
+            else
+                yPos = _parentRect.bottom - GetHeight();
+
+            SetOffsetPixels(xPos, yPos);
+        }
+    };
+}
