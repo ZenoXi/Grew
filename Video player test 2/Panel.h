@@ -44,6 +44,14 @@ namespace zcom
     protected:
         void _OnUpdate()
         {
+            // Recalculate layout if child layouts changed
+            if (_layoutChanged)
+            {
+                _RecalculateLayout(GetWidth(), GetHeight());
+                OnMouseMove(GetMousePosX(), GetMousePosY());
+                _layoutChanged = false;
+            }
+
             // Fade vertical scrollbar
             if (_verticalScrollBar.visible)
             {
@@ -277,7 +285,7 @@ namespace zcom
 
                 float opacity = 0.5f * _verticalScrollBar.opacity;
                 ID2D1SolidColorBrush* brush = nullptr;
-                g.target->CreateSolidColorBrush(D2D1::ColorF(1.0f, 1.0f, 1.0f, opacity), &brush);
+                g.target->CreateSolidColorBrush(D2D1::ColorF(0.7f, 0.7f, 0.7f, opacity), &brush);
                 ID2D1StrokeStyle1* style = nullptr;
                 g.factory->CreateStrokeStyle
                 (
@@ -323,66 +331,7 @@ namespace zcom
 
         void _OnResize(int width, int height)
         {
-            // Calculate item sizes and positions
-            int maxRightEdge = 0;
-            int maxBottomEdge = 0;
-            for (auto& _item : _items)
-            {
-                Base* item = _item.item;
-
-                int newWidth = (int)std::round(GetWidth() * item->GetParentWidthPercent()) + item->GetBaseWidth();
-                int newHeight = (int)std::round(GetHeight() * item->GetParentHeightPercent()) + item->GetBaseHeight();
-                // SetSize does limit checking so the resulting size and newWidth/newHeight can mismatch
-                item->SetSize(newWidth, newHeight);
-
-                int newPosX = 0;
-                if (item->GetHorizontalAlignment() == Alignment::START)
-                {
-                    newPosX += std::round((GetWidth() - item->GetWidth()) * item->GetHorizontalOffsetPercent());
-                }
-                else if (item->GetHorizontalAlignment() == Alignment::CENTER)
-                {
-                    newPosX = (GetWidth() - item->GetWidth()) / 2;
-                }
-                else if (item->GetHorizontalAlignment() == Alignment::END)
-                {
-                    newPosX = GetWidth() - item->GetWidth();
-                    newPosX -= std::round((GetWidth() - item->GetWidth()) * item->GetHorizontalOffsetPercent());
-                }
-                newPosX += item->GetHorizontalOffsetPixels();
-                newPosX += _margins.left;
-                // Alternative (no branching):
-                // int align = item->GetHorizontalAlignment() == Alignment::END;
-                // newPosX += align * (_width - item->GetWidth());
-                // newPosX += (-1 * align) * std::round((_width - item->GetWidth()) * item->GetHorizontalOffsetPercent());
-                // newPosX += item->GetHorizontalOffsetPixels();
-                int newPosY = 0;
-                if (item->GetVerticalAlignment() == Alignment::START)
-                {
-                    newPosY += std::round((GetHeight() - item->GetHeight()) * item->GetVerticalOffsetPercent());
-                }
-                else if (item->GetVerticalAlignment() == Alignment::CENTER)
-                {
-                    newPosY = (GetHeight() - item->GetHeight()) / 2;
-                }
-                else if (item->GetVerticalAlignment() == Alignment::END)
-                {
-                    newPosY = GetHeight() - item->GetHeight();
-                    newPosY -= std::round((GetHeight() - item->GetHeight()) * item->GetVerticalOffsetPercent());
-                }
-                newPosY += item->GetVerticalOffsetPixels();
-                newPosY += _margins.top;
-
-                item->SetPosition(newPosX, newPosY);
-                item->Resize(item->GetWidth(), item->GetHeight());
-
-                if (newPosX + item->GetWidth() > maxRightEdge)
-                    maxRightEdge = newPosX + item->GetWidth();
-                if (newPosY + item->GetHeight() > maxBottomEdge)
-                    maxBottomEdge = newPosY + item->GetHeight();
-            }
-            _contentWidth = maxRightEdge + _margins.right;
-            _contentHeight = maxBottomEdge + _margins.bottom;
+            _RecalculateLayout(width, height);
         }
 
         EventTargets _OnMouseMove(int x, int y)
@@ -780,11 +729,80 @@ namespace zcom
 #pragma endregion
 
     private:
+        void _RecalculateLayout(int width, int height)
+        {
+            // Calculate item sizes and positions
+            int maxRightEdge = 0;
+            int maxBottomEdge = 0;
+            for (auto& _item : _items)
+            {
+                Base* item = _item.item;
+
+                int newWidth = (int)std::round(GetWidth() * item->GetParentWidthPercent()) + item->GetBaseWidth();
+                int newHeight = (int)std::round(GetHeight() * item->GetParentHeightPercent()) + item->GetBaseHeight();
+                // SetSize does limit checking so the resulting size and newWidth/newHeight can mismatch
+                item->SetSize(newWidth, newHeight);
+
+                int newPosX = 0;
+                if (item->GetHorizontalAlignment() == Alignment::START)
+                {
+                    newPosX += std::round((GetWidth() - item->GetWidth()) * item->GetHorizontalOffsetPercent());
+                }
+                else if (item->GetHorizontalAlignment() == Alignment::CENTER)
+                {
+                    newPosX = (GetWidth() - item->GetWidth()) / 2;
+                }
+                else if (item->GetHorizontalAlignment() == Alignment::END)
+                {
+                    newPosX = GetWidth() - item->GetWidth();
+                    newPosX -= std::round((GetWidth() - item->GetWidth()) * item->GetHorizontalOffsetPercent());
+                }
+                newPosX += item->GetHorizontalOffsetPixels();
+                newPosX += _margins.left;
+                // Alternative (no branching):
+                // int align = item->GetHorizontalAlignment() == Alignment::END;
+                // newPosX += align * (_width - item->GetWidth());
+                // newPosX += (-1 * align) * std::round((_width - item->GetWidth()) * item->GetHorizontalOffsetPercent());
+                // newPosX += item->GetHorizontalOffsetPixels();
+                int newPosY = 0;
+                if (item->GetVerticalAlignment() == Alignment::START)
+                {
+                    newPosY += std::round((GetHeight() - item->GetHeight()) * item->GetVerticalOffsetPercent());
+                }
+                else if (item->GetVerticalAlignment() == Alignment::CENTER)
+                {
+                    newPosY = (GetHeight() - item->GetHeight()) / 2;
+                }
+                else if (item->GetVerticalAlignment() == Alignment::END)
+                {
+                    newPosY = GetHeight() - item->GetHeight();
+                    newPosY -= std::round((GetHeight() - item->GetHeight()) * item->GetVerticalOffsetPercent());
+                }
+                newPosY += item->GetVerticalOffsetPixels();
+                newPosY += _margins.top;
+
+                item->SetPosition(newPosX, newPosY);
+                item->Resize(item->GetWidth(), item->GetHeight());
+
+                if (newPosX + item->GetWidth() > maxRightEdge)
+                    maxRightEdge = newPosX + item->GetWidth();
+                if (newPosY + item->GetHeight() > maxBottomEdge)
+                    maxBottomEdge = newPosY + item->GetHeight();
+            }
+            _contentWidth = maxRightEdge + _margins.right;
+            _contentHeight = maxBottomEdge + _margins.bottom;
+
+            // Resend mouse move
+
+        }
+
+    private:
         struct Item
         {
             Base* item;
             bool owned;
             bool hasShadow;
+            bool layoutChanged;
         };
 
         std::vector<Item> _items;
@@ -795,6 +813,9 @@ namespace zcom
 
         // Margins
         RECT _margins = { 0, 0, 0, 0 };
+
+        // Auto child resize
+        bool _layoutChanged = false;
 
         // Scrolling
         struct _ScrollAnimation
@@ -846,7 +867,19 @@ namespace zcom
 
         void AddItem(Base* item, bool transferOwnership = false)
         {
-            _items.push_back({ item, transferOwnership, false });
+            _items.push_back({ item, transferOwnership, false, false });
+            item->AddOnLayoutChanged([&, item]()
+            {
+                for (int i = 0; i < _items.size(); i++)
+                {
+                    if (_items[i].item == item)
+                    {
+                        _items[i].layoutChanged = true;
+                        _layoutChanged = true;
+                        return;
+                    }
+                }
+            }, { this, "" });
             ReindexTabOrder();
         }
 
@@ -856,6 +889,7 @@ namespace zcom
             {
                 if (_items[i].item == item)
                 {
+                    _items[i].item->RemoveOnLayoutChanged({ this, "" });
                     if (_items[i].owned)
                         delete _items[i].item;
                     _items.erase(_items.begin() + i);
@@ -866,6 +900,7 @@ namespace zcom
 
         void RemoveItem(int index)
         {
+            _items[index].item->RemoveOnLayoutChanged({ this, "" });
             if (_items[index].owned)
                 delete _items[index].item;
             _items.erase(_items.begin() + index);
@@ -885,6 +920,7 @@ namespace zcom
         {
             for (int i = 0; i < _items.size(); i++)
             {
+                _items[i].item->RemoveOnLayoutChanged({ this, "" });
                 if (_items[i].owned)
                 {
                     delete _items[i].item;
