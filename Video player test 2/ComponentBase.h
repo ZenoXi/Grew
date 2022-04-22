@@ -159,14 +159,6 @@ namespace zcom
         int _tabIndex = -1;
         int _zIndex = -1;
 
-        // Events
-        bool _mouseInside = false;
-        bool _mouseInsideArea = false;
-        bool _mouseLeftClicked = false;
-        bool _mouseRightClicked = false;
-        int _mousePosX = 0;
-        int _mousePosY = 0;
-
         // Border
         bool _borderVisible = false;
         float _borderWidth = 1.0f;
@@ -182,6 +174,28 @@ namespace zcom
 
         // Other properties
         std::unordered_map<std::string, std::unique_ptr<Property>> _properties;
+
+        // Mouse events
+        bool _mouseInside = false;
+        bool _mouseInsideArea = false;
+        bool _mouseLeftClicked = false;
+        bool _mouseRightClicked = false;
+        int _mousePosX = 0;
+        int _mousePosY = 0;
+        Event<void, int, int> _onMouseMove;
+        Event<void> _onMouseEnter;
+        Event<void> _onMouseEnterArea;
+        Event<void> _onMouseLeave;
+        Event<void> _onMouseLeaveArea;
+        Event<void, int, int> _onLeftPressed;
+        Event<void, int, int> _onRightPressed;
+        Event<void, int, int> _onLeftReleased;
+        Event<void, int, int> _onRightReleased;
+        Event<void, int, int> _onWheelUp;
+        Event<void, int, int> _onWheelDown;
+
+        // Layout events
+        Event<void> _onLayoutChanged;
 
     public:
         Base() {}
@@ -204,42 +218,45 @@ namespace zcom
 
         void SetHorizontalAlignment(Alignment alignment)
         {
-            _hPosAlign = alignment;
+            SetAlignment(alignment, GetVerticalAlignment());
         }
         void SetVerticalAlignment(Alignment alignment)
         {
-            _vPosAlign = alignment;
+            SetAlignment(GetHorizontalAlignment(), alignment);
         }
         void SetAlignment(Alignment horizontal, Alignment vertical)
         {
-            SetHorizontalAlignment(horizontal);
-            SetVerticalAlignment(vertical);
+            _hPosAlign = horizontal;
+            _vPosAlign = vertical;
+            _onLayoutChanged.InvokeAll();
         }
         void SetHorizontalOffsetPercent(float offset)
         {
-            _hPosPercentOffset = offset;
+            SetOffsetPercent(offset, GetVerticalOffsetPercent());
         }
         void SetVerticalOffsetPercent(float offset)
         {
-            _vPosPercentOffset = offset;
+            SetOffsetPercent(GetHorizontalOffsetPercent(), offset);
         }
         void SetOffsetPercent(float horizontal, float vertical)
         {
-            SetHorizontalOffsetPercent(horizontal);
-            SetVerticalOffsetPercent(vertical);
+            _hPosPercentOffset = horizontal;
+            _vPosPercentOffset = vertical;
+            _onLayoutChanged.InvokeAll();
         }
         void SetHorizontalOffsetPixels(int offset)
         {
-            _hPosPixelOffset = offset;
+            SetOffsetPixels(offset, GetVerticalOffsetPixels());
         }
         void SetVerticalOffsetPixels(int offset)
         {
-            _vPosPixelOffset = offset;
+            SetOffsetPixels(GetHorizontalOffsetPixels(), offset);
         }
         void SetOffsetPixels(int horizontal, int vertical)
         {
-            SetHorizontalOffsetPixels(horizontal);
-            SetVerticalOffsetPixels(vertical);
+            _hPosPixelOffset = horizontal;
+            _vPosPixelOffset = vertical;
+            _onLayoutChanged.InvokeAll();
         }
 
         // Size description
@@ -250,29 +267,31 @@ namespace zcom
 
         void SetParentWidthPercent(float width)
         {
-            _hSizeParentPercent = width;
+            SetParentSizePercent(width, GetParentHeightPercent());
         }
         void SetParentHeightPercent(float height)
         {
-            _vSizeParentPercent = height;
+            SetParentSizePercent(GetParentWidthPercent(), height);
         }
         void SetParentSizePercent(float width, float height)
         {
-            SetParentWidthPercent(width);
-            SetParentHeightPercent(width);
+            _hSizeParentPercent = width;
+            _vSizeParentPercent = height;
+            _onLayoutChanged.InvokeAll();
         }
         void SetBaseWidth(int width)
         {
-            _hSize = width;
+            SetBaseSize(width, GetBaseHeight());
         }
         void SetBaseHeight(int height)
         {
-            _vSize = height;
+            SetBaseSize(GetBaseWidth(), height);
         }
         void SetBaseSize(int width, int height)
         {
-            SetBaseWidth(width);
-            SetBaseHeight(height);
+            _hSize = width;
+            _vSize = height;
+            _onLayoutChanged.InvokeAll();
         }
 
         // Common
@@ -449,13 +468,14 @@ namespace zcom
             _properties.erase(_Prop::_NAME_());
         }
 
-        // Events
+        // Mouse events
         EventTargets OnMouseMove(int x, int y)
         {
             if (!_active) return EventTargets();
 
             _mousePosX = x;
             _mousePosY = y;
+            _onMouseMove.InvokeAll(x, y);
             return _OnMouseMove(x, y);
         }
         void OnMouseEnter()
@@ -464,6 +484,7 @@ namespace zcom
             if (_mouseInside) return;
 
             _mouseInside = true;
+            _onMouseEnter.InvokeAll();
             _OnMouseEnter();
         }
         void OnMouseLeave()
@@ -472,6 +493,7 @@ namespace zcom
             if (!_mouseInside) return;
 
             _mouseInside = false;
+            _onMouseLeave.InvokeAll();
             _OnMouseLeave();
         }
         void OnMouseEnterArea()
@@ -480,6 +502,7 @@ namespace zcom
             if (_mouseInsideArea) return;
 
             _mouseInsideArea = true;
+            _onMouseEnterArea.InvokeAll();
             _OnMouseEnterArea();
         }
         void OnMouseLeaveArea()
@@ -488,6 +511,7 @@ namespace zcom
             if (!_mouseInsideArea) return;
 
             _mouseInsideArea = false;
+            _onMouseLeaveArea.InvokeAll();
             _OnMouseLeaveArea();
         }
         EventTargets OnLeftPressed(int x, int y)
@@ -496,6 +520,7 @@ namespace zcom
             if (_mouseLeftClicked) return EventTargets();
 
             _mouseLeftClicked = true;
+            _onLeftPressed.InvokeAll(x, y);
             return _OnLeftPressed(x, y);
         }
         EventTargets OnLeftReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min())
@@ -504,6 +529,7 @@ namespace zcom
             if (!_mouseLeftClicked) return EventTargets();
 
             _mouseLeftClicked = false;
+            _onLeftReleased.InvokeAll(x, y);
             return _OnLeftReleased(x, y);
         }
         EventTargets OnRightPressed(int x, int y)
@@ -512,6 +538,7 @@ namespace zcom
             if (_mouseRightClicked) return EventTargets();
 
             _mouseRightClicked = true;
+            _onRightPressed.InvokeAll(x, y);
             return _OnRightPressed(x, y);
         }
         EventTargets OnRightReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min())
@@ -520,18 +547,21 @@ namespace zcom
             if (!_mouseRightClicked) return EventTargets();
 
             _mouseRightClicked = false;
+            _onRightReleased.InvokeAll(x, y);
             return _OnRightReleased(x, y);
         }
         EventTargets OnWheelUp(int x, int y)
         {
             if (!_active) return EventTargets();
 
+            _onWheelUp.InvokeAll(x, y);
             return _OnWheelUp(x, y);
         }
         EventTargets OnWheelDown(int x, int y)
         {
             if (!_active) return EventTargets();
 
+            _onWheelDown.InvokeAll(x, y);
             return _OnWheelDown(x, y);
         }
         void OnSelected()
@@ -571,6 +601,107 @@ namespace zcom
         bool GetMouseRightClicked() const { return _mouseRightClicked; }
         int GetMousePosX() const { return _mousePosX; }
         int GetMousePosY() const { return _mousePosY; }
+
+        void AddOnMouseMove(std::function<void(int, int)> handler, EventInfo info = { nullptr, "" })
+        {
+            _onMouseMove.Add(handler, info);
+        }
+        void AddOnMouseEnter(std::function<void()> handler, EventInfo info = { nullptr, "" })
+        {
+            _onMouseEnter.Add(handler, info);
+        }
+        void AddOnMouseLeave(std::function<void()> handler, EventInfo info = { nullptr, "" })
+        {
+            _onMouseLeave.Add(handler, info);
+        }
+        void AddOnMouseEnterArea(std::function<void()> handler, EventInfo info = { nullptr, "" })
+        {
+            _onMouseEnterArea.Add(handler, info);
+        }
+        void AddOnMouseLeaveArea(std::function<void()> handler, EventInfo info = { nullptr, "" })
+        {
+            _onMouseLeaveArea.Add(handler, info);
+        }
+        void AddOnLeftPressed(std::function<void(int, int)> handler, EventInfo info = { nullptr, "" })
+        {
+            _onLeftPressed.Add(handler, info);
+        }
+        void AddOnRightPressed(std::function<void(int, int)> handler, EventInfo info = { nullptr, "" })
+        {
+            _onRightPressed.Add(handler, info);
+        }
+        void AddOnLeftReleased(std::function<void(int, int)> handler, EventInfo info = { nullptr, "" })
+        {
+            _onLeftReleased.Add(handler, info);
+        }
+        void AddOnRightReleased(std::function<void(int, int)> handler, EventInfo info = { nullptr, "" })
+        {
+            _onRightReleased.Add(handler, info);
+        }
+        void AddOnWheelUp(std::function<void(int, int)> handler, EventInfo info = { nullptr, "" })
+        {
+            _onWheelUp.Add(handler, info);
+        }
+        void AddOnWheelDown(std::function<void(int, int)> handler, EventInfo info = { nullptr, "" })
+        {
+            _onWheelDown.Add(handler, info);
+        }
+
+        void RemoveOnMouseMove(EventInfo info = { nullptr, "" })
+        {
+            _onMouseMove.Remove(info);
+        }
+        void RemoveOnMouseEnter(EventInfo info = { nullptr, "" })
+        {
+            _onMouseEnter.Remove(info);
+        }
+        void RemoveOnMouseLeave(EventInfo info = { nullptr, "" })
+        {
+            _onMouseLeave.Remove(info);
+        }
+        void RemoveOnMouseEnterArea(EventInfo info = { nullptr, "" })
+        {
+            _onMouseEnterArea.Remove(info);
+        }
+        void RemoveOnMouseLeaveArea(EventInfo info = { nullptr, "" })
+        {
+            _onMouseLeaveArea.Remove(info);
+        }
+        void RemoveOnLeftPressed(EventInfo info = { nullptr, "" })
+        {
+            _onLeftPressed.Remove(info);
+        }
+        void RemoveOnRightPressed(EventInfo info = { nullptr, "" })
+        {
+            _onRightPressed.Remove(info);
+        }
+        void RemoveOnLeftReleased(EventInfo info = { nullptr, "" })
+        {
+            _onLeftReleased.Remove(info);
+        }
+        void RemoveOnRightReleased(EventInfo info = { nullptr, "" })
+        {
+            _onRightReleased.Remove(info);
+        }
+        void RemoveOnWheelUp(EventInfo info = { nullptr, "" })
+        {
+            _onWheelUp.Remove(info);
+        }
+        void RemoveOnWheelDown(EventInfo info = { nullptr, "" })
+        {
+            _onWheelDown.Remove(info);
+        }
+
+        // Layout events
+        void AddOnLayoutChanged(std::function<void()> handler, EventInfo info = { nullptr, "" })
+        {
+            _onLayoutChanged.Add(handler, info);
+        }
+
+        void RemoveOnLayoutChanged(EventInfo info = { nullptr, "" })
+        {
+            _onLayoutChanged.Remove(info);
+        }
 
         // Main functions
         void Update()
