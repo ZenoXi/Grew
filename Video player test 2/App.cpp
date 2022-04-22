@@ -336,11 +336,18 @@ void App::LoopThread()
         //);
 
         //frame->Release();
-        for (int i = 0; i < ActiveScenes().size(); i++)
+        auto activeScenes = ActiveScenes();
+        for (auto& scene : activeScenes)
         {
-            auto scene = ActiveScenes()[i];
+            auto updatedActiveScenes = ActiveScenes();
+            if (std::find(updatedActiveScenes.begin(), updatedActiveScenes.end(), scene) == updatedActiveScenes.end())
+                continue;
             scene->Update();
-            scene->Draw(window.gfx.GetGraphics());
+            
+            // Double checking is necessary because 'scene->Update()' can uninit other scenes
+            updatedActiveScenes = ActiveScenes();
+            if (std::find(updatedActiveScenes.begin(), updatedActiveScenes.end(), scene) != updatedActiveScenes.end())
+                scene->Draw(window.gfx.GetGraphics());
         }
 
         //// Draw UI
