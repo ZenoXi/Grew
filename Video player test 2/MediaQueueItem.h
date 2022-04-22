@@ -56,6 +56,7 @@ namespace zcom
         void _OnResize(int width, int height)
         {
             _mainPanel->SetSize(GetWidth(), GetHeight());
+            _mainPanel->SetScreenPosition(GetScreenX(), GetScreenY());
             _mainPanel->Resize();
         }
 

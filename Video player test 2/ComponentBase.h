@@ -147,6 +147,8 @@ namespace zcom
         // Main
         int _x = 0;
         int _y = 0;
+        int _screenX = 0;
+        int _screenY = 0;
         int _width = 100;
         int _height = 100;
         float _opacity = 1.0f;
@@ -226,9 +228,15 @@ namespace zcom
         }
         void SetAlignment(Alignment horizontal, Alignment vertical)
         {
+            bool changed = false;
+            if (_hPosAlign != horizontal || _vPosAlign != vertical)
+                changed = true;
+
             _hPosAlign = horizontal;
             _vPosAlign = vertical;
-            _onLayoutChanged.InvokeAll();
+
+            if (changed)
+                _onLayoutChanged.InvokeAll();
         }
         void SetHorizontalOffsetPercent(float offset)
         {
@@ -240,9 +248,15 @@ namespace zcom
         }
         void SetOffsetPercent(float horizontal, float vertical)
         {
+            bool changed = false;
+            if (_hPosPercentOffset != horizontal || _vPosPercentOffset != vertical)
+                changed = true;
+
             _hPosPercentOffset = horizontal;
             _vPosPercentOffset = vertical;
-            _onLayoutChanged.InvokeAll();
+
+            if (changed)
+                _onLayoutChanged.InvokeAll();
         }
         void SetHorizontalOffsetPixels(int offset)
         {
@@ -254,9 +268,15 @@ namespace zcom
         }
         void SetOffsetPixels(int horizontal, int vertical)
         {
+            bool changed = false;
+            if (_hPosPixelOffset != horizontal || _vPosPixelOffset != vertical)
+                changed = true;
+
             _hPosPixelOffset = horizontal;
             _vPosPixelOffset = vertical;
-            _onLayoutChanged.InvokeAll();
+
+            if (changed)
+                _onLayoutChanged.InvokeAll();
         }
 
         // Size description
@@ -275,9 +295,15 @@ namespace zcom
         }
         void SetParentSizePercent(float width, float height)
         {
+            bool changed = false;
+            if (_hSizeParentPercent != width || _vSizeParentPercent != height)
+                changed = true;
+
             _hSizeParentPercent = width;
             _vSizeParentPercent = height;
-            _onLayoutChanged.InvokeAll();
+
+            if (changed)
+                _onLayoutChanged.InvokeAll();
         }
         void SetBaseWidth(int width)
         {
@@ -289,14 +315,22 @@ namespace zcom
         }
         void SetBaseSize(int width, int height)
         {
+            bool changed = false;
+            if (_hSize != width || _vSize != height)
+                changed = true;
+
             _hSize = width;
             _vSize = height;
-            _onLayoutChanged.InvokeAll();
+
+            if (changed)
+                _onLayoutChanged.InvokeAll();
         }
 
         // Common
         int GetX() const { return _x; }
         int GetY() const { return _y; }
+        int GetScreenX() const { return _screenX; }
+        int GetScreenY() const { return _screenY; }
         int GetWidth() const { return _width; }
         int GetHeight() const { return _height; }
         float GetOpacity() const { return _opacity; }
@@ -315,6 +349,19 @@ namespace zcom
         {
             _x = x;
             _y = y;
+        }
+        void SetScreenX(int x)
+        {
+            SetScreenPosition(x, _screenY);
+        }
+        void SetScreenY(int y)
+        {
+            SetScreenPosition(_screenX, y);
+        }
+        void SetScreenPosition(int x, int y)
+        {
+            _screenX = x;
+            _screenY = y;
         }
         void SetWidth(int width)
         {

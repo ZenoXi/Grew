@@ -44,14 +44,6 @@ namespace zcom
     protected:
         void _OnUpdate()
         {
-            // Recalculate layout if child layouts changed
-            if (_layoutChanged)
-            {
-                _RecalculateLayout(GetWidth(), GetHeight());
-                OnMouseMove(GetMousePosX(), GetMousePosY());
-                _layoutChanged = false;
-            }
-
             // Fade vertical scrollbar
             if (_verticalScrollBar.visible)
             {
@@ -178,6 +170,14 @@ namespace zcom
 
         void _OnDraw(Graphics g)
         {
+            // Recalculate layout if child layouts changed
+            //if (_layoutChanged)
+            //{
+            //    _RecalculateLayout(GetWidth(), GetHeight());
+            //    OnMouseMove(GetMousePosX(), GetMousePosY());
+            //    _layoutChanged = false;
+            //}
+
             // Get bitmaps of all items
             std::list<std::pair<ID2D1Bitmap*, Item>> bitmaps;
             for (auto& item : _items)
@@ -782,6 +782,7 @@ namespace zcom
                 newPosY += _margins.top;
 
                 item->SetPosition(newPosX, newPosY);
+                item->SetScreenPosition(GetScreenX() + newPosX, GetScreenY() + newPosY);
                 item->Resize(item->GetWidth(), item->GetHeight());
 
                 if (newPosX + item->GetWidth() > maxRightEdge)
@@ -791,9 +792,6 @@ namespace zcom
             }
             _contentWidth = maxRightEdge + _margins.right;
             _contentHeight = maxBottomEdge + _margins.bottom;
-
-            // Resend mouse move
-
         }
 
     private:
@@ -802,7 +800,7 @@ namespace zcom
             Base* item;
             bool owned;
             bool hasShadow;
-            bool layoutChanged;
+            //bool layoutChanged;
         };
 
         std::vector<Item> _items;
@@ -815,7 +813,7 @@ namespace zcom
         RECT _margins = { 0, 0, 0, 0 };
 
         // Auto child resize
-        bool _layoutChanged = false;
+        //bool _layoutChanged = false;
 
         // Scrolling
         struct _ScrollAnimation
@@ -867,18 +865,20 @@ namespace zcom
 
         void AddItem(Base* item, bool transferOwnership = false)
         {
-            _items.push_back({ item, transferOwnership, false, false });
+            _items.push_back({ item, transferOwnership, false });
             item->AddOnLayoutChanged([&, item]()
             {
-                for (int i = 0; i < _items.size(); i++)
-                {
-                    if (_items[i].item == item)
-                    {
-                        _items[i].layoutChanged = true;
-                        _layoutChanged = true;
-                        return;
-                    }
-                }
+                //for (int i = 0; i < _items.size(); i++)
+                //{
+                //    if (_items[i].item == item)
+                //    {
+                //        _items[i].layoutChanged = true;
+                //        _layoutChanged = true;
+                //        return;
+                //    }
+                //}
+                _RecalculateLayout(GetWidth(), GetHeight());
+                OnMouseMove(GetMousePosX(), GetMousePosY());
             }, { this, "" });
             ReindexTabOrder();
         }
