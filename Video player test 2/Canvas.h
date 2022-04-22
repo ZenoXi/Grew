@@ -88,6 +88,16 @@ namespace zcom
             _panel->Resize();
         }
 
+        int GetWidth() const
+        {
+            return _width;
+        }
+
+        int GetHeight() const
+        {
+            return _height;
+        }
+
         void SetBackgroundColor(D2D1_COLOR_F color)
         {
             _panel->SetBackgroundColor(color);
