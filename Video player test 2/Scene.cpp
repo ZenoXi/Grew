@@ -3,7 +3,6 @@
 
 Scene::Scene()
 {
-    _canvas = new zcom::Canvas(App::Instance()->window.width, App::Instance()->window.height);
     _notificationPanel = std::make_unique<zcom::Panel>();
     _notificationPanel->SetBaseHeight(10);
     _notificationPanel->SetBaseWidth(220);
@@ -14,11 +13,12 @@ Scene::Scene()
 
 Scene::~Scene()
 {
-    delete _canvas;
+
 }
 
 void Scene::Init(const SceneOptionsBase* options)
 {
+    _canvas = new zcom::Canvas(App::Instance()->window.width, App::Instance()->window.height);
     _Init(options);
     _canvas->AddComponent(_notificationPanel.get());
     _canvas->Resize(App::Instance()->window.width, App::Instance()->window.height);
@@ -29,7 +29,8 @@ void Scene::Uninit()
 {
     Unfocus();
     _Uninit();
-    _canvas->RemoveComponent(_notificationPanel.get());
+    delete _canvas;
+    _canvas = nullptr;
 }
 
 void Scene::Focus()
@@ -173,5 +174,6 @@ void Scene::_RearrangeNotifications()
     }
     _notificationPanel->SetBaseHeight(std::abs(offsetY));
 
-    _canvas->Resize();
+    if (_canvas)
+        _canvas->Resize();
 }

@@ -105,13 +105,14 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
         }
 
         _timeHoverPanel->SetBaseWidth(totalWidth);
-        _timeHoverPanel->SetWidth(totalWidth);
-        _timeHoverPanel->Resize();
+        //_timeHoverPanel->SetWidth(totalWidth);
+        //_timeHoverPanel->Resize();
 
-        int absolutePos = _playbackControllerPanel->GetX() + _controlBar->GetX() + _seekBar->GetX() + xpos;
+        //int absolutePos = _playbackControllerPanel->GetX() + _controlBar->GetX() + _seekBar->GetX() + xpos;
+        int absolutePos = _seekBar->GetScreenX() + xpos;
         _timeHoverPanel->SetHorizontalOffsetPixels(absolutePos - _timeHoverPanel->GetWidth() / 2);
         _timeHoverPanel->SetVisible(true);
-        _canvas->Resize();
+        //_canvas->Resize();
     });
     _seekBar->AddOnHoverEnded([&]()
     {
@@ -180,33 +181,54 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
         App::Instance()->MoveSceneToFront(PlaybackOverlayScene::StaticName());
     });
 
-    _audioStreamButton = new zcom::Button(L"Audio 2");
-    _audioStreamButton->SetBaseSize(50, 20);
-    _audioStreamButton->SetHorizontalAlignment(zcom::Alignment::CENTER);
-    _audioStreamButton->SetOffsetPixels(100, 60);
-    _audioStreamButton->SetBorderVisibility(true);
-    _audioStreamButton->SetActivation(zcom::ButtonActivation::RELEASE);
-    _audioStreamButton->SetOnActivated([&]()
+    _streamButton = std::make_unique<zcom::Button>(L"Streams");
+    _streamButton->SetBaseSize(75, 25);
+    _streamButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
+    _streamButton->SetOffsetPixels(-200, -25);
+    _streamButton->SetBorderVisibility(true);
+    _streamButton->SetOnActivated([&]()
     {
-        if (_mediaPlayer)
-        {
-            _controller->SetAudioStream(1);
-        }
+        RECT screenRect = { 0, 0, _canvas->GetWidth(), _canvas->GetHeight() };
+        RECT buttonRect = {
+            _streamButton->GetScreenX(),
+            _streamButton->GetScreenY(),
+            _streamButton->GetScreenX() + _streamButton->GetWidth(),
+            _streamButton->GetScreenY() + _streamButton->GetHeight()
+        };
+        _streamMenuPanel->Show(screenRect, buttonRect);
     });
 
-    _subtitleStreamButton = new zcom::Button(L"Sub 2");
-    _subtitleStreamButton->SetBaseSize(50, 20);
-    _subtitleStreamButton->SetHorizontalAlignment(zcom::Alignment::CENTER);
-    _subtitleStreamButton->SetOffsetPixels(160, 60);
-    _subtitleStreamButton->SetBorderVisibility(true);
-    _subtitleStreamButton->SetActivation(zcom::ButtonActivation::RELEASE);
-    _subtitleStreamButton->SetOnActivated([&]()
-    {
-        if (_mediaPlayer)
-        {
-            _controller->SetSubtitleStream(1);
-        }
-    });
+    _streamMenuPanel = std::make_unique<zcom::MenuPanel>(_canvas);
+    _videoStreamMenuPanel = std::make_unique<zcom::MenuPanel>(_canvas);
+    _audioStreamMenuPanel = std::make_unique<zcom::MenuPanel>(_canvas);
+    _subtitleStreamMenuPanel = std::make_unique<zcom::MenuPanel>(_canvas);
+
+    _streamMenuPanel->SetBaseWidth(150);
+    _streamMenuPanel->SetZIndex(255);
+    _streamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(_videoStreamMenuPanel.get(), L"Video streams"));
+    _streamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(_audioStreamMenuPanel.get(), L"Audio streams"));
+    _streamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(_subtitleStreamMenuPanel.get(), L"Subtitle streams"));
+
+    _videoStreamMenuPanel->SetBaseWidth(150);
+    _videoStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"None"));
+    _videoStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>());
+    _videoStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"Lmao"));
+    _videoStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"Moment"));
+    _videoStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"Stream 1"));
+
+    _audioStreamMenuPanel->SetBaseWidth(150);
+    _audioStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"None"));
+    _audioStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>());
+    _audioStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"Lmao"));
+    _audioStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"Moment"));
+    _audioStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"Stream 1"));
+
+    _subtitleStreamMenuPanel->SetBaseWidth(150);
+    _subtitleStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"None"));
+    _subtitleStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>());
+    _subtitleStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"Lmao"));
+    _subtitleStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"Moment"));
+    _subtitleStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"Stream 1"));
 
     _loadingCircle = new zcom::LoadingCircle();
     _loadingCircle->SetBaseSize(100, 180);
@@ -218,8 +240,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _controlBar->AddItem(_volumeSlider);
     _controlBar->AddItem(_playButton);
     _controlBar->AddItem(_overlayButton);
-    _controlBar->AddItem(_audioStreamButton);
-    _controlBar->AddItem(_subtitleStreamButton);
+    _controlBar->AddItem(_streamButton.get());
 
     _playbackControllerPanel = new zcom::PlaybackControllerPanel(_controlBar);
     _playbackControllerPanel->SetParentSizePercent(1.0f, 1.0f);
@@ -267,6 +288,10 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _canvas->AddComponent(_volumeIcon.get());
     _canvas->AddComponent(_playbackControllerPanel);
     _canvas->AddComponent(_timeHoverPanel.get());
+    _canvas->AddComponent(_streamMenuPanel.get());
+    _canvas->AddComponent(_videoStreamMenuPanel.get());
+    _canvas->AddComponent(_audioStreamMenuPanel.get());
+    _canvas->AddComponent(_subtitleStreamMenuPanel.get());
     //componentCanvas.AddComponent(controlBar);
 }
 
@@ -292,6 +317,31 @@ void PlaybackScene::_Uninit()
     _videoAdapter = nullptr;
     _mediaPlayer = nullptr;
     _controller = nullptr;
+
+    _controlBar = nullptr;
+    _seekBar = nullptr;
+    _volumeSlider = nullptr;
+    _playButton = nullptr;
+    _playbackControllerPanel = nullptr;
+    _overlayButton = nullptr;
+    _loadingCircle = nullptr;
+
+    _skipBackwardsIcon = nullptr;
+    _skipForwardsIcon = nullptr;
+    _pauseIcon = nullptr;
+    _resumeIcon = nullptr;
+    _volumeIcon = nullptr;
+    _timeHoverPanel = nullptr;
+    _timeLabel = nullptr;
+    _chapterLabel = nullptr;
+
+    _streamButton = nullptr;
+    _streamMenuPanel = nullptr;
+    _videoStreamMenuPanel = nullptr;
+    _audioStreamMenuPanel = nullptr;
+    _subtitleStreamMenuPanel = nullptr;
+
+    _shortcutHandler = nullptr;
 }
 
 void PlaybackScene::_Focus()
@@ -308,6 +358,13 @@ void PlaybackScene::_Unfocus()
 
 void PlaybackScene::_Update()
 {
+    // Keep control panel fixed while stream menu is open
+    if (_streamMenuPanel->GetVisible())
+        _playbackControllerPanel->SetFixed(true);
+    else
+        _playbackControllerPanel->SetFixed(false);
+
+    // Show loading circle if needed
     _loadingCircle->SetVisible(false);
     if (!_mediaPlayer)
         _loadingCircle->SetVisible(true);
@@ -317,7 +374,6 @@ void PlaybackScene::_Update()
         _loadingCircle->SetVisible(info.loading);
         _loadingCircle->SetLoadingText(info.message);
     }
-
 
     if (_mediaPlayer)
     {

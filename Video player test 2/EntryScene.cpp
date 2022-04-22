@@ -24,8 +24,8 @@ void EntryScene::_Init(const SceneOptionsBase* options)
     shadowProps.color = D2D1::ColorF(0, 0.75f);
 
     // Main selection
+    _mainPanel = std::make_unique<zcom::Panel>();
     {
-        _mainPanel = std::make_unique<zcom::Panel>();
         _mainPanel->SetHorizontalOffsetPercent(0.5f);
         _mainPanel->SetVerticalOffsetPercent(0.5f);
         _mainPanel->SetBaseWidth(380);
@@ -110,8 +110,8 @@ void EntryScene::_Init(const SceneOptionsBase* options)
     }
 
     // Connect input
+    _connectPanel = std::make_unique<zcom::Panel>();
     {
-        _connectPanel = std::make_unique<zcom::Panel>();
         _connectPanel->SetHorizontalOffsetPercent(0.5f);
         _connectPanel->SetVerticalOffsetPercent(0.5f);
         _connectPanel->SetBaseWidth(210);
@@ -149,7 +149,6 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         //    }
         //    return false;
         //});
-
         _connectPortInput = std::make_unique<zcom::TextInput>();
         _connectPortInput->SetHorizontalOffsetPixels(140);
         _connectPortInput->SetVerticalOffsetPixels(60);
@@ -215,9 +214,9 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectLoadingCancelButton->SetVisible(false);
     }
 
+    // Share input
+    _sharePanel = std::make_unique<zcom::Panel>();
     {
-        // Share input
-        _sharePanel = std::make_unique<zcom::Panel>();
         _sharePanel->SetHorizontalOffsetPercent(0.5f);
         _sharePanel->SetVerticalOffsetPercent(0.5f);
         _sharePanel->SetBaseWidth(180);
@@ -336,6 +335,36 @@ void EntryScene::_Init(const SceneOptionsBase* options)
 void EntryScene::_Uninit()
 {
     _canvas->ClearComponents();
+
+    _mainPanel = nullptr;
+    _connectButton = nullptr;
+    _shareButton = nullptr;
+    _fileButton = nullptr;
+    _connectLabel = nullptr;
+    _shareLabel = nullptr;
+    _fileLabel = nullptr;
+    _testButton = nullptr;
+
+    _connectPanel = nullptr;
+    _connectPanelLabel = nullptr;
+    _connectIpInput = nullptr;
+    _connectPortInput = nullptr;
+    _connectConfirmButton = nullptr;
+    _connectCancelButton = nullptr;
+    _recentConnectionsLabel = nullptr;
+    _recentConnectionsPanel = nullptr;
+    _connectLoadingImage = nullptr;
+    _connectLoadingInfoLabel = nullptr;
+    _connectLoadingCancelButton = nullptr;
+
+    _sharePanel = nullptr;
+    _sharePanelLabel = nullptr;
+    _sharePortInput = nullptr;
+    _shareConfirmButton = nullptr;
+    _shareCancelButton = nullptr;
+    _shareLoadingImage = nullptr;
+    _shareLoadingInfoLabel = nullptr;
+    _shareLoadingCancelButton = nullptr;
 }
 
 void EntryScene::_Focus()
