@@ -79,7 +79,7 @@ void zcom::MenuPanel::_AddHandlerToCanvas()
         if (_openChildPanel)
             return;
 
-        if (!targets->Contains(this))
+        if (!targets->Contains(this) && !targets->Contains(_parentPanel))
         {
             Hide();
             if (_parentPanel)

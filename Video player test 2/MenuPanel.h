@@ -16,7 +16,7 @@ namespace zcom
             Panel::_OnUpdate();
 
             // Hide panel
-            if (_childShouldHide && (ztime::Main() - _childHoverEndTime).GetDuration(MILLISECONDS) >= 250)
+            if (_childShouldHide && ztime::Main() - _childHoverEndTime >= _hoverToShowDuration)
             {
                 if (_openChildPanel)
                 {
@@ -27,7 +27,7 @@ namespace zcom
             }
 
             // Show panel
-            if (_childToShow && (ztime::Main() - _childHoverStartTime).GetDuration(MILLISECONDS) >= 250)
+            if (_childToShow && ztime::Main() - _childHoverStartTime >= _hoverToShowDuration)
             {
                 if (_openChildPanel)
                 {
@@ -93,7 +93,56 @@ namespace zcom
                         };
                     }
                 }
+            }
 
+            return std::move(targets.Add(this, x, y));
+        }
+
+        EventTargets _OnLeftPressed(int x, int y)
+        {
+            auto targets = Panel::_OnLeftPressed(x, y);
+            Base* mainTarget = targets.MainTarget();
+            auto it = std::find_if(_menuItems.begin(), _menuItems.end(), [mainTarget](std::unique_ptr<MenuItem>& item) { return item.get() == mainTarget; });
+            if (it != _menuItems.end())
+            {
+                MenuItem* item = it->get();
+
+                _childHoverEndTime = ztime::Main() - _hoverToShowDuration;
+                _childHoverStartTime = ztime::Main() - _hoverToShowDuration;
+
+                // Handle checkable items
+                if (item->Checkable())
+                {
+                    if (item->CheckGroup() == -1)
+                    {
+                        item->Invoke(!item->Checked());
+                        item->SetChecked(!item->Checked());
+                    }
+                    else
+                    {
+                        if (!item->Checked())
+                        {
+                            // Uncheck others from same group
+                            for (int i = 0; i < _menuItems.size(); i++)
+                            {
+                                if (_menuItems[i]->CheckGroup() == item->CheckGroup() && _menuItems[i]->Checked())
+                                {
+                                    _menuItems[i]->SetChecked(false);
+                                }
+                            }
+
+                            item->Invoke(true);
+                            item->SetChecked(true);
+                        }
+                    }
+                }
+                else
+                {
+                    item->Invoke();
+                }
+
+                if (!item->GetMenuPanel() && !item->IsSeparator())
+                    FullClose();
             }
 
             return std::move(targets.Add(this, x, y));
@@ -120,6 +169,7 @@ namespace zcom
         bool _childShouldHide = false;
 
         TimePoint _showTime = 0;
+        Duration _hoverToShowDuration = Duration(250, MILLISECONDS);
 
     public:
         MenuPanel(Canvas* sceneCanvas)
@@ -196,6 +246,15 @@ namespace zcom
                 if (_parentPanel)
                     _parentPanel->OnChildClosed(targets);
             }
+        }
+
+        // Iterates to the root menu and closes it, closing all child menus
+        void FullClose()
+        {
+            if (_parentPanel)
+                _parentPanel->FullClose();
+            else
+                Hide();
         }
 
     private:
