@@ -298,14 +298,14 @@ namespace zcom
         {
             DWRITE_TEXT_METRICS textMetrics;
             _dwriteTextLayout->GetMetrics(&textMetrics);
-            return textMetrics.width;
+            return textMetrics.width + _margins.left + _margins.right;
         }
 
         float GetTextHeight() const
         {
             DWRITE_TEXT_METRICS textMetrics;
             _dwriteTextLayout->GetMetrics(&textMetrics);
-            return textMetrics.height;
+            return textMetrics.height + _margins.top + _margins.bottom;
         }
 
         void SetText(std::wstring text)
