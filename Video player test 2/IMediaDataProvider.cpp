@@ -1,6 +1,7 @@
 #include "IMediaDataProvider.h"
 
 #include "Functions.h"
+#include "Languages.h"
 
 IMediaDataProvider::IMediaDataProvider()
 {
@@ -313,7 +314,39 @@ std::vector<std::string> IMediaDataProvider::_GetAvailableStreams(MediaData& med
     streams.reserve(mediaData.streams.size());
     for (auto& stream : mediaData.streams)
     {
-        streams.push_back("");
+        std::string title = "";
+        std::string language = "";
+        for (int i = 0; i < stream.metadata.size(); i++)
+        {
+            if (to_lowercase(stream.metadata[i].key) == "title")
+            {
+                title = stream.metadata[i].value;
+            }
+            else if (to_lowercase(stream.metadata[i].key) == "language")
+            {
+                language = stream.metadata[i].value;
+            }
+        }
+
+        if (title.empty())
+            title = "Unnamed";
+        if (!language.empty())
+        {
+            auto it = ISO_639_2_TO_ENGLISH.find(to_lowercase(language));
+            if (it != ISO_639_2_TO_ENGLISH.end())
+            {
+                language = it->second;
+            }
+            else
+            {
+                language = "";
+            }
+        }
+
+        std::string fullTitle = title;
+        if (!language.empty())
+            fullTitle += " [" + language + "]";
+        streams.push_back(fullTitle);
     }
     return streams;
 }
