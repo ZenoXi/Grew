@@ -464,46 +464,7 @@ void PlaybackScene::_Update()
             _volumeSlider->SetValue(volume);
             _controller->SetVolume(_volumeSlider->GetVolume());
 
-            // Add streams to menu
-            _videoStreamMenuPanel->ClearMenuItems();
-            _videoStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"None", [&]() { _controller->SetVideoStream(-1); }));
-            _videoStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>());
-            auto videoStreams = _controller->GetAvailableVideoStreams();
-            for (int i = 0; i < videoStreams.size(); i++)
-            {
-                if (videoStreams[i].empty())
-                    videoStreams[i] = "Stream " + int_to_str(i + 1);
-                _videoStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(string_to_wstring(videoStreams[i]), [&, i]()
-                {
-                    _controller->SetVideoStream(i);
-                }));
-            }
-            _audioStreamMenuPanel->ClearMenuItems();
-            _audioStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"None", [&]() { _controller->SetAudioStream(-1); }));
-            _audioStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>());
-            auto audioStreams = _controller->GetAvailableAudioStreams();
-            for (int i = 0; i < audioStreams.size(); i++)
-            {
-                if (audioStreams[i].empty())
-                    audioStreams[i] = "Stream " + int_to_str(i + 1);
-                _audioStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(string_to_wstring(audioStreams[i]), [&, i]()
-                {
-                    _controller->SetAudioStream(i);
-                }));
-            }
-            _subtitleStreamMenuPanel->ClearMenuItems();
-            _subtitleStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"None", [&]() { _controller->SetSubtitleStream(-1); }));
-            _subtitleStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>());
-            auto subtitleStreams = _controller->GetAvailableSubtitleStreams();
-            for (int i = 0; i < subtitleStreams.size(); i++)
-            {
-                if (subtitleStreams[i].empty())
-                    subtitleStreams[i] = "Stream " + int_to_str(i + 1);
-                _subtitleStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(string_to_wstring(subtitleStreams[i]), [&, i]()
-                {
-                    _controller->SetSubtitleStream(i);
-                }));
-            }
+            _SetupStreamMenu();
         }
         if (_dataProvider->InitFailed())
         {
@@ -695,6 +656,72 @@ bool PlaybackScene::Finished() const
     else
     {
         return false;
+    }
+}
+
+void PlaybackScene::_SetupStreamMenu()
+{
+    // Add video streams to menu
+    _videoStreamMenuPanel->ClearMenuItems();
+    auto noVideoStreamItem = std::make_unique<zcom::MenuItem>(L"None", [&](bool) { _controller->SetVideoStream(-1); });
+    noVideoStreamItem->SetCheckable(true);
+    noVideoStreamItem->SetCheckGroup(0);
+    _videoStreamMenuPanel->AddMenuItem(std::move(noVideoStreamItem));
+    _videoStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>());
+    auto videoStreams = _controller->GetAvailableVideoStreams();
+    for (int i = 0; i < videoStreams.size(); i++)
+    {
+        if (videoStreams[i].empty())
+            videoStreams[i] = "Stream " + int_to_str(i + 1);
+
+        auto streamItem = std::make_unique<zcom::MenuItem>(string_to_wstring(videoStreams[i]), [&, i](bool) { _controller->SetVideoStream(i); });
+        streamItem->SetCheckable(true);
+        streamItem->SetCheckGroup(0);
+        if (i == _controller->CurrentVideoStream())
+            streamItem->SetChecked(true);
+        _videoStreamMenuPanel->AddMenuItem(std::move(streamItem));
+    }
+
+    // Add audio streams to menu
+    _audioStreamMenuPanel->ClearMenuItems();
+    auto noAudioStreamItem = std::make_unique<zcom::MenuItem>(L"None", [&](bool) { _controller->SetAudioStream(-1); });
+    noAudioStreamItem->SetCheckable(true);
+    noAudioStreamItem->SetCheckGroup(0);
+    _audioStreamMenuPanel->AddMenuItem(std::move(noAudioStreamItem));
+    _audioStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>());
+    auto audioStreams = _controller->GetAvailableAudioStreams();
+    for (int i = 0; i < audioStreams.size(); i++)
+    {
+        if (audioStreams[i].empty())
+            audioStreams[i] = "Stream " + int_to_str(i + 1);
+
+        auto streamItem = std::make_unique<zcom::MenuItem>(string_to_wstring(audioStreams[i]), [&, i](bool) { _controller->SetAudioStream(i); });
+        streamItem->SetCheckable(true);
+        streamItem->SetCheckGroup(0);
+        if (i == _controller->CurrentAudioStream())
+            streamItem->SetChecked(true);
+        _audioStreamMenuPanel->AddMenuItem(std::move(streamItem));
+    }
+
+    // Add subtitle streams to menu
+    _subtitleStreamMenuPanel->ClearMenuItems();
+    auto noSubtitleStreamItem = std::make_unique<zcom::MenuItem>(L"None", [&](bool) { _controller->SetSubtitleStream(-1); });
+    noSubtitleStreamItem->SetCheckable(true);
+    noSubtitleStreamItem->SetCheckGroup(0);
+    _subtitleStreamMenuPanel->AddMenuItem(std::move(noSubtitleStreamItem));
+    _subtitleStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>());
+    auto subtitleStreams = _controller->GetAvailableSubtitleStreams();
+    for (int i = 0; i < subtitleStreams.size(); i++)
+    {
+        if (subtitleStreams[i].empty())
+            subtitleStreams[i] = "Stream " + int_to_str(i + 1);
+
+        auto streamItem = std::make_unique<zcom::MenuItem>(string_to_wstring(subtitleStreams[i]), [&, i](bool) { _controller->SetSubtitleStream(i); });
+        streamItem->SetCheckable(true);
+        streamItem->SetCheckGroup(0);
+        if (i == _controller->CurrentSubtitleStream())
+            streamItem->SetChecked(true);
+        _subtitleStreamMenuPanel->AddMenuItem(std::move(streamItem));
     }
 }
 

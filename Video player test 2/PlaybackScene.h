@@ -102,5 +102,6 @@ public:
     bool Finished() const;
 
 private:
+    void _SetupStreamMenu();
     bool _HandleKeyDown(BYTE keyCode);
 };
