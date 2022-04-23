@@ -162,6 +162,8 @@ namespace zcom
 
         RECT _bounds = { 0, 0, 0, 0 };
         RECT _parentRect = { 0, 0, 0, 0 };
+        int _maxWidth = 600;
+        int _minWidth = 70;
 
         TimePoint _childHoverStartTime = 0;
         MenuPanel* _childToShow = nullptr;
@@ -192,6 +194,24 @@ namespace zcom
         MenuPanel& operator=(MenuPanel&&) = delete;
         MenuPanel(const MenuPanel&) = delete;
         MenuPanel& operator=(const MenuPanel&) = delete;
+
+        void SetMaxWidth(int maxWidth)
+        {
+            if (_maxWidth != maxWidth)
+            {
+                _maxWidth = maxWidth;
+                _RearrangeMenuItems();
+            }
+        }
+
+        void SetMinWidth(int minWidth)
+        {
+            if (_minWidth != minWidth)
+            {
+                _minWidth = minWidth;
+                _RearrangeMenuItems();
+            }
+        }
 
         void AddMenuItem(std::unique_ptr<MenuItem> item)
         {
@@ -264,14 +284,22 @@ namespace zcom
         {
             Resize();
             int totalHeight = 0;
+            int maxWidth = 0;
             for (int i = 0; i < _menuItems.size(); i++)
             {
                 _menuItems[i]->SetVerticalOffsetPixels(totalHeight);
                 totalHeight += _menuItems[i]->GetHeight();
+                int width = _menuItems[i]->CalculateWidth();
+                if (width > maxWidth)
+                    maxWidth = width;
             }
-            //Resize();
-            SetBaseHeight(totalHeight);
-            //SetHeight(totalHeight);
+
+            if (maxWidth < _minWidth)
+                maxWidth = _minWidth;
+            if (maxWidth > _maxWidth)
+                maxWidth = _maxWidth;
+
+            SetBaseSize(maxWidth, totalHeight);
             _CalculatePlacement();
         }
 

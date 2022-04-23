@@ -143,6 +143,17 @@ namespace zcom
                 _onClick(checked);
         }
 
+        // Calculates the width of this item, which displays the text without cutoff
+        int CalculateWidth()
+        {
+            if (!_label) return 0;
+
+            _label->SetCutoff(L"");
+            int totalWidth = ceilf(_label->GetTextWidth()) + 50;
+            _label->SetCutoff(L"...");
+            return totalWidth;
+        }
+
         bool IsSeparator() const
         {
             return _separator;
