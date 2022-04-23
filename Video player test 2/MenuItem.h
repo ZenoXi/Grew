@@ -66,6 +66,7 @@ namespace zcom
             {
                 _label->SetWidth(width - 50);
                 _label->SetHeight(height);
+                _label->Resize();
             }
         }
 
@@ -107,10 +108,12 @@ namespace zcom
             _onClick = onClick;
 
             _label = std::make_unique<Label>(text);
-            _label->SetBaseHeight(25);
+            _label->SetWidth(GetWidth() - 50);
+            _label->SetHeight(GetHeight());
             _label->SetVerticalTextAlignment(zcom::Alignment::CENTER);
             _label->SetMargins({ 5.0f });
             _label->SetCutoff(L"...");
+            _label->Resize();
 
             _checkmarkIcon = ResourceManager::GetImage("checkmark");
 
