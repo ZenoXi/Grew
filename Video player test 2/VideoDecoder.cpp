@@ -39,9 +39,17 @@ void VideoDecoder::_DecoderThread()
 
     SwsContext* swsContext = NULL;
 
-    uchar* data = new uchar[_codecContext->width * _codecContext->height * 4];
-    uchar* dest[4] = { data, NULL, NULL, NULL };
-    int destLinesize[4] = { _codecContext->width * 4, 0, 0, 0 };
+    uchar* data = nullptr;
+    uchar* dest[4] = { NULL, NULL, NULL, NULL };
+    int destLinesize[4] = { 0, 0, 0, 0 };
+
+    // Codec context might have uninitialized width/height values at this point
+    if (_codecContext->width != 0 && _codecContext->height != 0)
+    {
+        data = new uchar[_codecContext->width * _codecContext->height * 4];
+        dest[0] = data;
+        destLinesize[0] = _codecContext->width * 4;
+    }
 
     bool discontinuity = true;
 
@@ -101,6 +109,14 @@ void VideoDecoder::_DecoderThread()
             continue;
         }
 
+        // Deferred destination buffer initialization
+        if (data == nullptr)
+        {
+            data = new uchar[_codecContext->width * _codecContext->height * 4];
+            dest[0] = data;
+            destLinesize[0] = _codecContext->width * 4;
+        }
+
         if (!swsContext)
         {
             swsContext = sws_getContext(
@@ -119,6 +135,8 @@ void VideoDecoder::_DecoderThread()
         sws_scale(swsContext, frame->data, frame->linesize, 0, frame->height, dest, destLinesize);
 
         long long int timestamp = av_rescale_q(frame->pts, _timebase, { 1, AV_TIME_BASE });
+        if (frame->pts == AV_NOPTS_VALUE)
+            timestamp = AV_NOPTS_VALUE;
         VideoFrame* vf = new VideoFrame(frame->width, frame->height, timestamp, discontinuity);
         discontinuity = false;
         vf->SetBytes(data);
