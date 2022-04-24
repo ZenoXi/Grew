@@ -109,9 +109,9 @@ void MediaPlayer::Update(double timeLimit)
 
         // If this is 0 (no packets sent to decoder), the loop is broken
         int packetGot = 0;
-        if (_videoData.decoder && !_videoData.decoder->Flushing())
+        if (_videoData.expectingStream || (_videoData.decoder && !_videoData.decoder->Flushing()))
         {
-            if (!_videoData.decoder->PacketQueueFull() || _dataProvider->FlushVideoPacketNext())
+            if (_dataProvider->FlushVideoPacketNext() || (_videoData.decoder && !_videoData.decoder->PacketQueueFull()))
             {
                 int passResult = _PassPacket(_videoData, _dataProvider->GetVideoPacket());
                 // If flushing, clear the stored next frame to prevent
@@ -124,9 +124,9 @@ void MediaPlayer::Update(double timeLimit)
                 packetGot += passResult;
             }
         }
-        if (_audioData.decoder && !_audioData.decoder->Flushing())
+        if (_audioData.expectingStream || (_audioData.decoder && !_audioData.decoder->Flushing()))
         {
-            if (!_audioData.decoder->PacketQueueFull() || _dataProvider->FlushAudioPacketNext())
+            if (_dataProvider->FlushAudioPacketNext() || (_audioData.decoder && !_audioData.decoder->PacketQueueFull()))
             {
                 int passResult = _PassPacket(_audioData, _dataProvider->GetAudioPacket());
                 // See above
@@ -138,9 +138,9 @@ void MediaPlayer::Update(double timeLimit)
                 packetGot += passResult;
             }
         }
-        if (_subtitleData.decoder && !_subtitleData.decoder->Flushing())
+        if (_subtitleData.expectingStream || (_subtitleData.decoder && !_subtitleData.decoder->Flushing()))
         {
-            if (!_subtitleData.decoder->PacketQueueFull() || _dataProvider->FlushSubtitlePacketNext())
+            if (_dataProvider->FlushSubtitlePacketNext() || (_subtitleData.decoder && !_subtitleData.decoder->PacketQueueFull()))
             {
                 int passResult = _PassPacket(_subtitleData, _dataProvider->GetSubtitlePacket());
                 // See above
@@ -259,20 +259,28 @@ void MediaPlayer::Update(double timeLimit)
         if (_videoData.nextFrame)
         {
             VideoFrame* nextFrame = (VideoFrame*)_videoData.nextFrame.get();
-            if (nextFrame->GetTimestamp() <= _playbackTimer.Now().GetTime())
+            if (nextFrame->GetTimestamp() == AV_NOPTS_VALUE)
             {
-                _videoData.currentFrame.reset(_videoData.nextFrame.release());
-                if (!_recovering && TimerRunning()) // Prevent ugly fast forwarding after seeking
+                _videoOutputAdapter->SetVideoData(std::move(*(VideoFrame*)_videoData.nextFrame.get()));
+                _videoData.nextFrame.reset((IMediaFrame*)new VideoFrame(1, 1, 1000000000000000));
+            }
+            else
+            {
+                if (nextFrame->GetTimestamp() <= _playbackTimer.Now().GetTime())
+                {
+                    _videoData.currentFrame.reset(_videoData.nextFrame.release());
+                    if (!_recovering && TimerRunning()) // Prevent ugly fast forwarding after seeking
+                    {
+                        _videoOutputAdapter->SetVideoData(std::move(*(VideoFrame*)_videoData.currentFrame.get()));
+                        _videoData.currentFrame.reset();
+                    }
+                    frameAdvanced = true;
+                }
+                else if (_videoData.currentFrame)
                 {
                     _videoOutputAdapter->SetVideoData(std::move(*(VideoFrame*)_videoData.currentFrame.get()));
                     _videoData.currentFrame.reset();
                 }
-                frameAdvanced = true;
-            }
-            else if (_videoData.currentFrame)
-            {
-                _videoOutputAdapter->SetVideoData(std::move(*(VideoFrame*)_videoData.currentFrame.get()));
-                _videoData.currentFrame.reset();
             }
         }
         if (_audioData.nextFrame)
