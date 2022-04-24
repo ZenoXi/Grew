@@ -282,12 +282,15 @@ namespace zcom
 
         void _RearrangeMenuItems()
         {
+            constexpr int MARGINS = 2;
+
             Resize();
-            int totalHeight = 0;
+            int totalHeight = MARGINS;
             int maxWidth = 0;
             for (int i = 0; i < _menuItems.size(); i++)
             {
-                _menuItems[i]->SetVerticalOffsetPixels(totalHeight);
+                _menuItems[i]->SetOffsetPixels(MARGINS, totalHeight);
+                _menuItems[i]->SetBaseWidth(-MARGINS * 2);
                 totalHeight += _menuItems[i]->GetHeight();
                 int width = _menuItems[i]->CalculateWidth();
                 if (width > maxWidth)
@@ -299,7 +302,7 @@ namespace zcom
             if (maxWidth > _maxWidth)
                 maxWidth = _maxWidth;
 
-            SetBaseSize(maxWidth, totalHeight);
+            SetBaseSize(maxWidth + MARGINS * 2, totalHeight + MARGINS);
             _CalculatePlacement();
         }
 
