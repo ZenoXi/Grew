@@ -703,6 +703,19 @@ void PlaybackScene::_SetupStreamMenu()
 
     // Add subtitle streams to menu
     _subtitleStreamMenuPanel->ClearMenuItems();
+    auto addSubtitlesItem = std::make_unique<zcom::MenuItem>(L"Add subtitles from file", [&](bool)
+    {
+        /* Add subtitles */
+        zcom::NotificationInfo ninfo;
+        ninfo.duration = Duration(1, SECONDS);
+        ninfo.title = L"Not implemented";
+        ninfo.text = L"";
+        ninfo.borderColor = D2D1::ColorF(0.5f, 0.1f, 0.1f);
+        ShowNotification(ninfo);
+    });
+    addSubtitlesItem->SetIcon(ResourceManager::GetImage("plus"));
+    _subtitleStreamMenuPanel->AddMenuItem(std::move(addSubtitlesItem));
+    _subtitleStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>());
     auto noSubtitleStreamItem = std::make_unique<zcom::MenuItem>(L"None", [&](bool) { _controller->SetSubtitleStream(-1); });
     noSubtitleStreamItem->SetCheckable(true);
     noSubtitleStreamItem->SetCheckGroup(0);
