@@ -18,6 +18,44 @@ namespace zcom
 
         void _OnDraw(Graphics g)
         {
+            // Create grayscale version of _icon
+            if (_icon && !_iconGrayscale)
+            {
+                auto size = _icon->GetSize();
+
+                // Draw to separate bitmap and apply grayscale and brightness effects
+                ID2D1Image* stash = nullptr;
+                g.target->CreateBitmap(
+                    D2D1::SizeU(size.width, size.height),
+                    nullptr,
+                    0,
+                    D2D1::BitmapProperties1(
+                        D2D1_BITMAP_OPTIONS_TARGET,
+                        { DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED }
+                    ),
+                    &_iconGrayscale
+                );
+                g.refs->push_back((IUnknown**)&_iconGrayscale);
+
+                ID2D1Effect* grayscaleEffect;
+                g.target->CreateEffect(CLSID_D2D1Grayscale, &grayscaleEffect);
+                grayscaleEffect->SetInput(0, _icon);
+                ID2D1Effect* brightnessEffect;
+                g.target->CreateEffect(CLSID_D2D1Brightness, &brightnessEffect);
+                brightnessEffect->SetInputEffect(0, grayscaleEffect);
+                brightnessEffect->SetValue(D2D1_BRIGHTNESS_PROP_WHITE_POINT, D2D1::Vector2F(1.0f, 0.5f));
+                brightnessEffect->SetValue(D2D1_BRIGHTNESS_PROP_BLACK_POINT, D2D1::Vector2F(1.0f, 0.5f));
+
+                g.target->GetTarget(&stash);
+                g.target->SetTarget(_iconGrayscale);
+                g.target->Clear();
+                g.target->DrawImage(brightnessEffect);
+                g.target->SetTarget(stash);
+
+                brightnessEffect->Release();
+                grayscaleEffect->Release();
+            }
+
             if (_separator)
             {
                 ID2D1SolidColorBrush* brush = nullptr;
@@ -40,7 +78,10 @@ namespace zcom
             // Draw icon/checkmark
             if (_icon && !_checked)
             {
-                g.target->DrawBitmap(_icon, D2D1::RectF(0.0f, 0.0f, 25.0f, 25.0f));
+                if (!_disabled)
+                    g.target->DrawBitmap(_icon, D2D1::RectF(0.0f, 0.0f, 25.0f, 25.0f));
+                else
+                    g.target->DrawBitmap(_iconGrayscale, D2D1::RectF(0.0f, 0.0f, 25.0f, 25.0f));
             }
             if (_checkmarkIcon && _checked)
             {
@@ -87,12 +128,15 @@ namespace zcom
         std::function<void(bool)> _onClick;
         bool _separator = false;
         ID2D1Bitmap* _icon = nullptr;
+        ID2D1Bitmap1* _iconGrayscale = nullptr;
         ID2D1Bitmap* _checkmarkIcon = nullptr;
 
         // Exactly 1 item from a check group must be checked at a time
         int _checkGroup = -1;
         bool _checked = false;
         bool _checkable = false;
+
+        bool _disabled = false;
 
     public:
         // Separator
@@ -161,7 +205,12 @@ namespace zcom
 
         void SetIcon(ID2D1Bitmap* icon)
         {
-            _icon = icon;
+            if (icon != _icon)
+            {
+                if (_icon)
+                    SafeFullRelease((IUnknown**)&_iconGrayscale);
+                _icon = icon;
+            }
         }
 
         void SetCheckGroup(int group)
@@ -192,6 +241,23 @@ namespace zcom
         bool Checkable() const
         {
             return _checkable;
+        }
+
+        void SetDisabled(bool disabled)
+        {
+            if (disabled != _disabled)
+            {
+                _disabled = disabled;
+                if (_disabled)
+                    _label->SetFontColor(D2D1::ColorF(0.4f, 0.4f, 0.4f));
+                else
+                    _label->SetFontColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
+            }
+        }
+
+        bool Disabled() const
+        {
+            return _disabled;
         }
     };
 }

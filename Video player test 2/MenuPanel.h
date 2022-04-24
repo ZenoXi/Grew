@@ -52,7 +52,7 @@ namespace zcom
                 if (_hoveredItem)
                     _hoveredItem->SetBackgroundColor(D2D1::ColorF(0, 0.0f));
                 _hoveredItem = item;
-                if (!_hoveredItem->IsSeparator())
+                if (!_hoveredItem->IsSeparator() && !_hoveredItem->Disabled())
                     _hoveredItem->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f));
 
                 // Stop scheduled hide
@@ -110,38 +110,41 @@ namespace zcom
                 _childHoverEndTime = ztime::Main() - _hoverToShowDuration;
                 _childHoverStartTime = ztime::Main() - _hoverToShowDuration;
 
-                // Handle checkable items
-                if (item->Checkable())
+                if (!item->Disabled())
                 {
-                    if (item->CheckGroup() == -1)
+                    // Handle checkable items
+                    if (item->Checkable())
                     {
-                        item->Invoke(!item->Checked());
-                        item->SetChecked(!item->Checked());
+                        if (item->CheckGroup() == -1)
+                        {
+                            item->Invoke(!item->Checked());
+                            item->SetChecked(!item->Checked());
+                        }
+                        else
+                        {
+                            if (!item->Checked())
+                            {
+                                // Uncheck others from same group
+                                for (int i = 0; i < _menuItems.size(); i++)
+                                {
+                                    if (_menuItems[i]->CheckGroup() == item->CheckGroup() && _menuItems[i]->Checked())
+                                    {
+                                        _menuItems[i]->SetChecked(false);
+                                    }
+                                }
+
+                                item->Invoke(true);
+                                item->SetChecked(true);
+                            }
+                        }
                     }
                     else
                     {
-                        if (!item->Checked())
-                        {
-                            // Uncheck others from same group
-                            for (int i = 0; i < _menuItems.size(); i++)
-                            {
-                                if (_menuItems[i]->CheckGroup() == item->CheckGroup() && _menuItems[i]->Checked())
-                                {
-                                    _menuItems[i]->SetChecked(false);
-                                }
-                            }
-
-                            item->Invoke(true);
-                            item->SetChecked(true);
-                        }
+                        item->Invoke();
                     }
                 }
-                else
-                {
-                    item->Invoke();
-                }
 
-                if (!item->GetMenuPanel() && !item->IsSeparator())
+                if (!item->GetMenuPanel() && !item->IsSeparator() && !item->Disabled())
                     FullClose();
             }
 
