@@ -184,10 +184,10 @@ void MediaPlayer::Update(double timeLimit)
         {
             _audioData.nextFrame.reset(_audioData.decoder->GetFrame().release());
         }
-        //if (_subtitleData.decoder && !_subtitleData.nextFrame)
-        //{
-        //    _subtitleData.nextFrame.reset(_subtitleData.decoder->GetFrame().release());
-        //}
+        if (_subtitleData.decoder && !_subtitleData.decoder->Flushing() && !_subtitleData.nextFrame)
+        {
+            _subtitleData.nextFrame.reset(_subtitleData.decoder->GetFrame().release());
+        }
 
         // Check if video/audio is lagging
         bool lagging = false;
@@ -309,15 +309,41 @@ void MediaPlayer::Update(double timeLimit)
                 frameAdvanced = true;
             }
         }
-        if (_subtitleData.decoder)
+        if (_subtitleData.nextFrame)
         {
-            if ((_playbackTimer.Now() - _lastSubtitleRender).GetDuration(MILLISECONDS) > 50)
+            VideoFrame* nextFrame = (VideoFrame*)_subtitleData.nextFrame.get();
+            if (nextFrame->GetTimestamp() <= _playbackTimer.Now().GetTime())
             {
-                VideoFrame subtitle = ((SubtitleDecoder*)_subtitleData.decoder)->RenderFrame(_playbackTimer.Now());
-                _videoOutputAdapter->SetSubtitleData(std::move(subtitle));
-                _lastSubtitleRender = _playbackTimer.Now();
+                // Notify decoder of significant lag
+                if (_playbackTimer.Now() - TimePoint(nextFrame->GetTimestamp(), MICROSECONDS) > Duration(1, SECONDS))
+                {
+                    ((SubtitleDecoder*)_subtitleData.decoder)->SkipForward(Duration(1, SECONDS));
+                }
+
+                _subtitleData.currentFrame.reset(_subtitleData.nextFrame.release());
+                if (!_recovering && TimerRunning()) // Prevent ugly fast forwarding after seeking
+                {
+                    _videoOutputAdapter->SetSubtitleData(std::move(*(VideoFrame*)_subtitleData.currentFrame.get()));
+                    _subtitleData.currentFrame.reset();
+                }
+                frameAdvanced = true;
+            }
+            else if (_subtitleData.currentFrame)
+            {
+                _videoOutputAdapter->SetSubtitleData(std::move(*(VideoFrame*)_subtitleData.currentFrame.get()));
+                _subtitleData.currentFrame.reset();
             }
         }
+
+        //if (_subtitleData.decoder)
+        //{
+        //    if ((_playbackTimer.Now() - _lastSubtitleRender).GetDuration(MILLISECONDS) > 50)
+        //    {
+        //        VideoFrame subtitle = ((SubtitleDecoder*)_subtitleData.decoder)->RenderFrame(_playbackTimer.Now());
+        //        _videoOutputAdapter->SetSubtitleData(std::move(subtitle));
+        //        _lastSubtitleRender = _playbackTimer.Now();
+        //    }
+        //}
         if (!frameAdvanced)
         {
             if ((_videoData.nextFrame || !_videoData.decoder) &&

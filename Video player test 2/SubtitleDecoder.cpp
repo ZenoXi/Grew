@@ -21,7 +21,7 @@ SubtitleDecoder::SubtitleDecoder(const MediaStream& stream)
 
     // Start decoding and rendering threads
     _decoderThread = std::thread(&SubtitleDecoder::_DecoderThread, this);
-    //_renderingThread = std::thread(&SubtitleDecoder::_RenderingThread, this);
+    _renderingThread = std::thread(&SubtitleDecoder::_RenderingThread, this);
 }
 
 SubtitleDecoder::~SubtitleDecoder()
@@ -29,6 +29,8 @@ SubtitleDecoder::~SubtitleDecoder()
     _decoderThreadStop = true;
     if (_decoderThread.joinable())
         _decoderThread.join();
+    if (_renderingThread.joinable())
+        _renderingThread.join();
     avcodec_close(_codecContext);
     avcodec_free_context(&_codecContext);
 
@@ -55,6 +57,7 @@ void SubtitleDecoder::_DecoderThread()
             ass_free_track(_track);
             _track = ass_new_track(_library);
             ass_process_data(_track, (char*)_stream.GetParams()->extradata, _stream.GetParams()->extradata_size);
+            _lastRenderedFrameTime = -1;
             lock.unlock();
 
             ClearFrames();
@@ -93,16 +96,15 @@ void SubtitleDecoder::_DecoderThread()
         std::unique_lock<std::mutex> lock(_m_ass);
         ass_process_chunk(_track, (char*)packet.GetPacket()->data, packet.GetPacket()->size, timestamp / 1000, duration / 1000);
         lock.unlock();
+
+        if (_lastRenderedFrameTime == -1)
+            _lastRenderedFrameTime = TimePoint(timestamp, MICROSECONDS) - _timeBetweenFrames;
+        _lastBufferedSubtitleTime = TimePoint(timestamp + duration, MICROSECONDS);
         //for (int i = 0; i < sub.num_rects; i++)
         //{
         //    ass_process_chunk(_track, sub.rects[i]->ass, strlen(sub.rects[i]->ass), timestamp / 1000, duration / 1000);
         //}
     }
-}
-
-void SubtitleDecoder::_RenderingThread()
-{
-
 }
 
 #define _r(c)  ((c)>>24)
@@ -185,6 +187,55 @@ void Blend(VideoFrame* frame, ASS_Image* img)
     }
 }
 
+void SubtitleDecoder::_RenderingThread()
+{
+    while (!_decoderThreadStop)
+    {
+        if (
+            _frames.size() >= _MAX_FRAME_QUEUE_SIZE ||
+            _lastRenderedFrameTime.GetTicks() == -1 ||
+            _lastRenderedFrameTime > _lastBufferedSubtitleTime ||
+            !_renderer
+            ) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            continue;
+        }
+
+        // Busy sleep for 500us to allow other functions to acquire the lock
+        Clock timer = Clock(0);
+        while (timer.Now().GetTime(MICROSECONDS) < 500)
+            timer.Update();
+
+        _lastRenderedFrameTime += _timeBetweenFrames;
+        std::unique_lock<std::mutex> lock(_m_ass);
+        int change = 0;
+        ASS_Image* img = ass_render_frame(_renderer, _track, _lastRenderedFrameTime.GetTime(MILLISECONDS), &change);
+
+        if (change != 0)
+        {
+            int width, height;
+            if (_outputWidth != 0 && _outputHeight != 0)
+            {
+                width = _outputWidth;
+                height = _outputHeight;
+            }
+            else
+            {
+                width = _track->PlayResX;
+                height = _track->PlayResY;
+            }
+            VideoFrame* vf = new VideoFrame(width, height, _lastRenderedFrameTime.GetTime(MICROSECONDS));
+            std::fill_n((uchar*)vf->GetBytes(), vf->GetWidth() * vf->GetHeight() * 4, 0);
+            Blend(vf, img);
+
+            std::lock_guard<std::mutex> lock2(_m_frames);
+            _frames.push((IMediaFrame*)vf);
+        }
+
+        lock.unlock();
+    }
+}
+
 VideoFrame SubtitleDecoder::RenderFrame(TimePoint time)
 {
     std::unique_lock<std::mutex> lock(_m_ass);
@@ -222,6 +273,8 @@ void SubtitleDecoder::AddFonts(const std::vector<FontDesc>& fonts)
 
 void SubtitleDecoder::SetOutputSize(int width, int height)
 {
+    std::unique_lock<std::mutex> lock(_m_ass);
+
     _outputWidth = width;
     _outputHeight = height;
     _ResetRenderer();
@@ -235,6 +288,17 @@ int SubtitleDecoder::GetOutputWidth() const
 int SubtitleDecoder::GetOutputHeight() const
 {
     return _outputHeight;
+}
+
+void SubtitleDecoder::SetFramerate(int fps)
+{
+    _timeBetweenFrames = Duration(1000000LL / fps, MICROSECONDS);
+}
+
+void SubtitleDecoder::SkipForward(Duration amount)
+{
+    _lastRenderedFrameTime += amount;
+    ClearFrames();
 }
 
 void SubtitleDecoder::_ResetRenderer()

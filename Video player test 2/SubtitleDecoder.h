@@ -23,6 +23,9 @@ class SubtitleDecoder : public IMediaDecoder
     int _outputWidth = 0;
     int _outputHeight = 0;
 
+    Duration _timeBetweenFrames = Duration(50, MILLISECONDS);
+    TimePoint _lastRenderedFrameTime = -1;
+    TimePoint _lastBufferedSubtitleTime = -1;
     std::thread _renderingThread;
 
 public:
@@ -40,6 +43,8 @@ public:
     void SetOutputSize(int width, int height);
     int GetOutputWidth() const;
     int GetOutputHeight() const;
+    void SetFramerate(int fps);
+    void SkipForward(Duration amount);
 
 private:
     void _DecoderThread();
