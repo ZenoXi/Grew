@@ -188,14 +188,21 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _streamButton->SetBorderVisibility(true);
     _streamButton->SetOnActivated([&]()
     {
-        RECT screenRect = { 0, 0, _canvas->GetWidth(), _canvas->GetHeight() };
-        RECT buttonRect = {
-            _streamButton->GetScreenX(),
-            _streamButton->GetScreenY(),
-            _streamButton->GetScreenX() + _streamButton->GetWidth(),
-            _streamButton->GetScreenY() + _streamButton->GetHeight()
-        };
-        _streamMenuPanel->Show(screenRect, buttonRect);
+        if (!_streamMenuPanel->GetVisible())
+        {
+            RECT screenRect = { 0, 0, _canvas->GetWidth(), _canvas->GetHeight() };
+            RECT buttonRect = {
+                _streamButton->GetScreenX(),
+                _streamButton->GetScreenY(),
+                _streamButton->GetScreenX(),// + _streamButton->GetWidth(),
+                _streamButton->GetScreenY()// + _streamButton->GetHeight()
+            };
+            _streamMenuPanel->Show(screenRect, buttonRect);
+        }
+        else
+        {
+            _streamMenuPanel->Hide();
+        }
     });
 
     _streamMenuPanel = std::make_unique<zcom::MenuPanel>(_canvas);
