@@ -348,8 +348,8 @@ void PlaybackScene::_Unfocus()
 
 void PlaybackScene::_Update()
 {
-    // Keep control panel fixed while stream menu is open
-    if (_streamMenuPanel->GetVisible())
+    // Keep control panel fixed while stream menu is open or scene is unfocused
+    if (_streamMenuPanel->GetVisible() || !Focused())
         _playbackControllerPanel->SetFixed(true);
     else
         _playbackControllerPanel->SetFixed(false);
