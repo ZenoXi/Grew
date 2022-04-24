@@ -15,6 +15,7 @@ namespace zcom
         Duration duration = Duration(3, SECONDS);
         std::wstring title = L"Notification";
         std::wstring text = L"Notification body goes here, the text is long to test newlines";
+        D2D1_COLOR_F borderColor = D2D1::ColorF(0.25f, 0.25f, 0.25f);
     };
 
     class Notification : public Base
@@ -205,7 +206,7 @@ namespace zcom
 
             // Set other properties
             SetBorderVisibility(true);
-            SetBorderColor(D2D1::ColorF(0.25f, 0.25f, 0.25f));
+            SetBorderColor(info.borderColor);
             SetBackgroundColor(D2D1::ColorF(0.15f, 0.15f, 0.15f));
             SetCornerRounding(5.0f);
         }
