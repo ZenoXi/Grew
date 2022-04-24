@@ -38,7 +38,7 @@ namespace zcom
             }
 
             // Draw icon/checkmark
-            if (_icon)
+            if (_icon && !_checked)
             {
                 g.target->DrawBitmap(_icon, D2D1::RectF(0.0f, 0.0f, 25.0f, 25.0f));
             }
