@@ -27,7 +27,6 @@ LocalFileDataProvider::LocalFileDataProvider(std::string filename) : _filename(f
 
     _initializing = true;
     _initializationThread = std::thread(&LocalFileDataProvider::_Initialize, this);
-    _initializationThread.detach();
 }
 
 LocalFileDataProvider::LocalFileDataProvider(LocalFileDataProvider* other)
@@ -45,6 +44,12 @@ LocalFileDataProvider::LocalFileDataProvider(LocalFileDataProvider* other)
 
 LocalFileDataProvider::~LocalFileDataProvider()
 {
+    // Stop initialization
+    if (Initializing())
+        _abortInit = true;
+    if (_initializationThread.joinable())
+        _initializationThread.join();
+
     Stop();
     avformat_close_input(&_avfContext);
     avformat_free_context(_avfContext);
@@ -161,9 +166,45 @@ void LocalFileDataProvider::_Initialize()
 
     // Process file
     MediaFileProcessing fprocessor(_avfContext);
-    fprocessor.ExtractStreams();
-    fprocessor.FindMissingStreamData();
-    fprocessor.CalculateMissingStreamData();
+    if (!_abortInit)
+    {
+        fprocessor.ExtractStreams();
+        while (fprocessor.TaskRunning())
+        {
+            if (_abortInit)
+            {
+                fprocessor.CancelTask();
+                return;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    }
+    if (!_abortInit)
+    {
+        fprocessor.FindMissingStreamData();
+        while (fprocessor.TaskRunning())
+        {
+            if (_abortInit)
+            {
+                fprocessor.CancelTask();
+                return;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    }
+    if (!_abortInit)
+    {
+        fprocessor.CalculateMissingStreamData();
+        while (fprocessor.TaskRunning())
+        {
+            if (_abortInit)
+            {
+                fprocessor.CancelTask();
+                return;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    }
     _videoData.streams = std::move(fprocessor.videoStreams);
     _audioData.streams = std::move(fprocessor.audioStreams);
     _subtitleData.streams = std::move(fprocessor.subtitleStreams);

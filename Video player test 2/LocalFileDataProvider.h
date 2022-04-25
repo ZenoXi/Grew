@@ -15,6 +15,8 @@ class LocalFileDataProvider : public IMediaDataProvider
     std::thread _packetReadingThread;
     ThreadController _packetThreadController;
 
+    bool _abortInit = false;
+
 public:
     LocalFileDataProvider(std::string filename);
     LocalFileDataProvider(LocalFileDataProvider* other);
