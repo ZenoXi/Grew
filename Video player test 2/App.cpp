@@ -120,6 +120,24 @@ bool App::InitScene(std::string name, SceneOptionsBase* options)
     return true;
 }
 
+bool App::ReinitScene(std::string name, SceneOptionsBase* options)
+{
+    Scene* scene = FindActiveScene(name);
+    if (scene)
+    {
+        bool focused = scene->Focused();
+        scene->Uninit();
+        scene->Init(options);
+        if (focused)
+            scene->Focus();
+        return true;
+    }
+    else
+    {
+        return InitScene(name, options);
+    }
+}
+
 void App::UninitScene(std::string name)
 {
     _scenesToUninitialize.push(name);

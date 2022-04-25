@@ -550,8 +550,7 @@ void PlaybackOverlayScene::_CheckForStartOrder()
             PlaybackSceneOptions options;
             options.dataProvider = new MediaHostDataProvider(_readyItems[itemIndex]->CopyDataProvider());
             options.playbackMode = PlaybackMode::SERVER;
-            App::Instance()->UninitScene(PlaybackScene::StaticName());
-            App::Instance()->InitScene(PlaybackScene::StaticName(), &options);
+            App::Instance()->ReinitScene(PlaybackScene::StaticName(), &options);
             App::Instance()->MoveSceneBehind(PlaybackScene::StaticName(), StaticName());
             _RearrangeQueuePanel();
 
@@ -640,8 +639,7 @@ void PlaybackOverlayScene::_CheckForStart()
         PlaybackSceneOptions options;
         options.dataProvider = new MediaReceiverDataProvider(startDesc.hostId);
         options.playbackMode = PlaybackMode::CLIENT;
-        App::Instance()->UninitScene(PlaybackScene::StaticName());
-        App::Instance()->InitScene(PlaybackScene::StaticName(), &options);
+        App::Instance()->ReinitScene(PlaybackScene::StaticName(), &options);
         App::Instance()->MoveSceneBehind(PlaybackScene::StaticName(), StaticName());
         _RearrangeQueuePanel();
     }
@@ -791,8 +789,7 @@ bool PlaybackOverlayScene::_ManageReadyItems()
                 PlaybackSceneOptions options;
                 options.dataProvider = _readyItems[i]->CopyDataProvider();
                 options.playbackMode = PlaybackMode::OFFLINE;
-                App::Instance()->UninitScene(PlaybackScene::StaticName());
-                App::Instance()->InitScene(PlaybackScene::StaticName(), &options);
+                App::Instance()->ReinitScene(PlaybackScene::StaticName(), &options);
                 App::Instance()->MoveSceneBehind(PlaybackScene::StaticName(), StaticName());
                 changed = true;
             }
@@ -865,29 +862,13 @@ void PlaybackOverlayScene::_PlayNextItem()
                 uninitScene = false;
         }
 
-        Scene* scene = nullptr;
-        bool focused = false;
-        if (uninitScene)
-        {
-            scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
-            if (scene)
-            {
-                focused = scene->Focused();
-                App::Instance()->UninitScene(PlaybackScene::StaticName());
-            }
-        }
-
         if (_currentlyPlaying != -1)
         {
             _waiting = false;
             PlaybackSceneOptions options;
             options.dataProvider = _readyItems[_currentlyPlaying]->CopyDataProvider();
             options.playbackMode = PlaybackMode::OFFLINE;
-            App::Instance()->InitScene(PlaybackScene::StaticName(), &options);
-            if (focused)
-                App::Instance()->MoveSceneToFront(PlaybackScene::StaticName());
-            else
-                App::Instance()->MoveSceneBehind(PlaybackScene::StaticName(), StaticName());
+            App::Instance()->ReinitScene(PlaybackScene::StaticName(), &options);
         }
 
         if (uninitScene)
@@ -936,7 +917,7 @@ void PlaybackOverlayScene::WaitForLoad(bool focus)
 
         PlaybackSceneOptions options;
         options.placeholder = true;
-        App::Instance()->InitScene(PlaybackScene::StaticName(), &options);
+        App::Instance()->ReinitScene(PlaybackScene::StaticName(), &options);
         if (focus)
             App::Instance()->MoveSceneToFront(PlaybackScene::StaticName());
     }

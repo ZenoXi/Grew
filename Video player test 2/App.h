@@ -37,6 +37,9 @@ public:
     Scene* CurrentScene();
     // Initializes the scene and places it behind all scenes, unfocused (unless no scenes are initialized)
     bool InitScene(std::string name, SceneOptionsBase* options);
+    // Uninitializes and immediatelly initializes the scene with new options, keeping focus/z-order the same
+    // If scene is not initialized, it just gets initialized as usual
+    bool ReinitScene(std::string name, SceneOptionsBase* options);
     // Primes the scene to be uninitialized
     void UninitScene(std::string name);
 private:
