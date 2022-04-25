@@ -31,12 +31,17 @@ private: // Scene control
     std::vector<Scene*> _scenes;
     int _currentSceneIndex = -1;
     std::vector<Scene*> _activeScenes;
+    std::queue<std::string> _scenesToUninitialize;
 public:
     bool SetScene(std::string name, SceneOptionsBase* options);
     Scene* CurrentScene();
     // Initializes the scene and places it behind all scenes, unfocused (unless no scenes are initialized)
     bool InitScene(std::string name, SceneOptionsBase* options);
-    bool UninitScene(std::string name);
+    // Primes the scene to be uninitialized
+    void UninitScene(std::string name);
+private:
+    void _UninitScene(std::string name);
+public:
     bool MoveSceneToFront(std::string name);
     bool MoveSceneToBack(std::string name);
     bool MoveSceneUp(std::string name);

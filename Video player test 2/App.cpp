@@ -120,10 +120,16 @@ bool App::InitScene(std::string name, SceneOptionsBase* options)
     return true;
 }
 
-bool App::UninitScene(std::string name)
+void App::UninitScene(std::string name)
+{
+    _scenesToUninitialize.push(name);
+}
+
+void App::_UninitScene(std::string name)
 {
     Scene* scene = FindActiveScene(name);
-    if (!scene) return false;
+    if (!scene)
+        return;
 
     bool newFocus = false;
     if (_activeScenes.back() == scene)
@@ -133,8 +139,6 @@ bool App::UninitScene(std::string name)
     _activeScenes.erase(std::find(_activeScenes.begin(), _activeScenes.end(), scene));
     if (newFocus && !_activeScenes.empty())
         _activeScenes.back()->Focus();
-
-    return true;
 }
 
 bool App::MoveSceneToFront(std::string name)
@@ -336,18 +340,31 @@ void App::LoopThread()
         //);
 
         //frame->Release();
+        //auto activeScenes = ActiveScenes();
+        //for (auto& scene : activeScenes)
+        //{
+        //    auto updatedActiveScenes = ActiveScenes();
+        //    if (std::find(updatedActiveScenes.begin(), updatedActiveScenes.end(), scene) == updatedActiveScenes.end())
+        //        continue;
+        //    scene->Update();
+        //    
+        //    // Double checking is necessary because 'scene->Update()' can uninit other scenes
+        //    updatedActiveScenes = ActiveScenes();
+        //    if (std::find(updatedActiveScenes.begin(), updatedActiveScenes.end(), scene) != updatedActiveScenes.end())
+        //        scene->Draw(window.gfx.GetGraphics());
+        //}
+
         auto activeScenes = ActiveScenes();
         for (auto& scene : activeScenes)
         {
-            auto updatedActiveScenes = ActiveScenes();
-            if (std::find(updatedActiveScenes.begin(), updatedActiveScenes.end(), scene) == updatedActiveScenes.end())
-                continue;
             scene->Update();
-            
-            // Double checking is necessary because 'scene->Update()' can uninit other scenes
-            updatedActiveScenes = ActiveScenes();
-            if (std::find(updatedActiveScenes.begin(), updatedActiveScenes.end(), scene) != updatedActiveScenes.end())
-                scene->Draw(window.gfx.GetGraphics());
+            scene->Draw(window.gfx.GetGraphics());
+        }
+        // Uninit scenes
+        while (!_scenesToUninitialize.empty())
+        {
+            _UninitScene(_scenesToUninitialize.front());
+            _scenesToUninitialize.pop();
         }
 
         //// Draw UI
@@ -358,7 +375,7 @@ void App::LoopThread()
         window.gfx.EndFrame();
         window.gfx.Unlock();
 
-        // Prevent deadlock from extremely short unlock/lock cycle
+        // Prevent deadlock from extremely short unlock-lock cycle
         Clock sleepTimer = Clock(0);
         do sleepTimer.Update();
         while (sleepTimer.Now().GetTime(MICROSECONDS) < 100);
