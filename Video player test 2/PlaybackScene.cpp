@@ -181,7 +181,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
         App::Instance()->MoveSceneToFront(PlaybackOverlayScene::StaticName());
     });
 
-    _streamButton = std::make_unique<zcom::Button>(L"Streams");
+    _streamButton = std::make_unique<zcom::Button>(L"Tracks");
     _streamButton->SetBaseSize(75, 25);
     _streamButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
     _streamButton->SetOffsetPixels(-200, -25);
@@ -212,9 +212,9 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
 
     _streamMenuPanel->SetBaseWidth(150);
     _streamMenuPanel->SetZIndex(255);
-    _streamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(_videoStreamMenuPanel.get(), L"Video streams"));
-    _streamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(_audioStreamMenuPanel.get(), L"Audio streams"));
-    _streamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(_subtitleStreamMenuPanel.get(), L"Subtitle streams"));
+    _streamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(_videoStreamMenuPanel.get(), L"Video tracks"));
+    _streamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(_audioStreamMenuPanel.get(), L"Audio tracks"));
+    _streamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(_subtitleStreamMenuPanel.get(), L"Subtitle tracks"));
 
     _videoStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"None"));
     _audioStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"None"));
