@@ -25,6 +25,8 @@ namespace znet
             int64_t id;
         };
 
+        virtual ~IConnectionManager() {};
+
         virtual std::vector<User> Users() = 0;
         virtual User ThisUser() = 0;
         virtual void SetUsername(std::wstring username) = 0;
