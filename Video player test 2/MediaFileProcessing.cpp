@@ -9,8 +9,44 @@ int64_t MetadataDurationToMicroseconds(std::string data);
 
 void MediaFileProcessing::ExtractStreams()
 {
+    if (_taskRunning)
+        return;
+
+    if (_taskThread.joinable())
+        _taskThread.join();
+    _taskThread = std::thread(&MediaFileProcessing::_ExtractStreams, this);
+    _taskRunning = true;
+}
+
+void MediaFileProcessing::FindMissingStreamData()
+{
+    if (_taskRunning)
+        return;
+
+    if (_taskThread.joinable())
+        _taskThread.join();
+    _taskThread = std::thread(&MediaFileProcessing::_FindMissingStreamData, this);
+    _taskRunning = true;
+}
+
+void MediaFileProcessing::CalculateMissingStreamData(bool full)
+{
+    if (_taskRunning)
+        return;
+
+    if (_taskThread.joinable())
+        _taskThread.join();
+    _taskThread = std::thread(&MediaFileProcessing::_CalculateMissingStreamData, this, full);
+    _taskRunning = true;
+}
+
+void MediaFileProcessing::_ExtractStreams()
+{
     for (int i = 0; i < avfContext->nb_streams; i++)
     {
+        if (_cancelTask)
+            break;
+
         AVStream* avstream = avfContext->streams[i];
 
         MediaStream stream(avstream->codecpar);
@@ -72,15 +108,20 @@ void MediaFileProcessing::ExtractStreams()
         }
         }
     }
+
+    _taskRunning = false;
 }
 
-void MediaFileProcessing::FindMissingStreamData()
+void MediaFileProcessing::_FindMissingStreamData()
 {
     // CODE HERE CAN PROBABLY BE IMPROVED BUT I CANT BE ARSED TO DO SO
 
     // Video Streams
     for (auto& stream : videoStreams)
     {
+        if (_cancelTask)
+            break;
+
         // A copy of metadata is necessary because it will be modified
         std::vector<MediaMetadataPair> metadata = stream.metadata;
         for (auto& it : metadata)
@@ -115,6 +156,9 @@ void MediaFileProcessing::FindMissingStreamData()
     // Audio Streams
     for (auto& stream : audioStreams)
     {
+        if (_cancelTask)
+            break;
+
         // A copy of metadata is necessary because it will be modified
         std::vector<MediaMetadataPair> metadata = stream.metadata;
         for (auto& it : metadata)
@@ -149,6 +193,9 @@ void MediaFileProcessing::FindMissingStreamData()
     // Subtitle Streams
     for (auto& stream : subtitleStreams)
     {
+        if (_cancelTask)
+            break;
+
         // A copy of metadata is necessary because it will be modified
         std::vector<MediaMetadataPair> metadata = stream.metadata;
         for (auto& it : metadata)
@@ -179,9 +226,11 @@ void MediaFileProcessing::FindMissingStreamData()
             stream.startTime = 0;
         }
     }
+
+    _taskRunning = false;
 }
 
-void MediaFileProcessing::CalculateMissingStreamData(bool full)
+void MediaFileProcessing::_CalculateMissingStreamData(bool full)
 {
     // These classes are only used in this function
 
@@ -382,6 +431,9 @@ void MediaFileProcessing::CalculateMissingStreamData(bool full)
 
     while (av_read_frame(avfContext, packet) >= 0)
     {
+        if (_cancelTask)
+            break;
+
         PacketHolder holder = { packet };
 
         //if (packet->stream_index == 0)
@@ -454,6 +506,8 @@ void MediaFileProcessing::CalculateMissingStreamData(bool full)
     av_frame_free(&frame);
 
     streamDecoders.clear();
+
+    _taskRunning = false;
 }
 
 int64_t MetadataDurationToMicroseconds(std::string data)
