@@ -50,6 +50,8 @@ class PlaybackOverlayScene : public Scene
     std::unique_ptr<zcom::Label> _offlineLabel = nullptr;
     std::unique_ptr<zcom::Button> _connectButton = nullptr;
     std::unique_ptr<zcom::Button> _startServerButton = nullptr;
+    bool _connectPanelOpen = false;
+    bool _startServerPanelOpen = false;
 
     std::unique_ptr<PlaybackOverlayShortcutHandler> _shortcutHandler = nullptr;
 

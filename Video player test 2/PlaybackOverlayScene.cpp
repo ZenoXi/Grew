@@ -1,6 +1,8 @@
 #include "App.h" // App.h must be included first
 #include "PlaybackOverlayScene.h"
 
+#include "ConnectScene.h"
+
 #include "NetworkInterfaceNew.h"
 #include "MediaReceiverDataProvider.h"
 #include "MediaHostDataProvider.h"
@@ -157,7 +159,9 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _connectButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _connectButton->SetOnActivated([&]()
     {
-        
+        _connectPanelOpen = true;
+        App::Instance()->InitScene(ConnectScene::StaticName(), nullptr);
+        App::Instance()->MoveSceneToFront(ConnectScene::StaticName());
     });
 
     _startServerButton = std::make_unique<zcom::Button>(L"Start server");
@@ -219,12 +223,33 @@ void PlaybackOverlayScene::_Update()
     _playbackQueuePanel->Update();
     _connectedUsersPanel->Update();
 
-    znet::NetworkMode netMode = znet::NetworkInterface::Instance()->Mode();
-    if (netMode != _networkMode)
+    if (_connectPanelOpen)
     {
-        _networkMode = netMode;
-        _SetUpPacketReceivers(netMode);
-        _SetUpNetworkPanel();
+        ConnectScene* scene = (ConnectScene*)App::Instance()->FindScene(ConnectScene::StaticName());
+        if (!scene)
+        {
+            std::cout << "[WARN] Connect panel incorrectly marked as open" << std::endl;
+            _connectPanelOpen = false;
+        }
+        else if (scene->CloseScene())
+        {
+            App::Instance()->UninitScene(ConnectScene::StaticName());
+            _connectPanelOpen = false;
+        }
+    }
+    else if (_startServerPanelOpen)
+    {
+
+    }
+    else
+    {
+        znet::NetworkMode netMode = znet::NetworkInterface::Instance()->Mode();
+        if (netMode != _networkMode)
+        {
+            _networkMode = netMode;
+            _SetUpPacketReceivers(netMode);
+            _SetUpNetworkPanel();
+        }
     }
 
     // Process connected user changes
