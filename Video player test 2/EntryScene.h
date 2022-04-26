@@ -42,6 +42,7 @@ class EntryScene : public Scene
     std::unique_ptr<zcom::Label> _connectLoadingInfoLabel = nullptr;
     std::unique_ptr<zcom::Button> _connectLoadingCancelButton = nullptr;
     bool _connectLoading = false;
+    bool _connectPanelOpen = false;
 
     // Share input
     std::unique_ptr<zcom::Panel> _sharePanel = nullptr;

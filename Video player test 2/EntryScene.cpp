@@ -5,6 +5,7 @@
 #include "Options.h"
 #include "LastIpOptionAdapter.h"
 #include "Functions.h"
+#include "ConnectScene.h"
 #include "PlaybackScene.h"
 #include "PlaybackOverlayScene.h"
 #include "NetworkInterfaceNew.h"
@@ -381,6 +382,33 @@ void EntryScene::_Update()
 {
     _canvas->Update();
 
+    if (_connectPanelOpen)
+    {
+        ConnectScene* scene = (ConnectScene*)App::Instance()->FindScene(ConnectScene::StaticName());
+        if (!scene)
+        {
+            std::cout << "[WARN] Connect panel incorrectly marked as open" << std::endl;
+            _connectPanelOpen = false;
+        }
+        else
+        {
+            if (scene->CloseScene())
+            {
+                if (scene->ConnectionSuccessful())
+                {
+                    App::Instance()->UninitScene(ConnectScene::StaticName());
+                    App::Instance()->UninitScene(GetName());
+                    return;
+                }
+                else
+                {
+                    App::Instance()->UninitScene(ConnectScene::StaticName());
+                    _connectPanelOpen = false;
+                }
+            }
+        }
+    }
+
     if (_setConnectFocus)
     {
         _canvas->ClearSelection(_connectIpInput.get());
@@ -471,6 +499,11 @@ void EntryScene::_Resize(int width, int height)
 
 void EntryScene::OnConnectSelected()
 {
+    App::Instance()->InitScene(ConnectScene::StaticName(), nullptr);
+    App::Instance()->MoveSceneToFront(ConnectScene::StaticName());
+    _connectPanelOpen = true;
+    return;
+
     _mainPanel->SetActive(false);
     _mainPanel->SetVisible(false);
 
