@@ -1277,6 +1277,12 @@ namespace znet
     {
         TCPConnectionManager* _connectionManager;
 
+        // Async connect
+        std::thread _connectionThread;
+        bool _CONN_THR_STOP = false;
+        bool _connectFinished = true;
+        int64_t _connectResult = -1;
+
         // User id generation
     public:
         class IDGenerator
@@ -1308,6 +1314,10 @@ namespace znet
         }
         ~TCPClient()
         {
+            _CONN_THR_STOP = true;
+            if (_connectionThread.joinable())
+                _connectionThread.join();
+
             TCPClientRef ref = _connectionManager->GetFront();
             if (ref.Valid())
             {
@@ -1342,9 +1352,121 @@ namespace znet
             return newId;
         }
 
+        void ConnectAsync(std::string ip, uint16_t port)
+        {
+            _CONN_THR_STOP = true;
+            if (_connectionThread.joinable())
+                _connectionThread.join();
+            _CONN_THR_STOP = false;
+
+            // Create socket
+            SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
+            if (sock == INVALID_SOCKET)
+            {
+                _connectResult = -1;
+                return;
+            }
+
+            // Make socket non-blocking
+            u_long mode = 1;
+            ioctlsocket(sock, FIONBIO, &mode);
+
+            _connectFinished = false;
+            _connectionThread = std::thread(&TCPClient::_Connect, this, ip, port, sock);
+        }
+
+        bool ConnectFinished()
+        {
+            return _connectFinished;
+        }
+
+        int64_t ConnectResult()
+        {
+            return _connectResult;
+        }
+
+        void CancelConnect()
+        {
+            _CONN_THR_STOP = true;
+            if (_connectionThread.joinable())
+                _connectionThread.join();
+            _CONN_THR_STOP = false;
+        }
+
         TCPClientRef Connection(int64_t id)
         {
             return _connectionManager->GetClient(id);
+        }
+
+    private:
+        void _Connect(std::string ip, uint16_t port, SOCKET sock)
+        {
+            sockaddr_in addr;
+            addr.sin_family = AF_INET;
+            addr.sin_port = htons(port);
+            inet_pton(AF_INET, ip.c_str(), &addr.sin_addr);
+
+            // Connect to server
+            int result = connect(sock, (sockaddr*)&addr, sizeof(addr));
+            if (result == SOCKET_ERROR)
+            {
+                if (WSAGetLastError() == WSAEWOULDBLOCK)
+                {
+                    timeval dur = { 0, 0 };
+                    while (!_CONN_THR_STOP)
+                    {
+                        fd_set wfd;
+                        FD_ZERO(&wfd);
+                        FD_SET(sock, &wfd);
+
+                        result = select(0, nullptr, &wfd, nullptr, &dur);
+                        if (result > 0)
+                        {
+                            break;
+                        }
+
+                        fd_set efd;
+                        FD_ZERO(&efd);
+                        FD_SET(sock, &efd);
+
+                        result = select(0, nullptr, nullptr, &efd, &dur);
+                        if (result > 0)
+                        {
+                            closesocket(sock);
+                            _connectResult = -1;
+                            _connectFinished = true;
+                            return;
+                        }
+
+                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    }
+
+                    if (_CONN_THR_STOP)
+                    {
+                        closesocket(sock);
+                        _connectResult = -1;
+                        _connectFinished = true;
+                        return;
+                    }
+                }
+                else
+                {
+                    closesocket(sock);
+                    _connectResult = -1;
+                    _connectFinished = true;
+                    return;
+                }
+            }
+
+            // Return socket to blocking mode
+            u_long mode = 0;
+            ioctlsocket(sock, FIONBIO, &mode);
+
+            int64_t newId = _GetID();
+            auto client = std::make_unique<TCPConnection>(sock, addr);
+            _connectionManager->AddClient(std::move(client), newId);
+            _connectResult = newId;
+            _connectFinished = true;
         }
     };
 }
