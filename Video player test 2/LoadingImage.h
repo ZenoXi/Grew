@@ -20,50 +20,49 @@ namespace zcom
         {
             if (!_brush)
             {
-                g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::WhiteSmoke), &_brush);
+                g.target->CreateSolidColorBrush(_dotColor, &_brush);
                 g.refs->push_back((IUnknown**)&_brush);
             }
 
-            float phase = fmod(ztime::Main().GetTime(MILLISECONDS) / 1000.0f, _animationDuration);
-            float dotHeight = 20.0f;
+            float phase = fmod((ztime::Main() - _animationStart).GetDuration(MILLISECONDS) / 1000.0f, _animationDuration.GetDuration(MICROSECONDS) / 1000000.0f);
 
             { // Dot 1
                 float localPhase = phase * 2.0f;
-                float height = (-cosf(localPhase * Math::TAU) * 0.5f + 0.5f) * dotHeight;
+                float height = (-cosf(localPhase * Math::TAU) * 0.5f + 0.5f) * _dotHeight;
                 if (localPhase > 1.0f) height = 0;
                 D2D1_ELLIPSE ellipse;
                 ellipse.point = D2D1::Point2F(GetWidth() * 0.5f, GetHeight() * 0.5f);
-                ellipse.point.x -= 15.0f;
+                ellipse.point.x -= _dotSpacing;
                 ellipse.point.y -= height;
-                ellipse.radiusX = 5.0f;
-                ellipse.radiusY = 5.0f;
+                ellipse.radiusX = _dotRadius;
+                ellipse.radiusY = _dotRadius;
                 g.target->FillEllipse(ellipse, _brush);
             }
 
             { // Dot 2
                 float localPhase = (phase - 0.15f) * 2.0f;
-                float height = (-cosf(localPhase * Math::TAU) * 0.5f + 0.5f) * dotHeight;
+                float height = (-cosf(localPhase * Math::TAU) * 0.5f + 0.5f) * _dotHeight;
                 if (localPhase > 1.0f) height = 0;
                 else if (localPhase < 0.0f) height = 0;
                 D2D1_ELLIPSE ellipse;
                 ellipse.point = D2D1::Point2F(GetWidth() * 0.5f, GetHeight() * 0.5f);
                 ellipse.point.y -= height;
-                ellipse.radiusX = 5.0f;
-                ellipse.radiusY = 5.0f;
+                ellipse.radiusX = _dotRadius;
+                ellipse.radiusY = _dotRadius;
                 g.target->FillEllipse(ellipse, _brush);
             }
 
             { // Dot 3
                 float localPhase = (phase - 0.3f) * 2.0f;
-                float height = (-cosf(localPhase * Math::TAU) * 0.5f + 0.5f) * dotHeight;
+                float height = (-cosf(localPhase * Math::TAU) * 0.5f + 0.5f) * _dotHeight;
                 if (localPhase > 1.0f) height = 0;
                 else if (localPhase < 0.0f) height = 0;
                 D2D1_ELLIPSE ellipse;
                 ellipse.point = D2D1::Point2F(GetWidth() * 0.5f, GetHeight() * 0.5f);
-                ellipse.point.x += 15.0f;
+                ellipse.point.x += _dotSpacing;
                 ellipse.point.y -= height;
-                ellipse.radiusX = 5.0f;
-                ellipse.radiusY = 5.0f;
+                ellipse.radiusX = _dotRadius;
+                ellipse.radiusY = _dotRadius;
                 g.target->FillEllipse(ellipse, _brush);
             }
         }
@@ -79,7 +78,12 @@ namespace zcom
 
     private:
         ID2D1SolidColorBrush* _brush = nullptr;
-        float _animationDuration = 1.2f; // Seconds
+        D2D1_COLOR_F _dotColor = D2D1::ColorF(D2D1::ColorF::WhiteSmoke);
+        Duration _animationDuration = Duration(1200, MILLISECONDS);
+        TimePoint _animationStart = 0;
+        float _dotHeight = 20.0f;
+        float _dotRadius = 5.0f;
+        float _dotSpacing = 15.0f;
 
     public:
         LoadingImage()
@@ -94,5 +98,36 @@ namespace zcom
         LoadingImage& operator=(LoadingImage&&) = delete;
         LoadingImage(const LoadingImage&) = delete;
         LoadingImage& operator=(const LoadingImage&) = delete;
+
+        void SetAnimationDuration(Duration duration)
+        {
+            _animationDuration = duration;
+        }
+
+        void ResetAnimation()
+        {
+            _animationStart = ztime::Main();
+        }
+
+        void SetDotHeight(float height)
+        {
+            _dotHeight = height;
+        }
+
+        void SetDotRadius(float radius)
+        {
+            _dotRadius = radius;
+        }
+
+        void SetDotSpacing(float spacing)
+        {
+            _dotSpacing = spacing;
+        }
+
+        void SetDotColor(D2D1_COLOR_F color)
+        {
+            _dotColor = color;
+            SafeFullRelease((IUnknown**)&_brush);
+        }
     };
 }
