@@ -31,6 +31,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _playbackQueuePanel->SetOffsetPixels(40, 40);
     _playbackQueuePanel->SetBorderVisibility(true);
     _playbackQueuePanel->SetBorderColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
+    _playbackQueuePanel->SetCornerRounding(3.0f);
     _playbackQueuePanel->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     zcom::PROP_Shadow shadowProps;
     shadowProps.offsetX = 5.0f;
@@ -56,7 +57,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         _fileDialog->Open();
     });
 
-    _closeOverlayButton = std::make_unique<zcom::Button>(L"Close");
+    _closeOverlayButton = std::make_unique<zcom::Button>(L"Close overlay");
     _closeOverlayButton->SetBaseSize(100, 25);
     _closeOverlayButton->SetOffsetPixels(-40, 40);
     _closeOverlayButton->SetHorizontalAlignment(zcom::Alignment::END);
@@ -68,11 +69,42 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     });
 
     _networkStatusLabel = std::make_unique<zcom::Label>(L"");
-    _networkStatusLabel->SetBaseSize(300, 25);
-    _networkStatusLabel->SetOffsetPixels(-40, 80);
+    _networkStatusLabel->SetBaseSize(200, 25);
+    _networkStatusLabel->SetOffsetPixels(-140, 80);
     _networkStatusLabel->SetHorizontalAlignment(zcom::Alignment::END);
     _networkStatusLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
-    _networkStatusLabel->SetBackgroundColor(D2D1::ColorF(0.25f, 0.25f, 0.25f));
+    _networkStatusLabel->SetFontSize(18.0f);
+    _networkStatusLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
+    zcom::PROP_Shadow textShadow;
+    textShadow.offsetX = 2.0f;
+    textShadow.offsetY = 2.0f;
+    textShadow.blurStandardDeviation = 2.0f;
+    textShadow.color = D2D1::ColorF(0, 1.0f);
+    _networkStatusLabel->SetProperty(textShadow);
+
+    _disconnectButton = std::make_unique<zcom::Button>(L"Disconnect");
+    _disconnectButton->SetBaseSize(100, 25);
+    _disconnectButton->SetOffsetPixels(-40, 80);
+    _disconnectButton->SetHorizontalAlignment(zcom::Alignment::END);
+    _disconnectButton->SetBorderVisibility(true);
+    _disconnectButton->SetBorderColor(D2D1::ColorF(0.8f, 0.2f, 0.2f));
+    _disconnectButton->SetActivation(zcom::ButtonActivation::RELEASE);
+    _disconnectButton->SetOnActivated([&]()
+    {
+        znet::NetworkInterface::Instance()->Disconnect();
+    });
+
+    _stopServerButton = std::make_unique<zcom::Button>(L"Close server");
+    _stopServerButton->SetBaseSize(100, 25);
+    _stopServerButton->SetOffsetPixels(-40, 80);
+    _stopServerButton->SetHorizontalAlignment(zcom::Alignment::END);
+    _stopServerButton->SetBorderVisibility(true);
+    _stopServerButton->SetBorderColor(D2D1::ColorF(0.8f, 0.2f, 0.2f));
+    _stopServerButton->SetActivation(zcom::ButtonActivation::RELEASE);
+    _stopServerButton->SetOnActivated([&]()
+    {
+        znet::NetworkInterface::Instance()->StopServer();
+    });
 
     _connectedUsersPanel = std::make_unique<zcom::Panel>();
     _connectedUsersPanel->SetBaseSize(300, 200);
@@ -80,6 +112,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _connectedUsersPanel->SetHorizontalAlignment(zcom::Alignment::END);
     _connectedUsersPanel->SetBorderVisibility(true);
     _connectedUsersPanel->SetBorderColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
+    _connectedUsersPanel->SetCornerRounding(3.0f);
     _connectedUsersPanel->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     _connectedUsersPanel->SetProperty(shadowProps);
 
@@ -101,15 +134,45 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         _usernameInput->SetText(L"");
     });
 
-    _disconnectButton = std::make_unique<zcom::Button>(L"Disconnect");
-    _disconnectButton->SetBaseSize(80, 25);
-    _disconnectButton->SetOffsetPixels(-40, 365);
-    _disconnectButton->SetHorizontalAlignment(zcom::Alignment::END);
-    _disconnectButton->SetBorderVisibility(true);
-    _disconnectButton->SetActivation(zcom::ButtonActivation::RELEASE);
-    _disconnectButton->SetOnActivated([&]()
+    _offlineLabel = std::make_unique<zcom::Label>(L"Try watching something with others");
+    _offlineLabel->SetBaseSize(260, 60);
+    _offlineLabel->SetOffsetPixels(-100, -30);
+    _offlineLabel->SetAlignment(zcom::Alignment::END, zcom::Alignment::CENTER);
+    _offlineLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+    _offlineLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+    _offlineLabel->SetFontSize(22.0f);
+    _offlineLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
+    _offlineLabel->SetProperty(textShadow);
+    _offlineLabel->SetWordWrap(true);
+
+    _connectButton = std::make_unique<zcom::Button>(L"Connect");
+    _connectButton->SetBaseSize(80, 25);
+    _connectButton->SetOffsetPixels(-240, 20);
+    _connectButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::CENTER);
+    _connectButton->Text()->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
+    _connectButton->Text()->SetFontStretch(DWRITE_FONT_STRETCH_CONDENSED);
+    _connectButton->SetBackgroundColor(D2D1::ColorF(0.25f, 0.25f, 0.25f));
+    _connectButton->SetCornerRounding(5.0f);
+    _connectButton->SetProperty(textShadow);
+    _connectButton->SetActivation(zcom::ButtonActivation::RELEASE);
+    _connectButton->SetOnActivated([&]()
     {
-        znet::NetworkInterface::Instance()->Disconnect();
+        
+    });
+
+    _startServerButton = std::make_unique<zcom::Button>(L"Start server");
+    _startServerButton->SetBaseSize(80, 25);
+    _startServerButton->SetOffsetPixels(-140, 20);
+    _startServerButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::CENTER);
+    _startServerButton->Text()->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
+    _startServerButton->Text()->SetFontStretch(DWRITE_FONT_STRETCH_CONDENSED);
+    _startServerButton->SetBackgroundColor(D2D1::ColorF(0.25f, 0.25f, 0.25f));
+    _startServerButton->SetCornerRounding(5.0f);
+    _startServerButton->SetProperty(textShadow);
+    _startServerButton->SetActivation(zcom::ButtonActivation::RELEASE);
+    _startServerButton->SetOnActivated([&]()
+    {
+        
     });
 
 
@@ -117,14 +180,22 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _canvas->AddComponent(_addFileButton.get());
     _canvas->AddComponent(_closeOverlayButton.get());
     _canvas->AddComponent(_networkStatusLabel.get());
+    _canvas->AddComponent(_disconnectButton.get());
+    _canvas->AddComponent(_stopServerButton.get());
     _canvas->AddComponent(_connectedUsersPanel.get());
     _canvas->AddComponent(_usernameInput.get());
     _canvas->AddComponent(_usernameButton.get());
-    _canvas->AddComponent(_disconnectButton.get());
+    _canvas->AddComponent(_offlineLabel.get());
+    _canvas->AddComponent(_connectButton.get());
+    _canvas->AddComponent(_startServerButton.get());
     _canvas->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.75f));
 
+    // Init network panel
+    _networkMode = znet::NetworkInterface::Instance()->Mode();
+    _SetUpNetworkPanel();
+
     // Set up packet receivers
-    _SetUpPacketReceivers(znet::NetworkInterface::Instance()->Mode());
+    _SetUpPacketReceivers(_networkMode);
 }
 
 void PlaybackOverlayScene::_Uninit()
@@ -153,6 +224,7 @@ void PlaybackOverlayScene::_Update()
     {
         _networkMode = netMode;
         _SetUpPacketReceivers(netMode);
+        _SetUpNetworkPanel();
     }
 
     // Process connected user changes
@@ -962,11 +1034,66 @@ void PlaybackOverlayScene::_RearrangeQueuePanel()
     _playbackQueuePanel->Resize();
 }
 
+void PlaybackOverlayScene::_SetUpNetworkPanel()
+{
+    if (_networkMode == znet::NetworkMode::OFFLINE)
+    {
+        _networkStatusLabel->SetVisible(false);
+        _disconnectButton->SetVisible(false);
+        _stopServerButton->SetVisible(false);
+        _connectedUsersPanel->SetVisible(false);
+        _usernameInput->SetVisible(false);
+        _usernameButton->SetVisible(false);
+        _offlineLabel->SetVisible(true);
+        _connectButton->SetVisible(true);
+        _startServerButton->SetVisible(true);
+    }
+    else if (_networkMode == znet::NetworkMode::SERVER)
+    {
+        _networkStatusLabel->SetVisible(true);
+        _disconnectButton->SetVisible(false);
+        _stopServerButton->SetVisible(true);
+        _connectedUsersPanel->SetVisible(true);
+        _usernameInput->SetVisible(true);
+        _usernameButton->SetVisible(true);
+        _offlineLabel->SetVisible(false);
+        _connectButton->SetVisible(false);
+        _startServerButton->SetVisible(false);
+    }
+    else if (_networkMode == znet::NetworkMode::CLIENT)
+    {
+        _networkStatusLabel->SetVisible(true);
+        _disconnectButton->SetVisible(true);
+        _stopServerButton->SetVisible(false);
+        _connectedUsersPanel->SetVisible(true);
+        _usernameInput->SetVisible(true);
+        _usernameButton->SetVisible(true);
+        _offlineLabel->SetVisible(false);
+        _connectButton->SetVisible(false);
+        _startServerButton->SetVisible(false);
+    }
+}
+
 void PlaybackOverlayScene::_RearrangeNetworkPanel()
 {
     if (!_focused)
         return;
 
+    if (_networkMode == znet::NetworkMode::OFFLINE)
+        _RearrangeNetworkPanel_Offline();
+    else if (_networkMode == znet::NetworkMode::SERVER)
+        _RearrangeNetworkPanel_Server();
+    else if (_networkMode == znet::NetworkMode::CLIENT)
+        _RearrangeNetworkPanel_Client();
+}
+
+void PlaybackOverlayScene::_RearrangeNetworkPanel_Offline()
+{
+
+}
+
+void PlaybackOverlayScene::_RearrangeNetworkPanel_Server()
+{
     // Update network label
     std::string statusString = znet::NetworkInterface::Instance()->StatusString();
     _networkStatusLabel->SetText(string_to_wstring(statusString));
@@ -985,7 +1112,45 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel()
         usernameLabel->SetMargins({ 5.0f, 0.0f, 5.0f, 0.0f });
         _connectedUsersPanel->AddItem(usernameLabel, true);
     }
-    
+
+    // Others
+    for (int i = 0; i < _currentUserIds.size(); i++)
+    {
+        std::wstring name = L"[User " + string_to_wstring(int_to_str(_currentUserIds[i])) + L"] " + _currentUserNames[i];
+
+        zcom::Label* usernameLabel = new zcom::Label(name);
+        usernameLabel->SetBaseHeight(25);
+        usernameLabel->SetParentWidthPercent(1.0f);
+        usernameLabel->SetVerticalOffsetPixels(25 + 25 * i);
+        usernameLabel->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f * (i % 2)));
+        usernameLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+        usernameLabel->SetMargins({ 5.0f, 0.0f, 5.0f, 0.0f });
+        _connectedUsersPanel->AddItem(usernameLabel, true);
+    }
+    _connectedUsersPanel->Resize();
+}
+
+void PlaybackOverlayScene::_RearrangeNetworkPanel_Client()
+{
+    // Update network label
+    std::string statusString = znet::NetworkInterface::Instance()->StatusString();
+    _networkStatusLabel->SetText(string_to_wstring(statusString));
+
+    // Add all users
+    _connectedUsersPanel->ClearItems();
+
+    { // This client
+        auto user = znet::NetworkInterface::Instance()->ThisUser();
+        std::wstring name = L"[User " + string_to_wstring(int_to_str(user.id)) + L"] " + user.name;
+        zcom::Label* usernameLabel = new zcom::Label(name);
+        usernameLabel->SetBaseHeight(25);
+        usernameLabel->SetParentWidthPercent(1.0f);
+        usernameLabel->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
+        usernameLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+        usernameLabel->SetMargins({ 5.0f, 0.0f, 5.0f, 0.0f });
+        _connectedUsersPanel->AddItem(usernameLabel, true);
+    }
+
     // Others
     for (int i = 0; i < _currentUserIds.size(); i++)
     {
