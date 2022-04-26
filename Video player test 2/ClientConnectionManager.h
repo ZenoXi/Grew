@@ -22,6 +22,7 @@ namespace znet
         User _thisUser;
 
         std::thread _connectionThread;
+        bool _CONN_THR_STOP = false;
         int64_t _connectionId = -1;
         bool _connecting = false;
         bool _disconnected = false;
@@ -46,6 +47,7 @@ namespace znet
         }
         ~ClientConnectionManager()
         {
+            _CONN_THR_STOP = true;
             _MANAGEMENT_THR_STOP = true;
 
             if (_connectionThread.joinable())
@@ -103,13 +105,27 @@ namespace znet
     private:
         void _Connect(std::string ip, uint16_t port)
         {
-            _connectionId = _client.Connect(ip, port);
+            // Connect the socket
+            _client.ConnectAsync(ip, port);
+            while (!_client.ConnectFinished() && !_CONN_THR_STOP)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+            _connectionId = _client.ConnectResult();
+
             if (_connectionId != -1)
             {
                 // Wait for assigned id to arrive
                 TCPClientRef connection = _client.Connection(_connectionId);
                 while (connection->PacketCount() == 0)
+                {
+                    if (_CONN_THR_STOP)
+                    {
+                        _connecting = false;
+                        return;
+                    }
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                }
                 Packet idPacket = connection->GetPacket();
                 if (idPacket.id != (int)PacketType::ASSIGNED_USER_ID)
                 {
