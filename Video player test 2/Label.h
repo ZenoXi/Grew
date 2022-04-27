@@ -410,10 +410,7 @@ namespace zcom
         void SetFontColor(D2D1_COLOR_F color)
         {
             _fontColor = color;
-            if (_textBrush)
-            {
-                _textBrush->Release();
-            }
+            SafeFullRelease((IUnknown**)&_textBrush);
         }
     };
 }
