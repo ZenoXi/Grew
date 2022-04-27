@@ -6,6 +6,7 @@
 #include "LastIpOptionAdapter.h"
 #include "Functions.h"
 #include "ConnectScene.h"
+#include "StartServerScene.h"
 #include "PlaybackScene.h"
 #include "PlaybackOverlayScene.h"
 #include "NetworkInterfaceNew.h"
@@ -409,6 +410,33 @@ void EntryScene::_Update()
         }
     }
 
+    if (_startServerPanelOpen)
+    {
+        StartServerScene* scene = (StartServerScene*)App::Instance()->FindScene(StartServerScene::StaticName());
+        if (!scene)
+        {
+            std::cout << "[WARN] Start server panel incorrectly marked as open" << std::endl;
+            _startServerPanelOpen = false;
+        }
+        else
+        {
+            if (scene->CloseScene())
+            {
+                if (scene->StartSuccessful())
+                {
+                    App::Instance()->UninitScene(StartServerScene::StaticName());
+                    App::Instance()->UninitScene(GetName());
+                    return;
+                }
+                else
+                {
+                    App::Instance()->UninitScene(StartServerScene::StaticName());
+                    _startServerPanelOpen = false;
+                }
+            }
+        }
+    }
+
     if (_setConnectFocus)
     {
         _canvas->ClearSelection(_connectIpInput.get());
@@ -540,6 +568,11 @@ void EntryScene::OnConnectSelected()
 
 void EntryScene::OnShareSelected()
 {
+    App::Instance()->InitScene(StartServerScene::StaticName(), nullptr);
+    App::Instance()->MoveSceneToFront(StartServerScene::StaticName());
+    _startServerPanelOpen = true;
+    return;
+
     _mainPanel->SetActive(false);
     _mainPanel->SetVisible(false);
 

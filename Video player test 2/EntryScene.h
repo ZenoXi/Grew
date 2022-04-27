@@ -56,6 +56,7 @@ class EntryScene : public Scene
     std::unique_ptr<zcom::Button> _shareLoadingCancelButton = nullptr;
     bool _shareLoading = false;
     std::string _shareFilename = "";
+    bool _startServerPanelOpen = false;
 
     // File
     AsyncFileDialog _fileDialog;
