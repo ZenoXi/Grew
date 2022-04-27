@@ -2,6 +2,7 @@
 #include "PlaybackOverlayScene.h"
 
 #include "ConnectScene.h"
+#include "StartServerScene.h"
 
 #include "NetworkInterfaceNew.h"
 #include "MediaReceiverDataProvider.h"
@@ -176,7 +177,9 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _startServerButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _startServerButton->SetOnActivated([&]()
     {
-        
+        _startServerPanelOpen = true;
+        App::Instance()->InitScene(StartServerScene::StaticName(), nullptr);
+        App::Instance()->MoveSceneToFront(StartServerScene::StaticName());
     });
 
 
@@ -239,7 +242,17 @@ void PlaybackOverlayScene::_Update()
     }
     else if (_startServerPanelOpen)
     {
-
+        StartServerScene* scene = (StartServerScene*)App::Instance()->FindScene(StartServerScene::StaticName());
+        if (!scene)
+        {
+            std::cout << "[WARN] Start server panel incorrectly marked as open" << std::endl;
+            _startServerPanelOpen = false;
+        }
+        else if (scene->CloseScene())
+        {
+            App::Instance()->UninitScene(StartServerScene::StaticName());
+            _startServerPanelOpen = false;
+        }
     }
     else
     {
