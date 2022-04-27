@@ -2,6 +2,7 @@
 
 #include "EntryScene.h";
 #include "ConnectScene.h"
+#include "StartServerScene.h"
 #include "PlaybackScene.h"
 #include "PlaybackOverlayScene.h"
 
@@ -64,6 +65,7 @@ void App::Init(DisplayWindow& dw, std::string startScene)
     // Add scenes
     Instance()->_scenes.push_back(new EntryScene());
     Instance()->_scenes.push_back(new ConnectScene());
+    Instance()->_scenes.push_back(new StartServerScene());
     Instance()->_scenes.push_back(new PlaybackScene());
     Instance()->_scenes.push_back(new PlaybackOverlayScene()); // Must be after PlaybackScene()
     Instance()->InitScene(startScene, nullptr);
