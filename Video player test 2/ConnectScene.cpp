@@ -228,6 +228,7 @@ void ConnectScene::_Update()
             _connectionSuccessful = true;
             _connecting = false;
             _closeScene = true;
+            znet::NetworkInterface::Instance()->SetUsername(_usernameInput->GetText());
         }
         else if (status != znet::ConnectionStatus::CONNECTING)
         {
