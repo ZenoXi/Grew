@@ -891,6 +891,7 @@ namespace znet
         SOCKET _listeningSocket;
         bool _listening;
         std::thread _newConnectionHandler;
+        bool _connectHandlerStop;
         std::queue<int64_t> _newConnections;
         std::queue<int64_t> _disconnects;
         std::mutex _m_newConnections;
@@ -941,7 +942,8 @@ namespace znet
             StopServer();
             _connectionManager->AllowSelfDestruct();
             _disconnectHandlerStop = true;
-            _disconnectHandler.join();
+            if (_disconnectHandler.joinable())
+                _disconnectHandler.join();
         }
 
         bool Running()
@@ -960,9 +962,9 @@ namespace znet
         void StopServer()
         {
             if (!_running) return;
-            _running = false;
             StopNewConnections();
             DisconnectAll();
+            _running = false;
         }
 
         /// <param name="enforce">If true, disconnects excess users</param>
@@ -993,6 +995,7 @@ namespace znet
             listen(_listeningSocket, SOMAXCONN);
 
             // Start thread
+            _connectHandlerStop = false;
             _newConnectionHandler = std::thread(&TCPServer::HandleNewConnections, this);
 
             return true;
@@ -1003,9 +1006,9 @@ namespace znet
             if (!_running) return;
             if (!_listening) return;
 
-            _listeningSocket = SOCKET_ERROR;
-            closesocket(_listeningSocket);
-            _newConnectionHandler.join();
+            _connectHandlerStop = true;
+            if (_newConnectionHandler.joinable())
+                _newConnectionHandler.join();
         }
 
         size_t NewConnectionCount()
@@ -1179,8 +1182,12 @@ namespace znet
 
         void HandleNewConnections()
         {
+            // Make socket non-blocking
+            u_long mode = 1;
+            ioctlsocket(_listeningSocket, FIONBIO, &mode);
+
             _listening = true;
-            while (true)
+            while (!_connectHandlerStop)
             {
                 // Wait for a connection
                 sockaddr_in socketInfo;
@@ -1193,7 +1200,11 @@ namespace znet
                 SOCKET socket = accept(_listeningSocket, (sockaddr*)&socketInfo, &socketInfoSize);
                 if (socket == SOCKET_ERROR)
                 {
-                    std::cout << "[Accept error: " << WSAGetLastError() << "]" << std::endl;
+                    if (WSAGetLastError() == WSAEWOULDBLOCK)
+                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    else
+                        std::cout << "[Accept error: " << WSAGetLastError() << "]" << std::endl;
+
                     continue;
                 }
                 if (_connections.size() >= _maxConnections)
@@ -1235,6 +1246,10 @@ namespace znet
                 closesocket(_listeningSocket);
             }
             _listening = false;
+
+            // Make socket blocking
+            mode = 0;
+            ioctlsocket(_listeningSocket, FIONBIO, &mode);
         }
 
         void HandleDisconnects()

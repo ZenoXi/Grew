@@ -69,6 +69,10 @@ namespace znet
         ~ServerConnectionManager()
         {
             _server.SetGenerator(nullptr);
+
+            _MANAGEMENT_THR_STOP = true;
+            if (_managementThread.joinable())
+                _managementThread.join();
         }
 
         // CONNECTION
