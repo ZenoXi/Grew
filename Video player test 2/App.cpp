@@ -376,6 +376,8 @@ void App::LoopThread()
         //        scene->Draw(window.gfx.GetGraphics());
         //}
 
+        window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+
         auto activeScenes = ActiveScenes();
         for (auto& scene : activeScenes)
         {
