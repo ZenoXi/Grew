@@ -446,9 +446,9 @@ MediaPacket IMediaDataProvider::_GetPacket(MediaData& mediaData)
 
         auto& packet = mediaData.packets.front();
         if (!packet.flush && packet.Valid())
-            mediaData.totalMemoryUsed -= mediaData.packets.front().GetPacket()->size;
+            mediaData.totalMemoryUsed -= packet.GetPacket()->size;
 
-        mediaData.packets.erase(mediaData.packets.begin());
+        mediaData.packets.pop_front();
         mediaData.currentPacket--;
     }
 

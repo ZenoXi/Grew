@@ -6,6 +6,7 @@
 #include "MediaChapter.h"
 
 #include <vector>
+#include <deque>
 #include <thread>
 #include <mutex>
 
@@ -19,7 +20,7 @@ public:
         int currentStream = -1;
 
         // Packet data
-        std::vector<MediaPacket> packets;
+        std::deque<MediaPacket> packets;
         TimePoint lastPts = TimePoint::Min();
         TimePoint lastDts = TimePoint::Min();
         int currentPacket = 0;
