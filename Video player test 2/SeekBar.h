@@ -144,10 +144,14 @@ namespace zcom
             // 
             if (/*GetMouseInside()*/_timeHovered)
             {
+                int markerPosition = viewedPartWidth;
+                if (_held)
+                    markerPosition = _heldPosition;
+
                 g.target->FillEllipse(
                     D2D1::Ellipse(
                         D2D1::Point2F(
-                            timeTextWidth + viewedPartWidth,
+                            timeTextWidth + markerPosition,
                             GetHeight() / 2.0f
                         ),
                         5.0f,
@@ -155,16 +159,6 @@ namespace zcom
                     ),
                     _seekbarMarkerBrush
                 );
-
-                //g->FillRectangle(
-                //    D2D1::RectF(
-                //        timeTextWidth + viewedPartWidth - 2.0f,
-                //        GetHeight() / 2.0f - 10.0f,
-                //        timeTextWidth + viewedPartWidth + 2.0f,
-                //        GetHeight() / 2.0f + 10.0f
-                //    ),
-                //    _viewedPartBrush
-                //);
             }
 
             // Create time strings
@@ -220,48 +214,6 @@ namespace zcom
                 ),
                 _textBrush
             );
-
-            // Draw hover time string
-            if (false && GetMouseInside())
-            {
-                int xPos = GetMousePosX() - timeTextWidth;
-                if (xPos < 0) xPos = 0;
-                if (xPos > seekBarWidth) xPos = seekBarWidth;
-                double xPosNorm = xPos / (double)seekBarWidth;
-                TimePoint hoverTime = _duration.GetTicks() * xPosNorm;
-
-                h = hoverTime.GetTime(HOURS);
-                m = hoverTime.GetTime(MINUTES) % 60;
-                s = hoverTime.GetTime(SECONDS) % 60;
-                timeStr.str(L"");
-                timeStr.clear();
-                if (h > 0) timeStr << h << ":";
-                if (m < 10) timeStr << "0" << m << ":";
-                else timeStr << m << ":";
-                if (s < 10) timeStr << "0" << s;
-                else timeStr << s;
-                std::wstring hoverTimeStr = timeStr.str();
-
-                D2D1_RECT_F strRect = D2D1::RectF(
-                    (timeTextWidth + xPos) - timeTextWidth * 0.5f,
-                    (GetHeight() + _textHeight) * 0.5f,
-                    (timeTextWidth + xPos) + timeTextWidth * 0.5f,
-                    (GetHeight() + _textHeight) * 0.5f
-                );
-
-                g.target->DrawText(
-                    hoverTimeStr.c_str(),
-                    hoverTimeStr.length(),
-                    _dwriteTextFormat,
-                    D2D1::RectF(
-                        (timeTextWidth + xPos) - timeTextWidth * 0.5f,
-                        (GetHeight() * 0.5f) - _margins - _textHeight,
-                        (timeTextWidth + xPos) + timeTextWidth * 0.5f,
-                        (GetHeight() * 0.5f) - _margins
-                    ),
-                    _textBrush
-                );
-            }
         }
 
         void _OnResize(int width, int height)
@@ -307,7 +259,7 @@ namespace zcom
                 }
                 _timeHovered = true;
             }
-            else
+            else if (!_held)
             {
                 if (_timeHovered)
                 {
@@ -317,6 +269,12 @@ namespace zcom
                     // Start height change transition
                     _timeBarHeightTransition.Start(_timeBarHeight, 1.0f);
                 }
+            }
+            if (_held)
+            {
+                if (xPos < 0) xPos = 0;
+                if (xPos > seekBarWidth) xPos = seekBarWidth;
+                _heldPosition = xPos;
             }
             return EventTargets().Add(this, x, y);
         }
@@ -338,16 +296,26 @@ namespace zcom
             _mouseHoverStart = ztime::Main();
         }
 
-        EventTargets _OnLeftReleased(int x, int y)
+        EventTargets _OnLeftPressed(int x, int y)
         {
             int timeTextWidth = ceilf(_maxTimeWidth) + _margins * 2;
             int seekBarWidth = GetWidth() - timeTextWidth * 2;
             int xPos = GetMousePosX() - timeTextWidth;
             if (xPos >= 0 && xPos <= seekBarWidth)
             {
-                double xPosNorm = xPos / (double)seekBarWidth;
-                _selectedTime = _duration.GetTicks() * xPosNorm;
+                float xPosNorm = xPos / (float)seekBarWidth;
+                _held = true;
+                _heldPosition = xPos;
             }
+            return EventTargets().Add(this, x, y);
+        }
+
+        EventTargets _OnLeftReleased(int x, int y)
+        {
+            int timeTextWidth = ceilf(_maxTimeWidth) + _margins * 2;
+            int seekBarWidth = GetWidth() - timeTextWidth * 2;
+            _selectedTime = _duration.GetTicks() * _heldPosition / (double)seekBarWidth;
+            _held = false;
             return EventTargets().Add(this, x, y);
         }
 
@@ -363,6 +331,7 @@ namespace zcom
         std::vector<MediaChapter> _chapters;
 
         bool _held = false;
+        int _heldPosition = 0;
         TimePoint _selectedTime = -1;
         float _textHeight = 0.0f;
         float _maxTimeWidth = 0.0f;
