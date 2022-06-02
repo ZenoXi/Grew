@@ -55,6 +55,7 @@ class WindowGraphics
 {
     HWND* p_hwnd = nullptr;
     std::mutex _m_gfx;
+    bool _initialized = false;
 
     ComPtr<ID2D1Factory1> p_D2DFactory = NULL;
     ComPtr<ID2D1Device> p_D2DDevice;
@@ -88,6 +89,7 @@ public:
     WindowGraphics() {};
     void Initialize(HWND* hwnd_t);
     void Close();
+    bool Initialized() const { return _initialized; };
 
     void BeginFrame();
     void EndFrame();
@@ -144,7 +146,7 @@ public:
     //unsigned width = 640;
     //unsigned height = 360;
     unsigned width = 1280;
-    unsigned height = 720;
+    unsigned height = 750;
     //unsigned width = 1920;
     //unsigned height = 1080;
     WindowGraphics gfx;

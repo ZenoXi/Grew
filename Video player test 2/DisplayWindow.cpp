@@ -9,6 +9,8 @@
 #include <WinUser.h>
 #pragma comment( lib,"User32.lib" )
 #include <Shellapi.h>
+#include <dwmapi.h>
+#pragma comment( lib,"Dwmapi.lib" )
 
 std::wstring DisplayWindow::WINDOW_NAME = L"Grew";
 
@@ -84,6 +86,10 @@ DisplayWindow::DisplayWindow(HINSTANCE hInst, wchar_t* pArgs, LPCWSTR name) : _a
     _last2Moves[0] = _windowedRect;
     _last2Moves[1] = _windowedRect;
     
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+    BOOL value = TRUE;
+    ::DwmSetWindowAttribute(_hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+
     ShowWindow(_hwnd, SW_SHOWNORMAL);
     UpdateWindow(_hwnd);
 
@@ -194,6 +200,13 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
             _m_msg.lock();
             _exitResult.handled = false;
             _m_msg.unlock();
+            break;
+        }
+        case WM_ACTIVATE:
+        {
+            //MARGINS margins = { 0 };
+            //margins.cyTopHeight = 20;
+            //DwmExtendFrameIntoClientArea(_hwnd, &margins);
             break;
         }
         case WM_KILLFOCUS:
@@ -336,7 +349,8 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
                 _last2Moves[1] = _last2Moves[0];
             }
 
-            gfx.ResizeBuffers(w, h);
+            if (gfx.Initialized())
+                gfx.ResizeBuffers(w, h);
             width = w;
             height = h;
 
@@ -386,10 +400,6 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
             //std::cout << " ";
             break;
         }
-        //case WM_INPUTLANGCHANGE:
-        //{
-        //    break;
-        //}
         default:
         {
             return DefWindowProc(hWnd, msg, wParam, lParam);
@@ -772,6 +782,8 @@ void WindowGraphics::Initialize(HWND* hwnd_t)
     //BeginFrame();
     //p_Target->Clear(D2D1::ColorF(0.5f, 0.5f, 0.5f));
     //EndFrame();
+
+    _initialized = true;
 }
 
 void WindowGraphics::Close()
