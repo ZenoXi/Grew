@@ -76,15 +76,20 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     // Initialize scene
     _controlBar = new zcom::Panel();
     _controlBar->SetParentWidthPercent(1.0f);
-    _controlBar->SetBaseHeight(100);
+    _controlBar->SetBaseHeight(80);
     _controlBar->SetVerticalAlignment(zcom::Alignment::END);
-    _controlBar->SetBackgroundColor(D2D1::ColorF::ColorF(0.0f, 0.0f, 0.0f, 0.7f));
+    //_controlBar->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.7f));
+
+    _controlBarBackground = std::make_unique<zcom::ControlBarBackground>();
+    _controlBarBackground->SetParentSizePercent(1.0f, 1.0f);
+    _controlBarBackground->SetZIndex(-2);
 
     _seekBar = new zcom::SeekBar(1000000); // Placeholder duration until data provider loads
     _seekBar->SetParentWidthPercent(1.0f);
     _seekBar->SetBaseWidth(-20);
-    _seekBar->SetBaseHeight(50);
     _seekBar->SetHorizontalOffsetPercent(0.5f);
+    _seekBar->SetBaseHeight(20);
+    _seekBar->SetVerticalOffsetPixels(25);
     _seekBar->AddOnTimeHovered([&](int xpos, TimePoint time, std::wstring chapterName)
     {
         int totalWidth = 0;
@@ -122,7 +127,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _timeHoverPanel = std::make_unique<zcom::Panel>();
     _timeHoverPanel->SetBaseSize(120, 20);
     _timeHoverPanel->SetVerticalAlignment(zcom::Alignment::END);
-    _timeHoverPanel->SetVerticalOffsetPixels(-90);
+    _timeHoverPanel->SetVerticalOffsetPixels(-55);
     _timeHoverPanel->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     _timeHoverPanel->SetBorderVisibility(true);
     _timeHoverPanel->SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
@@ -164,28 +169,34 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _volumeSlider->SetVerticalOffsetPixels(50);
 
     _playButton = new zcom::PlayButton();
-    _playButton->SetBaseWidth(40);
-    _playButton->SetBaseHeight(40);
+    _playButton->SetBaseWidth(30);
+    _playButton->SetBaseHeight(30);
     _playButton->SetHorizontalOffsetPercent(0.5f);
-    _playButton->SetVerticalOffsetPixels(50);
+    _playButton->SetVerticalOffsetPixels(45);
     _playButton->SetPaused(true);
 
-    _overlayButton = new zcom::Button(L"Open overlay");
-    _overlayButton->SetBaseSize(150, 25);
-    _overlayButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
-    _overlayButton->SetOffsetPixels(-25, -25);
-    _overlayButton->SetBorderVisibility(true);
+    _overlayButton = new zcom::Button(L"");
+    _overlayButton->SetBaseSize(30, 30);
+    _overlayButton->SetHorizontalAlignment(zcom::Alignment::END);
+    _overlayButton->SetOffsetPixels(-75, 45);
+    _overlayButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
+    _overlayButton->SetButtonImage(ResourceManager::GetImage("playlist_dim"));
+    _overlayButton->SetButtonHoverImage(ResourceManager::GetImage("playlist"));
+    _overlayButton->SetButtonClickImage(ResourceManager::GetImage("playlist"));
     _overlayButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _overlayButton->SetOnActivated([&]()
     {
         App::Instance()->MoveSceneToFront(PlaybackOverlayScene::StaticName());
     });
 
-    _streamButton = std::make_unique<zcom::Button>(L"Tracks");
-    _streamButton->SetBaseSize(75, 25);
-    _streamButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
-    _streamButton->SetOffsetPixels(-200, -25);
-    _streamButton->SetBorderVisibility(true);
+    _streamButton = std::make_unique<zcom::Button>(L"");
+    _streamButton->SetBaseSize(30, 30);
+    _streamButton->SetHorizontalAlignment(zcom::Alignment::END);
+    _streamButton->SetOffsetPixels(-115, 45);
+    _streamButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
+    _streamButton->SetButtonImage(ResourceManager::GetImage("settings_dim"));
+    _streamButton->SetButtonHoverImage(ResourceManager::GetImage("settings"));
+    _streamButton->SetButtonClickImage(ResourceManager::GetImage("settings"));
     _streamButton->SetOnActivated([&]()
     {
         if (!_streamMenuPanel->GetVisible())
@@ -226,6 +237,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _loadingCircle->SetVerticalOffsetPixels(40);
     _loadingCircle->SetVisible(false);
 
+    _controlBar->AddItem(_controlBarBackground.get());
     _controlBar->AddItem(_seekBar);
     _controlBar->AddItem(_volumeSlider);
     _controlBar->AddItem(_playButton);
@@ -309,6 +321,7 @@ void PlaybackScene::_Uninit()
     _controller = nullptr;
 
     _controlBar = nullptr;
+    _controlBarBackground = nullptr;
     _seekBar = nullptr;
     _volumeSlider = nullptr;
     _playButton = nullptr;

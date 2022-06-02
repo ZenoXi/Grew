@@ -7,6 +7,7 @@
 #include "GameTime.h"
 #include "Functions.h"
 #include "Event.h"
+#include "Transition.h"
 #include "MediaChapter.h"
 
 #include <sstream>
@@ -19,7 +20,7 @@ namespace zcom
     private:
         void _OnUpdate()
         {
-
+            _timeBarHeightTransition.Apply(_timeBarHeight);
         }
 
         void _OnDraw(Graphics g)
@@ -70,9 +71,9 @@ namespace zcom
             g.target->FillRectangle(
                 D2D1::RectF(
                     timeTextWidth,
-                    GetHeight() / 2.0f - 1.0f,
+                    GetHeight() / 2.0f - _timeBarHeight,
                     GetWidth() - timeTextWidth,
-                    GetHeight() / 2.0f + 1.0f),
+                    GetHeight() / 2.0f + _timeBarHeight),
                 _remainingPartBrush
             );
             // Buffered part
@@ -81,9 +82,9 @@ namespace zcom
                 g.target->FillRectangle(
                     D2D1::RectF(
                         timeTextWidth,
-                        GetHeight() / 2.0f - 1.0f,
+                        GetHeight() / 2.0f - _timeBarHeight,
                         timeTextWidth + bufferedPartWidth,
-                        GetHeight() / 2.0f + 1.0f
+                        GetHeight() / 2.0f + _timeBarHeight
                     ),
                     _bufferedPartBrush
                 );
@@ -103,9 +104,9 @@ namespace zcom
             g.target->FillRectangle(
                 D2D1::RectF(
                     timeTextWidth,
-                    GetHeight() / 2.0f - 1.0f,
+                    GetHeight() / 2.0f - _timeBarHeight,
                     timeTextWidth + viewedPartWidth,
-                    GetHeight() / 2.0f + 1.0f
+                    GetHeight() / 2.0f + _timeBarHeight
                 ),
                 _viewedPartBrush
             );
@@ -117,9 +118,9 @@ namespace zcom
                 g.target->FillRectangle(
                     D2D1::RectF(
                         timeTextWidth + startXPos,
-                        GetHeight() / 2.0f + 1.0f,
+                        GetHeight() / 2.0f + _timeBarHeight,
                         timeTextWidth + startXPos + 1.0f,
-                        GetHeight() / 2.0f + 5.0f
+                        GetHeight() / 2.0f + _timeBarHeight + 4.0f
                     ),
                     _remainingPartBrush
                 );
@@ -131,9 +132,9 @@ namespace zcom
                     g.target->FillRectangle(
                         D2D1::RectF(
                             timeTextWidth + startXPos,
-                            GetHeight() / 2.0f + 1.0f,
+                            GetHeight() / 2.0f + _timeBarHeight,
                             timeTextWidth + startXPos + 1.0f,
-                            GetHeight() / 2.0f + 5.0f
+                            GetHeight() / 2.0f + _timeBarHeight + 4.0f
                         ),
                         _remainingPartBrush
                     );
@@ -141,7 +142,7 @@ namespace zcom
             }
 
             // 
-            if (GetMouseInside())
+            if (/*GetMouseInside()*/_timeHovered)
             {
                 g.target->FillEllipse(
                     D2D1::Ellipse(
@@ -299,6 +300,11 @@ namespace zcom
                 }
 
                 _onTimeHovered.InvokeAll(x, time, title);
+                if (!_timeHovered)
+                {
+                    // Start height change transition
+                    _timeBarHeightTransition.Start(_timeBarHeight, 3.0f);
+                }
                 _timeHovered = true;
             }
             else
@@ -307,6 +313,9 @@ namespace zcom
                 {
                     _onHoverEnded.InvokeAll();
                     _timeHovered = false;
+
+                    // Start height change transition
+                    _timeBarHeightTransition.Start(_timeBarHeight, 1.0f);
                 }
             }
             return EventTargets().Add(this, x, y);
@@ -318,6 +327,9 @@ namespace zcom
             {
                 _onHoverEnded.InvokeAll();
                 _timeHovered = false;
+
+                // Start height change transition
+                _timeBarHeightTransition.Start(_timeBarHeight, 1.0f);
             }
         }
 
@@ -355,6 +367,9 @@ namespace zcom
         float _textHeight = 0.0f;
         float _maxTimeWidth = 0.0f;
 
+        float _timeBarHeight = 1.0f; // This is height from center to each edge. Total height is 2 * _timeBarHeight
+        Transition<float> _timeBarHeightTransition = Transition<float>(Duration(100, MILLISECONDS));
+
         float _margins = 5.0f;
 
         bool _timeHovered = false;
@@ -390,10 +405,10 @@ namespace zcom
             _dwriteFactory->CreateTextFormat(
                 L"Calibri",
                 NULL,
-                DWRITE_FONT_WEIGHT_REGULAR,
+                DWRITE_FONT_WEIGHT_NORMAL,
                 DWRITE_FONT_STYLE_NORMAL,
                 DWRITE_FONT_STRETCH_NORMAL,
-                14.0f,
+                15.0f,
                 L"en-us",
                 &_dwriteTextFormat
             );

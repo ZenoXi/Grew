@@ -14,6 +14,7 @@
 #include "Panel.h"
 #include "PlaybackControllerPanel.h"
 #include "SeekBar.h"
+#include "ControlBarBackground.h"
 #include "VolumeSlider.h"
 #include "PlayButton.h"
 #include "Button.h"
@@ -49,6 +50,8 @@ class PlaybackScene : public Scene
     PlaybackMode _playbackMode = PlaybackMode::OFFLINE;
 
     zcom::Panel* _controlBar = nullptr;
+    
+    std::unique_ptr<zcom::ControlBarBackground> _controlBarBackground = nullptr;
     zcom::SeekBar* _seekBar = nullptr;
     zcom::VolumeSlider* _volumeSlider = nullptr;
     zcom::PlayButton* _playButton = nullptr;

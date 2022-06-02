@@ -18,7 +18,7 @@ namespace zcom
     private:
         void _OnUpdate()
         {
-
+            _volumeBarHeightTransition.Apply(_volumeBarHeight);
         }
 
         void _OnDraw(Graphics g)
@@ -26,7 +26,9 @@ namespace zcom
             // Create brushes
             if (!_selectedPartBrush)
             {
-                g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::DodgerBlue), &_selectedPartBrush);
+                // RGB(71, 161, 244) matches the color of DodgerBlue with 75% opacity over LightGray
+                // This is done to match the volume slider ant time slider colors
+                g.target->CreateSolidColorBrush(D2D1::ColorF(RGB(244, 161, 71) /* R and B flipped */), &_selectedPartBrush);
                 g.refs->push_back((IUnknown**)&_selectedPartBrush);
             }
             if (!_remainingPartBrush)
@@ -50,21 +52,22 @@ namespace zcom
             g.target->FillRectangle(
                 D2D1::RectF(
                     textWidth,
-                    GetHeight() / 2.0f - 1.0f,
+                    GetHeight() / 2.0f - _volumeBarHeight,
                     textWidth + selectedPartWidth,
-                    GetHeight() / 2.0f + 1.0f
+                    GetHeight() / 2.0f + _volumeBarHeight
                 ),
                 _selectedPartBrush
             );
             g.target->FillRectangle(
                 D2D1::RectF(
                     textWidth + selectedPartWidth,
-                    GetHeight() / 2.0f - 1.0f,
+                    GetHeight() / 2.0f - _volumeBarHeight,
                     GetWidth() - _margins,
-                    GetHeight() / 2.0f + 1.0f),
+                    GetHeight() / 2.0f + _volumeBarHeight
+                ),
                 _remainingPartBrush
             );
-            if (GetMouseInside())
+            if (/*GetMouseInside()*/_volumeHovered)
             {
                 g.target->FillEllipse(
                     D2D1::Ellipse(
@@ -105,17 +108,42 @@ namespace zcom
 
         EventTargets _OnMouseMove(int x, int y)
         {
+            int textWidth = ceilf(_maxTextWidth) + _margins * 2;
+            int volumeSliderWidth = GetWidth() - textWidth - _margins;
+            int xPos = GetMousePosX() - textWidth;
+            if (xPos >= 0 && xPos <= volumeSliderWidth)
+            {
+                if (!_volumeHovered)
+                {
+                    _volumeHovered = true;
+                    _volumeBarHeightTransition.Start(_volumeBarHeight, 3.0f);
+                }
+            }
+            else if (!_held)
+            {
+                if (_volumeHovered)
+                {
+                    _volumeHovered = false;
+                    _volumeBarHeightTransition.Start(_volumeBarHeight, 1.0f);
+                }
+            }
             if (_held)
             {
-                int textWidth = ceilf(_maxTextWidth) + _margins * 2;
-                int volumeSliderWidth = GetWidth() - textWidth - _margins;
-                int xPos = GetMousePosX() - textWidth;
                 if (xPos < 0) xPos = 0;
                 if (xPos > volumeSliderWidth) xPos = volumeSliderWidth;
                 float xPosNorm = xPos / (float)volumeSliderWidth;
                 SetValue(xPosNorm);
             }
             return EventTargets().Add(this, x, y);
+        }
+
+        void _OnMouseLeave()
+        {
+            if (_volumeHovered)
+            {
+                _volumeHovered = false;
+                _volumeBarHeightTransition.Start(_volumeBarHeight, 1.0f);
+            }
         }
 
         EventTargets _OnLeftPressed(int x, int y)
@@ -168,7 +196,12 @@ namespace zcom
         float _textHeight = 0.0f;
         float _maxTextWidth = 0.0f;
 
+        float _volumeBarHeight = 1.0f; // This is height from center to each edge. Total height is 2 * _timeBarHeight
+        Transition<float> _volumeBarHeightTransition = Transition<float>(Duration(100, MILLISECONDS));
+
         float _margins = 5.0f;
+
+        bool _volumeHovered = false;
 
         ID2D1SolidColorBrush* _selectedPartBrush = nullptr;
         ID2D1SolidColorBrush* _remainingPartBrush = nullptr;
@@ -198,7 +231,7 @@ namespace zcom
                 DWRITE_FONT_WEIGHT_REGULAR,
                 DWRITE_FONT_STYLE_NORMAL,
                 DWRITE_FONT_STRETCH_NORMAL,
-                14.0f,
+                15.0f,
                 L"en-us",
                 &_dwriteTextFormat
             );
