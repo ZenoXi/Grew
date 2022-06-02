@@ -42,8 +42,6 @@ namespace zcom
                 g.refs->push_back((IUnknown**)&_textBrush);
             }
 
-            g.target->Clear();
-
             // Draw the seek bar
             float progress = _value;
             int textWidth = ceilf(_maxTextWidth) + _margins * 2;

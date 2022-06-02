@@ -57,8 +57,6 @@ namespace zcom
                 g.refs->push_back((IUnknown**)&_textBackgroundBrush);
             }
 
-            g.target->Clear();
-
             // Draw the seek bar
             float progress = _currentTime.GetTicks() / (double)_duration.GetTicks();
             float bufferProgress = _buffered.GetTicks() / (double)_duration.GetTicks();
