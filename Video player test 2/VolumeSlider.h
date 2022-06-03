@@ -19,6 +19,15 @@ namespace zcom
         void _OnUpdate()
         {
             _volumeBarHeightTransition.Apply(_volumeBarHeight);
+            int newWidth = GetBaseWidth();
+            _itemWidthTransition.Apply(newWidth);
+            SetBaseWidth(newWidth);
+
+            if (_waitingAfterMouseLeave && (ztime::Main() - _waitStart) > _waitDuration)
+            {
+                _itemWidthTransition.Start(GetWidth(), 30);
+                _waitingAfterMouseLeave = false;
+            }
         }
 
         void _OnDraw(Graphics g)
@@ -33,7 +42,7 @@ namespace zcom
             }
             if (!_remainingPartBrush)
             {
-                g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Gray), &_remainingPartBrush);
+                g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::LightGray), &_remainingPartBrush);
                 g.refs->push_back((IUnknown**)&_remainingPartBrush);
             }
             if (!_textBrush)
@@ -42,25 +51,36 @@ namespace zcom
                 g.refs->push_back((IUnknown**)&_textBrush);
             }
 
+            // Draw Volume icon
+            if (GetMouseInside())
+            {
+                g.target->DrawBitmap(_volumeIconHover, D2D1::RectF(0.0f, 0.0f, 30.0f, 30.0f));
+            }
+            else
+            {
+                g.target->DrawBitmap(_volumeIcon, D2D1::RectF(0.0f, 0.0f, 30.0f, 30.0f));
+            }
+
             // Draw the seek bar
             float progress = _value;
-            int textWidth = ceilf(_maxTextWidth) + _margins * 2;
-            int volumeSliderWidth = GetWidth() - textWidth - _margins;
+            int iconWidth = 30;
+            int textWidth = _volumeLabel->GetWidth();
+            int volumeSliderWidth = _extendedWidth - textWidth - iconWidth - _margins * 2;
             int selectedPartWidth = volumeSliderWidth * progress;
             g.target->FillRectangle(
                 D2D1::RectF(
-                    textWidth,
+                    iconWidth + _margins,
                     GetHeight() / 2.0f - _volumeBarHeight,
-                    textWidth + selectedPartWidth,
+                    iconWidth + _margins + selectedPartWidth,
                     GetHeight() / 2.0f + _volumeBarHeight
                 ),
                 _selectedPartBrush
             );
             g.target->FillRectangle(
                 D2D1::RectF(
-                    textWidth + selectedPartWidth,
+                    iconWidth + _margins + selectedPartWidth,
                     GetHeight() / 2.0f - _volumeBarHeight,
-                    GetWidth() - _margins,
+                    iconWidth + _margins + volumeSliderWidth,
                     GetHeight() / 2.0f + _volumeBarHeight
                 ),
                 _remainingPartBrush
@@ -70,7 +90,7 @@ namespace zcom
                 g.target->FillEllipse(
                     D2D1::Ellipse(
                         D2D1::Point2F(
-                            textWidth + selectedPartWidth,
+                            iconWidth + _margins + selectedPartWidth,
                             GetHeight() / 2.0f
                         ),
                         5.0f,
@@ -81,22 +101,31 @@ namespace zcom
             }
 
             // Create value string
-            std::wstringstream valueStr;
-            valueStr << (int)roundf(_value * 100.0f) << "%";
+            //std::wstringstream valueStr;
+            //valueStr << (int)roundf(_value * 100.0f) << "%";
 
-            // Draw value strings
-            g.target->DrawText(
-                valueStr.str().c_str(),
-                valueStr.str().length(),
-                _dwriteTextFormat,
+            // Draw value string
+            g.target->DrawBitmap(
+                _volumeLabel->Draw(g),
                 D2D1::RectF(
-                    0.0f,
-                    (GetHeight() - _textHeight) * 0.5f,
-                    textWidth,
-                    (GetHeight() + _textHeight) * 0.5f
-                ),
-                _textBrush
+                    _extendedWidth - _volumeLabel->GetWidth(),
+                    0,
+                    _extendedWidth,
+                    GetHeight()
+                )
             );
+            //g.target->DrawText(
+            //    valueStr.str().c_str(),
+            //    valueStr.str().length(),
+            //    _dwriteTextFormat,
+            //    D2D1::RectF(
+            //        0.0f,
+            //        (GetHeight() - _textHeight) * 0.5f,
+            //        textWidth,
+            //        (GetHeight() + _textHeight) * 0.5f
+            //    ),
+            //    _textBrush
+            //);
         }
 
         void _OnResize(int width, int height)
@@ -106,9 +135,10 @@ namespace zcom
 
         EventTargets _OnMouseMove(int x, int y)
         {
-            int textWidth = ceilf(_maxTextWidth) + _margins * 2;
-            int volumeSliderWidth = GetWidth() - textWidth - _margins;
-            int xPos = GetMousePosX() - textWidth;
+            int iconWidth = 30;
+            int textWidth = _volumeLabel->GetWidth();
+            int volumeSliderWidth = _extendedWidth - textWidth - iconWidth - _margins * 2;
+            int xPos = GetMousePosX() - iconWidth - _margins;
             if (xPos >= 0 && xPos <= volumeSliderWidth)
             {
                 if (!_volumeHovered)
@@ -135,8 +165,17 @@ namespace zcom
             return EventTargets().Add(this, x, y);
         }
 
+        void _OnMouseEnter()
+        {
+            _itemWidthTransition.Start(GetWidth(), _extendedWidth);
+            _waitingAfterMouseLeave = false;
+        }
+
         void _OnMouseLeave()
         {
+            _waitingAfterMouseLeave = true;
+            _waitStart = ztime::Main();
+
             if (_volumeHovered)
             {
                 _volumeHovered = false;
@@ -146,9 +185,10 @@ namespace zcom
 
         EventTargets _OnLeftPressed(int x, int y)
         {
-            int textWidth = ceilf(_maxTextWidth) + _margins * 2;
-            int volumeSliderWidth = GetWidth() - textWidth - _margins;
-            int xPos = GetMousePosX() - textWidth;
+            int iconWidth = 30;
+            int textWidth = _volumeLabel->GetWidth();
+            int volumeSliderWidth = _extendedWidth - textWidth - iconWidth - _margins * 2;
+            int xPos = GetMousePosX() - iconWidth - _margins;
             if (xPos >= 0 && xPos <= volumeSliderWidth)
             {
                 float xPosNorm = xPos / (float)volumeSliderWidth;
@@ -196,58 +236,87 @@ namespace zcom
 
         float _volumeBarHeight = 1.0f; // This is height from center to each edge. Total height is 2 * _timeBarHeight
         Transition<float> _volumeBarHeightTransition = Transition<float>(Duration(100, MILLISECONDS));
+        int _itemWidth = 30;
+        int _extendedWidth = 0;
+        Transition<int> _itemWidthTransition = Transition<int>(Duration(100, MILLISECONDS));
+
+        bool _waitingAfterMouseLeave = false;
+        TimePoint _waitStart = 0;
+        Duration _waitDuration = Duration(500, MILLISECONDS);
 
         float _margins = 5.0f;
 
         bool _volumeHovered = false;
 
+        ID2D1Bitmap* _volumeIcon = nullptr;
+        ID2D1Bitmap* _volumeIconHover = nullptr;
+
         ID2D1SolidColorBrush* _selectedPartBrush = nullptr;
         ID2D1SolidColorBrush* _remainingPartBrush = nullptr;
         ID2D1SolidColorBrush* _textBrush = nullptr;
 
-        IDWriteFactory* _dwriteFactory = nullptr;
-        IDWriteTextFormat* _dwriteTextFormat = nullptr;
-        IDWriteTextLayout* _dwriteTextLayout = nullptr;
+        //IDWriteFactory* _dwriteFactory = nullptr;
+        //IDWriteTextFormat* _dwriteTextFormat = nullptr;
+        //IDWriteTextLayout* _dwriteTextLayout = nullptr;
+
+        std::unique_ptr<Label> _volumeLabel = nullptr;
 
         TimePoint _mouseHoverStart = 0;
 
     public:
-        VolumeSlider(float value)
+        VolumeSlider(float value, int extendedWidth = 150)
         {
             _value = value;
+            _extendedWidth = extendedWidth;
+
+            _volumeIcon = ResourceManager::GetImage("volume_dim_30");
+            _volumeIconHover = ResourceManager::GetImage("volume_30");
+
+            _volumeLabel = std::make_unique<Label>(L"");
+            _volumeLabel->SetSize(40, 30);
+            _volumeLabel->SetFontSize(15.0f);
+            _volumeLabel->SetFont(L"Calibri");
+            _volumeLabel->SetFontColor(D2D1::ColorF(D2D1::ColorF::LightGray));
+            _volumeLabel->SetHorizontalTextAlignment(TextAlignment::CENTER);
+            _volumeLabel->SetVerticalTextAlignment(Alignment::CENTER);
+
+            // Set initial text
+            std::wstringstream valueStr;
+            valueStr << (int)roundf(_value * 100.0f) << "%";
+            _volumeLabel->SetText(valueStr.str());
 
             // Create text rendering resources
-            DWriteCreateFactory(
-                DWRITE_FACTORY_TYPE_SHARED,
-                __uuidof(IDWriteFactory),
-                reinterpret_cast<IUnknown**>(&_dwriteFactory)
-            );
+            //DWriteCreateFactory(
+            //    DWRITE_FACTORY_TYPE_SHARED,
+            //    __uuidof(IDWriteFactory),
+            //    reinterpret_cast<IUnknown**>(&_dwriteFactory)
+            //);
 
-            _dwriteFactory->CreateTextFormat(
-                L"Calibri",
-                NULL,
-                DWRITE_FONT_WEIGHT_REGULAR,
-                DWRITE_FONT_STYLE_NORMAL,
-                DWRITE_FONT_STRETCH_NORMAL,
-                15.0f,
-                L"en-us",
-                &_dwriteTextFormat
-            );
-            _dwriteTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+            //_dwriteFactory->CreateTextFormat(
+            //    L"Calibri",
+            //    NULL,
+            //    DWRITE_FONT_WEIGHT_REGULAR,
+            //    DWRITE_FONT_STYLE_NORMAL,
+            //    DWRITE_FONT_STRETCH_NORMAL,
+            //    15.0f,
+            //    L"en-us",
+            //    &_dwriteTextFormat
+            //);
+            //_dwriteTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
 
-            _dwriteFactory->CreateTextLayout(
-                L"000:00:00",
-                9,
-                _dwriteTextFormat,
-                1000,
-                0,
-                &_dwriteTextLayout
-            );
+            //_dwriteFactory->CreateTextLayout(
+            //    L"000:00:00",
+            //    9,
+            //    _dwriteTextFormat,
+            //    1000,
+            //    0,
+            //    &_dwriteTextLayout
+            //);
 
-            DWRITE_TEXT_METRICS metrics;
-            _dwriteTextLayout->GetMetrics(&metrics);
-            _textHeight = metrics.height;
-            _maxTextWidth = metrics.width;
+            //DWRITE_TEXT_METRICS metrics;
+            //_dwriteTextLayout->GetMetrics(&metrics);
+            //_textHeight = metrics.height;
+            //_maxTextWidth = metrics.width;
         }
         ~VolumeSlider()
         {
@@ -255,9 +324,9 @@ namespace zcom
             SafeFullRelease((IUnknown**)&_selectedPartBrush);
             SafeFullRelease((IUnknown**)&_remainingPartBrush);
             SafeFullRelease((IUnknown**)&_textBrush);
-            SafeRelease((IUnknown**)&_dwriteTextFormat);
-            SafeRelease((IUnknown**)&_dwriteTextLayout);
-            SafeRelease((IUnknown**)&_dwriteFactory);
+            //SafeRelease((IUnknown**)&_dwriteTextFormat);
+            //SafeRelease((IUnknown**)&_dwriteTextLayout);
+            //SafeRelease((IUnknown**)&_dwriteFactory);
         }
         VolumeSlider(VolumeSlider&&) = delete;
         VolumeSlider& operator=(VolumeSlider&&) = delete;
@@ -274,6 +343,12 @@ namespace zcom
             if (value > 1.0f) value = 1.0f;
             else if (value < 0.0f) value = 0.0f;
             _value = value;
+
+            // Set value string
+            std::wstringstream valueStr;
+            valueStr << (int)roundf(_value * 100.0f) << "%";
+            _volumeLabel->SetText(valueStr.str());
+
             Options::Instance()->SetValue("volume", float_to_str(_value));
         }
 
