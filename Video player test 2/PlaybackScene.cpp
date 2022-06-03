@@ -88,8 +88,9 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _seekBar->SetParentWidthPercent(1.0f);
     _seekBar->SetBaseWidth(-20);
     _seekBar->SetHorizontalOffsetPercent(0.5f);
-    _seekBar->SetBaseHeight(20);
-    _seekBar->SetVerticalOffsetPixels(25);
+    _seekBar->SetBaseHeight(16);
+    _seekBar->SetVerticalAlignment(zcom::Alignment::END);
+    _seekBar->SetVerticalOffsetPixels(-35);
     _seekBar->AddOnTimeHovered([&](int xpos, TimePoint time, std::wstring chapterName)
     {
         int totalWidth = 0;
@@ -163,50 +164,54 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _timeHoverPanel->AddItem(_chapterLabel.get());
 
     _volumeSlider = new zcom::VolumeSlider(0.0f);
-    _volumeSlider->SetBaseWidth(150);
-    _volumeSlider->SetBaseHeight(20);
-    _volumeSlider->SetHorizontalOffsetPixels(10);
-    _volumeSlider->SetVerticalOffsetPixels(50);
+    _volumeSlider->SetBaseWidth(30);
+    _volumeSlider->SetBaseHeight(30);
+    _volumeSlider->SetHorizontalOffsetPixels(80);
+    _volumeSlider->SetVerticalAlignment(zcom::Alignment::END);
+    _volumeSlider->SetVerticalOffsetPixels(-5);
 
     _playButton = new zcom::PlayButton();
     _playButton->SetBaseWidth(30);
     _playButton->SetBaseHeight(30);
     _playButton->SetHorizontalOffsetPercent(0.5f);
-    _playButton->SetVerticalOffsetPixels(45);
+    _playButton->SetVerticalAlignment(zcom::Alignment::END);
+    _playButton->SetVerticalOffsetPixels(-5);
     _playButton->SetPaused(true);
 
     _overlayButton = new zcom::Button(L"");
     _overlayButton->SetBaseSize(30, 30);
-    _overlayButton->SetHorizontalAlignment(zcom::Alignment::END);
-    _overlayButton->SetOffsetPixels(-75, 45);
+    _overlayButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
+    _overlayButton->SetOffsetPixels(-120, -5);
     _overlayButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
     _overlayButton->SetButtonImage(ResourceManager::GetImage("playlist_dim"));
     _overlayButton->SetButtonHoverImage(ResourceManager::GetImage("playlist"));
     _overlayButton->SetButtonClickImage(ResourceManager::GetImage("playlist"));
+    _overlayButton->SetSelectable(false);
     _overlayButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _overlayButton->SetOnActivated([&]()
     {
         App::Instance()->MoveSceneToFront(PlaybackOverlayScene::StaticName());
     });
 
-    _streamButton = std::make_unique<zcom::Button>(L"");
-    _streamButton->SetBaseSize(30, 30);
-    _streamButton->SetHorizontalAlignment(zcom::Alignment::END);
-    _streamButton->SetOffsetPixels(-115, 45);
-    _streamButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
-    _streamButton->SetButtonImage(ResourceManager::GetImage("settings_dim"));
-    _streamButton->SetButtonHoverImage(ResourceManager::GetImage("settings"));
-    _streamButton->SetButtonClickImage(ResourceManager::GetImage("settings"));
-    _streamButton->SetOnActivated([&]()
+    _settingsButton = std::make_unique<zcom::Button>(L"");
+    _settingsButton->SetBaseSize(30, 30);
+    _settingsButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
+    _settingsButton->SetOffsetPixels(-160, -5);
+    _settingsButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
+    _settingsButton->SetButtonImage(ResourceManager::GetImage("settings_dim"));
+    _settingsButton->SetButtonHoverImage(ResourceManager::GetImage("settings"));
+    _settingsButton->SetButtonClickImage(ResourceManager::GetImage("settings"));
+    _settingsButton->SetSelectable(false);
+    _settingsButton->SetOnActivated([&]()
     {
         if (!_streamMenuPanel->GetVisible())
         {
             RECT screenRect = { 0, 0, _canvas->GetWidth(), _canvas->GetHeight() };
             RECT buttonRect = {
-                _streamButton->GetScreenX(),
-                _streamButton->GetScreenY(),
-                _streamButton->GetScreenX(),// + _streamButton->GetWidth(),
-                _streamButton->GetScreenY()// + _streamButton->GetHeight()
+                _settingsButton->GetScreenX(),
+                _settingsButton->GetScreenY(),
+                _settingsButton->GetScreenX(),// + _streamButton->GetWidth(),
+                _settingsButton->GetScreenY()// + _streamButton->GetHeight()
             };
             _streamMenuPanel->Show(screenRect, buttonRect);
         }
@@ -231,6 +236,33 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _audioStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"None"));
     _subtitleStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>(L"None"));
 
+    _fullscreenButton = std::make_unique<zcom::Button>(L"");
+    _fullscreenButton->SetBaseSize(30, 30);
+    _fullscreenButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
+    _fullscreenButton->SetOffsetPixels(-80, -5);
+    _fullscreenButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
+    _fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_on_dim"));
+    _fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_on"));
+    _fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_on"));
+    _fullscreenButton->SetSelectable(false);
+    _fullscreenButton->SetOnActivated([&]()
+    {
+        if (App::Instance()->window.GetFullscreen())
+        {
+            App::Instance()->window.SetFullscreen(false);
+            _fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_on_dim"));
+            _fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_on"));
+            _fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_on"));
+        }
+        else
+        {
+            App::Instance()->window.SetFullscreen(true);
+            _fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_off_dim"));
+            _fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_off"));
+            _fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_off"));
+        }
+    });
+
     _loadingCircle = new zcom::LoadingCircle();
     _loadingCircle->SetBaseSize(100, 180);
     _loadingCircle->SetOffsetPercent(0.5f, 0.5f);
@@ -242,7 +274,8 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _controlBar->AddItem(_volumeSlider);
     _controlBar->AddItem(_playButton);
     _controlBar->AddItem(_overlayButton);
-    _controlBar->AddItem(_streamButton.get());
+    _controlBar->AddItem(_settingsButton.get());
+    _controlBar->AddItem(_fullscreenButton.get());
 
     _playbackControllerPanel = new zcom::PlaybackControllerPanel(_controlBar);
     _playbackControllerPanel->SetParentSizePercent(1.0f, 1.0f);
@@ -327,6 +360,7 @@ void PlaybackScene::_Uninit()
     _playButton = nullptr;
     _playbackControllerPanel = nullptr;
     _overlayButton = nullptr;
+    _fullscreenButton = nullptr;
     _loadingCircle = nullptr;
 
     _skipBackwardsIcon = nullptr;
@@ -338,7 +372,7 @@ void PlaybackScene::_Uninit()
     _timeLabel = nullptr;
     _chapterLabel = nullptr;
 
-    _streamButton = nullptr;
+    _settingsButton = nullptr;
     _streamMenuPanel = nullptr;
     _videoStreamMenuPanel = nullptr;
     _audioStreamMenuPanel = nullptr;
@@ -447,7 +481,7 @@ void PlaybackScene::_Update()
             if (audioStream)
                 _audioAdapter = new XAudio2_AudioOutputAdapter(audioStream->channels, audioStream->sampleRate);
             else
-                _audioAdapter = new XAudio2_AudioOutputAdapter(1, 1);
+                _audioAdapter = new XAudio2_AudioOutputAdapter();
 
             // Create media player
             _mediaPlayer = new MediaPlayer(
@@ -748,10 +782,16 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
         if (App::Instance()->window.GetFullscreen())
         {
             App::Instance()->window.SetFullscreen(false);
+            _fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_on_dim"));
+            _fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_on"));
+            _fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_on"));
         }
         else
         {
             App::Instance()->window.SetFullscreen(true);
+            _fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_off_dim"));
+            _fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_off"));
+            _fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_off"));
         }
         break;
     }
@@ -760,6 +800,9 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
         if (App::Instance()->window.GetFullscreen())
         {
             App::Instance()->window.SetFullscreen(false);
+            _fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_on_dim"));
+            _fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_on"));
+            _fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_on"));
         }
         break;
     }
