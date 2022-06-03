@@ -25,11 +25,12 @@ public:
         _transitionFunction = function;
     }
 
-    void Start(T initialValue, T targetValue)
+    // Starts the transition after an optional delay
+    void Start(T initialValue, T targetValue, Duration delay = 0)
     {
         _initialValue = initialValue;
         _targetValue = targetValue;
-        _startTime = ztime::Main();
+        _startTime = ztime::Main() + delay;
         _transitioning = true;
     }
 
@@ -42,6 +43,10 @@ public:
     {
         if (_transitioning)
         {
+            // Wait out the delay
+            if (ztime::Main() < _startTime)
+                return;
+
             float timeProgress = (ztime::Main() - _startTime).GetDuration() / (float)_duration.GetDuration();
             if (timeProgress >= 1.0f)
             {
