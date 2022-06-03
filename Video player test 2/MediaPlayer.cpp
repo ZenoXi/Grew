@@ -266,7 +266,8 @@ void MediaPlayer::Update(double timeLimit)
             }
             else
             {
-                if (nextFrame->GetTimestamp() <= _playbackTimer.Now().GetTime())
+                int64_t nextFrameTimestamp = nextFrame->GetTimestamp();
+                if (nextFrameTimestamp <= _playbackTimer.Now().GetTime())
                 {
                     _videoData.currentFrame.reset(_videoData.nextFrame.release());
                     if (!_recovering && TimerRunning()) // Prevent ugly fast forwarding after seeking
@@ -276,11 +277,19 @@ void MediaPlayer::Update(double timeLimit)
                     }
                     frameAdvanced = true;
                 }
-                else if (_videoData.currentFrame)
+                if (nextFrameTimestamp >= _playbackTimer.Now().GetTime())
                 {
-                    _videoOutputAdapter->SetVideoData(std::move(*(VideoFrame*)_videoData.currentFrame.get()));
-                    _videoData.currentFrame.reset();
+                    if (_videoData.currentFrame)
+                    {
+                        _videoOutputAdapter->SetVideoData(std::move(*(VideoFrame*)_videoData.currentFrame.get()));
+                        _videoData.currentFrame.reset();
+                    }
                 }
+                //else if (_videoData.currentFrame)
+                //{
+                //    _videoOutputAdapter->SetVideoData(std::move(*(VideoFrame*)_videoData.currentFrame.get()));
+                //    _videoData.currentFrame.reset();
+                //}
             }
         }
         if (_audioData.nextFrame)
