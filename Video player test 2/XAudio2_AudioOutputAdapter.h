@@ -112,7 +112,7 @@ class XAudio2_AudioOutputAdapter : public IAudioOutputAdapter
     bool _paused = true;
 
 public:
-    XAudio2_AudioOutputAdapter(int channelCount, int sampleRate)
+    XAudio2_AudioOutputAdapter(int channelCount = -1, int sampleRate = -1)
         : _voiceCallback({
             _audioBufferLength,
             _currentSampleTimestamp,
@@ -147,15 +147,18 @@ public:
             _sourceVoice->DestroyVoice();
         }
 
-       _wfx = { 0 };
-       _currentSampleTimestamp = 0;
-       _audioBufferLength = 0;
-       _audioBufferEnd = 0;
-       _audioFramesBuffered = 0;
+        if (_channelCount == -1 && _sampleRate == -1)
+            return;
 
-       _playbackOffset = 0;
-       _offsetCorrection = 0;
-       _cyclesSinceLastCorrection = 0;
+        _wfx = { 0 };
+        _currentSampleTimestamp = 0;
+        _audioBufferLength = 0;
+        _audioBufferEnd = 0;
+        _audioFramesBuffered = 0;
+
+        _playbackOffset = 0;
+        _offsetCorrection = 0;
+        _cyclesSinceLastCorrection = 0;
 
         _channelCount = channelCount;
         _sampleRate = sampleRate;
