@@ -7,6 +7,7 @@
 #include "GameTime.h"
 #include "Options.h"
 #include "Functions.h"
+#include "Transition.h"
 
 #include <sstream>
 
@@ -40,15 +41,15 @@ namespace zcom
                 g.target->CreateSolidColorBrush(D2D1::ColorF(RGB(244, 161, 71) /* R and B flipped */), &_selectedPartBrush);
                 g.refs->push_back((IUnknown**)&_selectedPartBrush);
             }
+            if (!_volumeBarMarkerBrush)
+            {
+                g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::DodgerBlue), &_volumeBarMarkerBrush);
+                g.refs->push_back((IUnknown**)&_volumeBarMarkerBrush);
+            }
             if (!_remainingPartBrush)
             {
                 g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::LightGray), &_remainingPartBrush);
                 g.refs->push_back((IUnknown**)&_remainingPartBrush);
-            }
-            if (!_textBrush)
-            {
-                g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::LightGray), &_textBrush);
-                g.refs->push_back((IUnknown**)&_textBrush);
             }
 
             // Draw Volume icon
@@ -85,7 +86,7 @@ namespace zcom
                 ),
                 _remainingPartBrush
             );
-            if (/*GetMouseInside()*/_volumeHovered)
+            if (_volumeHovered)
             {
                 g.target->FillEllipse(
                     D2D1::Ellipse(
@@ -96,13 +97,9 @@ namespace zcom
                         5.0f,
                         5.0f
                     ),
-                    _selectedPartBrush
+                    _volumeBarMarkerBrush
                 );
             }
-
-            // Create value string
-            //std::wstringstream valueStr;
-            //valueStr << (int)roundf(_value * 100.0f) << "%";
 
             // Draw value string
             g.target->DrawBitmap(
@@ -114,18 +111,6 @@ namespace zcom
                     GetHeight()
                 )
             );
-            //g.target->DrawText(
-            //    valueStr.str().c_str(),
-            //    valueStr.str().length(),
-            //    _dwriteTextFormat,
-            //    D2D1::RectF(
-            //        0.0f,
-            //        (GetHeight() - _textHeight) * 0.5f,
-            //        textWidth,
-            //        (GetHeight() + _textHeight) * 0.5f
-            //    ),
-            //    _textBrush
-            //);
         }
 
         void _OnResize(int width, int height)
@@ -252,12 +237,8 @@ namespace zcom
         ID2D1Bitmap* _volumeIconHover = nullptr;
 
         ID2D1SolidColorBrush* _selectedPartBrush = nullptr;
+        ID2D1SolidColorBrush* _volumeBarMarkerBrush = nullptr;
         ID2D1SolidColorBrush* _remainingPartBrush = nullptr;
-        ID2D1SolidColorBrush* _textBrush = nullptr;
-
-        //IDWriteFactory* _dwriteFactory = nullptr;
-        //IDWriteTextFormat* _dwriteTextFormat = nullptr;
-        //IDWriteTextLayout* _dwriteTextLayout = nullptr;
 
         std::unique_ptr<Label> _volumeLabel = nullptr;
 
@@ -284,49 +265,13 @@ namespace zcom
             std::wstringstream valueStr;
             valueStr << (int)roundf(_value * 100.0f) << "%";
             _volumeLabel->SetText(valueStr.str());
-
-            // Create text rendering resources
-            //DWriteCreateFactory(
-            //    DWRITE_FACTORY_TYPE_SHARED,
-            //    __uuidof(IDWriteFactory),
-            //    reinterpret_cast<IUnknown**>(&_dwriteFactory)
-            //);
-
-            //_dwriteFactory->CreateTextFormat(
-            //    L"Calibri",
-            //    NULL,
-            //    DWRITE_FONT_WEIGHT_REGULAR,
-            //    DWRITE_FONT_STYLE_NORMAL,
-            //    DWRITE_FONT_STRETCH_NORMAL,
-            //    15.0f,
-            //    L"en-us",
-            //    &_dwriteTextFormat
-            //);
-            //_dwriteTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-
-            //_dwriteFactory->CreateTextLayout(
-            //    L"000:00:00",
-            //    9,
-            //    _dwriteTextFormat,
-            //    1000,
-            //    0,
-            //    &_dwriteTextLayout
-            //);
-
-            //DWRITE_TEXT_METRICS metrics;
-            //_dwriteTextLayout->GetMetrics(&metrics);
-            //_textHeight = metrics.height;
-            //_maxTextWidth = metrics.width;
         }
         ~VolumeSlider()
         {
             // Release resources
             SafeFullRelease((IUnknown**)&_selectedPartBrush);
+            SafeFullRelease((IUnknown**)&_volumeBarMarkerBrush);
             SafeFullRelease((IUnknown**)&_remainingPartBrush);
-            SafeFullRelease((IUnknown**)&_textBrush);
-            //SafeRelease((IUnknown**)&_dwriteTextFormat);
-            //SafeRelease((IUnknown**)&_dwriteTextLayout);
-            //SafeRelease((IUnknown**)&_dwriteFactory);
         }
         VolumeSlider(VolumeSlider&&) = delete;
         VolumeSlider& operator=(VolumeSlider&&) = delete;
