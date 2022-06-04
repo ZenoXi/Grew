@@ -43,7 +43,7 @@ namespace zcom
             }
             if (!_remainingPartBrush)
             {
-                g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Gray), &_remainingPartBrush);
+                g.target->CreateSolidColorBrush(D2D1::ColorF(0.6f, 0.6f, 0.6f), &_remainingPartBrush);
                 g.refs->push_back((IUnknown**)&_remainingPartBrush);
             }
             if (!_textBrush)
