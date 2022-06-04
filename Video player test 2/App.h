@@ -7,6 +7,7 @@
 #include "Scene.h"
 #include "MouseManager.h"
 #include "KeyboardManager.h"
+#include "AppEvents.h"
 
 #include <thread>
 #include <mutex>
@@ -19,6 +20,7 @@ public:
     Mouse mouse;
     MouseManager mouseManager;
     KeyboardManager keyboardManager;
+    AppEvents events;
 
 private: // Singleton interface
     App(DisplayWindow& dw, std::string startScene);
