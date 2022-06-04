@@ -898,6 +898,7 @@ namespace zcom
                     opacityBrush->Release();
 
                     g.target->SetTarget(stash);
+                    stash->Release();
 
                     ID2D1BitmapBrush* bitmapBrush;
                     g.target->CreateBitmapBrush(

@@ -245,6 +245,7 @@ namespace zcom
                         g.target->Clear();
                         g.target->DrawImage(shadowEffect, D2D1::Point2F(it.second.item->GetX() + prop.offsetX, it.second.item->GetY() + prop.offsetY));
                         g.target->SetTarget(stash);
+                        stash->Release();
                         g.target->DrawBitmap(contentBitmap, (const D2D1_RECT_F*)0, it.second.item->GetOpacity());
 
                         contentBitmap->Release();
