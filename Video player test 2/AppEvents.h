@@ -15,6 +15,7 @@ private:
 
     struct _EventSubscription
     {
+        uint64_t eventsRaised;
         const char* eventName;
         std::vector<void*> subs;
     };
@@ -50,7 +51,7 @@ void AppEvents::_Subscribe(EventSubscriber<_Event>* sub)
             return;
         }
     }
-    _subscriptions.push_back({ _Event::_NAME_(), { (void*)sub } });
+    _subscriptions.push_back({ 0, _Event::_NAME_(), { (void*)sub } });
 }
 
 template<class _Event>
@@ -83,11 +84,19 @@ void AppEvents::RaiseEvent(_Event ev)
     {
         if (_subscriptions[i].eventName == _Event::_NAME_())
         {
+            // Send event to subscribers
             for (int j = 0; j < _subscriptions[i].subs.size(); j++)
             {
                 EventSubscriber<_Event>* subscriber = static_cast<EventSubscriber<_Event>*>(_subscriptions[i].subs[j]);
                 subscriber->_OnEvent(ev);
             }
+
+            // Move often called events closer to vector start
+            _subscriptions[i].eventsRaised++;
+            if (i > 0 && _subscriptions[i].eventsRaised > _subscriptions[i - 1].eventsRaised)
+                std::swap(_subscriptions[i], _subscriptions[i - 1]);
+
+            break;
         }
     }
 }
