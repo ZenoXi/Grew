@@ -644,7 +644,7 @@ void znet::ServerConnectionManager::_ManageConnections()
         Duration timeElapsed = ztime::Main() - lastPrintTime;
         if (timeElapsed >= printInterval)
         {
-            App::Instance()->events.RaiseEvent(NetworkStatsEvent{ timeElapsed, bytesSentSinceLastPrint, bytesReceivedSinceLastPrint, -1 });
+            App::Instance()->events.RaiseEvent(NetworkStatsEvent{ timeElapsed, (int64_t)bytesSentSinceLastPrint, (int64_t)bytesReceivedSinceLastPrint, -1 });
 
             lastPrintTime = ztime::Main();
             if (printSpeed)

@@ -659,7 +659,7 @@ void znet::ClientConnectionManager::_ManageConnections()
                 latency += packetLatencies[i].GetDuration();
             latency /= packetLatencies.Size();
 
-            App::Instance()->events.RaiseEvent(NetworkStatsEvent{ timeElapsed, bytesSentSinceLastPrint, bytesReceivedSinceLastPrint, latency });
+            App::Instance()->events.RaiseEvent(NetworkStatsEvent{ timeElapsed, (int64_t)bytesSentSinceLastPrint, (int64_t)bytesReceivedSinceLastPrint, latency });
 
             lastPrintTime = ztime::Main();
             std::cout << "[INFO] Avg. send speed: " << bytesSentSinceLastPrint / timeElapsed.GetDuration(MILLISECONDS) << "kb/s" << std::endl;
