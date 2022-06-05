@@ -1,5 +1,8 @@
 #include "ServerConnectionManager.h"
 
+#include "App.h"
+#include "NetworkEvents.h"
+
 znet::ServerConnectionManager::ServerConnectionManager(uint16_t port)
 {
     _thisUser = { L"", 0 };
@@ -8,6 +11,8 @@ znet::ServerConnectionManager::ServerConnectionManager(uint16_t port)
     _server.StartServer(port);
     _server.AllowNewConnections();
     _managementThread = std::thread(&ServerConnectionManager::_ManageConnections, this);
+
+    App::Instance()->events.RaiseEvent(ServerStartEvent{ port });
 }
 
 znet::ServerConnectionManager::~ServerConnectionManager()
@@ -17,6 +22,8 @@ znet::ServerConnectionManager::~ServerConnectionManager()
     _MANAGEMENT_THR_STOP = true;
     if (_managementThread.joinable())
         _managementThread.join();
+
+    App::Instance()->events.RaiseEvent(ServerStopEvent{});
 }
 
 // CONNECTION
@@ -267,6 +274,8 @@ void znet::ServerConnectionManager::_ManageConnections()
         int64_t newUser;
         while ((newUser = _server.GetNewConnection()) != -1)
         {
+            App::Instance()->events.RaiseEvent(UserConnectedEvent{ newUser });
+
             _usersData.push_back({});
             std::lock_guard<std::mutex> lock(_m_users);
 
@@ -323,6 +332,8 @@ void znet::ServerConnectionManager::_ManageConnections()
         std::vector<int64_t> disconnects;
         while ((disconnectedUser = _server.GetDisconnectedUser()) != -1)
         {
+            App::Instance()->events.RaiseEvent(UserDisconnectedEvent{ disconnectedUser });
+
             std::lock_guard<std::mutex> lock(_m_users);
             for (int i = 0; i < _users.size(); i++)
             {
@@ -383,6 +394,7 @@ void znet::ServerConnectionManager::_ManageConnections()
                         }
 
                         _users[i].name = username;
+                        App::Instance()->events.RaiseEvent(UserNameChangedEvent{ _users[i].id, _users[i].name });
 
                         // Send username change to other users
                         std::vector<int64_t> destinationUsers;
@@ -630,11 +642,16 @@ void znet::ServerConnectionManager::_ManageConnections()
 
         // Print connection speed
         Duration timeElapsed = ztime::Main() - lastPrintTime;
-        if (printSpeed && timeElapsed >= printInterval)
+        if (timeElapsed >= printInterval)
         {
+            App::Instance()->events.RaiseEvent(NetworkStatsEvent{ timeElapsed, bytesSentSinceLastPrint, bytesReceivedSinceLastPrint, -1 });
+
             lastPrintTime = ztime::Main();
-            std::cout << "[INFO] Avg. send speed: " << bytesSentSinceLastPrint / timeElapsed.GetDuration(MILLISECONDS) << "kb/s" << std::endl;
-            std::cout << "[INFO] Avg. receive speed: " << bytesReceivedSinceLastPrint / timeElapsed.GetDuration(MILLISECONDS) << "kb/s" << std::endl;
+            if (printSpeed)
+            {
+                std::cout << "[INFO] Avg. send speed: " << bytesSentSinceLastPrint / timeElapsed.GetDuration(MILLISECONDS) << "kb/s" << std::endl;
+                std::cout << "[INFO] Avg. receive speed: " << bytesReceivedSinceLastPrint / timeElapsed.GetDuration(MILLISECONDS) << "kb/s" << std::endl;
+            }
             bytesSentSinceLastPrint = 0;
             bytesReceivedSinceLastPrint = 0;
         }

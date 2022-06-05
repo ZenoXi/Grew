@@ -1,5 +1,8 @@
 #include "ClientConnectionManager.h"
 
+#include "App.h"
+#include "NetworkEvents.h"
+
 #include "GameTime.h"
 
 znet::ClientConnectionManager::ClientConnectionManager(std::string ip, uint16_t port)
@@ -18,6 +21,8 @@ znet::ClientConnectionManager::~ClientConnectionManager()
         _connectionThread.join();
     if (_managementThread.joinable())
         _managementThread.join();
+
+    App::Instance()->events.RaiseEvent(DisconnectEvent{});
 }
 
 // CONNECTION
@@ -69,10 +74,18 @@ znet::ConnectionStatus znet::ClientConnectionManager::Status()
 
 void znet::ClientConnectionManager::_Connect(std::string ip, uint16_t port)
 {
+    App::Instance()->events.RaiseEvent(ConnectionStartEvent{ ip, port });
+
     // Connect the socket
     _client.ConnectAsync(ip, port);
-    while (!_client.ConnectFinished() && !_CONN_THR_STOP)
+    while (!_client.ConnectFinished())
     {
+        if (_CONN_THR_STOP)
+        {
+            _connecting = false;
+            App::Instance()->events.RaiseEvent(ConnectionFailEvent{ "Aborted" });
+            return;
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     _connectionId = _client.ConnectResult();
@@ -86,6 +99,7 @@ void znet::ClientConnectionManager::_Connect(std::string ip, uint16_t port)
             if (_CONN_THR_STOP)
             {
                 _connecting = false;
+                App::Instance()->events.RaiseEvent(ConnectionFailEvent{ "Aborted" });
                 return;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -97,6 +111,7 @@ void znet::ClientConnectionManager::_Connect(std::string ip, uint16_t port)
             // TODO: correctly disconnect
             connection->Disconnect();
             _connectionId = -1;
+            App::Instance()->events.RaiseEvent(ConnectionFailEvent{ "Connection protocol violation" });
             return;
         }
         _thisUser.id = idPacket.Cast<int64_t>();
@@ -116,6 +131,12 @@ void znet::ClientConnectionManager::_Connect(std::string ip, uint16_t port)
 
         // Start management thread
         _managementThread = std::thread(&ClientConnectionManager::_ManageConnections, this);
+
+        App::Instance()->events.RaiseEvent(ConnectionSuccessEvent{});
+    }
+    else
+    {
+        App::Instance()->events.RaiseEvent(ConnectionFailEvent{ "" });
     }
 
     _connecting = false;
@@ -370,6 +391,7 @@ void znet::ClientConnectionManager::_ManageConnections()
         {
             _connectionId = -1;
             _connectionLost = true;
+            App::Instance()->events.RaiseEvent(ConnectionLostEvent{});
             break;
         }
         if ((ztime::Main() - lastKeepAliveReceiveTime).GetDuration(MILLISECONDS) > 5000)
@@ -378,6 +400,7 @@ void znet::ClientConnectionManager::_ManageConnections()
             _connectionId = -1;
             _connectionLost = true;
             std::cout << "Keep alive packet not received within 5 seconds, closing connection.." << std::endl;
+            App::Instance()->events.RaiseEvent(ConnectionLostEvent{});
             break;
         }
 
@@ -406,11 +429,14 @@ void znet::ClientConnectionManager::_ManageConnections()
                 connection->Disconnect();
                 _connectionId = -1;
                 _disconnected = true;
+                App::Instance()->events.RaiseEvent(ConnectionClosedEvent{});
                 break;
             }
             else if (pack1.id == (int32_t)PacketType::NEW_USER)
             {
                 int64_t newUserId = pack1.Cast<int64_t>();
+                App::Instance()->events.RaiseEvent(UserConnectedEvent{ newUserId });
+
                 std::lock_guard<std::mutex> lock(_m_users);
                 _users.push_back({ L"", newUserId });
             }
@@ -425,6 +451,8 @@ void znet::ClientConnectionManager::_ManageConnections()
                     username[i] = *((wchar_t*)(pack1.Bytes() + sizeof(int64_t)) + i);
                 }
 
+                App::Instance()->events.RaiseEvent(UserNameChangedEvent{ userId, username });
+
                 std::lock_guard<std::mutex> lock(_m_users);
                 for (int i = 0; i < _users.size(); i++)
                 {
@@ -438,6 +466,8 @@ void znet::ClientConnectionManager::_ManageConnections()
             else if (pack1.id == (int32_t)PacketType::DISCONNECTED_USER)
             {
                 int64_t disconnectedUserId = pack1.Cast<int32_t>();
+                App::Instance()->events.RaiseEvent(UserDisconnectedEvent{ disconnectedUserId });
+
                 std::lock_guard<std::mutex> lock(_m_users);
                 for (int i = 0; i < _users.size(); i++)
                 {
@@ -628,6 +658,8 @@ void znet::ClientConnectionManager::_ManageConnections()
             for (int i = 0; i < packetLatencies.Size(); i++)
                 latency += packetLatencies[i].GetDuration();
             latency /= packetLatencies.Size();
+
+            App::Instance()->events.RaiseEvent(NetworkStatsEvent{ timeElapsed, bytesSentSinceLastPrint, bytesReceivedSinceLastPrint, latency });
 
             lastPrintTime = ztime::Main();
             std::cout << "[INFO] Avg. send speed: " << bytesSentSinceLastPrint / timeElapsed.GetDuration(MILLISECONDS) << "kb/s" << std::endl;
