@@ -4,6 +4,14 @@
 
 MediaReceiverDataProvider::MediaReceiverDataProvider(int64_t hostId)
     : IMediaDataProvider(),
+    _metadataReceiver(_streamMetadata, hostId),
+    _videoStreamReceiver(znet::PacketType::VIDEO_STREAM, hostId),
+    _audioStreamReceiver(znet::PacketType::AUDIO_STREAM, hostId),
+    _subtitleStreamReceiver(znet::PacketType::SUBTITLE_STREAM, hostId),
+    _attachmentStreamReceiver(znet::PacketType::ATTACHMENT_STREAM, hostId),
+    _dataStreamReceiver(znet::PacketType::DATA_STREAM, hostId),
+    _unknownStreamReceiver(znet::PacketType::UNKNOWN_STREAM, hostId),
+    _chapterReceiver(znet::PacketType::CHAPTER, hostId),
     _videoPacketReceiver(znet::PacketType::VIDEO_PACKET),
     _audioPacketReceiver(znet::PacketType::AUDIO_PACKET),
     _subtitlePacketReceiver(znet::PacketType::SUBTITLE_PACKET)
@@ -72,196 +80,38 @@ void MediaReceiverDataProvider::_SetSubtitleStream(int index, TimePoint time)
 
 void MediaReceiverDataProvider::_Initialize()
 {
-    using namespace znet;
     std::cout << "Init started.." << std::endl;
 
-    struct StreamMetadata
-    {
-        int8_t videoStreamCount;
-        int8_t audioStreamCount;
-        int8_t subtitleStreamCount;
-        int8_t attachmentStreamCount;
-        int8_t dataStreamCount;
-        int8_t unknownStreamCount;
-        int8_t currentVideoStream;
-        int8_t currentAudioStream;
-        int8_t currentSubtitleStream;
-        int8_t chapterCount;
-    } streamMetadata;
-    std::vector<int64_t> userList;
-
-    // Set up user list receiver
-    class UserListReceiver : public PacketSubscriber
-    {
-        std::vector<int64_t>& _userIds;
-        int64_t _hostId;
-        void _OnPacketReceived(Packet packet, int64_t userId)
-        {
-            if (userId != _hostId)
-                return;
-
-            int64_t thisId = znet::NetworkInterface::Instance()->ThisUser().id;
-            for (int i = 0; i < packet.size / sizeof(int64_t); i++)
-            {
-                int64_t user = ((int64_t*)packet.Bytes())[i];
-                if (user != thisId)
-                    _userIds.push_back(user);
-            }
-
-            received = true;
-        }
-    public:
-        UserListReceiver(std::vector<int64_t>& userIds, int64_t hostId)
-            : PacketSubscriber((int32_t)PacketType::PLAYBACK_PARTICIPANT_LIST),
-            _userIds(userIds),
-            _hostId(hostId)
-        {}
-        bool received = false;
-    };
-    //UserListReceiver userListReceiver(userList, _hostId);
-
-    // Set up metadata receiver
-    class StreamMetadataReceiver : public PacketSubscriber
-    {
-        StreamMetadata& _metadata;
-        int64_t _hostId;
-        void _OnPacketReceived(Packet packet, int64_t userId)
-        {
-            if (userId != _hostId)
-                return;
-
-            _metadata = packet.Cast<StreamMetadata>();
-            received = true;
-        }
-    public:
-        StreamMetadataReceiver(StreamMetadata& metadata, int64_t hostId)
-          : PacketSubscriber((int32_t)PacketType::STREAM_METADATA),
-            _metadata(metadata),
-            _hostId(hostId)
-        {}
-        bool received = false;
-    };
-    StreamMetadataReceiver metadataReceiver(streamMetadata, _hostId);
-
-    // Set up stream receivers
-    class StreamReceiver : public PacketSubscriber
-    {
-        int64_t _hostId;
-        std::vector<MediaStream> _streams;
-        std::mutex _m_streams;
-        void _OnPacketReceived(Packet packet, int64_t userId)
-        {
-            if (userId != _hostId)
-                return;
-
-            MediaStream stream;
-            auto bytes = std::make_unique<uchar[]>(packet.size);
-            std::copy_n(packet.Bytes(), packet.size, bytes.get());
-            SerializedData data(packet.size, std::move(bytes));
-            stream.Deserialize(std::move(data));
-
-            std::lock_guard<std::mutex> lock(_m_streams);
-            _streams.push_back(std::move(stream));
-        }
-    public:
-        StreamReceiver(PacketType streamType, int64_t hostId)
-            : PacketSubscriber((int32_t)streamType),
-            _hostId(hostId)
-        {}
-        std::vector<MediaStream>&& MoveStreams()
-        {
-            std::lock_guard<std::mutex> lock(_m_streams);
-            return std::move(_streams);
-        }
-        size_t StreamCount()
-        {
-            std::lock_guard<std::mutex> lock(_m_streams);
-            return _streams.size();
-        }
-    };
-    StreamReceiver videoStreamReceiver(PacketType::VIDEO_STREAM, _hostId);
-    StreamReceiver audioStreamReceiver(PacketType::AUDIO_STREAM, _hostId);
-    StreamReceiver subtitleStreamReceiver(PacketType::SUBTITLE_STREAM, _hostId);
-    StreamReceiver attachmentStreamReceiver(PacketType::ATTACHMENT_STREAM, _hostId);
-    StreamReceiver dataStreamReceiver(PacketType::DATA_STREAM, _hostId);
-    StreamReceiver unknownStreamReceiver(PacketType::UNKNOWN_STREAM, _hostId);
-
-    // Set up chapter receiver
-    class ChapterReceiver : public PacketSubscriber
-    {
-        int64_t _hostId;
-        std::vector<MediaChapter> _chapters;
-        std::mutex _m_chapters;
-        void _OnPacketReceived(Packet packet, int64_t userId)
-        {
-            if (userId != _hostId)
-                return;
-
-            MediaChapter chapter;
-            auto bytes = std::make_unique<uchar[]>(packet.size);
-            std::copy_n(packet.Bytes(), packet.size, bytes.get());
-            SerializedData data(packet.size, std::move(bytes));
-            chapter.Deserialize(std::move(data));
-
-            std::lock_guard<std::mutex> lock(_m_chapters);
-            _chapters.push_back(chapter);
-        }
-    public:
-        ChapterReceiver(PacketType streamType, int64_t hostId)
-            : PacketSubscriber((int32_t)streamType),
-            _hostId(hostId)
-        {}
-        std::vector<MediaChapter> GetChapters()
-        {
-            std::lock_guard<std::mutex> lock(_m_chapters);
-            return _chapters;
-        }
-        size_t ChapterCount()
-        {
-            std::lock_guard<std::mutex> lock(_m_chapters);
-            return _chapters.size();
-        }
-    };
-    ChapterReceiver chapterReceiver(PacketType::CHAPTER, _hostId);
-
-    // Send ready notification
-    NetworkInterface::Instance()->Send(Packet((int)PacketType::PLAYBACK_CONFIRMATION).From(int8_t(0)), { _hostId });
-
-    // Wait for user list
-    //while (!userListReceiver.received)
-    //    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    //_userList = userList;
-
     // Wait for stream metadata
-    while (!metadataReceiver.received && !_INIT_THREAD_STOP)
+    while (!_metadataReceiver.received && !_INIT_THREAD_STOP)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     // Wait for all streams
     while (!_INIT_THREAD_STOP)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        if (videoStreamReceiver.StreamCount()      < streamMetadata.videoStreamCount) continue;
-        if (audioStreamReceiver.StreamCount()      < streamMetadata.audioStreamCount) continue;
-        if (subtitleStreamReceiver.StreamCount()   < streamMetadata.subtitleStreamCount) continue;
-        if (attachmentStreamReceiver.StreamCount() < streamMetadata.attachmentStreamCount) continue;
-        if (dataStreamReceiver.StreamCount()       < streamMetadata.dataStreamCount) continue;
-        if (unknownStreamReceiver.StreamCount()    < streamMetadata.unknownStreamCount) continue;
-        if (chapterReceiver.ChapterCount()         < streamMetadata.chapterCount) continue;
+        if (_videoStreamReceiver.StreamCount()      < _streamMetadata.videoStreamCount) continue;
+        if (_audioStreamReceiver.StreamCount()      < _streamMetadata.audioStreamCount) continue;
+        if (_subtitleStreamReceiver.StreamCount()   < _streamMetadata.subtitleStreamCount) continue;
+        if (_attachmentStreamReceiver.StreamCount() < _streamMetadata.attachmentStreamCount) continue;
+        if (_dataStreamReceiver.StreamCount()       < _streamMetadata.dataStreamCount) continue;
+        if (_unknownStreamReceiver.StreamCount()    < _streamMetadata.unknownStreamCount) continue;
+        if (_chapterReceiver.ChapterCount()         < _streamMetadata.chapterCount) continue;
         break;
     }
-    _videoData.streams    = videoStreamReceiver.MoveStreams();
-    _audioData.streams    = audioStreamReceiver.MoveStreams();
-    _subtitleData.streams = subtitleStreamReceiver.MoveStreams();
-    _attachmentStreams    = attachmentStreamReceiver.MoveStreams();
-    _dataStreams          = dataStreamReceiver.MoveStreams();
-    _unknownStreams       = unknownStreamReceiver.MoveStreams();
-    _videoData.currentStream = streamMetadata.currentVideoStream;
-    _audioData.currentStream = streamMetadata.currentAudioStream;
-    _subtitleData.currentStream = streamMetadata.currentSubtitleStream;
-    _chapters = chapterReceiver.GetChapters();
+    _videoData.streams    = _videoStreamReceiver.MoveStreams();
+    _audioData.streams    = _audioStreamReceiver.MoveStreams();
+    _subtitleData.streams = _subtitleStreamReceiver.MoveStreams();
+    _attachmentStreams    = _attachmentStreamReceiver.MoveStreams();
+    _dataStreams          = _dataStreamReceiver.MoveStreams();
+    _unknownStreams       = _unknownStreamReceiver.MoveStreams();
+    _videoData.currentStream = _streamMetadata.currentVideoStream;
+    _audioData.currentStream = _streamMetadata.currentAudioStream;
+    _subtitleData.currentStream = _streamMetadata.currentSubtitleStream;
+    _chapters = _chapterReceiver.GetChapters();
 
     // Send receive confirmation
-    NetworkInterface::Instance()->Send(Packet((int)PacketType::METADATA_CONFIRMATION), { _hostId });
+    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::METADATA_CONFIRMATION), { _hostId });
 
     _initializing = false;
 

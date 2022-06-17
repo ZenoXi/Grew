@@ -38,8 +38,8 @@ class MediaPlayer
     //std::unique_ptr<VideoFrame> _nextSubtitleFrame = nullptr;
 
     // Subtitles and video are combined
-    std::unique_ptr<IVideoOutputAdapter> _videoOutputAdapter = nullptr;
-    std::unique_ptr<IAudioOutputAdapter> _audioOutputAdapter = nullptr;
+    IVideoOutputAdapter* _videoOutputAdapter = nullptr;
+    IAudioOutputAdapter* _audioOutputAdapter = nullptr;
 
     //std::unique_ptr<MediaStream> _pendingVideoStream = nullptr;
     //std::unique_ptr<MediaStream> _pendingAudioStream = nullptr;
@@ -60,8 +60,8 @@ class MediaPlayer
 public:
     MediaPlayer(
         IMediaDataProvider* dataProvider,
-        std::unique_ptr<IVideoOutputAdapter> videoAdapter,
-        std::unique_ptr<IAudioOutputAdapter> audioAdapter
+        IVideoOutputAdapter* videoAdapter,
+        IAudioOutputAdapter* audioAdapter
     );
     ~MediaPlayer();
 

@@ -3,10 +3,10 @@
 #include "App.h"
 #include "PlaybackScene.h"
 
-ReceiverPlaybackController::ReceiverPlaybackController(MediaPlayer* player, MediaReceiverDataProvider* dataProvider)
-    : BasePlaybackController(player, dataProvider)
+ReceiverPlaybackController::ReceiverPlaybackController(IMediaDataProvider* dataProvider, int64_t hostId)
+    : BasePlaybackController(dataProvider)
 {
-    _hostId = dataProvider->GetHostId();
+    _hostId = hostId;
     _hostReady = false;
     _hostControllerReadyReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::HOST_CONTROLLER_READY);
     _playReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::RESUME);
@@ -14,8 +14,6 @@ ReceiverPlaybackController::ReceiverPlaybackController(MediaPlayer* player, Medi
     _initiateSeekReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::INITIATE_SEEK);
     _hostSeekFinishedReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::HOST_SEEK_FINISHED);
     _syncPauseReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::SYNC_PAUSE);
-
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::CONTROLLER_READY), { _hostId });
 }
 
 void ReceiverPlaybackController::Update()
@@ -93,6 +91,7 @@ void ReceiverPlaybackController::_CheckForHostControllerReady()
     {
         auto packetPair = _hostControllerReadyReceiver->GetPacket();
         _hostReady = true;
+        std::cout << "Host ready!\n";
     }
 }
 

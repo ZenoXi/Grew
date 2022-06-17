@@ -8,6 +8,9 @@
 #include "MouseManager.h"
 #include "KeyboardManager.h"
 #include "AppEvents.h"
+#include "NetworkEvents.h"
+#include "Playlist.h"
+#include "Playback.h"
 
 #include <thread>
 #include <mutex>
@@ -17,6 +20,11 @@ class App
 {
 public:
     DisplayWindow& window;
+    Playlist playlist;
+private:
+    Playlist _serverPlaylist;
+public:
+    Playback playback;
     Mouse mouse;
     MouseManager mouseManager;
     KeyboardManager keyboardManager;
@@ -68,4 +76,10 @@ private: // Main app thread
     std::mutex _m_main;
 public:
     void LoopThread();
+
+private:
+    bool _serverInit = false;
+    bool _clientInit = false;
+    EventReceiver<NetworkStateChangedEvent> _networkStateEventReceiver;
+    void _HandleNetworkStateChanges();
 };

@@ -37,7 +37,7 @@ namespace zcom
             if (!_selectedPartBrush)
             {
                 // RGB(71, 161, 244) matches the color of DodgerBlue with 75% opacity over LightGray
-                // This is done to match the volume slider ant time slider colors
+                // This is done to match the volume slider and time slider colors
                 g.target->CreateSolidColorBrush(D2D1::ColorF(RGB(244, 161, 71) /* R and B flipped */), &_selectedPartBrush);
                 g.refs->push_back((IUnknown**)&_selectedPartBrush);
             }
@@ -146,6 +146,7 @@ namespace zcom
                 if (xPos > volumeSliderWidth) xPos = volumeSliderWidth;
                 float xPosNorm = xPos / (float)volumeSliderWidth;
                 SetValue(xPosNorm);
+                _moved = true;
             }
             return EventTargets().Add(this, x, y);
         }
@@ -178,6 +179,7 @@ namespace zcom
             {
                 float xPosNorm = xPos / (float)volumeSliderWidth;
                 SetValue(xPosNorm);
+                _moved = true;
                 _held = true;
             }
             return EventTargets().Add(this, x, y);
@@ -215,6 +217,7 @@ namespace zcom
         float _value = 0;
         float _exponent = 2.0f;
 
+        bool _moved = false;
         bool _held = false;
         float _textHeight = 0.0f;
         float _maxTextWidth = 0.0f;
@@ -278,6 +281,13 @@ namespace zcom
         VolumeSlider(const VolumeSlider&) = delete;
         VolumeSlider& operator=(const VolumeSlider&) = delete;
 
+        bool Moved()
+        {
+            bool val = _moved;
+            _moved = false;
+            return val;
+        }
+
         float GetValue() const
         {
             return _value;
@@ -294,7 +304,7 @@ namespace zcom
             valueStr << (int)roundf(_value * 100.0f) << "%";
             _volumeLabel->SetText(valueStr.str());
 
-            Options::Instance()->SetValue("volume", float_to_str(_value));
+            Options::Instance()->SetValue("volume", float_to_str(GetVolume()));
         }
 
         float GetVolume() const

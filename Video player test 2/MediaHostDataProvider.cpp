@@ -4,11 +4,12 @@
 
 #include <iostream>
 
-MediaHostDataProvider::MediaHostDataProvider(LocalFileDataProvider* localDataProvider)
-    : IMediaDataProvider(localDataProvider)
+MediaHostDataProvider::MediaHostDataProvider(std::unique_ptr<LocalFileDataProvider> localDataProvider, std::vector<int64_t> participants)
+    : IMediaDataProvider(localDataProvider.get())
 {
-    _localDataProvider = localDataProvider;
+    _localDataProvider = std::move(localDataProvider);
     _localDataProvider->Start();
+    _destinationUsers = participants;
 
     _initializing = true;
     _INIT_THREAD_STOP = false;
@@ -18,7 +19,6 @@ MediaHostDataProvider::MediaHostDataProvider(LocalFileDataProvider* localDataPro
 MediaHostDataProvider::~MediaHostDataProvider()
 {
     Stop();
-    delete _localDataProvider;
 }
 
 void MediaHostDataProvider::Start()
@@ -81,55 +81,6 @@ void MediaHostDataProvider::_Initialize()
     _localDataProvider->SetAllowedAudioMemory(5000000); // 5 MB
     _localDataProvider->SetAllowedSubtitleMemory(1000000); // 1 MB
 
-    // Create a list of currently connected users
-    auto users = znet::NetworkInterface::Instance()->Users();
-    for (auto& user : users)
-        _destinationUsers.push_back(user.id);
-
-    // Create playback confirmation receiver
-    class PlaybackTracker : public znet::PacketSubscriber
-    {
-        std::vector<int64_t> _users;
-        std::vector<int64_t> _accepted;
-
-        void _OnPacketReceived(znet::Packet packet, int64_t userId)
-        {
-            for (int i = 0; i < _users.size(); i++)
-            {
-                if (_users[i] == userId)
-                {
-                    if (packet.Cast<int8_t>() == 0)
-                        _accepted.push_back(_users[i]);
-                    _users.erase(_users.begin() + i);
-                }
-            }
-        }
-    public:
-        PlaybackTracker(std::vector<int64_t> users)
-            : PacketSubscriber((int32_t)znet::PacketType::PLAYBACK_CONFIRMATION),
-            _users(users)
-        {}
-
-        bool AllReceived()
-        {
-            return _users.empty();
-        }
-
-        std::vector<int64_t> Accepted()
-        {
-            return _accepted;
-        }
-    } playbackTracker(_destinationUsers);
-
-    // Send playback start notification
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_RESPONSE).From(int8_t(1)), { 0 });
-
-    // Wait for users to confirm/deny the playback request
-    while (!playbackTracker.AllReceived() && !_INIT_THREAD_STOP)
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    _destinationUsers = playbackTracker.Accepted();
-    std::cout << "Participation established!" << std::endl;
-
     // Create metadata confirmation receiver
     class MetadataTracker : public znet::PacketSubscriber
     {
@@ -183,14 +134,6 @@ void MediaHostDataProvider::_Initialize()
             return _users.empty();
         }
     } controllerTracker(_destinationUsers);
-
-    // Send participating user list
-    size_t userListSize = sizeof(int64_t) * (_destinationUsers.size() + 1);
-    auto userListBytes = std::make_unique<int8_t[]>(userListSize);
-    ((int64_t*)userListBytes.get())[0] = znet::NetworkInterface::Instance()->ThisUser().id;
-    for (int i = 0; i < _destinationUsers.size(); i++)
-        ((int64_t*)userListBytes.get())[i + 1] = _destinationUsers[i];
-    znet::NetworkInterface::Instance()->Send(znet::Packet(std::move(userListBytes), userListSize, (int)znet::PacketType::PLAYBACK_PARTICIPANT_LIST), _destinationUsers);
 
     // Create stream metadata struct
     struct StreamMetadata
@@ -285,11 +228,6 @@ void MediaHostDataProvider::_Initialize()
     while (!metadataTracker.AllReceived() && !_INIT_THREAD_STOP)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     std::cout << "Metadata receive confirmed!" << std::endl;
-
-    // Wait for all controllers to be ready
-    while (!controllerTracker.AllReceived() && !_INIT_THREAD_STOP)
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    std::cout << "Controllers ready!" << std::endl;
 
     _initializing = false;
 

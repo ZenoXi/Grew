@@ -10,7 +10,6 @@
 
 PlaybackOverlayScene::PlaybackOverlayScene()
 {
-    _playbackScene = (PlaybackScene*)App::Instance()->FindScene(PlaybackScene::StaticName());
 }
 
 void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
@@ -28,20 +27,36 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         return _HandleKeyDown(keyCode);
     });
     
-    _playbackQueuePanel = std::make_unique<zcom::Panel>();
-    _playbackQueuePanel->SetParentHeightPercent(1.0f);
-    _playbackQueuePanel->SetBaseSize(600, -110);
-    _playbackQueuePanel->SetOffsetPixels(40, 40);
-    _playbackQueuePanel->SetBorderVisibility(true);
-    _playbackQueuePanel->SetBorderColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
-    _playbackQueuePanel->SetCornerRounding(3.0f);
-    _playbackQueuePanel->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
+    _playlistPanel = std::make_unique<zcom::Panel>();
+    _playlistPanel->SetParentHeightPercent(1.0f);
+    _playlistPanel->SetBaseSize(600, -110);
+    _playlistPanel->SetOffsetPixels(40, 40);
+    _playlistPanel->SetBorderVisibility(true);
+    _playlistPanel->SetBorderColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
+    _playlistPanel->SetCornerRounding(3.0f);
+    _playlistPanel->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     zcom::PROP_Shadow shadowProps;
     shadowProps.offsetX = 5.0f;
     shadowProps.offsetY = 5.0f;
     shadowProps.blurStandardDeviation = 5.0f;
     shadowProps.color = D2D1::ColorF(0, 1.0f);
-    _playbackQueuePanel->SetProperty(shadowProps);
+    _playlistPanel->SetProperty(shadowProps);
+
+    _readyItemPanel = std::make_unique<zcom::Panel>();
+    _readyItemPanel->SetParentSizePercent(1.0f, 1.0f);
+    _readyItemPanel->SetBaseHeight(-140);
+    _readyItemPanel->SetBorderVisibility(true);
+    _readyItemPanel->SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+    _readyItemPanel->VerticalScrollable(true);
+
+    _loadingItemPanel = std::make_unique<zcom::Panel>();
+    _loadingItemPanel->SetParentWidthPercent(1.0f);
+    _loadingItemPanel->SetBaseHeight(140);
+    _loadingItemPanel->SetVerticalAlignment(zcom::Alignment::END);
+    _loadingItemPanel->VerticalScrollable(true);
+
+    _playlistPanel->AddItem(_readyItemPanel.get());
+    _playlistPanel->AddItem(_loadingItemPanel.get());
 
     //_mediaQueueItem = new zcom::MediaQueueItem(L"E:\\aots4e5.mkv");
     //_mediaQueueItem->SetBaseSize(200, 35);
@@ -55,8 +70,11 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _addFileButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _addFileButton->SetOnActivated([&]()
     {
+        if (_addingFile)
+            return;
+
         _addingFile = true;
-        _fileDialog = new AsyncFileDialog();
+        _fileDialog = std::make_unique<AsyncFileDialog>();
         _fileDialog->Open();
     });
 
@@ -183,7 +201,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     });
 
 
-    _canvas->AddComponent(_playbackQueuePanel.get());
+    _canvas->AddComponent(_playlistPanel.get());
     _canvas->AddComponent(_addFileButton.get());
     _canvas->AddComponent(_closeOverlayButton.get());
     _canvas->AddComponent(_networkStatusLabel.get());
@@ -200,14 +218,11 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     // Init network panel
     _networkMode = znet::NetworkInterface::Instance()->Mode();
     _SetUpNetworkPanel();
-
-    // Set up packet receivers
-    _SetUpPacketReceivers(_networkMode);
 }
 
 void PlaybackOverlayScene::_Uninit()
 {
-
+    _playlistPanel = nullptr;
 }
 
 void PlaybackOverlayScene::_Focus()
@@ -223,7 +238,7 @@ void PlaybackOverlayScene::_Unfocus()
 
 void PlaybackOverlayScene::_Update()
 {
-    _playbackQueuePanel->Update();
+    _playlistPanel->Update();
     _connectedUsersPanel->Update();
 
     if (_connectPanelOpen)
@@ -260,7 +275,6 @@ void PlaybackOverlayScene::_Update()
         if (netMode != _networkMode)
         {
             _networkMode = netMode;
-            _SetUpPacketReceivers(netMode);
             _SetUpNetworkPanel();
         }
     }
@@ -271,60 +285,11 @@ void PlaybackOverlayScene::_Update()
     // File dialog
     _CheckFileDialogCompletion();
 
-    // Manage queue items
-    _CheckForItemAddRequest();
-    _CheckForItemAdd();
-    _CheckForItemRemoveRequest();
-    _CheckForItemRemove();
-    _CheckForStartRequest();
-    _CheckForStartOrder();
-    _CheckForStartResponse();
-    _CheckForStart();
-    _CheckForStopRequest();
-    _CheckForStop();
-    bool changed = false;
-    changed |= _ManageLoadingItems();
-    changed |= _ManageReadyItems();
-    if (changed) _RearrangeQueuePanel();
-
-    // Autoplay
-    _PlayNextItem();
-
+    // Update UI items
+    _ManageLoadingItems();
+    _ManageReadyItems();
+    _RearrangePlaylistPanel();
     _RearrangeNetworkPanel();
-}
-
-void PlaybackOverlayScene::_SetUpPacketReceivers(znet::NetworkMode netMode)
-{
-    _queueAddRequestReceiver.reset(nullptr);
-    _queueAddReceiver.reset(nullptr);
-    _queueRemoveRequestReceiver.reset(nullptr);
-    _queueRemoveReceiver.reset(nullptr);
-    _playbackStartRequestReceiver.reset(nullptr);
-    _playbackStartOrderReceiver.reset(nullptr);
-    _playbackStartResponseReceiver.reset(nullptr);
-    _playbackStartReceiver.reset(nullptr);
-    _playbackStopRequestReceiver.reset(nullptr);
-    _playbackStopReceiver.reset(nullptr);
-    if (netMode == znet::NetworkMode::CLIENT)
-    {
-        _queueAddReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::QUEUE_ITEM_ADD);
-        _queueRemoveReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::QUEUE_ITEM_REMOVE);
-        _playbackStopReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_STOP);
-    }
-    else if (netMode == znet::NetworkMode::SERVER)
-    {
-        _queueAddRequestReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::QUEUE_ITEM_ADD_REQUEST);
-        _queueRemoveRequestReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::QUEUE_ITEM_REMOVE_REQUEST);
-        _playbackStartRequestReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_START_REQUEST);
-        _playbackStartResponseReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_START_RESPONSE);
-        _playbackStopRequestReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_STOP_REQUEST);
-    }
-
-    if (netMode != znet::NetworkMode::OFFLINE)
-    {
-        _playbackStartOrderReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_START_ORDER);
-        _playbackStartReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_START);
-    }
 }
 
 void PlaybackOverlayScene::_ProcessCurrentUsers()
@@ -385,24 +350,6 @@ void PlaybackOverlayScene::_ProcessCurrentUsers()
     }
     _currentUserIds = std::move(newIdList);
     _currentUserNames = std::move(newNameList);
-
-    // Send queue items to new connections
-    if (!newUsers.empty())
-    {
-        for (auto& item : _readyItems)
-        {
-            std::wstring filename = item->GetFilename();
-            size_t packetSize = sizeof(int32_t) + sizeof(int32_t) + sizeof(int64_t) + sizeof(int64_t) + sizeof(wchar_t) * filename.length();
-            auto bytes = std::make_unique<int8_t[]>(packetSize);
-            *((int32_t*)bytes.get()) = item->GetMediaId();
-            *((int32_t*)(bytes.get() + 4)) = -1;
-            *((int64_t*)(bytes.get() + 8)) = item->GetUserId();
-            *((int64_t*)(bytes.get() + 16)) = item->GetDuration().GetDuration(NANOSECONDS);
-            std::copy_n(filename.begin(), filename.length(), (wchar_t*)(bytes.get() + 24));
-
-            znet::NetworkInterface::Instance()->Send(znet::Packet(std::move(bytes), packetSize, (int)znet::PacketType::QUEUE_ITEM_ADD), newUsers);
-        }
-    }
 }
 
 void PlaybackOverlayScene::_CheckFileDialogCompletion()
@@ -413,576 +360,50 @@ void PlaybackOverlayScene::_CheckFileDialogCompletion()
         {
             if (_fileDialog->Result() != L"")
             {
-                auto newItem = std::make_unique<zcom::MediaQueueItem>(_fileDialog->Result());
-                newItem->SetParentWidthPercent(1.0f);
-                newItem->SetBaseHeight(25);
-                _loadingItems.push_back(std::move(newItem));
-                _RearrangeQueuePanel();
+                auto newItem = std::make_unique<PlaylistItem>(_fileDialog->Result());
+                App::Instance()->playlist.Request_AddItem(std::move(newItem));
             }
             _addingFile = false;
-            delete _fileDialog;
+            _fileDialog.reset();
         }
     }
 }
 
-void PlaybackOverlayScene::_CheckForItemAddRequest()
+void PlaybackOverlayScene::_ManageLoadingItems()
 {
-    if (!_queueAddRequestReceiver)
-        return;
-
-    while (_queueAddRequestReceiver->PacketCount() > 0)
-    {
-        // Process packet
-        struct RequestPacket
-        {
-            int32_t callbackId;
-            int64_t mediaDuration;
-        };
-        auto packetPair = _queueAddRequestReceiver->GetPacket();
-        int32_t callbackId = *(int32_t*)(packetPair.first.Bytes());
-        int64_t mediaDuration = *(int64_t*)(packetPair.first.Bytes() + 4);
-        size_t bytesWithoutFilename = sizeof(int32_t) + sizeof(int64_t);
-        size_t filenameLength = (packetPair.first.size - bytesWithoutFilename) / 2;
-        std::wstring filename;
-        filename.resize(filenameLength);
-        for (int i = 0; i < filenameLength; i++)
-            filename[i] = ((wchar_t*)(packetPair.first.Bytes() + bytesWithoutFilename))[i];
-
-        // Create item
-        int32_t mediaId = _GenerateMediaId();
-        int64_t userId = packetPair.second;
-        auto newItem = std::make_unique<zcom::MediaQueueItem>();
-        newItem->SetParentWidthPercent(1.0f);
-        newItem->SetBaseHeight(25);
-        newItem->SetMediaId(mediaId);
-        newItem->SetUserId(userId);
-        newItem->SetDuration(Duration(mediaDuration));
-        newItem->SetFilename(filename);
-
-        // Add item to queue
-        _readyItems.push_back(std::move(newItem));
-        _RearrangeQueuePanel();
-
-        // Send item to all clients
-        size_t packetSize = sizeof(int32_t) + sizeof(int32_t) + sizeof(int64_t) + sizeof(int64_t) + sizeof(wchar_t) * filename.length();
-        auto bytes = std::make_unique<int8_t[]>(packetSize);
-        *((int32_t*)bytes.get()) = mediaId;
-        *((int32_t*)(bytes.get() + 4)) = callbackId;
-        *((int64_t*)(bytes.get() + 8)) = userId;
-        *((int64_t*)(bytes.get() + 16)) = mediaDuration;
-        std::copy_n(filename.begin(), filename.length(), (wchar_t*)(bytes.get() + 24));
-
-        znet::NetworkInterface::Instance()->Send(znet::Packet(std::move(bytes), packetSize, (int)znet::PacketType::QUEUE_ITEM_ADD), _currentUserIds);
-    }
-}
-
-void PlaybackOverlayScene::_CheckForItemAdd()
-{
-    if (!_queueAddReceiver)
-        return;
-
-    while (_queueAddReceiver->PacketCount() > 0)
-    {
-        struct ItemPacket
-        {
-            int32_t mediaId;
-            int32_t callbackId;
-            int64_t mediaHostId;
-            int64_t mediaDuration;
-        };
-        auto packetPair = _queueAddReceiver->GetPacket();
-        ItemPacket itemPacket = packetPair.first.Cast<ItemPacket>();
-
-        if (itemPacket.mediaHostId == znet::NetworkInterface::Instance()->ThisUser().id)
-        {
-            for (int i = 0; i < _loadingItems.size(); i++)
-            {
-                if (_loadingItems[i]->GetCallbackId() == itemPacket.callbackId)
-                {
-                    if (itemPacket.mediaId != -1)
-                    {
-                        // Move confirmed item
-                        _loadingItems[i]->SetMediaId(itemPacket.mediaId);
-                        _loadingItems[i]->SetUserId(itemPacket.mediaHostId);
-                        _loadingItems[i]->SetCustomStatus(L"");
-                        _readyItems.push_back(std::move(_loadingItems[i]));
-                        _readyItems.back()->SetButtonVisibility(zcom::MediaQueueItem::BTN_PLAY | zcom::MediaQueueItem::BTN_DELETE);
-                        _loadingItems.erase(_loadingItems.begin() + i);
-                        _RearrangeQueuePanel();
-                    }
-                    else
-                    {
-                        _loadingItems[i]->SetMediaId(-2);
-                    }
-                    break;
-                }
-            }
-        }
-        else
-        {
-            // Extract filename
-            size_t filenameLength = (packetPair.first.size - sizeof(ItemPacket)) / 2;
-            std::wstring filename;
-            filename.resize(filenameLength);
-            for (int i = 0; i < filenameLength; i++)
-                filename[i] = ((wchar_t*)(packetPair.first.Bytes() + sizeof(ItemPacket)))[i];
-
-            // Create item
-            auto newItem = std::make_unique<zcom::MediaQueueItem>();
-            newItem->SetParentWidthPercent(1.0f);
-            newItem->SetBaseHeight(25);
-            newItem->SetMediaId(itemPacket.mediaId);
-            newItem->SetUserId(itemPacket.mediaHostId);
-            newItem->SetDuration(Duration(itemPacket.mediaDuration));
-            newItem->SetFilename(filename);
-            newItem->SetButtonVisibility(zcom::MediaQueueItem::BTN_DELETE | zcom::MediaQueueItem::BTN_PLAY);
-
-            // Add item to queue
-            _readyItems.push_back(std::move(newItem));
-            _RearrangeQueuePanel();
-        }
-    }
-}
-
-void PlaybackOverlayScene::_CheckForItemRemoveRequest()
-{
-    if (!_queueRemoveRequestReceiver)
-        return;
-
-    while (_queueRemoveRequestReceiver->PacketCount() > 0)
-    {
-        auto packetPair = _queueRemoveRequestReceiver->GetPacket();
-        int32_t mediaId = packetPair.first.Cast<int32_t>();
-
-        // Remove item
-        bool itemRemoved = false;
-        for (int i = 0; i < _readyItems.size(); i++)
-        {
-            if (_readyItems[i]->GetMediaId() == mediaId
-             && _readyItems[i]->GetMediaId() != _currentlyPlaying)
-            {
-                _readyItems.erase(_readyItems.begin() + i);
-                itemRemoved = true;
-            }
-        }
-
-        if (itemRemoved)
-        {
-            // Send remove order to all clients
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::QUEUE_ITEM_REMOVE).From(mediaId), _currentUserIds);
-
-            _RearrangeQueuePanel();
-        }
-    }
-}
-
-void PlaybackOverlayScene::_CheckForItemRemove()
-{
-    if (!_queueRemoveReceiver)
-        return;
-
-    while (_queueRemoveReceiver->PacketCount() > 0)
-    {
-        auto packetPair = _queueRemoveReceiver->GetPacket();
-        int32_t mediaId = packetPair.first.Cast<int32_t>();
-
-        for (int i = 0; i < _readyItems.size(); i++)
-        {
-            if (_readyItems[i]->GetMediaId() == mediaId)
-            {
-                _readyItems.erase(_readyItems.begin() + i);
-                _RearrangeQueuePanel();
-            }
-        }
-    }
-}
-
-void PlaybackOverlayScene::_CheckForStartRequest()
-{
-    if (!_playbackStartRequestReceiver)
-        return;
-
-    while (_playbackStartRequestReceiver->PacketCount() > 0)
-    {
-        auto packetPair = _playbackStartRequestReceiver->GetPacket();
-        int32_t mediaId = packetPair.first.Cast<int32_t>();
-
-        if (_currentlyPlaying != -1 || _loadingPlayback != -1)
-            continue;
-
-        // Find if item exists
-        int64_t userId = -1;
-        int itemIndex = -1;
-        for (int i = 0; i < _readyItems.size(); i++)
-        {
-            if (_readyItems[i]->GetMediaId() == mediaId)
-            {
-                userId = _readyItems[i]->GetUserId();
-                itemIndex = i;
-                break;
-            }
-        }
-        if (itemIndex != -1)
-        {
-            _loadingPlayback = mediaId;
-
-            // Send playback order to media host
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_ORDER).From(mediaId), { userId });
-        }
-    }
-}
-
-void PlaybackOverlayScene::_CheckForStartOrder()
-{
-    if (!_playbackStartOrderReceiver)
-        return;
-
-    while (_playbackStartOrderReceiver->PacketCount() > 0)
-    {
-        auto packetPair = _playbackStartOrderReceiver->GetPacket();
-        int32_t mediaId = packetPair.first.Cast<int32_t>();
-
-        // Find if item exists
-        int itemIndex = -1;
-        for (int i = 0; i < _readyItems.size(); i++)
-        {
-            if (_readyItems[i]->GetMediaId() == mediaId)
-            {
-                itemIndex = i;
-                break;
-            }
-        }
-        if (itemIndex != -1)
-        {
-            // Start media playback
-            _currentlyPlaying = mediaId;
-
-            PlaybackSceneOptions options;
-            options.dataProvider = new MediaHostDataProvider(_readyItems[itemIndex]->CopyDataProvider());
-            options.playbackMode = PlaybackMode::SERVER;
-            App::Instance()->ReinitScene(PlaybackScene::StaticName(), &options);
-            App::Instance()->MoveSceneBehind(PlaybackScene::StaticName(), StaticName());
-            _RearrangeQueuePanel();
-
-            // Notify server that playback has started
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_RESPONSE).From(int8_t(1)), { 0 });
-        }
-        else
-        {
-            // Notify server that playback was declined
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_RESPONSE).From(int8_t(0)), { 0 });
-        }
-    }
-}
-
-void PlaybackOverlayScene::_CheckForStartResponse()
-{
-    if (!_playbackStartResponseReceiver)
-        return;
-
-    while (_playbackStartResponseReceiver->PacketCount() > 0)
-    {
-        auto packetPair = _playbackStartResponseReceiver->GetPacket();
-        int8_t response = packetPair.first.Cast<int8_t>();
-
-        // TODO: Check response value, for declined playbacks
-
-        if (_loadingPlayback < 0)
-            continue;
-
-        int itemIndex = -1;
-        for (int i = 0; i < _readyItems.size(); i++)
-        {
-            if (_readyItems[i]->GetMediaId() == _loadingPlayback)
-            {
-                itemIndex = i;
-                break;
-            }
-        }
-        if (itemIndex == -1)
-            continue;
-
-        // Notify everyone of playback start (including the server itself, except if it is the host)
-        std::vector<int64_t> destinationUsers;
-        for (auto& user : _currentUserIds)
-        {
-            if (_readyItems[itemIndex]->GetUserId() != user)
-            {
-                destinationUsers.push_back(user);
-            }
-        }
-        if (_readyItems[itemIndex]->GetUserId() != 0)
-            destinationUsers.push_back(0);
-
-        struct PlaybackStartDesc
-        {
-            int32_t mediaId;
-            int64_t hostId;
-        };
-        PlaybackStartDesc startDesc = { _loadingPlayback, _readyItems[itemIndex]->GetUserId() };
-        znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START).From(startDesc), destinationUsers);
-
-        if (_readyItems[itemIndex]->GetUserId() == 0)
-            _loadingPlayback = -1;
-    }
-}
-
-void PlaybackOverlayScene::_CheckForStart()
-{
-    if (!_playbackStartReceiver)
-        return;
-
-    while (_playbackStartReceiver->PacketCount() > 0)
-    {
-        auto packetPair = _playbackStartReceiver->GetPacket();
-        struct PlaybackStartDesc
-        {
-            int32_t mediaId;
-            int64_t hostId;
-        };
-        auto startDesc = packetPair.first.Cast<PlaybackStartDesc>();
-
-        if (_loadingPlayback != -1)
-            _loadingPlayback = -1;
-        _currentlyPlaying = startDesc.mediaId;
-
-        PlaybackSceneOptions options;
-        options.dataProvider = new MediaReceiverDataProvider(startDesc.hostId);
-        options.playbackMode = PlaybackMode::CLIENT;
-        App::Instance()->ReinitScene(PlaybackScene::StaticName(), &options);
-        App::Instance()->MoveSceneBehind(PlaybackScene::StaticName(), StaticName());
-        _RearrangeQueuePanel();
-    }
-}
-
-void PlaybackOverlayScene::_CheckForStopRequest()
-{
-    if (!_playbackStopRequestReceiver)
-        return;
-
-    while (_playbackStopRequestReceiver->PacketCount() > 0)
-    {
-        auto packetPair = _playbackStopRequestReceiver->GetPacket();
-
-        if (_currentlyPlaying != -1)
-        {
-            App::Instance()->UninitScene(PlaybackScene::StaticName());
-            _currentlyPlaying = -1;
-
-            // Sent playback stop order to all clients
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP), _currentUserIds);
-            _RearrangeQueuePanel();
-        }
-    }
-}
-
-void PlaybackOverlayScene::_CheckForStop()
-{
-    if (!_playbackStopReceiver)
-        return;
-
-    while (_playbackStopReceiver->PacketCount() > 0)
-    {
-        auto packetPair = _playbackStopReceiver->GetPacket();
-
-        if (_currentlyPlaying != -1)
-        {
-            App::Instance()->UninitScene(PlaybackScene::StaticName());
-            _currentlyPlaying = -1;
-            _RearrangeQueuePanel();
-        }
-    }
-}
-
-bool PlaybackOverlayScene::_ManageLoadingItems()
-{
-    static const wchar_t* customStatusMsgWaiting = L"Waiting for server..";
-    static const wchar_t* customStatusMsgDenied = L"Playback denied.";
-
-    znet::NetworkMode netMode = znet::NetworkInterface::Instance()->Mode();
-
-    bool changed = false;
     for (int i = 0; i < _loadingItems.size(); i++)
     {
         // Delete
         if (_loadingItems[i]->Delete())
         {
-            _loadingItems.erase(_loadingItems.begin() + i);
-            i--;
-            changed = true;
-            continue;
-        }
-
-        // Move from loading to ready
-        if (_loadingItems[i]->Initialized() && _loadingItems[i]->InitSuccess())
-        {
-            // Request media id (client mode)
-            if (netMode == znet::NetworkMode::CLIENT)
-            {
-                if (_loadingItems[i]->GetCustomStatus() != customStatusMsgWaiting
-                 && _loadingItems[i]->GetCustomStatus() != customStatusMsgDenied)
-                {
-                    _loadingItems[i]->SetCustomStatus(customStatusMsgWaiting);
-
-                    // Send queue add request
-                    std::wstring filename = _loadingItems[i]->GetFilename();
-                    size_t packetSize = sizeof(int32_t) + sizeof(int64_t) + sizeof(wchar_t) * filename.length();
-                    auto bytes = std::make_unique<int8_t[]>(packetSize);
-                    *((int32_t*)bytes.get()) = _loadingItems[i]->GetCallbackId();
-                    *((int64_t*)(bytes.get() + 4)) = _loadingItems[i]->DataProvider()->MediaDuration().GetTicks();
-                    std::copy_n(filename.begin(), filename.length(), (wchar_t*)(bytes.get() + 12));
-                    
-                    znet::NetworkInterface::Instance()->Send(znet::Packet(std::move(bytes), packetSize, (int)znet::PacketType::QUEUE_ITEM_ADD_REQUEST), { 0 });
-                }
-                // Set item status as denied
-                else if (_loadingItems[i]->GetMediaId() == -2)
-                {
-                    if (_loadingItems[i]->GetCustomStatus() != customStatusMsgDenied)
-                    {
-                        _loadingItems[i]->SetCustomStatus(customStatusMsgDenied);
-                    }
-                }
-            }
-            else
-            {
-                int32_t mediaId = _GenerateMediaId();
-                _loadingItems[i]->SetMediaId(mediaId);
-
-                if (netMode == znet::NetworkMode::SERVER)
-                {
-                    _loadingItems[i]->SetUserId(0);
-
-                    // Send item to all clients
-                    std::wstring filename = _loadingItems[i]->GetFilename();
-                    size_t packetSize = sizeof(int32_t) + sizeof(int32_t) + sizeof(int64_t) + sizeof(int64_t) + sizeof(wchar_t) * filename.length();
-                    auto bytes = std::make_unique<int8_t[]>(packetSize);
-                    *((int32_t*)bytes.get()) = mediaId;
-                    *((int32_t*)(bytes.get() + 4)) = 0;
-                    *((int64_t*)(bytes.get() + 8)) = 0;
-                    *((int64_t*)(bytes.get() + 16)) = _loadingItems[i]->DataProvider()->MediaDuration().GetTicks();
-                    std::copy_n(filename.begin(), filename.length(), (wchar_t*)(bytes.get() + 24));
-
-                    znet::NetworkInterface::Instance()->Send(znet::Packet(std::move(bytes), packetSize, (int)znet::PacketType::QUEUE_ITEM_ADD), _currentUserIds);
-                }
-
-                _readyItems.push_back(std::move(_loadingItems[i]));
-                _readyItems.back()->SetButtonVisibility(zcom::MediaQueueItem::BTN_PLAY | zcom::MediaQueueItem::BTN_DELETE);
-                _loadingItems.erase(_loadingItems.begin() + i);
-                i--;
-                changed = true;
-                continue;
-            }
+            App::Instance()->playlist.Request_DeleteItem(_loadingItems[i]->GetItemId());
+            _playlistChanged = true;
         }
     }
-    return changed;
 }
 
-bool PlaybackOverlayScene::_ManageReadyItems()
+void PlaybackOverlayScene::_ManageReadyItems()
 {
-    znet::NetworkMode netMode = znet::NetworkInterface::Instance()->Mode();
-
-    bool changed = false;
     for (int i = 0; i < _readyItems.size(); i++)
     {
         // Play
         if (_readyItems[i]->Play())
         {
-            if (netMode != znet::NetworkMode::OFFLINE)
-            {
-                int32_t mediaId = _readyItems[i]->GetMediaId();
-                // Send play request to server
-                znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_REQUEST).From(mediaId), { 0 });
-            }
-            else
-            {
-                _currentlyPlaying = _readyItems[i]->GetMediaId();
-                PlaybackSceneOptions options;
-                options.dataProvider = _readyItems[i]->CopyDataProvider();
-                options.playbackMode = PlaybackMode::OFFLINE;
-                App::Instance()->ReinitScene(PlaybackScene::StaticName(), &options);
-                App::Instance()->MoveSceneBehind(PlaybackScene::StaticName(), StaticName());
-                changed = true;
-            }
+            App::Instance()->playlist.Request_PlayItem(_readyItems[i]->GetItemId());
+            _playlistChanged = true;
         }
         // Stop
         else if (_readyItems[i]->Stop())
         {
-            if (netMode == znet::NetworkMode::CLIENT)
-            {
-                // Send stop request to server
-                znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_REQUEST), { 0 });
-            }
-            else
-            {
-
-                if (netMode == znet::NetworkMode::SERVER)
-                {
-                    // Send stop order to all clients
-                    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP), _currentUserIds);
-                }
-
-                // Stop playback
-                _currentlyPlaying = -1;
-                App::Instance()->UninitScene(PlaybackScene::StaticName());
-                changed = true;
-            }
+            App::Instance()->playlist.Request_StopItem(_readyItems[i]->GetItemId());
+            _playlistChanged = true;
         }
         // Delete
         else if (_readyItems[i]->Delete())
         {
-            if (netMode == znet::NetworkMode::CLIENT)
-            {
-                int32_t mediaId = _readyItems[i]->GetMediaId();
-                // Send delete request to server
-                znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::QUEUE_ITEM_REMOVE_REQUEST).From(mediaId), { 0 });
-            }
-            else
-            {
-                if (netMode == znet::NetworkMode::SERVER)
-                {
-                    int32_t mediaId = _readyItems[i]->GetMediaId();
-
-                    // Send remove order to all clients
-                    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::QUEUE_ITEM_REMOVE).From(mediaId), _currentUserIds);
-                }
-
-                _readyItems.erase(_readyItems.begin() + i);
-                i--;
-                changed = true;
-                continue;
-            }
+            App::Instance()->playlist.Request_DeleteItem(_readyItems[i]->GetItemId());
+            _playlistChanged = true;
         }
-    }
-    return changed;
-}
-
-void PlaybackOverlayScene::_PlayNextItem()
-{
-    znet::NetworkMode netMode = znet::NetworkInterface::Instance()->Mode();
-
-    if (((_autoplay && _playbackScene->Finished()) || _waiting)
-        && netMode == znet::NetworkMode::OFFLINE)
-    {
-        bool uninitScene = true;
-        _currentlyPlaying++;
-        if (_currentlyPlaying == _readyItems.size())
-        {
-            _currentlyPlaying = -1;
-            if (_waiting)
-                uninitScene = false;
-        }
-
-        if (_currentlyPlaying != -1)
-        {
-            _waiting = false;
-            PlaybackSceneOptions options;
-            options.dataProvider = _readyItems[_currentlyPlaying]->CopyDataProvider();
-            options.playbackMode = PlaybackMode::OFFLINE;
-            App::Instance()->ReinitScene(PlaybackScene::StaticName(), &options);
-        }
-
-        if (uninitScene)
-            _RearrangeQueuePanel();
     }
 }
 
@@ -1000,76 +421,265 @@ void PlaybackOverlayScene::_Resize(int width, int height)
 
 }
 
-void PlaybackOverlayScene::AddItem(std::wstring filepath)
+void PlaybackOverlayScene::_RearrangePlaylistPanel()
 {
-    auto newItem = std::make_unique<zcom::MediaQueueItem>(filepath);
-    newItem->SetParentWidthPercent(1.0f);
-    newItem->SetBaseHeight(25);
-    _loadingItems.push_back(std::move(newItem));
-    _RearrangeQueuePanel();
+    // Uncomment when playlist event handling is added
+    //if (!_playlistChanged)
+    //    return;
+    _playlistChanged = false;
+    _readyItemPanel->ClearItems();
+    _loadingItemPanel->ClearItems();
+    _readyItems.clear();
+    _loadingItems.clear();
 
-    //_readyItems.push_back(std::move(newItem));
-    //_currentlyPlaying = _readyItems.size() - 1;
+    _RemoveDeletedItems();
+    _AddMissingItems();
+    _UpdateItemDetails();
+    _SplitItems();
+    _SortItems();
 
-    //PlaybackSceneOptions options;
-    //options.fileName = wstring_to_string(filepath);
-    //options.mode = PlaybackMode::OFFLINE;
-    //App::Instance()->InitScene(PlaybackScene::StaticName(), &options);
-    //App::Instance()->MoveSceneToFront(PlaybackScene::StaticName());
+    // Add ready items
+    for (int i = 0; i < _readyItems.size(); i++)
+    {
+        _readyItems[i]->SetParentWidthPercent(1.0f);
+        _readyItems[i]->SetBaseHeight(25);
+        _readyItems[i]->SetVerticalOffsetPixels(25 * i);
+        _readyItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f * (i % 2)));
+        if (_readyItems[i]->GetItemId() == App::Instance()->playlist.CurrentlyPlaying())
+        {
+            _readyItems[i]->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
+            _readyItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_STOP);
+        }
+        else if (_readyItems[i]->GetItemId() == App::Instance()->playlist.CurrentlyStarting())
+        {
+            _readyItems[i]->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
+            _readyItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_STOP);
+            _readyItems[i]->SetCustomStatus(L"Starting..");
+        }
+        else
+        {
+            _readyItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_PLAY | zcom::OverlayPlaylistItem::BTN_DELETE);
+        }
+        if (_readyItems[i]->HostMissing())
+        {
+            _readyItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_DELETE);
+            _readyItems[i]->SetCustomStatus(L"Host missing..");
+        }
+        _readyItemPanel->AddItem(_readyItems[i]);
+    }
+    // Add pending items
+    for (int i = 0; i < _pendingItems.size(); i++)
+    {
+        _pendingItems[i]->SetParentWidthPercent(1.0f);
+        _pendingItems[i]->SetBaseHeight(25);
+        _pendingItems[i]->SetVerticalOffsetPixels(25 * i);
+        _pendingItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f * (i % 2)));
+        _pendingItems[i]->SetButtonVisibility(0);
+        _pendingItems[i]->SetCustomStatus(L"Waiting for server..");
+        _loadingItemPanel->AddItem(_pendingItems[i]);
+    }
+    // Add loading items
+    for (int i = 0; i < _loadingItems.size(); i++)
+    {
+        _loadingItems[i]->SetParentWidthPercent(1.0f);
+        _loadingItems[i]->SetBaseHeight(25);
+        _loadingItems[i]->SetVerticalOffsetPixels(25 * (i + _pendingItems.size()));
+        _loadingItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f * ((i + _pendingItems.size()) % 2)));
+        if (_loadingItems[i]->GetItemId() == App::Instance()->playlist.CurrentlyPlaying())
+        {
+            _loadingItems[i]->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
+            _loadingItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_STOP);
+        }
+        else
+        {
+            _loadingItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_DELETE);
+        }
+        _loadingItems[i]->SetCustomStatus(L"Initializing..");
+        _loadingItemPanel->AddItem(_loadingItems[i]);
+    }
+
+    _playlistPanel->Resize();
 }
 
-void PlaybackOverlayScene::WaitForLoad(bool focus)
+void PlaybackOverlayScene::_RemoveDeletedItems()
 {
-    if (_readyItems.empty())
-    {
-        _waiting = true;
-        _currentlyPlaying = -1;
+    // Create set of playlist item ids
+    std::set<int64_t> itemIds;
+    for (auto& item : App::Instance()->playlist.AllItems())
+        itemIds.insert(item->GetItemId());
 
-        PlaybackSceneOptions options;
-        options.placeholder = true;
-        App::Instance()->ReinitScene(PlaybackScene::StaticName(), &options);
-        if (focus)
-            App::Instance()->MoveSceneToFront(PlaybackScene::StaticName());
+    // Remove mismatches
+    auto it = std::remove_if(
+        _playlistItems.begin(),
+        _playlistItems.end(),
+        [&](const std::unique_ptr<zcom::OverlayPlaylistItem>& item)
+        {
+            return itemIds.find(item->GetItemId()) == itemIds.end();
+        }
+    );
+    _playlistItems.erase(it, _playlistItems.end());
+}
+
+void PlaybackOverlayScene::_AddMissingItems()
+{
+    // Create set of UI item ids
+    std::set<int64_t> itemIds;
+    for (auto& item : _playlistItems)
+        itemIds.insert(item->GetItemId());
+
+    // Add missing items
+    for (auto& item : App::Instance()->playlist.AllItems())
+        if (itemIds.find(item->GetItemId()) == itemIds.end())
+            _playlistItems.push_back(std::make_unique<zcom::OverlayPlaylistItem>(item->GetItemId()));
+}
+
+void PlaybackOverlayScene::_UpdateItemDetails()
+{
+    auto items = App::Instance()->playlist.AllItems();
+    for (int i = 0; i < _playlistItems.size(); i++)
+    {
+        auto it = std::find_if(
+            items.begin(),
+            items.end(),
+            [&](PlaylistItem* item) { return item->GetItemId() == _playlistItems[i]->GetItemId(); }
+        );
+        if (it != items.end())
+        {
+            _playlistItems[i]->SetFilename((*it)->GetFilename());
+            _playlistItems[i]->SetDuration((*it)->GetDuration());
+            _playlistItems[i]->SetCustomStatus((*it)->GetCustomStatus());
+            _playlistItems[i]->HostMissing((*it)->GetUserId() == OFFLINE_REMOTE_HOST_ID);
+        }
     }
 }
 
-void PlaybackOverlayScene::SetAutoplay(bool autoplay)
+void PlaybackOverlayScene::_SplitItems()
 {
-    _autoplay = autoplay;
+    // Create array containing all UI items
+    std::vector<zcom::OverlayPlaylistItem*> items;
+    for (auto& item : _playlistItems)
+        items.push_back(item.get());
+
+    // Create set of loading playlist item ids
+    std::set<int64_t> loadingItemIds;
+    for (auto& item : App::Instance()->playlist.LoadingItems())
+        loadingItemIds.insert(item->GetItemId());
+    // Move loading UI items to separate array
+    _loadingItems.clear();
+    for (int i = 0; i < items.size(); i++)
+    {
+        if (loadingItemIds.find(items[i]->GetItemId()) != loadingItemIds.end())
+        {
+            _loadingItems.push_back(items[i]);
+            items.erase(items.begin() + i);
+            i--;
+        }
+    }
+
+    // Create set of pending playlist item ids
+    std::set<int64_t> pendingItemIds;
+    for (auto& item : App::Instance()->playlist.PendingItems())
+        pendingItemIds.insert(item->GetItemId());
+    // Move pending UI items to separate array
+    _pendingItems.clear();
+    for (int i = 0; i < items.size(); i++)
+    {
+        if (pendingItemIds.find(items[i]->GetItemId()) != pendingItemIds.end())
+        {
+            _pendingItems.push_back(items[i]);
+            items.erase(items.begin() + i);
+            i--;
+        }
+    }
+
+    // Assign remaining items to ready array
+    _readyItems = items;
 }
 
-bool PlaybackOverlayScene::GetAutoplay() const
+void PlaybackOverlayScene::_SortItems()
 {
-    return _autoplay;
+    // Ready items
+    auto readyPlaylistItems = App::Instance()->playlist.ReadyItems();
+    if (_readyItems.size() != readyPlaylistItems.size())
+        std::cout << "[ERROR] UI ITEM AND PLAYLIST ITEM MISMATCH (READY ITEMS)\n";
+    for (int i = 0; i < readyPlaylistItems.size(); i++)
+    {
+        int64_t itemId = readyPlaylistItems[i]->GetItemId();
+        // Find UI item with matching id and bring it to i'th index
+        for (int j = i; j < _readyItems.size(); j++)
+        {
+            if (_readyItems[j]->GetItemId() == itemId)
+            {
+                if (j != i)
+                    std::swap(_readyItems[i], _readyItems[j]);
+            }
+        }
+    }
+
+    // Pending items
+    auto pendingPlaylistItems = App::Instance()->playlist.PendingItems();
+    if (_pendingItems.size() != pendingPlaylistItems.size())
+        std::cout << "[ERROR] UI ITEM AND PLAYLIST ITEM MISMATCH (PENDING ITEMS)\n";
+    for (int i = 0; i < pendingPlaylistItems.size(); i++)
+    {
+        int64_t itemId = pendingPlaylistItems[i]->GetItemId();
+        // Find UI item with matching id and bring it to i'th index
+        for (int j = i; j < _pendingItems.size(); j++)
+        {
+            if (_pendingItems[j]->GetItemId() == itemId)
+            {
+                if (j != i)
+                    std::swap(_pendingItems[i], _pendingItems[j]);
+            }
+        }
+    }
+
+    // Ready items
+    auto loadingPlaylistItems = App::Instance()->playlist.LoadingItems();
+    if (_loadingItems.size() != loadingPlaylistItems.size())
+        std::cout << "[ERROR] UI ITEM AND PLAYLIST ITEM MISMATCH (LOADING ITEMS)\n";
+    for (int i = 0; i < loadingPlaylistItems.size(); i++)
+    {
+        int64_t itemId = loadingPlaylistItems[i]->GetItemId();
+        // Find UI item with matching id and bring it to i'th index
+        for (int j = i; j < _loadingItems.size(); j++)
+        {
+            if (_loadingItems[j]->GetItemId() == itemId)
+            {
+                if (j != i)
+                    std::swap(_loadingItems[i], _loadingItems[j]);
+            }
+        }
+    }
 }
 
 void PlaybackOverlayScene::_RearrangeQueuePanel()
 {
-    _playbackQueuePanel->ClearItems();
-    for (int i = 0; i < _readyItems.size(); i++)
-    {
-        _playbackQueuePanel->AddItem(_readyItems[i].get());
-        _readyItems[i]->SetVerticalOffsetPixels(25 * i);
-        _readyItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f * (i % 2)));
-        if (_readyItems[i]->GetMediaId() == _currentlyPlaying)
-        {
-            _readyItems[i]->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
-            _readyItems[i]->SetButtonVisibility(zcom::MediaQueueItem::BTN_STOP);
-            //_readyItems[i]->SetNowPlaying(true);
-        }
-        else
-        {
-            _readyItems[i]->SetButtonVisibility(zcom::MediaQueueItem::BTN_PLAY | zcom::MediaQueueItem::BTN_DELETE);
-            //_readyItems[i]->SetNowPlaying(false);
-        }
+    //_playlistPanel->ClearItems();
+    //for (int i = 0; i < _readyItems.size(); i++)
+    //{
+    //    _playlistPanel->AddItem(_readyItems[i].get());
+    //    _readyItems[i]->SetVerticalOffsetPixels(25 * i);
+    //    _readyItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f * (i % 2)));
+    //    if (_readyItems[i]->GetMediaId() == _currentlyPlaying)
+    //    {
+    //        _readyItems[i]->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
+    //        _readyItems[i]->SetButtonVisibility(zcom::MediaQueueItem::BTN_STOP);
+    //        //_readyItems[i]->SetNowPlaying(true);
+    //    }
+    //    else
+    //    {
+    //        _readyItems[i]->SetButtonVisibility(zcom::MediaQueueItem::BTN_PLAY | zcom::MediaQueueItem::BTN_DELETE);
+    //        //_readyItems[i]->SetNowPlaying(false);
+    //    }
 
-    }
-    for (int i = 0; i < _loadingItems.size(); i++)
-    {
-        _playbackQueuePanel->AddItem(_loadingItems[i].get());
-        _loadingItems[i]->SetVerticalOffsetPixels(25 * (i + _readyItems.size()));
-    }
-    _playbackQueuePanel->Resize();
+    //}
+    //for (int i = 0; i < _loadingItems.size(); i++)
+    //{
+    //    _playlistPanel->AddItem(_loadingItems[i].get());
+    //    _loadingItems[i]->SetVerticalOffsetPixels(25 * (i + _readyItems.size()));
+    //}
+    //_playlistPanel->Resize();
 }
 
 void PlaybackOverlayScene::_SetUpNetworkPanel()

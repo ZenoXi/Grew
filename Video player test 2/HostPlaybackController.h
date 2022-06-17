@@ -41,7 +41,11 @@ protected:
     bool _buffering = false;
 
 public:
-    HostPlaybackController(MediaPlayer* player, MediaHostDataProvider* dataProvider);
+    HostPlaybackController(IMediaDataProvider* dataProvider, std::vector<int64_t> participants);
+
+private:
+    void _OnMediaPlayerAttach();
+public:
 
     void Update();
 private: // Packet handlers

@@ -149,12 +149,6 @@ namespace znet
         //  int32_t - media id
         //PLAYBACK_START,
 
-        // Sent by the receiver when the data provider is ready to receive packets,
-        // or when it declines playback
-        // Contains:
-        //  int8_t - whether the user will participate in the playback (0: accepted | 1: declined)
-        PLAYBACK_CONFIRMATION,
-
         // Sent by host before metadata
         // Contains:
         //  array of int64_t values - participating user ids
@@ -239,40 +233,40 @@ namespace znet
 
         // Sent when a client wants to add an item to the playback queue
         // Contains:
-        //  int32_t - callback id, used by the client to differentiate between request confirmations
+        //  int64_t - callback id, used by the client to differentiate between request confirmations
         //  int64_t - media duration in 'Duration' ticks
         //  remaining bytes - wstring of the media name
-        QUEUE_ITEM_ADD_REQUEST = 200,
+        PLAYLIST_ITEM_ADD_REQUEST = 200,
 
         // Sent to all clients when an item is added to the queue
         // Contains:
-        //  int32_t - media id
-        //  int32_t - callback id (only used by the request issuer)
+        //  int64_t - media id (if -1, this packet signifies a declined operation and is sent only to the request issuer)
+        //  int64_t - callback id (only used by the request issuer)
         //  int64_t - media host user id
         //  int64_t - media duration in 'Duration' ticks
         //  remaining bytes - wstring of the media name
-        QUEUE_ITEM_ADD,
+        PLAYLIST_ITEM_ADD,
 
         // Sent when a client wants to remove an item from the playback queue
         // Contains:
-        //  int32_t - media id
-        QUEUE_ITEM_REMOVE_REQUEST,
+        //  int64_t - media id
+        PLAYLIST_ITEM_REMOVE_REQUEST,
 
         // Sent to all clients when an item is removed from the queue
         // Contains:
-        //  int32_t - media id
-        QUEUE_ITEM_REMOVE,
+        //  int64_t - media id
+        PLAYLIST_ITEM_REMOVE,
 
         // (client/server -> server)
         // Sent when a client/server wishes for playback to start
         // Contains:
-        //  int32_t - media id
+        //  int64_t - media id
         PLAYBACK_START_REQUEST,
 
         // (server -> media host)
         // Indicates that the host should prepare for playback
         // Contains:
-        //  int32_t - media id
+        //  int64_t - media id
         PLAYBACK_START_ORDER,
 
         // Sent by the media host when it is ready for playback or declines the playback
@@ -280,16 +274,40 @@ namespace znet
         //  int8_t - 0: playback declined | 1: playback ready
         PLAYBACK_START_RESPONSE,
 
+        // Sent by the server to playback issuer when host denies playback
+        PLAYBACK_START_DENIED,
+
         // Sent by the server to all clients (except host) to begin playback
         // Contains:
-        //  int32_t - mediaId
+        //  int64_t - mediaId
         //  int64_t - hostId
         PLAYBACK_START,
+
+        // Sent by the receiver when its data provider is ready to receive packets,
+        // or when it declines playback
+        // Contains:
+        //  int8_t - whether the user will participate in the playback (0: accepted | 1: declined)
+        PLAYBACK_CONFIRMATION,
 
         // Sent when a client wants to stop currently playing item
         PLAYBACK_STOP_REQUEST,
 
         // Sent to all clients when playback should be aborted
         PLAYBACK_STOP,
+
+        // Sent when a client wants to change the position of an item in the playlist
+        // Contains:
+        //  int64_t - mediaId
+        //  int32_t - new slot (0-index)
+        PLAYLIST_ITEM_MOVE_REQUEST,
+
+        // Sent by the server to all clients when the position of an item in the playlist changes
+        // Contains:
+        //  int64_t - mediaId
+        //  int32_t - new slot (0-index)
+        PLAYLIST_ITEM_MOVE,
+
+        // A request from client to server to send all playlist items
+        FULL_PLAYLIST_REQUEST,
     };
 }

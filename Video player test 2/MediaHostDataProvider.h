@@ -9,7 +9,7 @@ class MediaHostDataProvider : public IMediaDataProvider
     bool _INIT_THREAD_STOP = false;
     bool _PACKET_THREAD_STOP = false;
 
-    LocalFileDataProvider* _localDataProvider = nullptr;
+    std::unique_ptr<LocalFileDataProvider> _localDataProvider = nullptr;
     bool _waitForDiscontinuity = false;
     SeekData _seekData;
     std::mutex _m_seek;
@@ -17,7 +17,7 @@ class MediaHostDataProvider : public IMediaDataProvider
     std::vector<int64_t> _destinationUsers;
 
 public:
-    MediaHostDataProvider(LocalFileDataProvider* localDataProvider);
+    MediaHostDataProvider(std::unique_ptr<LocalFileDataProvider> localDataProvider, std::vector<int64_t> participants);
     ~MediaHostDataProvider();
 private:
     void _Initialize();

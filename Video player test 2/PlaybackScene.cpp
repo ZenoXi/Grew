@@ -5,39 +5,7 @@
 #include "ReceiverPlaybackController.h"
 #include "Options.h"
 
-bool leftClicked = false;
-bool rightClicked = false;
-bool upClicked = false;
-bool downClicked = false;
-bool fClicked = false;
-bool spaceClicked = false;
-bool num0Clicked = false;
-bool num1Clicked = false;
-bool num2Clicked = false;
-bool num3Clicked = false;
-bool num4Clicked = false;
-bool num5Clicked = false;
-bool num6Clicked = false;
-bool num7Clicked = false;
-bool num8Clicked = false;
-bool num9Clicked = false;
-
-bool ButtonPressed(bool& buttonClicked, int vkCode)
-{
-    if (GetAsyncKeyState(vkCode) & 0x8000)
-    {
-        if (!buttonClicked)
-        {
-            buttonClicked = true;
-            return true;
-        }
-    }
-    else
-    {
-        buttonClicked = false;
-    }
-    return false;
-}
+#include <iomanip>
 
 PlaybackScene::PlaybackScene()
 {
@@ -52,19 +20,8 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
         opt = *reinterpret_cast<const PlaybackSceneOptions*>(options);
     }
 
-    _playbackMode = opt.playbackMode;
-    _startPaused = opt.startPaused;
-    _placeholder = opt.placeholder;
-
-    if (opt.dataProvider)
-        _dataProvider = opt.dataProvider;
-    else if (!_placeholder && _playbackMode == PlaybackMode::OFFLINE)
-        _dataProvider = new LocalFileDataProvider(opt.fileName);
-
-    _audioAdapter = nullptr;
-    _videoAdapter = nullptr;
-    _mediaPlayer = nullptr;
-    _controller = nullptr;
+    _playback = &App::Instance()->playback;
+    _streamMenuSetup = false;
 
     // Set up shortcut handler
     _shortcutHandler = std::make_unique<PlaybackShortcutHandler>();
@@ -344,15 +301,6 @@ void PlaybackScene::_Uninit()
     delete _overlayButton;
     delete _loadingCircle;
 
-    delete _controller;
-    delete _mediaPlayer;
-    delete _dataProvider;
-
-    _audioAdapter = nullptr;
-    _videoAdapter = nullptr;
-    _mediaPlayer = nullptr;
-    _controller = nullptr;
-
     _controlBar = nullptr;
     _controlBarBackground = nullptr;
     _seekBar = nullptr;
@@ -403,38 +351,47 @@ void PlaybackScene::_Update()
 
     // Show loading circle if needed
     _loadingCircle->SetVisible(false);
-    if (!_mediaPlayer)
-        _loadingCircle->SetVisible(true);
-    if (_controller)
+    if (_playback->Initializing())
     {
-        auto info = _controller->Loading();
+        _loadingCircle->SetVisible(true);
+    }
+    else
+    {
+        auto info = _playback->Controller()->Loading();
         _loadingCircle->SetVisible(info.loading);
         _loadingCircle->SetLoadingText(info.message);
     }
 
-    if (_mediaPlayer)
+    if (!_playback->Initializing())
     {
+        // Set up stream menu
+        if (!_streamMenuSetup)
+        {
+            _SetupStreamMenu();
+            _streamMenuSetup = true;
+        }
+
         // Prevent screen turning off while playing
-        if (!_controller->Paused())
+        if (!_playback->Controller()->Paused())
             App::Instance()->window.ResetScreenTimer();
 
         // Check for play button click
-        if (_controller->Paused() != _playButton->GetPaused())
+        if (_playback->Controller()->Paused() != _playButton->GetPaused())
         {
             if (_playButton->Clicked())
             {
                 if (_playButton->GetPaused())
                 {
-                    _controller->Pause();
+                    _playback->Controller()->Pause();
                 }
                 else
                 {
-                    _controller->Play();
+                    _playback->Controller()->Play();
                 }
             }
             else
             {
-                _playButton->SetPaused(_controller->Paused());
+                _playButton->SetPaused(_playback->Controller()->Paused());
             }
         }
 
@@ -442,83 +399,33 @@ void PlaybackScene::_Update()
         TimePoint seekTo = _seekBar->SeekTime();
         if (seekTo.GetTicks() != -1)
         {
-            _controller->Seek(seekTo);
+            _playback->Controller()->Seek(seekTo);
         }
 
         // Check for volume slider click
-        if (_volumeSlider->GetVolume() != _controller->GetVolume())
+        // Custom equality function is used because volume->value->volume conversion
+        // results in a very small value difference which the float != operator picks up
+        if (!is_equal_f(_volumeSlider->GetVolume(), _playback->Controller()->GetVolume()))
         {
-            _controller->SetVolume(_volumeSlider->GetVolume());
+            if (_volumeSlider->Moved())
+            {
+                _playback->Controller()->SetVolume(_volumeSlider->GetVolume());
+            }
+            else
+            {
+                _volumeSlider->SetVolume(_playback->Controller()->GetVolume());
+            }
         }
 
         // Update seekbar
-        Duration bufferedDuration = _controller->GetBufferedDuration();
+        Duration bufferedDuration = _playback->Controller()->GetBufferedDuration();
         if (bufferedDuration.GetTicks() != -1)
         {
             _seekBar->SetBufferedDuration(bufferedDuration);
         }
-        _seekBar->SetCurrentTime(_controller->CurrentTime());
-    }
-    
-    if (_controller)
-    {
-        _controller->Update();
-    }
-    if (_mediaPlayer)
-    {
-        _mediaPlayer->Update();
-    }
-
-    if (!_mediaPlayer && _dataProvider)
-    {
-        if (!_dataProvider->Initializing() && !_dataProvider->InitFailed())
-        {
-            _dataProvider->Start();
-
-            // Create adapters
-            _videoAdapter = new IVideoOutputAdapter();
-            auto audioStream = _dataProvider->CurrentAudioStream();
-            if (audioStream)
-                _audioAdapter = new XAudio2_AudioOutputAdapter(audioStream->channels, audioStream->sampleRate);
-            else
-                _audioAdapter = new XAudio2_AudioOutputAdapter();
-
-            // Create media player
-            _mediaPlayer = new MediaPlayer(
-                _dataProvider,
-                std::unique_ptr<IVideoOutputAdapter>(_videoAdapter),
-                std::unique_ptr<IAudioOutputAdapter>(_audioAdapter)
-            );
-
-            // Create controller
-            if (_playbackMode == PlaybackMode::OFFLINE)
-                _controller = new BasePlaybackController(_mediaPlayer, _dataProvider);
-            else if (_playbackMode == PlaybackMode::SERVER)
-                _controller = new HostPlaybackController(_mediaPlayer, (MediaHostDataProvider*)_dataProvider);
-            else if (_playbackMode == PlaybackMode::CLIENT)
-                _controller = new ReceiverPlaybackController(_mediaPlayer, (MediaReceiverDataProvider*)_dataProvider);
-
-            if (!_startPaused)
-                _controller->Play();
-
-            // Configure seekbar
-            _seekBar->SetDuration(_dataProvider->MediaDuration());
-            _seekBar->SetChapters(_dataProvider->GetChapters());
-
-            // Get volume from saved options
-            float volume = 0.2f;
-            try { volume = std::stof(Options::Instance()->GetValue("volume")); }
-            catch (std::out_of_range) {}
-            catch (std::invalid_argument) {}
-            _volumeSlider->SetValue(volume);
-            _controller->SetVolume(_volumeSlider->GetVolume());
-
-            _SetupStreamMenu();
-        }
-        if (_dataProvider->InitFailed())
-        {
-            std::cout << "DATA PROVIDER INIT FAILED" << std::endl;
-        }
+        _seekBar->SetCurrentTime(_playback->Controller()->CurrentTime());
+        _seekBar->SetDuration(_playback->DataProvider()->MediaDuration());
+        _seekBar->SetChapters(_playback->DataProvider()->GetChapters());
     }
 
     // Update UI
@@ -529,13 +436,13 @@ ID2D1Bitmap1* PlaybackScene::_Draw(Graphics g)
 {
     g.target->Clear(D2D1::ColorF(0.05f, 0.05f, 0.05f));
 
-    if (_mediaPlayer)
+    if (!_playback->Initializing())
     {
-        const VideoFrame& videoFrame = _videoAdapter->GetVideoData();
-        const VideoFrame& subtitleFrame = _videoAdapter->GetSubtitleData();
+        const VideoFrame& videoFrame = _playback->VideoAdapter()->GetVideoData();
+        const VideoFrame& subtitleFrame = _playback->VideoAdapter()->GetSubtitleData();
 
         // Update video bitmap
-        if (!_videoFrameBitmap || _videoAdapter->VideoDataChanged())
+        if (!_videoFrameBitmap || _playback->VideoAdapter()->VideoDataChanged())
         {
             if (_videoFrameBitmap)
                 zcom::SafeFullRelease((IUnknown**)&_videoFrameBitmap);
@@ -565,7 +472,7 @@ ID2D1Bitmap1* PlaybackScene::_Draw(Graphics g)
         }
 
         // Update subtitle bitmap
-        if (!_subtitleFrameBitmap || _videoAdapter->SubtitleDataChanged())
+        if (!_subtitleFrameBitmap || _playback->VideoAdapter()->SubtitleDataChanged())
         {
             if (_subtitleFrameBitmap)
                 zcom::SafeFullRelease((IUnknown**)&_subtitleFrameBitmap);
@@ -696,54 +603,42 @@ void PlaybackScene::_Resize(int width, int height)
     
 }
 
-bool PlaybackScene::Finished() const
-{
-    if (_controller)
-    {
-        return _controller->Finished();
-    }
-    else
-    {
-        return false;
-    }
-}
-
 void PlaybackScene::_SetupStreamMenu()
 {
     // Add video streams to menu
     _videoStreamMenuPanel->ClearMenuItems();
-    auto noVideoStreamItem = std::make_unique<zcom::MenuItem>(L"None", [&](bool) { _controller->SetVideoStream(-1); });
+    auto noVideoStreamItem = std::make_unique<zcom::MenuItem>(L"None", [&](bool) { _playback->Controller()->SetVideoStream(-1); });
     noVideoStreamItem->SetCheckable(true);
     noVideoStreamItem->SetCheckGroup(0);
     _videoStreamMenuPanel->AddMenuItem(std::move(noVideoStreamItem));
     _videoStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>());
-    auto videoStreams = _controller->GetAvailableVideoStreams();
+    auto videoStreams = _playback->Controller()->GetAvailableVideoStreams();
     for (int i = 0; i < videoStreams.size(); i++)
     {
         videoStreams[i] = int_to_str(i + 1) + ".  " + videoStreams[i];
-        auto streamItem = std::make_unique<zcom::MenuItem>(string_to_wstring(videoStreams[i]), [&, i](bool) { _controller->SetVideoStream(i); });
+        auto streamItem = std::make_unique<zcom::MenuItem>(string_to_wstring(videoStreams[i]), [&, i](bool) { _playback->Controller()->SetVideoStream(i); });
         streamItem->SetCheckable(true);
         streamItem->SetCheckGroup(0);
-        if (i == _controller->CurrentVideoStream())
+        if (i == _playback->Controller()->CurrentVideoStream())
             streamItem->SetChecked(true);
         _videoStreamMenuPanel->AddMenuItem(std::move(streamItem));
     }
 
     // Add audio streams to menu
     _audioStreamMenuPanel->ClearMenuItems();
-    auto noAudioStreamItem = std::make_unique<zcom::MenuItem>(L"None", [&](bool) { _controller->SetAudioStream(-1); });
+    auto noAudioStreamItem = std::make_unique<zcom::MenuItem>(L"None", [&](bool) { _playback->Controller()->SetAudioStream(-1); });
     noAudioStreamItem->SetCheckable(true);
     noAudioStreamItem->SetCheckGroup(0);
     _audioStreamMenuPanel->AddMenuItem(std::move(noAudioStreamItem));
     _audioStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>());
-    auto audioStreams = _controller->GetAvailableAudioStreams();
+    auto audioStreams = _playback->Controller()->GetAvailableAudioStreams();
     for (int i = 0; i < audioStreams.size(); i++)
     {
         audioStreams[i] = int_to_str(i + 1) + ".  " + audioStreams[i];
-        auto streamItem = std::make_unique<zcom::MenuItem>(string_to_wstring(audioStreams[i]), [&, i](bool) { _controller->SetAudioStream(i); });
+        auto streamItem = std::make_unique<zcom::MenuItem>(string_to_wstring(audioStreams[i]), [&, i](bool) { _playback->Controller()->SetAudioStream(i); });
         streamItem->SetCheckable(true);
         streamItem->SetCheckGroup(0);
-        if (i == _controller->CurrentAudioStream())
+        if (i == _playback->Controller()->CurrentAudioStream())
             streamItem->SetChecked(true);
         _audioStreamMenuPanel->AddMenuItem(std::move(streamItem));
     }
@@ -755,19 +650,19 @@ void PlaybackScene::_SetupStreamMenu()
     addSubtitlesItem->SetDisabled(true);
     _subtitleStreamMenuPanel->AddMenuItem(std::move(addSubtitlesItem));
     _subtitleStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>());
-    auto noSubtitleStreamItem = std::make_unique<zcom::MenuItem>(L"None", [&](bool) { _controller->SetSubtitleStream(-1); });
+    auto noSubtitleStreamItem = std::make_unique<zcom::MenuItem>(L"None", [&](bool) { _playback->Controller()->SetSubtitleStream(-1); });
     noSubtitleStreamItem->SetCheckable(true);
     noSubtitleStreamItem->SetCheckGroup(0);
     _subtitleStreamMenuPanel->AddMenuItem(std::move(noSubtitleStreamItem));
     _subtitleStreamMenuPanel->AddMenuItem(std::make_unique<zcom::MenuItem>());
-    auto subtitleStreams = _controller->GetAvailableSubtitleStreams();
+    auto subtitleStreams = _playback->Controller()->GetAvailableSubtitleStreams();
     for (int i = 0; i < subtitleStreams.size(); i++)
     {
         subtitleStreams[i] = int_to_str(i + 1) + ".  " + subtitleStreams[i];
-        auto streamItem = std::make_unique<zcom::MenuItem>(string_to_wstring(subtitleStreams[i]), [&, i](bool) { _controller->SetSubtitleStream(i); });
+        auto streamItem = std::make_unique<zcom::MenuItem>(string_to_wstring(subtitleStreams[i]), [&, i](bool) { _playback->Controller()->SetSubtitleStream(i); });
         streamItem->SetCheckable(true);
         streamItem->SetCheckGroup(0);
-        if (i == _controller->CurrentSubtitleStream())
+        if (i == _playback->Controller()->CurrentSubtitleStream())
             streamItem->SetChecked(true);
         _subtitleStreamMenuPanel->AddMenuItem(std::move(streamItem));
     }
@@ -808,18 +703,18 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
     }
     case VK_SPACE: // Pause toggle
     {
-        if (!_controller) break;
+        if (_playback->Initializing()) break;
 
-        if (_controller->Paused())
+        if (_playback->Controller()->Paused())
         {
-            _controller->Play();
+            _playback->Controller()->Play();
             _playButton->SetPaused(false);
             _pauseIcon->SetVisible(false);
             _resumeIcon->Show();
         }
         else
         {
-            _controller->Pause();
+            _playback->Controller()->Pause();
             _playButton->SetPaused(true);
             _resumeIcon->SetVisible(false);
             _pauseIcon->Show();
@@ -828,109 +723,111 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
     }
     case VK_LEFT: // Seek back
     {
-        if (!_controller) break;
+        if (_playback->Initializing()) break;
 
         int seekAmount = 15;
         if (_shortcutHandler->KeyState(VK_CONTROL)) seekAmount = 60;
         if (_shortcutHandler->KeyState(VK_SHIFT)) seekAmount = 5;
-        _controller->Seek(_controller->CurrentTime() - Duration(seekAmount, SECONDS));
+        _playback->Controller()->Seek(_playback->Controller()->CurrentTime() - Duration(seekAmount, SECONDS));
         _skipBackwardsIcon->Show(seekAmount);
         break;
     }
     case VK_RIGHT: // Seek forward
     {
-        if (!_controller) break;
+        if (_playback->Initializing()) break;
 
         int seekAmount = 15;
         if (_shortcutHandler->KeyState(VK_CONTROL)) seekAmount = 60;
         if (_shortcutHandler->KeyState(VK_SHIFT)) seekAmount = 5;
-        _controller->Seek(_controller->CurrentTime() + Duration(seekAmount, SECONDS));
+        _playback->Controller()->Seek(_playback->Controller()->CurrentTime() + Duration(seekAmount, SECONDS));
         _skipForwardsIcon->Show(seekAmount);
         break;
     }
     case VK_UP: // Volume up
     {
+        if (_playback->Initializing()) break;
+
         float volumeChange = 0.05f;
         if (_shortcutHandler->KeyState(VK_CONTROL)) volumeChange = 0.2f;
         if (_shortcutHandler->KeyState(VK_SHIFT)) volumeChange = 0.01f;
         _volumeSlider->SetValue(_volumeSlider->GetValue() + volumeChange);
-        _controller->SetVolume(_volumeSlider->GetVolume());
+        _playback->Controller()->SetVolume(_volumeSlider->GetVolume());
         _volumeIcon->Show(roundf(_volumeSlider->GetValue() * 100.0f));
         break;
     }
     case VK_DOWN: // Volume down
     {
-        if (!_controller) break;
+        if (_playback->Initializing()) break;
 
         float volumeChange = 0.05f;
         if (_shortcutHandler->KeyState(VK_CONTROL)) volumeChange = 0.2f;
         if (_shortcutHandler->KeyState(VK_SHIFT)) volumeChange = 0.01f;
         _volumeSlider->SetValue(_volumeSlider->GetValue() - volumeChange);
-        _controller->SetVolume(_volumeSlider->GetVolume());
+        _playback->Controller()->SetVolume(_volumeSlider->GetVolume());
         _volumeIcon->Show(roundf(_volumeSlider->GetValue() * 100.0f));
         break;
     }
     case VK_NUMPAD1: // Video stream 1
     {
-        if (!_controller) break;
+        if (_playback->Initializing()) break;
 
-        _controller->SetVideoStream(0);
+        _playback->Controller()->SetVideoStream(0);
         break;
     }
     case VK_NUMPAD2: // Video stream 2
     {
-        if (!_controller) break;
+        if (_playback->Initializing()) break;
 
-        _controller->SetVideoStream(1);
+        _playback->Controller()->SetVideoStream(1);
         break;
     }
     case VK_NUMPAD3: // Video stream 3
     {
-        if (!_controller) break;
+        if (_playback->Initializing()) break;
 
-        _controller->SetVideoStream(2);
+        _playback->Controller()->SetVideoStream(2);
         break;
     }
     case VK_NUMPAD4: // Audio stream 1
     {
-        if (!_controller) break;
+        if (_playback->Initializing()) break;
 
-        _controller->SetAudioStream(0);
+        _playback->Controller()->SetAudioStream(0);
         break;
     }
     case VK_NUMPAD5: // Audio stream 2
     {
-        if (!_controller) break;
+        if (_playback->Initializing()) break;
 
-        _controller->SetAudioStream(1);
+        _playback->Controller()->SetAudioStream(1);
         break;
     }
     case VK_NUMPAD6: // Audio stream 3
     {
-        if (!_controller) break;
+        if (_playback->Initializing()) break;
 
-        _controller->SetAudioStream(2);
+        _playback->Controller()->SetAudioStream(2);
         break;
     }
     case VK_NUMPAD7: // Subtitle stream 1
     {
-        if (!_controller) break;
+        if (_playback->Initializing()) break;
 
-        _controller->SetSubtitleStream(0);
+        _playback->Controller()->SetSubtitleStream(0);
         break;
     }
     case VK_NUMPAD8: // Subtitle stream 2
     {
-        if (!_controller) break;
+        if (_playback->Initializing()) break;
 
-        _controller->SetSubtitleStream(1);
+        _playback->Controller()->SetSubtitleStream(1);
         break;
     }
     case VK_NUMPAD9: // Subtitle stream 3
     {
-        if (!_controller) break;
+        if (_playback->Initializing()) break;
 
-        _controller->SetSubtitleStream(2);
+        _playback->Controller()->SetSubtitleStream(2);
         break;
     }
     }

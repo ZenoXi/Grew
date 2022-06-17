@@ -5,6 +5,113 @@
 
 class MediaReceiverDataProvider : public IMediaDataProvider
 {
+    struct StreamMetadata
+    {
+        int8_t videoStreamCount;
+        int8_t audioStreamCount;
+        int8_t subtitleStreamCount;
+        int8_t attachmentStreamCount;
+        int8_t dataStreamCount;
+        int8_t unknownStreamCount;
+        int8_t currentVideoStream;
+        int8_t currentAudioStream;
+        int8_t currentSubtitleStream;
+        int8_t chapterCount;
+    };
+
+    class StreamMetadataReceiver : public znet::PacketSubscriber
+    {
+        StreamMetadata& _metadata;
+        int64_t _hostId;
+        void _OnPacketReceived(znet::Packet packet, int64_t userId)
+        {
+            if (userId != _hostId)
+                return;
+
+            _metadata = packet.Cast<StreamMetadata>();
+            received = true;
+        }
+    public:
+        StreamMetadataReceiver(StreamMetadata& metadata, int64_t hostId)
+            : PacketSubscriber((int32_t)znet::PacketType::STREAM_METADATA),
+            _metadata(metadata),
+            _hostId(hostId)
+        {}
+        bool received = false;
+    };
+
+    class StreamReceiver : public znet::PacketSubscriber
+    {
+        int64_t _hostId;
+        std::vector<MediaStream> _streams;
+        std::mutex _m_streams;
+        void _OnPacketReceived(znet::Packet packet, int64_t userId)
+        {
+            if (userId != _hostId)
+                return;
+
+            MediaStream stream;
+            auto bytes = std::make_unique<uchar[]>(packet.size);
+            std::copy_n(packet.Bytes(), packet.size, bytes.get());
+            SerializedData data(packet.size, std::move(bytes));
+            stream.Deserialize(std::move(data));
+
+            std::lock_guard<std::mutex> lock(_m_streams);
+            _streams.push_back(std::move(stream));
+        }
+    public:
+        StreamReceiver(znet::PacketType streamType, int64_t hostId)
+            : PacketSubscriber((int32_t)streamType),
+            _hostId(hostId)
+        {}
+        std::vector<MediaStream>&& MoveStreams()
+        {
+            std::lock_guard<std::mutex> lock(_m_streams);
+            return std::move(_streams);
+        }
+        size_t StreamCount()
+        {
+            std::lock_guard<std::mutex> lock(_m_streams);
+            return _streams.size();
+        }
+    };
+
+    class ChapterReceiver : public znet::PacketSubscriber
+    {
+        int64_t _hostId;
+        std::vector<MediaChapter> _chapters;
+        std::mutex _m_chapters;
+        void _OnPacketReceived(znet::Packet packet, int64_t userId)
+        {
+            if (userId != _hostId)
+                return;
+
+            MediaChapter chapter;
+            auto bytes = std::make_unique<uchar[]>(packet.size);
+            std::copy_n(packet.Bytes(), packet.size, bytes.get());
+            SerializedData data(packet.size, std::move(bytes));
+            chapter.Deserialize(std::move(data));
+
+            std::lock_guard<std::mutex> lock(_m_chapters);
+            _chapters.push_back(chapter);
+        }
+    public:
+        ChapterReceiver(znet::PacketType streamType, int64_t hostId)
+            : PacketSubscriber((int32_t)streamType),
+            _hostId(hostId)
+        {}
+        std::vector<MediaChapter> GetChapters()
+        {
+            std::lock_guard<std::mutex> lock(_m_chapters);
+            return _chapters;
+        }
+        size_t ChapterCount()
+        {
+            std::lock_guard<std::mutex> lock(_m_chapters);
+            return _chapters.size();
+        }
+    };
+
     class PacketReceiver : public znet::PacketSubscriber
     {
         std::queue<MediaPacket> _packets;
@@ -78,7 +185,15 @@ class MediaReceiverDataProvider : public IMediaDataProvider
     bool _PACKET_THREAD_STOP = false;
 
     int64_t _hostId = 0;
-    std::vector<int64_t> _userList;
+    StreamMetadata _streamMetadata;
+    StreamMetadataReceiver _metadataReceiver;
+    StreamReceiver _videoStreamReceiver;
+    StreamReceiver _audioStreamReceiver;
+    StreamReceiver _subtitleStreamReceiver;
+    StreamReceiver _attachmentStreamReceiver;
+    StreamReceiver _dataStreamReceiver;
+    StreamReceiver _unknownStreamReceiver;
+    ChapterReceiver _chapterReceiver;
     PacketReceiver _videoPacketReceiver;
     PacketReceiver _audioPacketReceiver;
     PacketReceiver _subtitlePacketReceiver;

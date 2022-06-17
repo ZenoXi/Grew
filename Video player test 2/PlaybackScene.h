@@ -34,20 +34,12 @@ class PlaybackShortcutHandler : public KeyboardEventHandler
 
 struct PlaybackSceneOptions : public SceneOptionsBase
 {
-    std::string fileName = "";
-    std::string ip = "";
-    uint16_t port = 0;
-    IMediaDataProvider* dataProvider = nullptr;
-    PlaybackMode playbackMode = PlaybackMode::OFFLINE;
-    bool startPaused = false;
-    bool placeholder = false;
+
 };
 
 class PlaybackScene : public Scene
 {
     MediaPlayerOld* _player = nullptr;
-
-    PlaybackMode _playbackMode = PlaybackMode::OFFLINE;
 
     zcom::Panel* _controlBar = nullptr;
     
@@ -76,13 +68,8 @@ class PlaybackScene : public Scene
 
     std::unique_ptr<PlaybackShortcutHandler> _shortcutHandler = nullptr;
 
-    IMediaDataProvider* _dataProvider = nullptr;
-    IAudioOutputAdapter* _audioAdapter = nullptr;
-    IVideoOutputAdapter* _videoAdapter = nullptr;
-    MediaPlayer* _mediaPlayer = nullptr;
-    IPlaybackController* _controller = nullptr;
-    bool _startPaused = false;
-    bool _placeholder = false;
+    Playback* _playback;
+    bool _streamMenuSetup = false;
 
     ID2D1Bitmap* _videoFrameBitmap = nullptr;
     ID2D1Bitmap* _subtitleFrameBitmap = nullptr;

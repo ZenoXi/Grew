@@ -1,7 +1,7 @@
 #pragma once
 
 #include "BasePlaybackController.h"
-#include "MediaReceiverDataProvider.h"
+#include "IMediaDataProvider.h"
 #include "NetworkInterfaceNew.h"
 
 class ReceiverPlaybackController : public BasePlaybackController
@@ -24,7 +24,7 @@ protected:
     bool _buffering = false;
 
 public:
-    ReceiverPlaybackController(MediaPlayer* player, MediaReceiverDataProvider* dataProvider);
+    ReceiverPlaybackController(IMediaDataProvider* dataProvider, int64_t hostId);
 
     void Update();
 private: // Packet handlers

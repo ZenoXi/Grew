@@ -1,12 +1,23 @@
 #include "BasePlaybackController.h"
 
-BasePlaybackController::BasePlaybackController(MediaPlayer* player, IMediaDataProvider* dataProvider)
-    : _player(player), _dataProvider(dataProvider), _timerController(player, true)
+BasePlaybackController::BasePlaybackController(IMediaDataProvider* dataProvider)
+    : _dataProvider(dataProvider), _timerController(true)
 {
     _timerController.AddStop("loading");
+}
+
+void BasePlaybackController::AttachMediaPlayer(MediaPlayer* player)
+{
+    _player = player;
+    _timerController.AttachMediaPlayer(player);
+
+    // Only get streams here since data provider isn't guaranteed
+    // to have the stream data when constructor is called
     _videoStreams = _dataProvider->GetAvailableVideoStreams();
     _audioStreams = _dataProvider->GetAvailableAudioStreams();
     _subtitleStreams = _dataProvider->GetAvailableSubtitleStreams();
+
+    _OnMediaPlayerAttach();
 }
 
 void BasePlaybackController::Update()

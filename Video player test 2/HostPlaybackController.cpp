@@ -3,11 +3,10 @@
 #include "App.h"
 #include "PlaybackScene.h"
 
-HostPlaybackController::HostPlaybackController(MediaPlayer* player, MediaHostDataProvider* dataProvider)
-    : BasePlaybackController(player, dataProvider)
+HostPlaybackController::HostPlaybackController(IMediaDataProvider* dataProvider, std::vector<int64_t> participants)
+    : BasePlaybackController(dataProvider)
 {
-    auto destUsers = dataProvider->GetDestinationUsers();
-    for (auto user : destUsers)
+    for (auto user : participants)
         _destinationUsers.push_back({ user, 0 });
 
     _playRequestReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::RESUME_REQUEST);
@@ -18,6 +17,10 @@ HostPlaybackController::HostPlaybackController(MediaPlayer* player, MediaHostDat
     _syncPauseReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::SYNC_PAUSE);
 
     _StartSeeking();
+}
+
+void HostPlaybackController::_OnMediaPlayerAttach()
+{
     znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::HOST_CONTROLLER_READY), _GetUserIds());
 }
 

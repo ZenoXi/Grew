@@ -18,28 +18,32 @@ protected:
             Duration left;
         };
 
-        MediaPlayer* _player;
+        MediaPlayer* _player = nullptr;
 
         // Main pause flag.
         // If 'true' the playback will always stay paused.
         // If 'false' the playback will go on when no other stops are in place.
         bool _paused = false;
         // Playback stop flags
-        // If the set in not empty, the playback will always stay paused.
+        // If the set is not empty, the playback will always stay paused.
         // If the set is empty, the playback will go on when no other stops are in place.
         std::set<std::string> _stops;
         // Playback stop timers. Like '_stops', but automatically expire after their specified duration
-        // If the vector in not empty, the playback will always stay paused.
+        // If the vector is not empty, the playback will always stay paused.
         // If the vector is empty, the playback will go on when no other stops are in place.
         std::vector<_PauseTimer> _timers;
         // Playback stop timers. Like '_timers', but only count down while no other stops are in place.
         std::vector<_PauseTimer> _playTimers;
 
     public:
-        _TimerController(MediaPlayer* player, bool paused)
+        _TimerController(bool paused)
+        {
+            _paused = paused;
+        }
+
+        void AttachMediaPlayer(MediaPlayer* player)
         {
             _player = player;
-            _paused = paused;
         }
 
         void Update()
@@ -173,6 +177,9 @@ protected:
             if (!_playTimers.empty())
                 stopped = true;
 
+            if (!_player)
+                return;
+
             // Start/stop playback
             if (!stopped)
                 _player->StartTimer();
@@ -181,8 +188,8 @@ protected:
         }
     };
 
-    MediaPlayer* _player;
-    IMediaDataProvider* _dataProvider;
+    MediaPlayer* _player = nullptr;
+    IMediaDataProvider* _dataProvider = nullptr;
 
     bool _paused = true;
     bool _loading = true;
@@ -201,7 +208,14 @@ protected:
     _TimerController _timerController;
 
 public:
-    BasePlaybackController(MediaPlayer* player, IMediaDataProvider* dataProvider);
+    BasePlaybackController(IMediaDataProvider* dataProvider);
+    // WARNING:
+    // No other functions can be called before AttachMediaPlayer is called.
+    // This applies to child classes aswell
+    void AttachMediaPlayer(MediaPlayer* player);
+private:
+    virtual void _OnMediaPlayerAttach() {}
+public:
 
     void Update();
 

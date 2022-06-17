@@ -6,13 +6,22 @@
 #include "PlaybackScene.h"
 #include "PlaybackOverlayScene.h"
 
+#include "PlaylistEventHandler_None.h"
+#include "PlaylistEventHandler_Offline.h"
+#include "PlaylistEventHandler_Client.h"
+#include "PlaylistEventHandler_Server.h"
+
 App* App::_instance = nullptr;
 
-App::App(DisplayWindow& dw, std::string startScene) : window(dw)/*, layout(dw.width, dw.height)*/
+App::App(DisplayWindow& dw, std::string startScene)
+  : window(dw),
+    _networkStateEventReceiver(&events)
 {
     dw.mouse = &mouse;
     dw.AddMouseHandler(&mouseManager);
     dw.AddKeyboardHandler(&keyboardManager);
+
+    _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
 
     //// Start player
     //std::cout << "Application mode ([s]erver/[c]lient/[o]ffline): ";
@@ -316,6 +325,7 @@ int App::FindActiveSceneIndex(std::string name)
 void App::LoopThread()
 {
     int framecounter = 0;
+    Clock frameTimer = Clock(0);
 
     while (!_mainThreadController.Get<bool>("stop"))
     {
@@ -333,6 +343,13 @@ void App::LoopThread()
         ztime::clock[CLOCK_GAME].Update();
         ztime::clock[CLOCK_MAIN].Update();
 
+        _HandleNetworkStateChanges();
+
+        // Update objects
+        playlist.Update();
+        _serverPlaylist.Update();
+        playback.Update();
+
         // Render frame
         window.gfx.Lock();
         window.gfx.BeginFrame();
@@ -346,7 +363,8 @@ void App::LoopThread()
             int h = HIWORD(wmSize.lParam);
             //layout.Resize(w, h);
             //layout.componentCanvas.Resize(w, h);
-            for (auto& scene : ActiveScenes())
+            auto activeScenes = ActiveScenes();
+            for (auto& scene : activeScenes)
                 scene->Resize(w, h);
         }
 
@@ -403,5 +421,41 @@ void App::LoopThread()
         Clock sleepTimer = Clock(0);
         do sleepTimer.Update();
         while (sleepTimer.Now().GetTime(MICROSECONDS) < 100);
+    }
+}
+
+void App::_HandleNetworkStateChanges()
+{
+    while (_networkStateEventReceiver.EventCount() > 0)
+    {
+        auto ev = _networkStateEventReceiver.GetEvent();
+
+        switch (ev.newState)
+        {
+        case ev.OFFLINE:
+        {
+            _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
+            playlist.SetEventHandler<PlaylistEventHandler_Offline>();
+            break;
+        }
+        case ev.CLIENT:
+        {
+            _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
+            playlist.SetEventHandler<PlaylistEventHandler_Client>();
+            break;
+        }
+        case ev.SERVER:
+        {
+            // _serverPlaylist should be created first, because client handler
+            // constructor synchronously sends packets to the server playlist
+            _serverPlaylist.SetEventHandler<PlaylistEventHandler_Server>();
+            playlist.SetEventHandler<PlaylistEventHandler_Client>();
+            break;
+        }
+        default:
+            _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
+            playlist.SetEventHandler<PlaylistEventHandler_None>();
+            break;
+        }
     }
 }

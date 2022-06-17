@@ -10,11 +10,11 @@ bool TimeExceeded(Clock timer, double timeLimit)
 
 MediaPlayer::MediaPlayer(
     IMediaDataProvider* dataProvider,
-    std::unique_ptr<IVideoOutputAdapter> videoAdapter,
-    std::unique_ptr<IAudioOutputAdapter> audioAdapter
+    IVideoOutputAdapter* videoAdapter,
+    IAudioOutputAdapter* audioAdapter
 ) : _dataProvider(dataProvider),
-    _videoOutputAdapter(std::move(videoAdapter)),
-    _audioOutputAdapter(std::move(audioAdapter))
+    _videoOutputAdapter(videoAdapter),
+    _audioOutputAdapter(audioAdapter)
 {
     std::unique_ptr<MediaStream> videoStream = _dataProvider->CurrentVideoStream();
     std::unique_ptr<MediaStream> audioStream = _dataProvider->CurrentAudioStream();

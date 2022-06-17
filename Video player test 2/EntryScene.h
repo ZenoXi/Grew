@@ -28,34 +28,7 @@ class EntryScene : public Scene
     std::unique_ptr<zcom::Label> _fileLabel = nullptr;
     std::unique_ptr<zcom::Button> _testButton = nullptr;
 
-    // Connect input
-    std::unique_ptr<zcom::Panel> _connectPanel = nullptr;
-    std::unique_ptr<zcom::Label> _connectPanelLabel = nullptr;
-    std::unique_ptr<zcom::TextInput> _connectIpInput = nullptr;
-    std::unique_ptr<zcom::TextInput> _connectPortInput = nullptr;
-    std::unique_ptr<zcom::Button> _connectConfirmButton = nullptr;
-    std::unique_ptr<zcom::Button> _connectCancelButton = nullptr;
-    bool _setConnectFocus = false;
-    std::unique_ptr<zcom::Label> _recentConnectionsLabel = nullptr;
-    std::unique_ptr<zcom::Panel> _recentConnectionsPanel = nullptr;
-    std::unique_ptr<zcom::LoadingImage> _connectLoadingImage = nullptr;
-    std::unique_ptr<zcom::Label> _connectLoadingInfoLabel = nullptr;
-    std::unique_ptr<zcom::Button> _connectLoadingCancelButton = nullptr;
-    bool _connectLoading = false;
     bool _connectPanelOpen = false;
-
-    // Share input
-    std::unique_ptr<zcom::Panel> _sharePanel = nullptr;
-    std::unique_ptr<zcom::Label> _sharePanelLabel = nullptr;
-    std::unique_ptr<zcom::TextInput> _sharePortInput = nullptr;
-    std::unique_ptr<zcom::Button> _shareConfirmButton = nullptr;
-    std::unique_ptr<zcom::Button> _shareCancelButton = nullptr;
-    bool _setShareFocus = false;
-    std::unique_ptr<zcom::LoadingImage> _shareLoadingImage = nullptr;
-    std::unique_ptr<zcom::Label> _shareLoadingInfoLabel = nullptr;
-    std::unique_ptr<zcom::Button> _shareLoadingCancelButton = nullptr;
-    bool _shareLoading = false;
-    std::string _shareFilename = "";
     bool _startServerPanelOpen = false;
 
     // File
@@ -81,12 +54,4 @@ private:
     void OnConnectSelected();
     void OnShareSelected();
     void OnFileSelected();
-
-    void OnConnectConfirmed();
-    void OnConnectCanceled();
-    void OnConnectLoadingCanceled();
-
-    void OnShareConfirmed();
-    void OnShareCanceled();
-    void OnShareLoadingCanceled();
 };
