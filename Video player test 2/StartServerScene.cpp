@@ -140,6 +140,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     _canvas->AddComponent(_mainPanel.get());
     _canvas->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.2f));
 
+    _starting = false;
     _startSuccessful = false;
     _closeScene = false;
 }
