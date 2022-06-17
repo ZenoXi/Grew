@@ -8,6 +8,8 @@
 #pragma comment( lib,"xaudio2.lib" )
 #include <xaudio2.h>
 
+#include <iostream>
+
 class VoiceCallback : public IXAudio2VoiceCallback
 {
 public:
