@@ -27,6 +27,8 @@ public:
     void Start();
     void Stop();
 
+    std::string GetFilename() const { return _filename; }
+
 protected:
     void _Seek(SeekData seekData);
     void _Seek(TimePoint time);
