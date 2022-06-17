@@ -27,28 +27,26 @@ znet::NetworkInterface* znet::NetworkInterface::Instance()
 
 void znet::NetworkInterface::StartServer(USHORT port)
 {
-    _connectionManager = new znet::ServerConnectionManager(port);
+    _connectionManager = std::make_unique<ServerConnectionManager>(port);
     _mode = NetworkMode::SERVER;
 }
 
 void znet::NetworkInterface::StopServer()
 {
     std::lock_guard<std::mutex> lock(_m_conMng);
-    delete _connectionManager;
     _connectionManager = nullptr;
     _mode = NetworkMode::OFFLINE;
 }
 
 void znet::NetworkInterface::Connect(std::string ip, USHORT port)
 {
-    _connectionManager = new znet::ClientConnectionManager(ip, port);
+    _connectionManager = std::make_unique<ClientConnectionManager>(ip, port);
     _mode = NetworkMode::CLIENT;
 }
 
 void znet::NetworkInterface::Disconnect()
 {
     std::lock_guard<std::mutex> lock(_m_conMng);
-    delete _connectionManager;
     _connectionManager = nullptr;
     _mode = NetworkMode::OFFLINE;
 }

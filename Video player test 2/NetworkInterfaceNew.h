@@ -11,6 +11,8 @@
 
 #include "PacketSubscriber.h"
 
+#include <memory>
+
 namespace znet
 {
     struct PacketData
@@ -26,7 +28,7 @@ namespace znet
         znet::TCPServer _server;
         znet::TCPClient _client;
 
-        IConnectionManager* _connectionManager = nullptr;
+        std::unique_ptr<IConnectionManager> _connectionManager = nullptr;
         bool _PACKET_THR_STOP = false;
         std::thread _incomingPacketManager;
         std::mutex _m_conMng;
