@@ -192,7 +192,7 @@ namespace zcom
             SetProperty(shadow);
             SetVisible(false);
         }
-        ~MenuPanel() {}
+        ~MenuPanel() { ClearMenuItems(); }
         MenuPanel(MenuPanel&&) = delete;
         MenuPanel& operator=(MenuPanel&&) = delete;
         MenuPanel(const MenuPanel&) = delete;
