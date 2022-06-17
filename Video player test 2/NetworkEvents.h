@@ -55,6 +55,18 @@ struct UserConnectedEvent
     int64_t userId;
 };
 
+struct NetworkStateChangedEvent
+{
+    enum State {
+        OFFLINE,
+        CLIENT,
+        SERVER
+    };
+
+    static const char* _NAME_() { return "network_state_changed"; }
+    State newState;
+};
+
 struct UserDisconnectedEvent
 {
     static const char* _NAME_() { return "user_disconnected"; }

@@ -21,8 +21,6 @@ znet::ClientConnectionManager::~ClientConnectionManager()
         _connectionThread.join();
     if (_managementThread.joinable())
         _managementThread.join();
-
-    App::Instance()->events.RaiseEvent(DisconnectEvent{});
 }
 
 // CONNECTION
@@ -133,6 +131,7 @@ void znet::ClientConnectionManager::_Connect(std::string ip, uint16_t port)
         _managementThread = std::thread(&ClientConnectionManager::_ManageConnections, this);
 
         App::Instance()->events.RaiseEvent(ConnectionSuccessEvent{});
+        App::Instance()->events.RaiseEvent(NetworkStateChangedEvent{ NetworkStateChangedEvent::CLIENT });
     }
     else
     {
@@ -675,4 +674,11 @@ void znet::ClientConnectionManager::_ManageConnections()
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
+
+    if (connection->Connected())
+    {
+        connection->Disconnect();
+    }
+    App::Instance()->events.RaiseEvent(DisconnectEvent{});
+    App::Instance()->events.RaiseEvent(NetworkStateChangedEvent{ NetworkStateChangedEvent::OFFLINE });
 }
