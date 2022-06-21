@@ -65,7 +65,7 @@ PlaylistEventHandler_Client::~PlaylistEventHandler_Client()
         if (item->GetUserId() == _userId)
             item->SetUserId(OFFLINE_LOCAL_HOST_ID);
         else
-            item->SetUserId(OFFLINE_REMOTE_HOST_ID);
+            item->SetUserId(MISSING_HOST_ID);
     }
 }
 

@@ -444,7 +444,7 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
         _readyItems[i]->SetParentWidthPercent(1.0f);
         _readyItems[i]->SetBaseHeight(25);
         _readyItems[i]->SetVerticalOffsetPixels(25 * i);
-        _readyItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f * (i % 2)));
+        _readyItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.03f * (i % 2)));
         if (_readyItems[i]->GetItemId() == App::Instance()->playlist.CurrentlyPlaying())
         {
             _readyItems[i]->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
@@ -548,7 +548,7 @@ void PlaybackOverlayScene::_UpdateItemDetails()
             _playlistItems[i]->SetFilename((*it)->GetFilename());
             _playlistItems[i]->SetDuration((*it)->GetDuration());
             _playlistItems[i]->SetCustomStatus((*it)->GetCustomStatus());
-            _playlistItems[i]->HostMissing((*it)->GetUserId() == OFFLINE_REMOTE_HOST_ID);
+            _playlistItems[i]->HostMissing((*it)->GetUserId() == MISSING_HOST_ID);
         }
     }
 }

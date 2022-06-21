@@ -8,8 +8,8 @@
 
 // User id of items hosted locally in offline mode
 #define OFFLINE_LOCAL_HOST_ID -1
-// User id of items which were hosted by other users while online (valid in offline mode)
-#define OFFLINE_REMOTE_HOST_ID -2
+// User id of items whose host is missing (disconnected)
+#define MISSING_HOST_ID -2
 
 class PlaylistItem
 {
