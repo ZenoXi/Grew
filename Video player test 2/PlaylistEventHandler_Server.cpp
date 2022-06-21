@@ -8,6 +8,7 @@
 PlaylistEventHandler_Server::PlaylistEventHandler_Server(Playlist_Internal* playlist)
     : IPlaylistEventHandler(playlist)
 {
+    _userDisconnectedReceiver = std::make_unique<EventReceiver<UserDisconnectedEvent>>(&App::Instance()->events);
     _playlistRequestReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::FULL_PLAYLIST_REQUEST);
     _itemAddRequestReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_ADD_REQUEST);
     _itemRemoveRequestReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_REMOVE_REQUEST);
@@ -17,7 +18,7 @@ PlaylistEventHandler_Server::PlaylistEventHandler_Server(Playlist_Internal* play
     _itemMoveRequestReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_MOVE_REQUEST);
 
     // Set up media id generator
-    _DISTRIBUTION = std::uniform_int_distribution<uint64_t>(0, std::numeric_limits<int64_t>::max());
+    _DISTRIBUTION = std::uniform_int_distribution<int64_t>(0, std::numeric_limits<int64_t>::max());
     std::random_device rnd;
     _ENGINE.seed(rnd());
 }
@@ -36,6 +37,7 @@ void PlaylistEventHandler_Server::Update()
 {
     // TODO: add timeout for playback order response
 
+    _CheckForUserDisconnect();
     // Playlist requests should be processed before item add requests
     // to prevent incorrect playlist ordering for new clients
     _CheckForPlaylistRequest();
@@ -45,6 +47,41 @@ void PlaylistEventHandler_Server::Update()
     _CheckForStartResponse();
     _CheckForStopRequest();
     _CheckForItemMoveRequest();
+}
+
+void PlaylistEventHandler_Server::_CheckForUserDisconnect()
+{
+    while (_userDisconnectedReceiver->EventCount() > 0)
+    {
+        auto ev = _userDisconnectedReceiver->GetEvent();
+        
+        // Remove items hosted by user
+        for (int i = 0; i < _playlist->readyItems.size(); i++)
+        {
+            if (_playlist->readyItems[i]->GetUserId() == ev.userId)
+            {
+                // Except if it is currently being played
+                if (_playlist->readyItems[i]->GetItemId() == _playlist->currentlyPlaying)
+                {
+                    _playlist->readyItems[i]->SetUserId(MISSING_HOST_ID);
+                    continue;
+                }
+
+                // Send remove order to all clients
+                auto users = znet::NetworkInterface::Instance()->Users();
+                std::vector<int64_t> userIds;
+                userIds.push_back(0);
+                for (auto& user : users)
+                    userIds.push_back(user.id);
+                znet::NetworkInterface::Instance()->
+                    Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_REMOVE).From(_playlist->readyItems[i]->GetMediaId()), userIds);
+
+                // Remove from playlist
+                _playlist->readyItems.erase(_playlist->readyItems.begin() + i);
+                i--;
+            }
+        }
+    }
 }
 
 void PlaylistEventHandler_Server::_CheckForPlaylistRequest()
@@ -182,6 +219,14 @@ void PlaylistEventHandler_Server::_CheckForStartRequest()
         {
             if (_playlist->readyItems[i]->GetMediaId() == mediaId)
             {
+                // Check if host is still connected
+                if (_playlist->readyItems[i]->GetUserId() == MISSING_HOST_ID)
+                {
+                    // Send response to issuer
+                    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), { userId });
+                    break;
+                }
+
                 // Send play order to host
                 znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_ORDER).From(mediaId), { _playlist->readyItems[i]->GetUserId() });
 

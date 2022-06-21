@@ -3,6 +3,8 @@
 #include "IPlaylistEventHandler.h"
 
 #include "PacketSubscriber.h"
+#include "EventSubscriber.h"
+#include "NetworkEvents.h"
 
 class PlaylistEventHandler_Server : public IPlaylistEventHandler
 {
@@ -19,6 +21,7 @@ public:
     ~PlaylistEventHandler_Server();
 
 private:
+    std::unique_ptr<EventReceiver<UserDisconnectedEvent>> _userDisconnectedReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _playlistRequestReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _itemAddRequestReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _itemRemoveRequestReceiver = nullptr;
@@ -27,6 +30,7 @@ private:
     std::unique_ptr<znet::PacketReceiver> _playbackStopRequestReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _itemMoveRequestReceiver = nullptr;
 
+    void _CheckForUserDisconnect();
     void _CheckForPlaylistRequest();
     void _CheckForItemAddRequest();
     void _CheckForItemRemoveRequest();
@@ -38,6 +42,6 @@ private:
     // Media id generation
 
     std::mt19937_64 _ENGINE;
-    std::uniform_int_distribution<uint64_t> _DISTRIBUTION;
+    std::uniform_int_distribution<int64_t> _DISTRIBUTION;
     int64_t _GenerateMediaId();
 };
