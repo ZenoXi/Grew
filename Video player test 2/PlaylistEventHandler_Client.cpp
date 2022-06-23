@@ -79,11 +79,15 @@ void PlaylistEventHandler_Client::Update()
 {
     _CheckForUserDisconnect();
     _CheckForItemAdd();
+    _CheckForItemAddDeny();
     _CheckForItemRemove();
+    _CheckForItemRemoveDeny();
     _CheckForStartOrder();
     _CheckForStart();
     _CheckForStop();
+    _CheckForStopDeny();
     _CheckForItemMove();
+    _CheckForItemMoveDeny();
 
     _ManageLoadingItems();
     _TrackParticipations();
