@@ -445,31 +445,77 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
         _readyItems[i]->SetBaseHeight(25);
         _readyItems[i]->SetVerticalOffsetPixels(25 * i);
         _readyItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.03f * (i % 2)));
-        _readyItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_PLAY | zcom::OverlayPlaylistItem::BTN_DELETE);
+
+        Playlist& playlist = App::Instance()->playlist;
+        bool playVisible = true;
+        bool deleteVisible = true;
+        bool stopVisible = false;
+        std::wstring status = L"";
+
+        // Deleting
+        auto pendingDeletes = playlist.PendingItemDeletes();
+        if (std::find(pendingDeletes.begin(), pendingDeletes.end(), _readyItems[i]->GetItemId()) != pendingDeletes.end())
+        {
+            playVisible = false;
+            deleteVisible = false;
+            status = L"Deleting..";
+        }
+
+        // Moving
+        auto pendingMoves = playlist.PendingItemMoves();
+        for (auto& move : pendingMoves)
+        {
+            if (move.first == _readyItems[i]->GetItemId())
+            {
+                // Will require a different display method
+                status = L"Moving..";
+                break;
+            }
+        }
 
         // Starting/Playing
-        if (_readyItems[i]->GetItemId() == App::Instance()->playlist.CurrentlyPlaying())
+        if (_readyItems[i]->GetItemId() == playlist.CurrentlyPlaying())
         {
             _readyItems[i]->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
-            _readyItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_STOP);
+            playVisible = false;
+            deleteVisible = false;
+            stopVisible = true;
         }
-        else if (_readyItems[i]->GetItemId() == App::Instance()->playlist.CurrentlyStarting())
+        else if (_readyItems[i]->GetItemId() == playlist.CurrentlyStarting())
         {
             _readyItems[i]->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
-            _readyItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_STOP);
-            _readyItems[i]->SetCustomStatus(L"Starting..");
+            playVisible = false;
+            deleteVisible = false;
+            stopVisible = true;
+            status = L"Starting..";
+        }
+
+        // Stopping
+        if (playlist.PendingItemStop() == _readyItems[i]->GetItemId())
+        {
+            stopVisible = false;
+            status = L"Stopping..";
         }
 
         // Host missing
         if (_readyItems[i]->HostMissing())
         {
-            _readyItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_DELETE);
-            if (_readyItems[i]->GetItemId() == App::Instance()->playlist.CurrentlyPlaying())
-                _readyItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_STOP);
-            if (_readyItems[i]->GetItemId() == App::Instance()->playlist.CurrentlyStarting())
-                _readyItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_STOP);
-            _readyItems[i]->SetCustomStatus(L"Host missing..");
+            playVisible = false;
+            if (_readyItems[i]->GetItemId() == playlist.CurrentlyPlaying())
+                deleteVisible = false;
+            if (_readyItems[i]->GetItemId() == playlist.CurrentlyStarting())
+                deleteVisible = false;
+            status = L"Host missing..";
         }
+
+        int buttons = 0;
+        buttons |= playVisible ? zcom::OverlayPlaylistItem::BTN_PLAY : 0;
+        buttons |= deleteVisible ? zcom::OverlayPlaylistItem::BTN_DELETE : 0;
+        buttons |= stopVisible ? zcom::OverlayPlaylistItem::BTN_STOP : 0;
+        _readyItems[i]->SetButtonVisibility(buttons);
+        if (!status.empty())
+            _readyItems[i]->SetCustomStatus(status);
+
         _readyItemPanel->AddItem(_readyItems[i]);
     }
     // Add pending items
