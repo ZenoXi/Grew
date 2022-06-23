@@ -10,6 +10,8 @@
 #define OFFLINE_LOCAL_HOST_ID -1
 // User id of items whose host is missing (disconnected)
 #define MISSING_HOST_ID -2
+// Media id of pending item whose adding was denied
+#define ADD_DENIED_MEDIA_ID -2
 
 class PlaylistItem
 {

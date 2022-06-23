@@ -24,18 +24,28 @@ private:
     int64_t _userId = -1;
 
     std::unique_ptr<znet::PacketReceiver> _itemAddReceiver = nullptr;
+    std::unique_ptr<znet::PacketReceiver> _itemAddDenyReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _itemRemoveReceiver = nullptr;
+    std::unique_ptr<znet::PacketReceiver> _itemRemoveDenyReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _playbackStartOrderReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _playbackStartReceiver = nullptr;
+    std::unique_ptr<znet::PacketReceiver> _playbackStartDenyReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _playbackStopReceiver = nullptr;
+    std::unique_ptr<znet::PacketReceiver> _playbackStopDenyReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _itemMoveReceiver = nullptr;
+    std::unique_ptr<znet::PacketReceiver> _itemMoveDenyReceiver = nullptr;
 
     void _CheckForItemAdd();
+    void _CheckForItemAddDeny();
     void _CheckForItemRemove();
+    void _CheckForItemRemoveDeny();
     void _CheckForStartOrder();
     void _CheckForStart();
+    void _CheckForStartDeny();
     void _CheckForStop();
+    void _CheckForStopDeny();
     void _CheckForItemMove();
+    void _CheckForItemMoveDeny();
 
     void _ManageLoadingItems();
 

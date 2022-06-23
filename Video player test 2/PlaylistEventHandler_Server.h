@@ -39,6 +39,12 @@ private:
     void _CheckForStopRequest();
     void _CheckForItemMoveRequest();
 
+    // Start order timeout
+
+    TimePoint _startOrderSend = 0;
+    Duration _startOrderTimeout = Duration(3, SECONDS);
+    void _UpdateStartOrderTimeout();
+
     // Media id generation
 
     std::mt19937_64 _ENGINE;

@@ -247,6 +247,11 @@ namespace znet
         //  remaining bytes - wstring of the media name
         PLAYLIST_ITEM_ADD,
 
+        // Sent by the server to client when its item add request is denied
+        // Contains:
+        //  int64_t - callback id
+        PLAYLIST_ITEM_ADD_DENIED,
+
         // Sent when a client wants to remove an item from the playback queue
         // Contains:
         //  int64_t - media id
@@ -256,6 +261,11 @@ namespace znet
         // Contains:
         //  int64_t - media id
         PLAYLIST_ITEM_REMOVE,
+
+        // Sent by the server to client when its item remove request is denied
+        // Contains:
+        //  int64_t - media id
+        PLAYLIST_ITEM_REMOVE_DENIED,
 
         // (client/server -> server)
         // Sent when a client/server wishes for playback to start
@@ -295,6 +305,9 @@ namespace znet
         // Sent to all clients when playback should be aborted
         PLAYBACK_STOP,
 
+        // Sent by the server to client when its playback stop request is denied
+        PLAYBACK_STOP_DENIED,
+
         // Sent when a client wants to change the position of an item in the playlist
         // Contains:
         //  int64_t - mediaId
@@ -306,6 +319,11 @@ namespace znet
         //  int64_t - mediaId
         //  int32_t - new slot (0-index)
         PLAYLIST_ITEM_MOVE,
+
+        // Sent by the server to client when its item move request is denied
+        // Contains:
+        //  int64_t - media id
+        PLAYLIST_ITEM_MOVE_DENIED,
 
         // A request from client to server to send all playlist items
         FULL_PLAYLIST_REQUEST,

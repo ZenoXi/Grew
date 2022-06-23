@@ -47,6 +47,8 @@ void PlaylistEventHandler_Server::Update()
     _CheckForStartResponse();
     _CheckForStopRequest();
     _CheckForItemMoveRequest();
+
+    _UpdateStartOrderTimeout();
 }
 
 void PlaylistEventHandler_Server::_CheckForUserDisconnect()
@@ -65,6 +67,18 @@ void PlaylistEventHandler_Server::_CheckForUserDisconnect()
                 {
                     _playlist->readyItems[i]->SetUserId(MISSING_HOST_ID);
                     continue;
+                }
+
+                // If it is starting, abort the start process
+                if (_playlist->readyItems[i]->GetItemId() == _playlist->currentlyStarting)
+                {
+                    std::vector<int64_t> destUsers{ _playlist->readyItems[i]->GetUserId() };
+                    if (destUsers[0] != _playlist->startRequestIssuer)
+                        destUsers.push_back(_playlist->startRequestIssuer);
+                    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), destUsers);
+
+                    _playlist->currentlyStarting = -1;
+                    _playlist->startRequestIssuer = -1;
                 }
 
                 // Send remove order to all clients
@@ -172,14 +186,22 @@ void PlaylistEventHandler_Server::_CheckForItemRemoveRequest()
         PacketReader reader = PacketReader(packet.Bytes(), packet.size);
         int64_t mediaId = reader.Get<int64_t>();
 
-        // TODO: add decline response if item doesn't exist
-        // TODO: add decline response if playback of item is starting
-
         // Find item
+        bool itemFound = false;
         for (int i = 0; i < _playlist->readyItems.size(); i++)
         {
             if (_playlist->readyItems[i]->GetMediaId() == mediaId)
             {
+                itemFound = true;
+
+                if (_playlist->readyItems[i]->GetItemId() == _playlist->currentlyStarting ||
+                    _playlist->readyItems[i]->GetItemId() == _playlist->currentlyPlaying)
+                {
+                    // Send deny response
+                    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_REMOVE_DENIED).From(mediaId), { userId });
+                    break;
+                }
+
                 // Send remove order to all clients
                 auto users = znet::NetworkInterface::Instance()->Users();
                 std::vector<int64_t> userIds;
@@ -191,6 +213,11 @@ void PlaylistEventHandler_Server::_CheckForItemRemoveRequest()
                 _playlist->readyItems.erase(_playlist->readyItems.begin() + i);
                 break;
             }
+        }
+        if (!itemFound)
+        {
+            // Send deny response
+            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_REMOVE_DENIED).From(mediaId), { userId });
         }
     }
 }
@@ -209,7 +236,7 @@ void PlaylistEventHandler_Server::_CheckForStartRequest()
 
         if (_playlist->currentlyStarting != -1)
         {
-            // Send response to issuer
+            // Send deny response to issuer
             znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), { userId });
             continue;
         }
@@ -222,19 +249,23 @@ void PlaylistEventHandler_Server::_CheckForStartRequest()
                 // Check if host is still connected
                 if (_playlist->readyItems[i]->GetUserId() == MISSING_HOST_ID)
                 {
-                    // Send response to issuer
+                    // Send deny response to issuer
                     znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), { userId });
                     break;
                 }
 
                 // Send play order to host
                 znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_ORDER).From(mediaId), { _playlist->readyItems[i]->GetUserId() });
-
+                
                 _playlist->currentlyStarting = _playlist->readyItems[i]->GetItemId();
                 _playlist->startRequestIssuer = userId;
+                _startOrderSend = ztime::Main();
                 break;
             }
         }
+
+        // Item doesn't exist, send deny response to issuer
+        znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), { userId });
     }
 }
 
@@ -303,7 +334,10 @@ void PlaylistEventHandler_Server::_CheckForStopRequest()
         int64_t userId = packetPair.second;
 
         if (_playlist->currentlyPlaying == -1)
+        {
+            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_DENIED), { userId });
             continue;
+        }
 
         // Find item
         for (int i = 0; i < _playlist->readyItems.size(); i++)
@@ -338,8 +372,11 @@ void PlaylistEventHandler_Server::_CheckForItemMoveRequest()
         int64_t mediaId = reader.Get<int64_t>();
         int32_t slot = reader.Get<int32_t>();
 
-        if (slot >= _playlist->readyItems.size())
-            continue; // TODO: add decline response
+        if (slot >= _playlist->readyItems.size() || slot < 0)
+        {
+            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED).From(mediaId), { userId });
+            continue;
+        }
 
         // Find item
         for (int i = 0; i < _playlist->readyItems.size(); i++)
@@ -347,7 +384,10 @@ void PlaylistEventHandler_Server::_CheckForItemMoveRequest()
             if (_playlist->readyItems[i]->GetMediaId() == mediaId)
             {
                 if (slot == i)
-                    break; // TODO: add decline response
+                {
+                    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED).From(mediaId), { userId });
+                    break;
+                }
 
                 int oldIndex = i;
                 int newIndex = slot;
@@ -369,6 +409,31 @@ void PlaylistEventHandler_Server::_CheckForItemMoveRequest()
                 // struct { int64_t mediaId; int32_t slot; } { mediaId, slot }
 
                 break;
+            }
+        }
+    }
+}
+
+void PlaylistEventHandler_Server::_UpdateStartOrderTimeout()
+{
+    if (_playlist->currentlyStarting != -1)
+    {
+        // Abort start process
+        if ((ztime::Main() - _startOrderSend) > _startOrderTimeout)
+        {
+            // Find item
+            for (int i = 0; i < _playlist->readyItems.size(); i++)
+            {
+                if (_playlist->readyItems[i]->GetItemId() == _playlist->currentlyStarting)
+                {
+                    std::vector<int64_t> destUsers{ _playlist->readyItems[i]->GetUserId() };
+                    if (destUsers[0] != _playlist->startRequestIssuer)
+                        destUsers.push_back(_playlist->startRequestIssuer);
+                    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), destUsers);
+
+                    _playlist->currentlyStarting = -1;
+                    _playlist->startRequestIssuer = -1;
+                }
             }
         }
     }

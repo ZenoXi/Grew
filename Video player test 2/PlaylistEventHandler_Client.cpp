@@ -13,12 +13,17 @@
 PlaylistEventHandler_Client::PlaylistEventHandler_Client(Playlist_Internal* playlist)
     : IPlaylistEventHandler(playlist)
 {
-    _itemAddReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_ADD);
-    _itemRemoveReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_REMOVE);
+    _itemAddReceiver            = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_ADD);
+    _itemAddDenyReceiver        = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_ADD_DENIED);
+    _itemRemoveReceiver         = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_REMOVE);
+    _itemRemoveDenyReceiver     = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_REMOVE_DENIED);
     _playbackStartOrderReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_START_ORDER);
-    _playbackStartReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_START);
-    _playbackStopReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_STOP);
-    _itemMoveReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_MOVE);
+    _playbackStartReceiver      = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_START);
+    _playbackStartDenyReceiver  = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_START_DENIED);
+    _playbackStopReceiver       = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_STOP);
+    _playbackStopDenyReceiver   = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_STOP_DENIED);
+    _itemMoveReceiver           = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_MOVE);
+    _itemMoveDenyReceiver       = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED);
 
     // Save user id
     _userId = znet::NetworkInterface::Instance()->ThisUser().id;
@@ -235,6 +240,31 @@ void PlaylistEventHandler_Client::_CheckForItemAdd()
     }
 }
 
+void PlaylistEventHandler_Client::_CheckForItemAddDeny()
+{
+    while (_itemAddDenyReceiver->PacketCount() > 0)
+    {
+        // Process packet
+        auto packetPair = _itemAddDenyReceiver->GetPacket();
+        znet::Packet packet = std::move(packetPair.first);
+        int64_t userId = packetPair.second;
+        if (userId != 0)
+            continue;
+
+        int64_t callbackId = packet.Cast<int64_t>();
+
+        // Find corresponding item
+        for (int i = 0; i < _playlist->pendingItems.size(); i++)
+        {
+            if (_playlist->pendingItems[i]->GetItemId() == callbackId)
+            {
+                _playlist->pendingItems[i]->SetMediaId(ADD_DENIED_MEDIA_ID);
+                break;
+            }
+        }
+    }
+}
+
 void PlaylistEventHandler_Client::_CheckForItemRemove()
 {
     while (_itemRemoveReceiver->PacketCount() > 0)
@@ -265,6 +295,39 @@ void PlaylistEventHandler_Client::_CheckForItemRemove()
                 }
 
                 _playlist->readyItems.erase(_playlist->readyItems.begin() + i);
+                break;
+            }
+        }
+    }
+}
+
+void PlaylistEventHandler_Client::_CheckForItemRemoveDeny()
+{
+    while (_itemRemoveDenyReceiver->PacketCount() > 0)
+    {
+        // Process packet
+        auto packetPair = _itemRemoveDenyReceiver->GetPacket();
+        znet::Packet packet = std::move(packetPair.first);
+        int64_t userId = packetPair.second;
+        if (userId != 0)
+            continue;
+
+        int64_t mediaId = packet.Cast<int64_t>();
+
+        // Find item
+        for (int i = 0; i < _playlist->readyItems.size(); i++)
+        {
+            if (_playlist->readyItems[i]->GetMediaId() == mediaId)
+            {
+                // Remove from pending
+                for (int j = 0; j < _playlist->pendingItemDeletes.size(); j++)
+                {
+                    if (_playlist->pendingItemDeletes[j] == _playlist->readyItems[i]->GetItemId())
+                    {
+                        _playlist->pendingItemDeletes.erase(_playlist->pendingItemDeletes.begin() + j);
+                        break;
+                    }
+                }
                 break;
             }
         }
@@ -366,6 +429,27 @@ void PlaylistEventHandler_Client::_CheckForStart()
     }
 }
 
+void PlaylistEventHandler_Client::_CheckForStartDeny()
+{
+    while (_playbackStartDenyReceiver->PacketCount() > 0)
+    {
+        // Process packet
+        auto packetPair = _playbackStartReceiver->GetPacket();
+        znet::Packet packet = std::move(packetPair.first);
+        int64_t userId = packetPair.second;
+        if (userId != 0)
+            continue;
+
+        // Abort playback start
+        if (_playlist->currentlyStarting != -1)
+        {
+            _playlist->currentlyStarting = -1;
+            if (_playbackParticipationTracker)
+                _playbackParticipationTracker.reset();
+        }
+    }
+}
+
 void PlaylistEventHandler_Client::_CheckForStop()
 {
     while (_playbackStopReceiver->PacketCount() > 0)
@@ -384,6 +468,22 @@ void PlaylistEventHandler_Client::_CheckForStop()
         App::Instance()->UninitScene(PlaybackScene::StaticName());
         _playlist->currentlyPlaying = -1;
         _playlist->pendingItemStop = -1;
+    }
+}
+
+void PlaylistEventHandler_Client::_CheckForStopDeny()
+{
+    while (_playbackStopDenyReceiver->PacketCount() > 0)
+    {
+        // Process packet
+        auto packetPair = _playbackStopDenyReceiver->GetPacket();
+        znet::Packet packet = std::move(packetPair.first);
+        int64_t userId = packetPair.second;
+        if (userId != 0)
+            continue;
+
+        if (_playlist->pendingItemStop != -1)
+            _playlist->pendingItemStop = -1;
     }
 }
 
@@ -438,6 +538,39 @@ void PlaylistEventHandler_Client::_CheckForItemMove()
     }
 }
 
+void PlaylistEventHandler_Client::_CheckForItemMoveDeny()
+{
+    while (_itemMoveDenyReceiver->PacketCount() > 0)
+    {
+        // Process packet
+        auto packetPair = _itemMoveDenyReceiver->GetPacket();
+        znet::Packet packet = std::move(packetPair.first);
+        int64_t userId = packetPair.second;
+        if (userId != 0)
+            continue;
+
+        int64_t mediaId = packet.Cast<int64_t>();
+
+        // Find item
+        for (int i = 0; i < _playlist->readyItems.size(); i++)
+        {
+            if (_playlist->readyItems[i]->GetMediaId() == mediaId)
+            {
+                // Remove from pending
+                for (int j = 0; j < _playlist->pendingItemMoves.size(); j++)
+                {
+                    if (_playlist->pendingItemMoves[j].first == _playlist->readyItems[i]->GetItemId())
+                    {
+                        _playlist->pendingItemMoves.erase(_playlist->pendingItemMoves.begin() + j);
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+    }
+}
+
 void PlaylistEventHandler_Client::_ManageLoadingItems()
 {
     for (int i = 0; i < _playlist->loadingItems.size(); i++)
@@ -468,6 +601,7 @@ void PlaylistEventHandler_Client::_TrackParticipations()
 {
     if (_playbackParticipationTracker)
     {
+        // AllReceived() is true if timeout is reached
         if (_playbackParticipationTracker->AllReceived())
         {
             auto participants = _playbackParticipationTracker->Accepted();
@@ -495,7 +629,8 @@ void PlaylistEventHandler_Client::_TrackParticipations()
             }
             else
             {
-                // TODO: return error on start fail
+                // Send stop request
+                znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_REQUEST), { 0 });
             }
             
             _playlist->currentlyStarting = -1;
