@@ -13,6 +13,7 @@
 PlaylistEventHandler_Client::PlaylistEventHandler_Client(Playlist_Internal* playlist)
     : IPlaylistEventHandler(playlist)
 {
+    _userDisconnectedReceiver   = std::make_unique<EventReceiver<UserDisconnectedEvent>>(&App::Instance()->events);
     _itemAddReceiver            = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_ADD);
     _itemAddDenyReceiver        = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_ADD_DENIED);
     _itemRemoveReceiver         = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_REMOVE);
@@ -76,8 +77,7 @@ PlaylistEventHandler_Client::~PlaylistEventHandler_Client()
 
 void PlaylistEventHandler_Client::Update()
 {
-    // TODO: add timeout for playback request response
-
+    _CheckForUserDisconnect();
     _CheckForItemAdd();
     _CheckForItemRemove();
     _CheckForStartOrder();
@@ -146,6 +146,14 @@ void PlaylistEventHandler_Client::OnStopItemRequest(int64_t itemId)
     {
         if (_playlist->readyItems[i]->GetItemId() == itemId)
         {
+            // Abort playback start
+            if (_playlist->currentlyStarting != -1)
+            {
+                _playlist->currentlyStarting = -1;
+                if (_playbackParticipationTracker)
+                    _playbackParticipationTracker.reset();
+            }
+
             // Send stop request
             znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_REQUEST), { 0 });
 
@@ -175,6 +183,23 @@ void PlaylistEventHandler_Client::OnMoveItemRequest(int64_t itemId, int slot)
 
             _playlist->pendingItemMoves.push_back({ itemId, slot });
             return;
+        }
+    }
+}
+
+void PlaylistEventHandler_Client::_CheckForUserDisconnect()
+{
+    while (_userDisconnectedReceiver->EventCount() > 0)
+    {
+        auto ev = _userDisconnectedReceiver->GetEvent();
+
+        // Mark hosted items as 'host missing'
+        for (int i = 0; i < _playlist->readyItems.size(); i++)
+        {
+            if (_playlist->readyItems[i]->GetUserId() == ev.userId)
+            {
+                _playlist->readyItems[i]->SetUserId(MISSING_HOST_ID);
+            }
         }
     }
 }

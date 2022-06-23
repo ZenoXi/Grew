@@ -445,6 +445,9 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
         _readyItems[i]->SetBaseHeight(25);
         _readyItems[i]->SetVerticalOffsetPixels(25 * i);
         _readyItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.03f * (i % 2)));
+        _readyItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_PLAY | zcom::OverlayPlaylistItem::BTN_DELETE);
+
+        // Starting/Playing
         if (_readyItems[i]->GetItemId() == App::Instance()->playlist.CurrentlyPlaying())
         {
             _readyItems[i]->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
@@ -456,13 +459,15 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
             _readyItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_STOP);
             _readyItems[i]->SetCustomStatus(L"Starting..");
         }
-        else
-        {
-            _readyItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_PLAY | zcom::OverlayPlaylistItem::BTN_DELETE);
-        }
+
+        // Host missing
         if (_readyItems[i]->HostMissing())
         {
             _readyItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_DELETE);
+            if (_readyItems[i]->GetItemId() == App::Instance()->playlist.CurrentlyPlaying())
+                _readyItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_STOP);
+            if (_readyItems[i]->GetItemId() == App::Instance()->playlist.CurrentlyStarting())
+                _readyItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_STOP);
             _readyItems[i]->SetCustomStatus(L"Host missing..");
         }
         _readyItemPanel->AddItem(_readyItems[i]);

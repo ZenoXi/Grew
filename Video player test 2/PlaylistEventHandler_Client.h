@@ -3,6 +3,8 @@
 #include "IPlaylistEventHandler.h"
 
 #include "PacketSubscriber.h"
+#include "EventSubscriber.h"
+#include "NetworkEvents.h"
 
 #include <memory>
 
@@ -23,6 +25,7 @@ public:
 private:
     int64_t _userId = -1;
 
+    std::unique_ptr<EventReceiver<UserDisconnectedEvent>> _userDisconnectedReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _itemAddReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _itemAddDenyReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _itemRemoveReceiver = nullptr;
@@ -35,6 +38,7 @@ private:
     std::unique_ptr<znet::PacketReceiver> _itemMoveReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _itemMoveDenyReceiver = nullptr;
 
+    void _CheckForUserDisconnect();
     void _CheckForItemAdd();
     void _CheckForItemAddDeny();
     void _CheckForItemRemove();
