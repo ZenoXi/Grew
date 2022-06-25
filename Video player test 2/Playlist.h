@@ -46,10 +46,10 @@ public:
     ~Playlist();
 
     void Request_AddItem(std::unique_ptr<PlaylistItem> item);
-    void Request_DeleteItem(uint64_t itemId);
-    void Request_PlayItem(uint64_t itemId);
-    void Request_StopItem(uint64_t itemId);
-    void Request_MoveItem(uint64_t itemId, int slot);
+    void Request_DeleteItem(int64_t itemId);
+    void Request_PlayItem(int64_t itemId);
+    void Request_StopItem(int64_t itemId);
+    void Request_MoveItem(int64_t itemId, int slot);
 
     std::vector<PlaylistItem*> ReadyItems() const;
     std::vector<PlaylistItem*> PendingItems() const;

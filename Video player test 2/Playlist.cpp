@@ -45,22 +45,22 @@ void Playlist::Request_AddItem(std::unique_ptr<PlaylistItem> item)
     _eventHandler->OnAddItemRequest(std::move(item));
 }
 
-void Playlist::Request_DeleteItem(uint64_t itemId)
+void Playlist::Request_DeleteItem(int64_t itemId)
 {
     _eventHandler->OnDeleteItemRequest(itemId);
 }
 
-void Playlist::Request_PlayItem(uint64_t itemId)
+void Playlist::Request_PlayItem(int64_t itemId)
 {
     _eventHandler->OnPlayItemRequest(itemId);
 }
 
-void Playlist::Request_StopItem(uint64_t itemId)
+void Playlist::Request_StopItem(int64_t itemId)
 {
     _eventHandler->OnStopItemRequest(itemId);
 }
 
-void Playlist::Request_MoveItem(uint64_t itemId, int slot)
+void Playlist::Request_MoveItem(int64_t itemId, int slot)
 {
     _eventHandler->OnMoveItemRequest(itemId, slot);
 }
