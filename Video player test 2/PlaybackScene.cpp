@@ -41,7 +41,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _controlBarBackground->SetParentSizePercent(1.0f, 1.0f);
     _controlBarBackground->SetZIndex(-2);
 
-    _seekBar = new zcom::SeekBar(1000000); // Placeholder duration until data provider loads
+    _seekBar = std::make_unique<zcom::SeekBar>(1000000); // Placeholder duration until data provider loads
     _seekBar->SetParentWidthPercent(1.0f);
     _seekBar->SetBaseWidth(-20);
     _seekBar->SetHorizontalOffsetPercent(0.5f);
@@ -120,14 +120,14 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _timeHoverPanel->AddItem(_timeLabel.get());
     _timeHoverPanel->AddItem(_chapterLabel.get());
 
-    _volumeSlider = new zcom::VolumeSlider(0.0f);
+    _volumeSlider = std::make_unique<zcom::VolumeSlider>(0.0f);
     _volumeSlider->SetBaseWidth(30);
     _volumeSlider->SetBaseHeight(30);
     _volumeSlider->SetHorizontalOffsetPixels(80);
     _volumeSlider->SetVerticalAlignment(zcom::Alignment::END);
     _volumeSlider->SetVerticalOffsetPixels(-5);
 
-    _playButton = new zcom::PlayButton();
+    _playButton = std::make_unique<zcom::PlayButton>();
     _playButton->SetBaseWidth(30);
     _playButton->SetBaseHeight(30);
     _playButton->SetHorizontalOffsetPercent(0.5f);
@@ -135,7 +135,66 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _playButton->SetVerticalOffsetPixels(-5);
     _playButton->SetPaused(true);
 
-    _overlayButton = new zcom::Button(L"");
+    _playNextButton = std::make_unique<zcom::Button>(L"");
+    _playNextButton->SetBaseSize(30, 30);
+    _playNextButton->SetHorizontalOffsetPercent(0.5f);
+    _playNextButton->SetHorizontalOffsetPixels(40);
+    _playNextButton->SetVerticalAlignment(zcom::Alignment::END);
+    _playNextButton->SetVerticalOffsetPixels(-5);
+    _playNextButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
+    _playNextButton->SetButtonImage(ResourceManager::GetImage("play_next_dim"));
+    _playNextButton->SetButtonHoverImage(ResourceManager::GetImage("play_next"));
+    _playNextButton->SetButtonClickImage(ResourceManager::GetImage("play_next"));
+    _playNextButton->SetSelectable(false);
+    _playNextButton->SetActivation(zcom::ButtonActivation::RELEASE);
+    _playNextButton->SetOnActivated([&]()
+    {
+        // Find currently playing item
+        auto readyItems = App::Instance()->playlist.ReadyItems();
+        for (int i = 0; i < readyItems.size(); i++)
+        {
+            if (readyItems[i]->GetItemId() == App::Instance()->playlist.CurrentlyPlaying())
+            {
+                if (i < readyItems.size() - 1)
+                    App::Instance()->playlist.Request_PlayItem(readyItems[i + 1]->GetItemId());
+                else
+                    App::Instance()->playlist.Request_PlayItem(readyItems[0]->GetItemId());
+                break;
+            }
+        }
+    });
+
+    _playPreviousButton = std::make_unique<zcom::Button>(L"");
+    _playPreviousButton->SetBaseSize(30, 30);
+    _playPreviousButton->SetHorizontalOffsetPercent(0.5f);
+    _playPreviousButton->SetHorizontalOffsetPixels(-40);
+    _playPreviousButton->SetVerticalAlignment(zcom::Alignment::END);
+    _playPreviousButton->SetVerticalOffsetPixels(-5);
+    _playPreviousButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
+    _playPreviousButton->SetButtonImage(ResourceManager::GetImage("play_previous_dim"));
+    _playPreviousButton->SetButtonHoverImage(ResourceManager::GetImage("play_previous"));
+    _playPreviousButton->SetButtonClickImage(ResourceManager::GetImage("play_previous"));
+    _playPreviousButton->SetSelectable(false);
+    _playPreviousButton->SetActivation(zcom::ButtonActivation::RELEASE);
+    _playPreviousButton->SetOnActivated([&]()
+    {
+        // Find currently playing item
+        auto readyItems = App::Instance()->playlist.ReadyItems();
+        for (int i = 0; i < readyItems.size(); i++)
+        {
+            if (readyItems[i]->GetItemId() == App::Instance()->playlist.CurrentlyPlaying())
+            {
+                // Play previous if available
+                if (i > 0)
+                    App::Instance()->playlist.Request_PlayItem(readyItems[i - 1]->GetItemId());
+                else
+                    App::Instance()->playlist.Request_PlayItem(readyItems.back()->GetItemId());
+                break;
+            }
+        }
+    });
+
+    _overlayButton = std::make_unique<zcom::Button>(L"");
     _overlayButton->SetBaseSize(30, 30);
     _overlayButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
     _overlayButton->SetOffsetPixels(-120, -5);
@@ -220,21 +279,23 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
         }
     });
 
-    _loadingCircle = new zcom::LoadingCircle();
+    _loadingCircle = std::make_unique<zcom::LoadingCircle>();
     _loadingCircle->SetBaseSize(100, 180);
     _loadingCircle->SetOffsetPercent(0.5f, 0.5f);
     _loadingCircle->SetVerticalOffsetPixels(40);
     _loadingCircle->SetVisible(false);
 
     _controlBar->AddItem(_controlBarBackground.get());
-    _controlBar->AddItem(_seekBar);
-    _controlBar->AddItem(_volumeSlider);
-    _controlBar->AddItem(_playButton);
-    _controlBar->AddItem(_overlayButton);
+    _controlBar->AddItem(_seekBar.get());
+    _controlBar->AddItem(_volumeSlider.get());
+    _controlBar->AddItem(_playButton.get());
+    _controlBar->AddItem(_playNextButton.get());
+    _controlBar->AddItem(_playPreviousButton.get());
+    _controlBar->AddItem(_overlayButton.get());
     _controlBar->AddItem(_settingsButton.get());
     _controlBar->AddItem(_fullscreenButton.get());
 
-    _playbackControllerPanel = new zcom::PlaybackControllerPanel(_controlBar);
+    _playbackControllerPanel = std::make_unique<zcom::PlaybackControllerPanel>(_controlBar);
     _playbackControllerPanel->SetParentSizePercent(1.0f, 1.0f);
     _playbackControllerPanel->AddItem(_controlBar);
     //_playbackControllerPanel->SetZIndex(NOTIF_PANEL_Z_INDEX + 1); // Place above notification panel
@@ -274,11 +335,11 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
 
     _canvas->AddComponent(_skipBackwardsIcon.get());
     _canvas->AddComponent(_skipForwardsIcon.get());
-    _canvas->AddComponent(_loadingCircle);
+    _canvas->AddComponent(_loadingCircle.get());
     _canvas->AddComponent(_pauseIcon.get());
     _canvas->AddComponent(_resumeIcon.get());
     _canvas->AddComponent(_volumeIcon.get());
-    _canvas->AddComponent(_playbackControllerPanel);
+    _canvas->AddComponent(_playbackControllerPanel.get());
     _canvas->AddComponent(_timeHoverPanel.get());
     _canvas->AddComponent(_streamMenuPanel.get());
     _canvas->AddComponent(_videoStreamMenuPanel.get());
@@ -293,19 +354,16 @@ void PlaybackScene::_Uninit()
 
     _canvas->ClearComponents();
     _controlBar->ClearItems();
-    delete _playbackControllerPanel;
-    delete _controlBar;
-    delete _seekBar;
-    delete _volumeSlider;
-    delete _playButton;
-    delete _overlayButton;
-    delete _loadingCircle;
+    _playbackControllerPanel->ClearItems();
+    _timeHoverPanel->ClearItems();
 
     _controlBar = nullptr;
     _controlBarBackground = nullptr;
     _seekBar = nullptr;
     _volumeSlider = nullptr;
     _playButton = nullptr;
+    _playNextButton = nullptr;
+    _playPreviousButton = nullptr;
     _playbackControllerPanel = nullptr;
     _overlayButton = nullptr;
     _fullscreenButton = nullptr;

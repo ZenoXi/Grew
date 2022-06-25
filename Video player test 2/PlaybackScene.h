@@ -44,13 +44,15 @@ class PlaybackScene : public Scene
     zcom::Panel* _controlBar = nullptr;
     
     std::unique_ptr<zcom::ControlBarBackground> _controlBarBackground = nullptr;
-    zcom::SeekBar* _seekBar = nullptr;
-    zcom::VolumeSlider* _volumeSlider = nullptr;
-    zcom::PlayButton* _playButton = nullptr;
-    zcom::PlaybackControllerPanel* _playbackControllerPanel = nullptr;
-    zcom::Button* _overlayButton = nullptr;
+    std::unique_ptr<zcom::SeekBar> _seekBar = nullptr;
+    std::unique_ptr<zcom::VolumeSlider> _volumeSlider = nullptr;
+    std::unique_ptr<zcom::PlayButton> _playButton = nullptr;
+    std::unique_ptr<zcom::Button> _playNextButton = nullptr;
+    std::unique_ptr<zcom::Button> _playPreviousButton = nullptr;
+    std::unique_ptr<zcom::PlaybackControllerPanel> _playbackControllerPanel = nullptr;
+    std::unique_ptr<zcom::Button> _overlayButton = nullptr;
     std::unique_ptr<zcom::Button> _fullscreenButton = nullptr;
-    zcom::LoadingCircle* _loadingCircle = nullptr;
+    std::unique_ptr<zcom::LoadingCircle> _loadingCircle = nullptr;
     std::unique_ptr<zcom::FastForwardIcon> _skipBackwardsIcon = nullptr;
     std::unique_ptr<zcom::FastForwardIcon> _skipForwardsIcon = nullptr;
     std::unique_ptr<zcom::PauseIcon> _pauseIcon = nullptr;
