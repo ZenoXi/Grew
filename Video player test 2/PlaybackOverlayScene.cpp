@@ -20,6 +20,9 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         opt = *reinterpret_cast<const PlaybackOverlaySceneOptions*>(options);
     }
 
+    // Init playlist changed receiver
+    _playlistChangedReceiver = std::make_unique<EventReceiver<PlaylistChangedEvent>>(&App::Instance()->events);
+
     // Set up shortcut handler
     _shortcutHandler = std::make_unique<PlaybackOverlayShortcutHandler>();
     _shortcutHandler->AddOnKeyDown([&](BYTE keyCode)
@@ -282,6 +285,8 @@ void PlaybackOverlayScene::_Update()
         }
     }
 
+    _InvokePlaylistChange();
+
     // Process connected user changes
     _ProcessCurrentUsers();
 
@@ -426,6 +431,10 @@ void PlaybackOverlayScene::_Resize(int width, int height)
 
 void PlaybackOverlayScene::_RearrangePlaylistPanel()
 {
+    if (!_playlistChanged)
+        return;
+    _playlistChanged = false;
+
     auto moveColor = D2D1::ColorF(D2D1::ColorF::DodgerBlue);
     moveColor.r *= 0.4f;
     moveColor.g *= 0.4f;
@@ -435,10 +444,6 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
     playColor.g *= 0.3f;
     playColor.b *= 0.3f;
 
-    // Uncomment when playlist event handling is added
-    //if (!_playlistChanged)
-    //    return;
-    _playlistChanged = false;
     _readyItemPanel->ClearItems();
     _loadingItemPanel->ClearItems();
     _readyItems.clear();
@@ -949,6 +954,22 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel_Client()
     _connectedUsersPanel->Resize();
 }
 
+void PlaybackOverlayScene::_InvokePlaylistChange()
+{
+    while (_playlistChangedReceiver->EventCount() > 0)
+    {
+        _playlistChangedReceiver->GetEvent();
+        _playlistChanged = true;
+    }
+
+    // Update periodically to account for any bugged cases
+    if (ztime::Main() - _lastPlaylistUpdate > _playlistUpdateInterval)
+    {
+        _lastPlaylistUpdate = ztime::Main();
+        _playlistChanged = true;
+    }
+}
+
 void PlaybackOverlayScene::_HandlePlaylistLeftClick(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y)
 {
     if (targets.empty())
@@ -982,6 +1003,8 @@ void PlaybackOverlayScene::_HandlePlaylistLeftRelease(zcom::Base* item, int x, i
             slot = 0;
         App::Instance()->playlist.Request_MoveItem(_heldItemId, slot);
         _heldItemId = -1;
+        // Set flag here, because Request_MoveItem has edge cases where it doesn't do that itself
+        _playlistChanged = true;
     }
 }
 
@@ -989,6 +1012,8 @@ void PlaybackOverlayScene::_HandlePlaylistMouseMove(zcom::Base* item, int x, int
 {
     if (_heldItemId != -1)
     {
+        _playlistChanged = true;
+
         _currentMouseYPos = y +_readyItemPanel->VisualVerticalScroll();
         if (abs(_clickYPos - _currentMouseYPos) > 3)
         {

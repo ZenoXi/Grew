@@ -35,8 +35,6 @@ PlaylistEventHandler_Server::~PlaylistEventHandler_Server()
 
 void PlaylistEventHandler_Server::Update()
 {
-    // TODO: add timeout for playback order response
-
     _CheckForUserDisconnect();
     // Playlist requests should be processed before item add requests
     // to prevent incorrect playlist ordering for new clients

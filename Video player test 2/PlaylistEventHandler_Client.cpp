@@ -2,6 +2,7 @@
 #include "Playlist.h"
 
 #include "App.h"
+#include "PlaylistEvents.h"
 #include "PlaybackScene.h"
 #include "MediaReceiverDataProvider.h"
 #include "MediaHostDataProvider.h"
@@ -60,6 +61,8 @@ PlaylistEventHandler_Client::PlaylistEventHandler_Client(Playlist_Internal* play
         _playlist->pendingItems.push_back(std::move(_playlist->readyItems[i]));
     }
     _playlist->readyItems.clear();
+
+    App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
 }
 
 PlaylistEventHandler_Client::~PlaylistEventHandler_Client()
@@ -96,6 +99,7 @@ void PlaylistEventHandler_Client::Update()
 void PlaylistEventHandler_Client::OnAddItemRequest(std::unique_ptr<PlaylistItem> item)
 {
     _playlist->loadingItems.push_back(std::move(item));
+    App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
 }
 
 void PlaylistEventHandler_Client::OnDeleteItemRequest(int64_t itemId)
@@ -110,6 +114,7 @@ void PlaylistEventHandler_Client::OnDeleteItemRequest(int64_t itemId)
                 Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_REMOVE_REQUEST).From(_playlist->readyItems[i]->GetMediaId()), { 0 });
 
             _playlist->pendingItemDeletes.push_back(_playlist->readyItems[i]->GetItemId());
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
             return;
         }
     }
@@ -120,6 +125,7 @@ void PlaylistEventHandler_Client::OnDeleteItemRequest(int64_t itemId)
         if (_playlist->loadingItems[i]->GetItemId() == itemId)
         {
             _playlist->loadingItems.erase(_playlist->loadingItems.begin() + i);
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
             return;
         }
     }
@@ -139,6 +145,7 @@ void PlaylistEventHandler_Client::OnPlayItemRequest(int64_t itemId)
                 Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_REQUEST).From(_playlist->readyItems[i]->GetMediaId()), { 0 });
 
             _playlist->currentlyStarting = itemId;
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
             return;
         }
     }
@@ -162,6 +169,7 @@ void PlaylistEventHandler_Client::OnStopItemRequest(int64_t itemId)
             znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_REQUEST), { 0 });
 
             _playlist->pendingItemStop = itemId;
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
             return;
         }
     }
@@ -196,6 +204,7 @@ void PlaylistEventHandler_Client::OnMoveItemRequest(int64_t itemId, int slot)
                 Send(znet::Packet(builder.Release(), builder.UsedBytes(), (int)znet::PacketType::PLAYLIST_ITEM_MOVE_REQUEST), { 0 });
 
             _playlist->pendingItemMoves.push_back({ itemId, slot });
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
             return;
         }
     }
@@ -215,6 +224,8 @@ void PlaylistEventHandler_Client::_CheckForUserDisconnect()
                 _playlist->readyItems[i]->SetUserId(MISSING_HOST_ID);
             }
         }
+
+        App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
     }
 }
 
@@ -276,6 +287,8 @@ void PlaylistEventHandler_Client::_CheckForItemAdd()
             // Add item to internal playlist
             _playlist->readyItems.push_back(std::move(item));
         }
+
+        App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
     }
 }
 
@@ -298,6 +311,7 @@ void PlaylistEventHandler_Client::_CheckForItemAddDeny()
             if (_playlist->pendingItems[i]->GetItemId() == callbackId)
             {
                 _playlist->pendingItems[i]->SetMediaId(ADD_DENIED_MEDIA_ID);
+                App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
                 break;
             }
         }
@@ -334,6 +348,7 @@ void PlaylistEventHandler_Client::_CheckForItemRemove()
                 }
 
                 _playlist->readyItems.erase(_playlist->readyItems.begin() + i);
+                App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
                 break;
             }
         }
@@ -367,6 +382,7 @@ void PlaylistEventHandler_Client::_CheckForItemRemoveDeny()
                         break;
                     }
                 }
+                App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
                 break;
             }
         }
@@ -418,6 +434,8 @@ void PlaylistEventHandler_Client::_CheckForStartOrder()
             // Send playback decline
             znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_RESPONSE).From(int8_t(0)), { 0 });
         }
+
+        App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
     }
 }
 
@@ -465,6 +483,8 @@ void PlaylistEventHandler_Client::_CheckForStart()
             // Send participation decline
             znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_CONFIRMATION).From(int8_t(1)), { hostId });
         }
+
+        App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
     }
 }
 
@@ -485,6 +505,8 @@ void PlaylistEventHandler_Client::_CheckForStartDeny()
             _playlist->currentlyStarting = -1;
             if (_playbackParticipationTracker)
                 _playbackParticipationTracker.reset();
+
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
         }
     }
 }
@@ -507,6 +529,8 @@ void PlaylistEventHandler_Client::_CheckForStop()
         App::Instance()->UninitScene(PlaybackScene::StaticName());
         _playlist->currentlyPlaying = -1;
         _playlist->pendingItemStop = -1;
+
+        App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
     }
 }
 
@@ -522,7 +546,10 @@ void PlaylistEventHandler_Client::_CheckForStopDeny()
             continue;
 
         if (_playlist->pendingItemStop != -1)
+        {
             _playlist->pendingItemStop = -1;
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
+        }
     }
 }
 
@@ -571,6 +598,7 @@ void PlaylistEventHandler_Client::_CheckForItemMove()
                 else
                     std::rotate(v.begin() + oldIndex, v.begin() + oldIndex + 1, v.begin() + newIndex + 1);
 
+                App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
                 break;
             }
         }
@@ -604,6 +632,7 @@ void PlaylistEventHandler_Client::_CheckForItemMoveDeny()
                         break;
                     }
                 }
+                App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
                 break;
             }
         }
@@ -674,6 +703,7 @@ void PlaylistEventHandler_Client::_TrackParticipations()
             
             _playlist->currentlyStarting = -1;
             _playbackParticipationTracker.reset();
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
         }
     }
 }

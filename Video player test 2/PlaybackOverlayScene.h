@@ -3,6 +3,7 @@
 #include "Scene.h"
 #include "PlaybackScene.h"
 #include "PacketSubscriber.h"
+#include "PlaylistEvents.h"
 
 #include "Label.h"
 #include "TextInput.h"
@@ -31,7 +32,6 @@ class PlaybackOverlayScene : public Scene
     std::vector<zcom::OverlayPlaylistItem*> _readyItems;
     std::vector<zcom::OverlayPlaylistItem*> _pendingItems;
     std::vector<zcom::OverlayPlaylistItem*> _loadingItems;
-    bool _playlistChanged = false;
     bool _addingFile = false;
     std::unique_ptr<AsyncFileDialog> _fileDialog = nullptr;
     std::unique_ptr<zcom::Button> _addFileButton = nullptr;
@@ -89,6 +89,14 @@ private:
     void _RearrangeNetworkPanel_Offline();
     void _RearrangeNetworkPanel_Server();
     void _RearrangeNetworkPanel_Client();
+
+    // Playlist change tracking
+
+    std::unique_ptr<EventReceiver<PlaylistChangedEvent>> _playlistChangedReceiver = nullptr;
+    bool _playlistChanged = false;
+    TimePoint _lastPlaylistUpdate = 0;
+    Duration _playlistUpdateInterval = Duration(5, SECONDS);
+    void _InvokePlaylistChange();
 
     // Playlist item reordering
 

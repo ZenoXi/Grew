@@ -2,6 +2,7 @@
 #include "Playlist.h"
 
 #include "App.h"
+#include "PlaylistEvents.h"
 #include "PlaybackScene.h"
 
 PlaylistEventHandler_Offline::PlaylistEventHandler_Offline(Playlist_Internal* playlist)
@@ -35,6 +36,7 @@ void PlaylistEventHandler_Offline::Update()
 void PlaylistEventHandler_Offline::OnAddItemRequest(std::unique_ptr<PlaylistItem> item)
 {
     _playlist->loadingItems.push_back(std::move(item));
+    App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
 }
 
 void PlaylistEventHandler_Offline::OnDeleteItemRequest(int64_t itemId)
@@ -45,6 +47,7 @@ void PlaylistEventHandler_Offline::OnDeleteItemRequest(int64_t itemId)
         if (_playlist->readyItems[i]->GetItemId() == itemId)
         {
             _playlist->readyItems.erase(_playlist->readyItems.begin() + i);
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
             return;
         }
     }
@@ -55,6 +58,7 @@ void PlaylistEventHandler_Offline::OnDeleteItemRequest(int64_t itemId)
         if (_playlist->loadingItems[i]->GetItemId() == itemId)
         {
             _playlist->loadingItems.erase(_playlist->loadingItems.begin() + i);
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
             return;
         }
     }
@@ -65,6 +69,7 @@ void PlaylistEventHandler_Offline::OnDeleteItemRequest(int64_t itemId)
         if (_playlist->pendingItems[i]->GetItemId() == itemId)
         {
             _playlist->pendingItems.erase(_playlist->pendingItems.begin() + i);
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
             return;
         }
     }
@@ -82,6 +87,7 @@ void PlaylistEventHandler_Offline::OnPlayItemRequest(int64_t itemId)
             App::Instance()->playback.Start(std::move(dataProvider), std::move(controller));
             App::Instance()->ReinitScene(PlaybackScene::StaticName(), nullptr);
             _playlist->currentlyPlaying = itemId;
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
             return;
         }
     }
@@ -96,6 +102,7 @@ void PlaylistEventHandler_Offline::OnPlayItemRequest(int64_t itemId)
             App::Instance()->playback.Start(std::move(dataProvider), std::move(controller));
             App::Instance()->ReinitScene(PlaybackScene::StaticName(), nullptr);
             _playlist->currentlyPlaying = itemId;
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
             return;
         }
     }
@@ -112,6 +119,7 @@ void PlaylistEventHandler_Offline::OnStopItemRequest(int64_t itemId)
                 App::Instance()->playback.Stop();
                 App::Instance()->UninitScene(PlaybackScene::StaticName());
                 _playlist->currentlyPlaying = -1;
+                App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
             }
             return;
         }
@@ -137,6 +145,8 @@ void PlaylistEventHandler_Offline::OnMoveItemRequest(int64_t itemId, int slot)
                 std::rotate(v.rend() - oldIndex - 1, v.rend() - oldIndex, v.rend() - newIndex);
             else
                 std::rotate(v.begin() + oldIndex, v.begin() + oldIndex + 1, v.begin() + newIndex + 1);
+
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
             return;
         }
     }
@@ -153,6 +163,7 @@ void PlaylistEventHandler_Offline::_ManageLoadingItems()
             _playlist->readyItems.push_back(std::move(_playlist->loadingItems[i]));
             _playlist->loadingItems.erase(_playlist->loadingItems.begin() + i);
             i--;
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
         }
     }
 }
