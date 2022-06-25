@@ -176,7 +176,17 @@ void PlaylistEventHandler_Client::OnMoveItemRequest(int64_t itemId, int slot)
     {
         if (_playlist->readyItems[i]->GetItemId() == itemId)
         {
-            if (slot == i)
+            // Moving to current slot is allowed only when a different move is already pending
+            bool movePending = false;
+            for (auto& move : _playlist->pendingItemMoves)
+            {
+                if (move.first == itemId)
+                {
+                    movePending = true;
+                    break;
+                }
+            }
+            if (slot == i && !movePending)
                 return;
 
             // Send move request

@@ -90,6 +90,18 @@ private:
     void _RearrangeNetworkPanel_Server();
     void _RearrangeNetworkPanel_Client();
 
-private:
+    // Playlist item reordering
+
+    int64_t _heldItemId = -1;
+    int _clickYPos = 0;
+    int _currentMouseYPos = 0;
+    bool _movedFar = false;
+
+    void _HandlePlaylistLeftClick(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y);
+    void _HandlePlaylistLeftRelease(zcom::Base* item, int x, int y);
+    void _HandlePlaylistMouseMove(zcom::Base* item, int x, int y);
+
+    // Shorcut handling
+
     bool _HandleKeyDown(BYTE keyCode);
 };

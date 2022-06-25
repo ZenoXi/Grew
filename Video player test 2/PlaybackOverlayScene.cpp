@@ -41,6 +41,9 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     shadowProps.blurStandardDeviation = 5.0f;
     shadowProps.color = D2D1::ColorF(0, 1.0f);
     _playlistPanel->SetProperty(shadowProps);
+    _playlistPanel->AddPostLeftPressed([=](zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y) { _HandlePlaylistLeftClick(item, targets, x, y); }, { this });
+    _playlistPanel->AddOnLeftReleased([=](zcom::Base* item, int x, int y) { _HandlePlaylistLeftRelease(item, x, y); }, { this });
+    _playlistPanel->AddOnMouseMove([=](zcom::Base* item, int x, int y) { _HandlePlaylistMouseMove(item, x, y); }, { this });
 
     _readyItemPanel = std::make_unique<zcom::Panel>();
     _readyItemPanel->SetParentSizePercent(1.0f, 1.0f);
@@ -423,6 +426,15 @@ void PlaybackOverlayScene::_Resize(int width, int height)
 
 void PlaybackOverlayScene::_RearrangePlaylistPanel()
 {
+    auto moveColor = D2D1::ColorF(D2D1::ColorF::DodgerBlue);
+    moveColor.r *= 0.4f;
+    moveColor.g *= 0.4f;
+    moveColor.b *= 0.4f;
+    auto playColor = D2D1::ColorF(D2D1::ColorF::Orange);
+    playColor.r *= 0.3f;
+    playColor.g *= 0.3f;
+    playColor.b *= 0.3f;
+
     // Uncomment when playlist event handling is added
     //if (!_playlistChanged)
     //    return;
@@ -438,13 +450,63 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
     _SplitItems();
     _SortItems();
 
+    const int ITEM_HEIGHT = 25;
+
     // Add ready items
+    int currentHeight = 0;
+    int currentItem = 0;
     for (int i = 0; i < _readyItems.size(); i++)
     {
         _readyItems[i]->SetParentWidthPercent(1.0f);
-        _readyItems[i]->SetBaseHeight(25);
-        _readyItems[i]->SetVerticalOffsetPixels(25 * i);
-        _readyItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.03f * (i % 2)));
+        _readyItems[i]->SetBaseHeight(ITEM_HEIGHT);
+
+        _readyItems[i]->SetZIndex(0);
+        _readyItems[i]->SetOpacity(1.0f);
+        // Complex offsets when rearranging items
+        if (_heldItemId != -1 && _movedFar)
+        {
+            if (_readyItems[i]->GetItemId() == _heldItemId)
+            {
+                // Place the moving item above others
+                _readyItems[i]->SetZIndex(1);
+
+                // Give moved item a slightly blue background
+                _readyItems[i]->SetBackgroundColor(moveColor);
+
+                // Move item with cursor, bounded at playlist edges
+                int yPos = _currentMouseYPos - _readyItems[i]->GetBaseHeight() / 2;
+                if (yPos < 0)
+                    yPos = 0;
+                if (yPos > (_readyItems.size() - 1) * ITEM_HEIGHT)
+                    yPos = (_readyItems.size() - 1) * ITEM_HEIGHT;
+                _readyItems[i]->SetVerticalOffsetPixels(yPos);
+            }
+            else
+            {
+                // Calculate current slot of moved item
+                int currentSlot = _currentMouseYPos / ITEM_HEIGHT;
+                if (currentSlot >= _readyItems.size())
+                    currentSlot = _readyItems.size() - 1;
+                else if (currentSlot < 0)
+                    currentSlot = 0;
+
+                // Shift all items below moved item by 1 spot
+                if (currentItem == currentSlot)
+                    currentHeight += ITEM_HEIGHT;
+                currentItem++;
+
+                _readyItems[i]->SetVerticalOffsetPixels(currentHeight);
+                // Slightly ugly way to make sure every other line is highlighted
+                _readyItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.02f * ((currentHeight / ITEM_HEIGHT) % 2)));
+                currentHeight += ITEM_HEIGHT;
+            }
+        }
+        else
+        {
+            _readyItems[i]->SetVerticalOffsetPixels(currentHeight);
+            _readyItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.02f * (i % 2)));
+            currentHeight += ITEM_HEIGHT;
+        }
 
         Playlist& playlist = App::Instance()->playlist;
         bool playVisible = true;
@@ -476,14 +538,14 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
         // Starting/Playing
         if (_readyItems[i]->GetItemId() == playlist.CurrentlyPlaying())
         {
-            _readyItems[i]->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
+            _readyItems[i]->SetBackgroundColor(playColor);
             playVisible = false;
             deleteVisible = false;
             stopVisible = true;
         }
         else if (_readyItems[i]->GetItemId() == playlist.CurrentlyStarting())
         {
-            _readyItems[i]->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
+            _readyItems[i]->SetBackgroundColor(playColor);
             playVisible = false;
             deleteVisible = false;
             stopVisible = true;
@@ -522,9 +584,9 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
     for (int i = 0; i < _pendingItems.size(); i++)
     {
         _pendingItems[i]->SetParentWidthPercent(1.0f);
-        _pendingItems[i]->SetBaseHeight(25);
-        _pendingItems[i]->SetVerticalOffsetPixels(25 * i);
-        _pendingItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f * (i % 2)));
+        _pendingItems[i]->SetBaseHeight(ITEM_HEIGHT);
+        _pendingItems[i]->SetVerticalOffsetPixels(ITEM_HEIGHT * i);
+        _pendingItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.03f * (i % 2)));
         _pendingItems[i]->SetButtonVisibility(0);
         _pendingItems[i]->SetCustomStatus(L"Waiting for server..");
         _loadingItemPanel->AddItem(_pendingItems[i]);
@@ -533,9 +595,9 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
     for (int i = 0; i < _loadingItems.size(); i++)
     {
         _loadingItems[i]->SetParentWidthPercent(1.0f);
-        _loadingItems[i]->SetBaseHeight(25);
-        _loadingItems[i]->SetVerticalOffsetPixels(25 * (i + _pendingItems.size()));
-        _loadingItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f * ((i + _pendingItems.size()) % 2)));
+        _loadingItems[i]->SetBaseHeight(ITEM_HEIGHT);
+        _loadingItems[i]->SetVerticalOffsetPixels(ITEM_HEIGHT * (i + _pendingItems.size()));
+        _loadingItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.03f * ((i + _pendingItems.size()) % 2)));
         if (_loadingItems[i]->GetItemId() == App::Instance()->playlist.CurrentlyPlaying())
         {
             _loadingItems[i]->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
@@ -663,6 +725,26 @@ void PlaybackOverlayScene::_SortItems()
             {
                 if (j != i)
                     std::swap(_readyItems[i], _readyItems[j]);
+            }
+        }
+    }
+    // Reorder currently moving items
+    auto pendingMoves = App::Instance()->playlist.PendingItemMoves();
+    for (int i = 0; i < pendingMoves.size(); i++)
+    {
+        for (int j = 0; j < _readyItems.size(); j++)
+        {
+            if (_readyItems[j]->GetItemId() == pendingMoves[i].first)
+            {
+                int oldIndex = j;
+                int newIndex = pendingMoves[i].second;
+                auto& v = _readyItems;
+                if (oldIndex > newIndex)
+                    std::rotate(v.rend() - oldIndex - 1, v.rend() - oldIndex, v.rend() - newIndex);
+                else
+                    std::rotate(v.begin() + oldIndex, v.begin() + oldIndex + 1, v.begin() + newIndex + 1);
+
+                break;
             }
         }
     }
@@ -865,6 +947,54 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel_Client()
         _connectedUsersPanel->AddItem(usernameLabel, true);
     }
     _connectedUsersPanel->Resize();
+}
+
+void PlaybackOverlayScene::_HandlePlaylistLeftClick(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y)
+{
+    if (targets.empty())
+        return;
+
+    // If a button was clicked, don't handle
+    if (targets.front().target->GetName() == std::make_unique<zcom::Button>()->GetName())
+        return;
+
+    // Check if item was clicked
+    for (auto& target : targets)
+    {
+        if (target.target->GetName() == std::make_unique<zcom::OverlayPlaylistItem>(0)->GetName())
+        {
+            _heldItemId = ((zcom::OverlayPlaylistItem*)target.target)->GetItemId();
+            _clickYPos = y;
+            _movedFar = false;
+            return;
+        }
+    }
+}
+
+void PlaybackOverlayScene::_HandlePlaylistLeftRelease(zcom::Base* item, int x, int y)
+{
+    if (_heldItemId != -1)
+    {
+        int slot = y / 25;
+        if (slot >= _readyItems.size())
+            slot = _readyItems.size() - 1;
+        else if (slot < 0)
+            slot = 0;
+        App::Instance()->playlist.Request_MoveItem(_heldItemId, slot);
+        _heldItemId = -1;
+    }
+}
+
+void PlaybackOverlayScene::_HandlePlaylistMouseMove(zcom::Base* item, int x, int y)
+{
+    if (_heldItemId != -1)
+    {
+        _currentMouseYPos = y;
+        if (abs(_clickYPos - _currentMouseYPos) > 3)
+        {
+            _movedFar = true;
+        }
+    }
 }
 
 bool PlaybackOverlayScene::_HandleKeyDown(BYTE keyCode)
