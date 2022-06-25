@@ -184,17 +184,26 @@ namespace zcom
         bool _mouseRightClicked = false;
         int _mousePosX = 0;
         int _mousePosY = 0;
-        Event<void, int, int> _onMouseMove;
-        Event<void> _onMouseEnter;
-        Event<void> _onMouseEnterArea;
-        Event<void> _onMouseLeave;
-        Event<void> _onMouseLeaveArea;
-        Event<void, int, int> _onLeftPressed;
-        Event<void, int, int> _onRightPressed;
-        Event<void, int, int> _onLeftReleased;
-        Event<void, int, int> _onRightReleased;
-        Event<void, int, int> _onWheelUp;
-        Event<void, int, int> _onWheelDown;
+        // Pre default handling
+        Event<void, Base*, int, int> _onMouseMove;
+        Event<void, Base*> _onMouseEnter;
+        Event<void, Base*> _onMouseEnterArea;
+        Event<void, Base*> _onMouseLeave;
+        Event<void, Base*> _onMouseLeaveArea;
+        Event<void, Base*, int, int> _onLeftPressed;
+        Event<void, Base*, int, int> _onRightPressed;
+        Event<void, Base*, int, int> _onLeftReleased;
+        Event<void, Base*, int, int> _onRightReleased;
+        Event<void, Base*, int, int> _onWheelUp;
+        Event<void, Base*, int, int> _onWheelDown;
+        // Post default handling
+        Event<void, Base*, std::vector<EventTargets::Params>, int, int> _postMouseMove;
+        Event<void, Base*, std::vector<EventTargets::Params>, int, int> _postLeftPressed;
+        Event<void, Base*, std::vector<EventTargets::Params>, int, int> _postRightPressed;
+        Event<void, Base*, std::vector<EventTargets::Params>, int, int> _postLeftReleased;
+        Event<void, Base*, std::vector<EventTargets::Params>, int, int> _postRightReleased;
+        Event<void, Base*, std::vector<EventTargets::Params>, int, int> _postWheelUp;
+        Event<void, Base*, std::vector<EventTargets::Params>, int, int> _postWheelDown;
 
         // Layout events
         Event<void> _onLayoutChanged;
@@ -522,8 +531,10 @@ namespace zcom
 
             _mousePosX = x;
             _mousePosY = y;
-            _onMouseMove.InvokeAll(x, y);
-            return _OnMouseMove(x, y);
+            _onMouseMove.InvokeAll(this, x, y);
+            auto targets = _OnMouseMove(x, y);
+            _postMouseMove.InvokeAll(this, targets.GetTargets(), x, y);
+            return targets;
         }
         void OnMouseEnter()
         {
@@ -531,7 +542,7 @@ namespace zcom
             if (_mouseInside) return;
 
             _mouseInside = true;
-            _onMouseEnter.InvokeAll();
+            _onMouseEnter.InvokeAll(this);
             _OnMouseEnter();
         }
         void OnMouseLeave()
@@ -540,7 +551,7 @@ namespace zcom
             if (!_mouseInside) return;
 
             _mouseInside = false;
-            _onMouseLeave.InvokeAll();
+            _onMouseLeave.InvokeAll(this);
             _OnMouseLeave();
         }
         void OnMouseEnterArea()
@@ -549,7 +560,7 @@ namespace zcom
             if (_mouseInsideArea) return;
 
             _mouseInsideArea = true;
-            _onMouseEnterArea.InvokeAll();
+            _onMouseEnterArea.InvokeAll(this);
             _OnMouseEnterArea();
         }
         void OnMouseLeaveArea()
@@ -558,7 +569,7 @@ namespace zcom
             if (!_mouseInsideArea) return;
 
             _mouseInsideArea = false;
-            _onMouseLeaveArea.InvokeAll();
+            _onMouseLeaveArea.InvokeAll(this);
             _OnMouseLeaveArea();
         }
         EventTargets OnLeftPressed(int x, int y)
@@ -567,8 +578,10 @@ namespace zcom
             if (_mouseLeftClicked) return EventTargets();
 
             _mouseLeftClicked = true;
-            _onLeftPressed.InvokeAll(x, y);
-            return _OnLeftPressed(x, y);
+            _onLeftPressed.InvokeAll(this, x, y);
+            auto targets = _OnLeftPressed(x, y);
+            _postLeftPressed.InvokeAll(this, targets.GetTargets(), x, y);
+            return targets;
         }
         EventTargets OnLeftReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min())
         {
@@ -576,8 +589,10 @@ namespace zcom
             if (!_mouseLeftClicked) return EventTargets();
 
             _mouseLeftClicked = false;
-            _onLeftReleased.InvokeAll(x, y);
-            return _OnLeftReleased(x, y);
+            _onLeftReleased.InvokeAll(this, x, y);
+            auto targets = _OnLeftReleased(x, y);
+            _postLeftReleased.InvokeAll(this, targets.GetTargets(), x, y);
+            return targets;
         }
         EventTargets OnRightPressed(int x, int y)
         {
@@ -585,8 +600,10 @@ namespace zcom
             if (_mouseRightClicked) return EventTargets();
 
             _mouseRightClicked = true;
-            _onRightPressed.InvokeAll(x, y);
-            return _OnRightPressed(x, y);
+            _onRightPressed.InvokeAll(this, x, y);
+            auto targets = _OnRightPressed(x, y);
+            _postRightPressed.InvokeAll(this, targets.GetTargets(), x, y);
+            return targets;
         }
         EventTargets OnRightReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min())
         {
@@ -594,22 +611,28 @@ namespace zcom
             if (!_mouseRightClicked) return EventTargets();
 
             _mouseRightClicked = false;
-            _onRightReleased.InvokeAll(x, y);
-            return _OnRightReleased(x, y);
+            _onRightReleased.InvokeAll(this, x, y);
+            auto targets = _OnRightReleased(x, y);
+            _postRightReleased.InvokeAll(this, targets.GetTargets(), x, y);
+            return targets;
         }
         EventTargets OnWheelUp(int x, int y)
         {
             if (!_active) return EventTargets();
 
-            _onWheelUp.InvokeAll(x, y);
-            return _OnWheelUp(x, y);
+            _onWheelUp.InvokeAll(this, x, y);
+            auto targets = _OnWheelUp(x, y);
+            _postWheelUp.InvokeAll(this, targets.GetTargets(), x, y);
+            return targets;
         }
         EventTargets OnWheelDown(int x, int y)
         {
             if (!_active) return EventTargets();
 
-            _onWheelDown.InvokeAll(x, y);
-            return _OnWheelDown(x, y);
+            _onWheelDown.InvokeAll(this, x, y);
+            auto targets = _OnWheelDown(x, y);
+            _postWheelDown.InvokeAll(this, targets.GetTargets(), x, y);
+            return targets;
         }
         void OnSelected()
         {
@@ -649,49 +672,78 @@ namespace zcom
         int GetMousePosX() const { return _mousePosX; }
         int GetMousePosY() const { return _mousePosY; }
 
-        void AddOnMouseMove(std::function<void(int, int)> handler, EventInfo info = { nullptr, "" })
+        void AddOnMouseMove(std::function<void(Base*, int, int)> handler, EventInfo info = { nullptr, "" })
         {
             _onMouseMove.Add(handler, info);
         }
-        void AddOnMouseEnter(std::function<void()> handler, EventInfo info = { nullptr, "" })
+        void AddOnMouseEnter(std::function<void(Base*)> handler, EventInfo info = { nullptr, "" })
         {
             _onMouseEnter.Add(handler, info);
         }
-        void AddOnMouseLeave(std::function<void()> handler, EventInfo info = { nullptr, "" })
+        void AddOnMouseLeave(std::function<void(Base*)> handler, EventInfo info = { nullptr, "" })
         {
             _onMouseLeave.Add(handler, info);
         }
-        void AddOnMouseEnterArea(std::function<void()> handler, EventInfo info = { nullptr, "" })
+        void AddOnMouseEnterArea(std::function<void(Base*)> handler, EventInfo info = { nullptr, "" })
         {
             _onMouseEnterArea.Add(handler, info);
         }
-        void AddOnMouseLeaveArea(std::function<void()> handler, EventInfo info = { nullptr, "" })
+        void AddOnMouseLeaveArea(std::function<void(Base*)> handler, EventInfo info = { nullptr, "" })
         {
             _onMouseLeaveArea.Add(handler, info);
         }
-        void AddOnLeftPressed(std::function<void(int, int)> handler, EventInfo info = { nullptr, "" })
+        void AddOnLeftPressed(std::function<void(Base*, int, int)> handler, EventInfo info = { nullptr, "" })
         {
             _onLeftPressed.Add(handler, info);
         }
-        void AddOnRightPressed(std::function<void(int, int)> handler, EventInfo info = { nullptr, "" })
+        void AddOnRightPressed(std::function<void(Base*, int, int)> handler, EventInfo info = { nullptr, "" })
         {
             _onRightPressed.Add(handler, info);
         }
-        void AddOnLeftReleased(std::function<void(int, int)> handler, EventInfo info = { nullptr, "" })
+        void AddOnLeftReleased(std::function<void(Base*, int, int)> handler, EventInfo info = { nullptr, "" })
         {
             _onLeftReleased.Add(handler, info);
         }
-        void AddOnRightReleased(std::function<void(int, int)> handler, EventInfo info = { nullptr, "" })
+        void AddOnRightReleased(std::function<void(Base*, int, int)> handler, EventInfo info = { nullptr, "" })
         {
             _onRightReleased.Add(handler, info);
         }
-        void AddOnWheelUp(std::function<void(int, int)> handler, EventInfo info = { nullptr, "" })
+        void AddOnWheelUp(std::function<void(Base*, int, int)> handler, EventInfo info = { nullptr, "" })
         {
             _onWheelUp.Add(handler, info);
         }
-        void AddOnWheelDown(std::function<void(int, int)> handler, EventInfo info = { nullptr, "" })
+        void AddOnWheelDown(std::function<void(Base*, int, int)> handler, EventInfo info = { nullptr, "" })
         {
             _onWheelDown.Add(handler, info);
+        }
+
+        void AddPostMouseMove(std::function<void(Base*, std::vector<EventTargets::Params>, int, int)> handler, EventInfo info = { nullptr, "" })
+        {
+            _postMouseMove.Add(handler, info);
+        }
+        void AddPostLeftPressed(std::function<void(Base*, std::vector<EventTargets::Params>, int, int)> handler, EventInfo info = { nullptr, "" })
+        {
+            _postLeftPressed.Add(handler, info);
+        }
+        void AddPostRightPressed(std::function<void(Base*, std::vector<EventTargets::Params>, int, int)> handler, EventInfo info = { nullptr, "" })
+        {
+            _postRightPressed.Add(handler, info);
+        }
+        void AddPostLeftReleased(std::function<void(Base*, std::vector<EventTargets::Params>, int, int)> handler, EventInfo info = { nullptr, "" })
+        {
+            _postLeftReleased.Add(handler, info);
+        }
+        void AddPostRightReleased(std::function<void(Base*, std::vector<EventTargets::Params>, int, int)> handler, EventInfo info = { nullptr, "" })
+        {
+            _postRightReleased.Add(handler, info);
+        }
+        void AddPostWheelUp(std::function<void(Base*, std::vector<EventTargets::Params>, int, int)> handler, EventInfo info = { nullptr, "" })
+        {
+            _postWheelUp.Add(handler, info);
+        }
+        void AddPostWheelDown(std::function<void(Base*, std::vector<EventTargets::Params>, int, int)> handler, EventInfo info = { nullptr, "" })
+        {
+            _postWheelDown.Add(handler, info);
         }
 
         void RemoveOnMouseMove(EventInfo info = { nullptr, "" })
@@ -737,6 +789,35 @@ namespace zcom
         void RemoveOnWheelDown(EventInfo info = { nullptr, "" })
         {
             _onWheelDown.Remove(info);
+        }
+
+        void RemovePostMouseMove(EventInfo info = { nullptr, "" })
+        {
+            _postMouseMove.Remove(info);
+        }
+        void RemovePostLeftPressed(EventInfo info = { nullptr, "" })
+        {
+            _postLeftPressed.Remove(info);
+        }
+        void RemovePostRightPressed(EventInfo info = { nullptr, "" })
+        {
+            _postRightPressed.Remove(info);
+        }
+        void RemovePostLeftReleased(EventInfo info = { nullptr, "" })
+        {
+            _postLeftReleased.Remove(info);
+        }
+        void RemovePostRightReleased(EventInfo info = { nullptr, "" })
+        {
+            _postRightReleased.Remove(info);
+        }
+        void RemovePostWheelUp(EventInfo info = { nullptr, "" })
+        {
+            _postWheelUp.Remove(info);
+        }
+        void RemovePostWheelDown(EventInfo info = { nullptr, "" })
+        {
+            _postWheelDown.Remove(info);
         }
 
         // Layout events
