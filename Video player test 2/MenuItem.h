@@ -52,6 +52,7 @@ namespace zcom
                 g.target->DrawImage(brightnessEffect);
                 g.target->SetTarget(stash);
 
+                stash->Release();
                 brightnessEffect->Release();
                 grayscaleEffect->Release();
             }
