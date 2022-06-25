@@ -857,14 +857,12 @@ namespace zcom
             }
 
             // Stash current target
-            //g.target->EndDraw();
             ID2D1Image* target;
             g.target->GetTarget(&target);
 
             // Set canvas as target
             g.target->SetTarget(_canvas);
             g.target->Clear();
-            //g.target->BeginDraw();
 
             if (_visible)
             {
@@ -1000,22 +998,53 @@ namespace zcom
                     opacityMask->Release();
                     contentBitmap->Release();
                 }
+
+                // If inactive, gray out the canvas
+                if (!_active)
+                {
+                    ID2D1Bitmap1* grayscaleBitmap = nullptr;
+                    g.target->CreateBitmap(
+                        D2D1::SizeU(_width, _height),
+                        nullptr,
+                        0,
+                        D2D1::BitmapProperties1(
+                            D2D1_BITMAP_OPTIONS_TARGET,
+                            { DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED }
+                        ),
+                        &grayscaleBitmap
+                    );
+
+                    ID2D1Effect* grayscaleEffect;
+                    g.target->CreateEffect(CLSID_D2D1Grayscale, &grayscaleEffect);
+                    grayscaleEffect->SetInput(0, _canvas);
+                    ID2D1Effect* brightnessEffect;
+                    g.target->CreateEffect(CLSID_D2D1Brightness, &brightnessEffect);
+                    brightnessEffect->SetInputEffect(0, grayscaleEffect);
+                    brightnessEffect->SetValue(D2D1_BRIGHTNESS_PROP_WHITE_POINT, D2D1::Vector2F(1.0f, 0.5f));
+                    brightnessEffect->SetValue(D2D1_BRIGHTNESS_PROP_BLACK_POINT, D2D1::Vector2F(1.0f, 0.5f));
+
+                    g.target->GetTarget(&stash);
+                    g.target->SetTarget(grayscaleBitmap);
+                    g.target->Clear();
+                    g.target->DrawImage(brightnessEffect);
+                    g.target->SetTarget(stash);
+                    g.target->Clear();
+                    g.target->DrawBitmap(grayscaleBitmap);
+
+                    stash->Release();
+                    brightnessEffect->Release();
+                    grayscaleEffect->Release();
+                    grayscaleBitmap->Release();
+                }
             }
             else
             {
                 g.target->Clear();
             }
 
-            //HRESULT hr = g.target->EndDraw();
-            //if (hr != S_OK)
-            //{
-            //    std::cout << "Draw failed in '" << GetName() << "'" << std::endl;
-            //}
-
             // Unstash target
             g.target->SetTarget(target);
             target->Release();
-            //g.target->BeginDraw();
 
             return _canvas;
         }
