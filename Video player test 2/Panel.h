@@ -333,6 +333,10 @@ namespace zcom
         void _OnResize(int width, int height)
         {
             _RecalculateLayout(width, height);
+            if (_verticalScroll > MaxVerticalScroll())
+                _verticalScroll = MaxVerticalScroll();
+            if (_horizontalScroll > MaxHorizontalScroll())
+                _horizontalScroll = MaxHorizontalScroll();
         }
 
         EventTargets _OnMouseMove(int x, int y)
@@ -421,7 +425,7 @@ namespace zcom
                 {
                     topmost->OnMouseEnter();
                 }
-                return topmost->OnMouseMove(x - topmost->GetX(), y - topmost->GetY()).Add(this, x, y);
+                return topmost->OnMouseMove(adjX - topmost->GetX(), adjY - topmost->GetY()).Add(this, x, y);
             }
 
             return std::move(targets.Add(this, x, y));
@@ -1016,6 +1020,11 @@ namespace zcom
                 return _verticalScroll;
         }
 
+        int VisualVerticalScroll() const
+        {
+            return _verticalScroll;
+        }
+
         void VerticalScroll(int position)
         {
             if (!_verticalScrollable)
@@ -1035,6 +1044,11 @@ namespace zcom
                 return _horizontalScrollAnimation.endPos;
             else
                 return _horizontalScroll;
+        }
+
+        int VisualHorizontalScroll() const
+        {
+            return _horizontalScroll;
         }
 
         void HorizontalScroll(int position)
