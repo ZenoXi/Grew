@@ -41,9 +41,6 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     shadowProps.blurStandardDeviation = 5.0f;
     shadowProps.color = D2D1::ColorF(0, 1.0f);
     _playlistPanel->SetProperty(shadowProps);
-    _playlistPanel->AddPostLeftPressed([=](zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y) { _HandlePlaylistLeftClick(item, targets, x, y); }, { this });
-    _playlistPanel->AddOnLeftReleased([=](zcom::Base* item, int x, int y) { _HandlePlaylistLeftRelease(item, x, y); }, { this });
-    _playlistPanel->AddOnMouseMove([=](zcom::Base* item, int x, int y) { _HandlePlaylistMouseMove(item, x, y); }, { this });
 
     _readyItemPanel = std::make_unique<zcom::Panel>();
     _readyItemPanel->SetParentSizePercent(1.0f, 1.0f);
@@ -51,6 +48,9 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _readyItemPanel->SetBorderVisibility(true);
     _readyItemPanel->SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
     _readyItemPanel->VerticalScrollable(true);
+    _readyItemPanel->AddPostLeftPressed([=](zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y) { _HandlePlaylistLeftClick(item, targets, x, y); }, { this });
+    _readyItemPanel->AddOnLeftReleased([=](zcom::Base* item, int x, int y) { _HandlePlaylistLeftRelease(item, x, y); }, { this });
+    _readyItemPanel->AddOnMouseMove([=](zcom::Base* item, int x, int y) { _HandlePlaylistMouseMove(item, x, y); }, { this });
 
     _loadingItemPanel = std::make_unique<zcom::Panel>();
     _loadingItemPanel->SetParentWidthPercent(1.0f);
@@ -485,7 +485,7 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
             {
                 // Calculate current slot of moved item
                 int currentSlot = _currentMouseYPos / ITEM_HEIGHT;
-                if (currentSlot >= _readyItems.size())
+                if (currentSlot >= (int)_readyItems.size())
                     currentSlot = _readyItems.size() - 1;
                 else if (currentSlot < 0)
                     currentSlot = 0;
@@ -964,7 +964,7 @@ void PlaybackOverlayScene::_HandlePlaylistLeftClick(zcom::Base* item, std::vecto
         if (target.target->GetName() == std::make_unique<zcom::OverlayPlaylistItem>(0)->GetName())
         {
             _heldItemId = ((zcom::OverlayPlaylistItem*)target.target)->GetItemId();
-            _clickYPos = y;
+            _clickYPos = y + _readyItemPanel->VisualVerticalScroll();
             _movedFar = false;
             return;
         }
@@ -975,7 +975,7 @@ void PlaybackOverlayScene::_HandlePlaylistLeftRelease(zcom::Base* item, int x, i
 {
     if (_heldItemId != -1)
     {
-        int slot = y / 25;
+        int slot = (y + _readyItemPanel->VisualVerticalScroll()) / 25;
         if (slot >= _readyItems.size())
             slot = _readyItems.size() - 1;
         else if (slot < 0)
@@ -989,11 +989,17 @@ void PlaybackOverlayScene::_HandlePlaylistMouseMove(zcom::Base* item, int x, int
 {
     if (_heldItemId != -1)
     {
-        _currentMouseYPos = y;
+        _currentMouseYPos = y +_readyItemPanel->VisualVerticalScroll();
         if (abs(_clickYPos - _currentMouseYPos) > 3)
         {
             _movedFar = true;
         }
+
+        // Auto-scroll
+        if (y < 0)
+            _readyItemPanel->ScrollVertically(_readyItemPanel->VerticalScroll() - (-y / 10 + 1));
+        else if (y >= _readyItemPanel->GetHeight())
+            _readyItemPanel->ScrollVertically(_readyItemPanel->VerticalScroll() + ((y - _readyItemPanel->GetHeight()) / 10 + 1));
     }
 }
 
