@@ -283,8 +283,7 @@ namespace zcom
 
         EventTargets _OnMouseMove(int x, int y)
         {
-            _mainPanel->OnMouseMove(x, y);
-            return EventTargets().Add(this, x, y);
+            return _mainPanel->OnMouseMove(x, y).Add(this, x, y);
         }
 
         void _OnMouseLeave()
@@ -309,38 +308,32 @@ namespace zcom
 
         EventTargets _OnLeftPressed(int x, int y)
         {
-            _mainPanel->OnLeftPressed(x, y);
-            return EventTargets().Add(this, x, y);
+            return _mainPanel->OnLeftPressed(x, y).Add(this, x, y);
         }
 
         EventTargets _OnLeftReleased(int x, int y)
         {
-            _mainPanel->OnLeftReleased(x, y);
-            return EventTargets().Add(this, x, y);
+            return _mainPanel->OnLeftReleased(x, y).Add(this, x, y);
         }
 
         EventTargets _OnRightPressed(int x, int y)
         {
-            _mainPanel->OnRightPressed(x, y);
-            return EventTargets().Add(this, x, y);
+            return _mainPanel->OnRightPressed(x, y).Add(this, x, y);
         }
 
         EventTargets _OnRightReleased(int x, int y)
         {
-            _mainPanel->OnRightReleased(x, y);
-            return EventTargets().Add(this, x, y);
+            return _mainPanel->OnRightReleased(x, y).Add(this, x, y);
         }
 
         EventTargets _OnWheelUp(int x, int y)
         {
-            _mainPanel->OnWheelUp(x, y);
-            return EventTargets();
+            return _mainPanel->OnWheelUp(x, y);
         }
 
         EventTargets _OnWheelDown(int x, int y)
         {
-            _mainPanel->OnWheelDown(x, y);
-            return EventTargets();
+            return _mainPanel->OnWheelDown(x, y);
         }
 
     public:
