@@ -196,6 +196,7 @@ namespace zcom
             if (!_held)
             {
                 SetValue(_value + 0.05f);
+                _moved = true;
             }
             return EventTargets().Add(this, x, y);
         }
@@ -205,6 +206,7 @@ namespace zcom
             if (!_held)
             {
                 SetValue(_value - 0.05f);
+                _moved = true;
             }
             return EventTargets().Add(this, x, y);
         }
