@@ -144,7 +144,12 @@ void MediaPlayer::Update(double timeLimit)
             {
                 int passResult = _PassPacket(_subtitleData, _dataProvider->GetSubtitlePacket());
                 // See above
-                if (passResult == 2 || passResult == 3) _subtitleData.nextFrame.reset(nullptr);
+                if (passResult == 2 || passResult == 3)
+                {
+                    _subtitleData.nextFrame.reset(nullptr);
+                    _subtitleData.currentFrame.reset(nullptr);
+                    _videoOutputAdapter->SetSubtitleData(VideoFrame(1, 1, -1));
+                }
                 if (passResult == 3)
                 {
                     if (_subtitleData.pendingStream)

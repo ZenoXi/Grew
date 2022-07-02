@@ -16,8 +16,8 @@ SubtitleDecoder::SubtitleDecoder(const MediaStream& stream)
     _timebase = _stream.timeBase;
 
     // placeholder until global options are implemented
-    _MAX_FRAME_QUEUE_SIZE = 30;
-    _MAX_PACKET_QUEUE_SIZE = 100;
+    _MAX_FRAME_QUEUE_SIZE = 10;
+    _MAX_PACKET_QUEUE_SIZE = 30;
 
     // Start decoding and rendering threads
     _decoderThread = std::thread(&SubtitleDecoder::_DecoderThread, this);
@@ -206,11 +206,14 @@ void SubtitleDecoder::_RenderingThread()
         while (timer.Now().GetTime(MICROSECONDS) < 500)
             timer.Update();
 
+        std::unique_lock<std::mutex> lock(_m_ass);                                                          // <---
+        // Do an additional check here because the flush usually modifies the value while waiting for the lock here
+        if (_lastRenderedFrameTime.GetTicks() == -1)
+            continue;
         _lastRenderedFrameTime += _timeBetweenFrames;
-        std::unique_lock<std::mutex> lock(_m_ass);
+
         int change = 0;
         ASS_Image* img = ass_render_frame(_renderer, _track, _lastRenderedFrameTime.GetTime(MILLISECONDS), &change);
-
         if (change != 0)
         {
             int width, height;
