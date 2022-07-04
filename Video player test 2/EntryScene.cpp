@@ -224,10 +224,17 @@ void EntryScene::_Update()
                 {
                     auto item = std::make_unique<PlaylistItem>(paths[i]);
                     int64_t itemId = item->GetItemId();
-                    App::Instance()->playlist.Request_AddItem(std::move(item));
-                    // Play first item
                     if (i == 0)
+                    {
+                        // Play first item
+                        item->StartInitializing();
+                        App::Instance()->playlist.Request_AddItem(std::move(item));
                         App::Instance()->playlist.Request_PlayItem(itemId);
+                    }
+                    else
+                    {
+                        App::Instance()->playlist.Request_AddItem(std::move(item));
+                    }
                 }
 
                 App::Instance()->UninitScene(GetName());

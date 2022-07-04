@@ -26,6 +26,8 @@ PlaylistItem::PlaylistItem()
 
 PlaylistItem::PlaylistItem(std::wstring path) : PlaylistItem()
 {
+    _filepath = path;
+
     // Extract only the filename
     _filename = L"";
     for (int i = path.length() - 1; i >= 0; i--)
@@ -37,12 +39,19 @@ PlaylistItem::PlaylistItem(std::wstring path) : PlaylistItem()
         _filename += path[i];
     }
     std::reverse(_filename.begin(), _filename.end());
-
-    // Start processing the file
-    _dataProvider = std::make_unique<LocalFileDataProvider>(wstring_to_string(path));
 }
 
 PlaylistItem::~PlaylistItem()
 {
 
+}
+
+void PlaylistItem::StartInitializing()
+{
+    if (_initStarted)
+        return;
+
+    // Start processing the file
+    _dataProvider = std::make_unique<LocalFileDataProvider>(wstring_to_string(_filepath));
+    _initStarted = true;
 }

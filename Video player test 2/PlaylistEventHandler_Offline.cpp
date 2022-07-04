@@ -165,27 +165,34 @@ void PlaylistEventHandler_Offline::OnMoveItemRequest(int64_t itemId, int slot)
 
 void PlaylistEventHandler_Offline::_ManageLoadingItems()
 {
-    for (int i = 0; i < _playlist->loadingItems.size(); i++)
-    {
-        auto& item = _playlist->loadingItems[i];
-        if (!item->DataProvider()->Initializing())
-        {
-            if (!item->DataProvider()->InitFailed())
-            {
-                // Move item to ready list
-                _playlist->readyItems.push_back(std::move(_playlist->loadingItems[i]));
-                _playlist->loadingItems.erase(_playlist->loadingItems.begin() + i);
-            }
-            else
-            {
-                // Move to failed list
-                _playlist->loadingItems[i]->SetCustomStatus(L"Init failed..");
-                _playlist->failedItems.push_back(std::move(_playlist->loadingItems[i]));
-                _playlist->loadingItems.erase(_playlist->loadingItems.begin() + i);
-            }
+    if (_playlist->loadingItems.empty())
+        return;
 
-            i--;
-            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
+    // Initialize 1 item at a time, because initializing multiple
+    // files from a hard drive makes a jarring sound on my machine
+    // and takes a very long time to complete (I assume this happens
+    // because while initializing multiple files at once the disk
+    // must perform many random reads, while initializing a single
+    // file uses more sequential reads)
+    auto& item = _playlist->loadingItems.front();
+    if (!item->InitStarted())
+        item->StartInitializing();
+
+    if (!item->DataProvider()->Initializing())
+    {
+        if (!item->DataProvider()->InitFailed())
+        {
+            // Move item to ready list
+            _playlist->readyItems.push_back(std::move(_playlist->loadingItems.front()));
+            _playlist->loadingItems.erase(_playlist->loadingItems.begin());
         }
+        else
+        {
+            // Move to failed list
+            _playlist->loadingItems.front()->SetCustomStatus(L"Init failed..");
+            _playlist->failedItems.push_back(std::move(_playlist->loadingItems.front()));
+            _playlist->loadingItems.erase(_playlist->loadingItems.begin());
+        }
+        App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
     }
 }

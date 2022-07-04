@@ -17,7 +17,16 @@ class PlaylistItem
 {
 public:
     int64_t GetItemId() const { return _itemId; }
-    bool Initialized() { return !_dataProvider->Initializing(); } // TODO: Add const
+    void StartInitializing();
+    bool InitStarted() const { return _initStarted; }
+    bool Initialized()
+    {
+        if (_filepath.empty())
+            return true;
+        if (!_initStarted)
+            return false;
+        return !_dataProvider->Initializing();
+    }
     bool InitSuccess() { return !_dataProvider->InitFailed(); } // TODO: Add const
 
     std::unique_ptr<LocalFileDataProvider> CopyDataProvider() const { return std::make_unique<LocalFileDataProvider>(_dataProvider.get()); }
@@ -59,9 +68,11 @@ public:
     PlaylistItem& operator=(const PlaylistItem&) = delete;
 
 private:
+    bool _initStarted = false;
     bool _initDone = false;
     bool _initSuccess = false;
     std::unique_ptr<LocalFileDataProvider> _dataProvider = nullptr;
+    std::wstring _filepath = L"";
     std::wstring _filename = L"";
     Duration _duration = -1;
 
