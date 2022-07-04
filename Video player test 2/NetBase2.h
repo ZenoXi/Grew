@@ -982,17 +982,20 @@ namespace znet
             if (!_running) return false;
 
             _listeningSocket = socket(AF_INET, SOCK_STREAM, 0);
-            if (_listeningSocket == INVALID_SOCKET) return false;
+            if (_listeningSocket == INVALID_SOCKET)
+                return false;
 
             // Bind the ip address and port to a socket
             sockaddr_in hint;
             hint.sin_family = AF_INET;
             hint.sin_port = htons(_port);
             hint.sin_addr.S_un.S_addr = INADDR_ANY;
-            bind(_listeningSocket, (sockaddr*)&hint, sizeof(hint));
+            if (bind(_listeningSocket, (sockaddr*)&hint, sizeof(hint)) == SOCKET_ERROR)
+                return false;
 
             // Tell winsock the socket is for listening
-            listen(_listeningSocket, SOMAXCONN);
+            if (listen(_listeningSocket, SOMAXCONN) == SOCKET_ERROR)
+                return false;
 
             // Start thread
             _connectHandlerStop = false;
