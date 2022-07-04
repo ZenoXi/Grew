@@ -62,3 +62,20 @@ public:
         return ev;
     }
 };
+
+template<class _Event>
+class EventHandler : public EventSubscriber<_Event>
+{
+private:
+    std::function<void(_Event)> _handler;
+
+    void _OnEvent(_Event ev)
+    {
+        _handler(ev);
+    }
+public:
+    EventHandler(AppEvents* appEvents, std::function<void(_Event)> handler)
+        : EventSubscriber<_Event>(appEvents)
+        , _handler(handler)
+    {}
+};
