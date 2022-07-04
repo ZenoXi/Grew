@@ -1,13 +1,13 @@
-#include "NetworkInterfaceNew.h"
+#include "Network.h"
 #include "PacketSubscriber.h"
 
 znet::PacketSubscriber::PacketSubscriber(int32_t packetId)
 {
     _packetId = packetId;
-    NetworkInterface::Instance()->_Subscribe(this);
+    APP_NETWORK->_Subscribe(this);
 }
 
 znet::PacketSubscriber::~PacketSubscriber()
 {
-    NetworkInterface::Instance()->_Unsubscribe(this);
+    APP_NETWORK->_Unsubscribe(this);
 }

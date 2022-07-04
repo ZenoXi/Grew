@@ -8,7 +8,7 @@
 #include "MediaHostDataProvider.h"
 #include "ReceiverPlaybackController.h"
 #include "HostPlaybackController.h"
-#include "NetworkInterfaceNew.h"
+#include "Network.h"
 #include "PacketBuilder.h"
 
 PlaylistEventHandler_Client::PlaylistEventHandler_Client(Playlist_Internal* playlist)
@@ -28,7 +28,7 @@ PlaylistEventHandler_Client::PlaylistEventHandler_Client(Playlist_Internal* play
     _itemMoveDenyReceiver       = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED);
 
     // Save user id
-    _userId = znet::NetworkInterface::Instance()->ThisUser().id;
+    _userId = APP_NETWORK->ThisUser().id;
 
     // Remove all items from other users
     auto it = std::remove_if(
@@ -39,7 +39,7 @@ PlaylistEventHandler_Client::PlaylistEventHandler_Client(Playlist_Internal* play
     _playlist->readyItems.erase(it, _playlist->readyItems.end());
 
     // Request full playlist
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::FULL_PLAYLIST_REQUEST), { 0 });
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::FULL_PLAYLIST_REQUEST), { 0 });
 
     // Move ready items to pending list
     for (int i = 0; i < _playlist->readyItems.size(); i++)
@@ -54,7 +54,7 @@ PlaylistEventHandler_Client::PlaylistEventHandler_Client(Playlist_Internal* play
             .Add(filename.data(), filename.length());
 
         // Send add request
-        znet::NetworkInterface::Instance()->
+        APP_NETWORK->
             Send(znet::Packet(builder.Release(), builder.UsedBytes(), (int)znet::PacketType::PLAYLIST_ITEM_ADD_REQUEST), { 0 });
 
         // Move item to pending list
@@ -110,7 +110,7 @@ void PlaylistEventHandler_Client::OnDeleteItemRequest(int64_t itemId)
         if (_playlist->readyItems[i]->GetItemId() == itemId)
         {
             // Send delete request
-            znet::NetworkInterface::Instance()->
+            APP_NETWORK->
                 Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_REMOVE_REQUEST).From(_playlist->readyItems[i]->GetMediaId()), { 0 });
 
             _playlist->pendingItemDeletes.push_back(_playlist->readyItems[i]->GetItemId());
@@ -141,7 +141,7 @@ void PlaylistEventHandler_Client::OnPlayItemRequest(int64_t itemId)
         if (_playlist->readyItems[i]->GetItemId() == itemId)
         {
             // Send play request
-            znet::NetworkInterface::Instance()->
+            APP_NETWORK->
                 Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_REQUEST).From(_playlist->readyItems[i]->GetMediaId()), { 0 });
 
             _playlist->currentlyStarting = itemId;
@@ -166,7 +166,7 @@ void PlaylistEventHandler_Client::OnStopItemRequest(int64_t itemId)
             }
 
             // Send stop request
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_REQUEST), { 0 });
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_REQUEST), { 0 });
 
             _playlist->pendingItemStop = itemId;
             App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
@@ -200,7 +200,7 @@ void PlaylistEventHandler_Client::OnMoveItemRequest(int64_t itemId, int slot)
             // Send move request
             PacketBuilder builder = PacketBuilder(12);
             builder.Add(_playlist->readyItems[i]->GetMediaId()).Add(slot);
-            znet::NetworkInterface::Instance()->
+            APP_NETWORK->
                 Send(znet::Packet(builder.Release(), builder.UsedBytes(), (int)znet::PacketType::PLAYLIST_ITEM_MOVE_REQUEST), { 0 });
 
             _playlist->pendingItemMoves.push_back({ itemId, slot });
@@ -251,7 +251,7 @@ void PlaylistEventHandler_Client::_CheckForItemAdd()
         filename.resize(filenameLength);
         reader.Get((wchar_t*)filename.data(), filename.length());
 
-        if (hostId == znet::NetworkInterface::Instance()->ThisUser().id)
+        if (hostId == APP_NETWORK->ThisUser().id)
         {
             for (int i = 0; i < _playlist->pendingItems.size(); i++)
             {
@@ -417,7 +417,7 @@ void PlaylistEventHandler_Client::_CheckForStartOrder()
         if (itemIndex != -1)
         {
             // Init participation receiver
-            auto users = znet::NetworkInterface::Instance()->Users();
+            auto users = APP_NETWORK->Users();
             std::vector<int64_t> userIds;
             for (auto& user : users)
                 userIds.push_back(user.id);
@@ -425,14 +425,14 @@ void PlaylistEventHandler_Client::_CheckForStartOrder()
             _playlist->currentlyStarting = _playlist->readyItems[itemIndex]->GetItemId();
 
             // Send playback confirmation
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_RESPONSE).From(int8_t(1)), { 0 });
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_RESPONSE).From(int8_t(1)), { 0 });
         }
         else
         {
             _playlist->currentlyStarting = -1;
 
             // Send playback decline
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_RESPONSE).From(int8_t(0)), { 0 });
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_RESPONSE).From(int8_t(0)), { 0 });
         }
 
         App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
@@ -476,12 +476,12 @@ void PlaylistEventHandler_Client::_CheckForStart()
             _playlist->currentlyStarting = -1;
 
             // Send participation confirmation
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_CONFIRMATION).From(int8_t(0)), { hostId });
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_CONFIRMATION).From(int8_t(0)), { hostId });
         }
         else
         {
             // Send participation decline
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_CONFIRMATION).From(int8_t(1)), { hostId });
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_CONFIRMATION).From(int8_t(1)), { hostId });
         }
 
         App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
@@ -654,7 +654,7 @@ void PlaylistEventHandler_Client::_ManageLoadingItems()
                 .Add(filename.data(), filename.length());
 
             // Send add request
-            znet::NetworkInterface::Instance()->
+            APP_NETWORK->
                 Send(znet::Packet(builder.Release(), builder.UsedBytes(), (int)znet::PacketType::PLAYLIST_ITEM_ADD_REQUEST), { 0 });
 
             // Move item to pending list
@@ -698,7 +698,7 @@ void PlaylistEventHandler_Client::_TrackParticipations()
             else
             {
                 // Send stop request
-                znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_REQUEST), { 0 });
+                APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_REQUEST), { 0 });
             }
             
             _playlist->currentlyStarting = -1;

@@ -21,7 +21,7 @@ HostPlaybackController::HostPlaybackController(IMediaDataProvider* dataProvider,
 
 void HostPlaybackController::_OnMediaPlayerAttach()
 {
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::HOST_CONTROLLER_READY), _GetUserIds());
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::HOST_CONTROLLER_READY), _GetUserIds());
 }
 
 void HostPlaybackController::Update()
@@ -87,7 +87,7 @@ void HostPlaybackController::_CheckForPlayRequest()
     {
         auto packetPair = _playRequestReceiver->GetPacket();
         _Play();
-        znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::RESUME).From(packetPair.second), _GetUserIds(), 1);
+        APP_NETWORK->Send(znet::Packet((int)znet::PacketType::RESUME).From(packetPair.second), _GetUserIds(), 1);
 
         // Show notification
         Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
@@ -111,7 +111,7 @@ void HostPlaybackController::_CheckForPauseRequest()
     {
         auto packetPair = _pauseRequestReceiver->GetPacket();
         _Pause();
-        znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PAUSE).From(packetPair.second), _GetUserIds(), 1);
+        APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PAUSE).From(packetPair.second), _GetUserIds(), 1);
 
         // Show notification
         Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
@@ -162,7 +162,7 @@ void HostPlaybackController::_CheckForSeekRequest()
             seekData.defaultTime = 1;
         }
 
-        znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(seekData), _GetUserIds(), 1);
+        APP_NETWORK->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(seekData), _GetUserIds(), 1);
         _Seek(seekData);
 
         // Show notifications
@@ -273,7 +273,7 @@ void HostPlaybackController::_CheckForSeekFinished()
                 _bufferedSeekData.defaultTime = 1;
             }
 
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(_bufferedSeekData), _GetUserIds(), 1);
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(_bufferedSeekData), _GetUserIds(), 1);
             _Seek(_bufferedSeekData);
             _bufferedSeekData = IMediaDataProvider::SeekData();
 
@@ -312,7 +312,7 @@ void HostPlaybackController::_CheckForSeekFinished()
             _timerController.RemoveStop("seeking");
             _seeking = false;
 
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::HOST_SEEK_FINISHED), _GetUserIds(), 1);
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::HOST_SEEK_FINISHED), _GetUserIds(), 1);
             _lastSeek = ztime::Main();
         }
     }
@@ -356,15 +356,15 @@ void HostPlaybackController::_CheckForSyncPause()
 void HostPlaybackController::Play()
 {
     _Play();
-    int64_t thisId = znet::NetworkInterface::Instance()->ThisUser().id;
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::RESUME).From(thisId), _GetUserIds(), 1);
+    int64_t thisId = APP_NETWORK->ThisUser().id;
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::RESUME).From(thisId), _GetUserIds(), 1);
 }
 
 void HostPlaybackController::Pause()
 {
     _Pause();
-    int64_t thisId = znet::NetworkInterface::Instance()->ThisUser().id;
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PAUSE).From(thisId), _GetUserIds(), 1);
+    int64_t thisId = APP_NETWORK->ThisUser().id;
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PAUSE).From(thisId), _GetUserIds(), 1);
 }
 
 void HostPlaybackController::_Play()
@@ -389,7 +389,7 @@ void HostPlaybackController::Seek(TimePoint time)
     if (_seeking)
     {
         _bufferedSeekData.time = time;
-        _bufferedSeekData.userId = znet::NetworkInterface::Instance()->ThisUser().id;
+        _bufferedSeekData.userId = APP_NETWORK->ThisUser().id;
         return;
     }
 
@@ -408,8 +408,8 @@ void HostPlaybackController::Seek(TimePoint time)
 
     IMediaDataProvider::SeekData seekData;
     seekData.time = time;
-    seekData.userId = znet::NetworkInterface::Instance()->ThisUser().id;
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(seekData), _GetUserIds(), 1);
+    seekData.userId = APP_NETWORK->ThisUser().id;
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(seekData), _GetUserIds(), 1);
     _Seek(seekData);
 
     //_StartSeeking();
@@ -429,7 +429,7 @@ void HostPlaybackController::SetVideoStream(int index)
     if (_seeking)
     {
         _bufferedSeekData.videoStreamIndex = index;
-        _bufferedSeekData.userId = znet::NetworkInterface::Instance()->ThisUser().id;
+        _bufferedSeekData.userId = APP_NETWORK->ThisUser().id;
         return;
     }
 
@@ -437,8 +437,8 @@ void HostPlaybackController::SetVideoStream(int index)
     seekData.time = _player->TimerPosition();
     seekData.defaultTime = 1;
     seekData.videoStreamIndex = index;
-    seekData.userId = znet::NetworkInterface::Instance()->ThisUser().id;
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(seekData), _GetUserIds(), 1);
+    seekData.userId = APP_NETWORK->ThisUser().id;
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(seekData), _GetUserIds(), 1);
     _Seek(seekData);
 
     //_StartSeeking();
@@ -460,7 +460,7 @@ void HostPlaybackController::SetAudioStream(int index)
     if (_seeking)
     {
         _bufferedSeekData.audioStreamIndex = index;
-        _bufferedSeekData.userId = znet::NetworkInterface::Instance()->ThisUser().id;
+        _bufferedSeekData.userId = APP_NETWORK->ThisUser().id;
         return;
     }
 
@@ -468,8 +468,8 @@ void HostPlaybackController::SetAudioStream(int index)
     seekData.time = _player->TimerPosition();
     seekData.defaultTime = 1;
     seekData.audioStreamIndex = index;
-    seekData.userId = znet::NetworkInterface::Instance()->ThisUser().id;
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(seekData), _GetUserIds(), 1);
+    seekData.userId = APP_NETWORK->ThisUser().id;
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(seekData), _GetUserIds(), 1);
     _Seek(seekData);
 
     //_StartSeeking();
@@ -491,7 +491,7 @@ void HostPlaybackController::SetSubtitleStream(int index)
     if (_seeking)
     {
         _bufferedSeekData.subtitleStreamIndex = index;
-        _bufferedSeekData.userId = znet::NetworkInterface::Instance()->ThisUser().id;
+        _bufferedSeekData.userId = APP_NETWORK->ThisUser().id;
         return;
     }
 
@@ -499,8 +499,8 @@ void HostPlaybackController::SetSubtitleStream(int index)
     seekData.time = _player->TimerPosition();
     seekData.defaultTime = 1;
     seekData.subtitleStreamIndex = index;
-    seekData.userId = znet::NetworkInterface::Instance()->ThisUser().id;
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(seekData), _GetUserIds(), 1);
+    seekData.userId = APP_NETWORK->ThisUser().id;
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(seekData), _GetUserIds(), 1);
     _Seek(seekData);
 
     //_StartSeeking();
@@ -608,9 +608,9 @@ void HostPlaybackController::_SyncPlayback()
         // Pause host itself
         if (indexBehind != -1)
         {
-            int64_t thisId = znet::NetworkInterface::Instance()->ThisUser().id;
+            int64_t thisId = APP_NETWORK->ThisUser().id;
             int64_t pauseTicks = -mostBehindOffset.GetTicks();
-            znet::NetworkInterface::Instance()->Send(
+            APP_NETWORK->Send(
                 znet::Packet((int)znet::PacketType::SYNC_PAUSE).From(pauseTicks), { thisId });
         }
 
@@ -621,7 +621,7 @@ void HostPlaybackController::_SyncPlayback()
                 continue;
 
             int64_t pauseTicks = (_destinationUsers[i].timeOffset - mostBehindOffset).GetTicks();
-            znet::NetworkInterface::Instance()->Send(
+            APP_NETWORK->Send(
                 znet::Packet((int)znet::PacketType::SYNC_PAUSE).From(pauseTicks), { _destinationUsers[i].id }, 2);
         }
 
@@ -636,7 +636,7 @@ std::wstring HostPlaybackController::_UsernameFromId(int64_t id)
         username << L"[Owner] ";
     else
         username << L"[User " << id << "] ";
-    auto users = znet::NetworkInterface::Instance()->Users();
+    auto users = APP_NETWORK->Users();
     for (auto& user : users)
     {
         if (user.id == id)

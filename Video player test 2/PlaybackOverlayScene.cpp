@@ -4,7 +4,7 @@
 #include "ConnectScene.h"
 #include "StartServerScene.h"
 
-#include "NetworkInterfaceNew.h"
+#include "Network.h"
 #include "MediaReceiverDataProvider.h"
 #include "MediaHostDataProvider.h"
 
@@ -64,10 +64,6 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _playlistPanel->AddItem(_readyItemPanel.get());
     _playlistPanel->AddItem(_loadingItemPanel.get());
 
-    //_mediaQueueItem = new zcom::MediaQueueItem(L"E:\\aots4e5.mkv");
-    //_mediaQueueItem->SetBaseSize(200, 35);
-    //_mediaQueueItem->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.5f));
-
     _addFileButton = std::make_unique<zcom::Button>(L"Add file");
     _addFileButton->SetBaseSize(100, 25);
     _addFileButton->SetOffsetPixels(40, -40);
@@ -109,28 +105,16 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     textShadow.color = D2D1::ColorF(0, 1.0f);
     _networkStatusLabel->SetProperty(textShadow);
 
-    _disconnectButton = std::make_unique<zcom::Button>(L"Disconnect");
-    _disconnectButton->SetBaseSize(100, 25);
-    _disconnectButton->SetOffsetPixels(-40, 80);
-    _disconnectButton->SetHorizontalAlignment(zcom::Alignment::END);
-    _disconnectButton->SetBorderVisibility(true);
-    _disconnectButton->SetBorderColor(D2D1::ColorF(0.8f, 0.2f, 0.2f));
-    _disconnectButton->SetActivation(zcom::ButtonActivation::RELEASE);
-    _disconnectButton->SetOnActivated([&]()
+    _closeNetworkButton = std::make_unique<zcom::Button>(L"");
+    _closeNetworkButton->SetBaseSize(100, 25);
+    _closeNetworkButton->SetOffsetPixels(-40, 80);
+    _closeNetworkButton->SetHorizontalAlignment(zcom::Alignment::END);
+    _closeNetworkButton->SetBorderVisibility(true);
+    _closeNetworkButton->SetBorderColor(D2D1::ColorF(0.8f, 0.2f, 0.2f));
+    _closeNetworkButton->SetActivation(zcom::ButtonActivation::RELEASE);
+    _closeNetworkButton->SetOnActivated([&]()
     {
-        znet::NetworkInterface::Instance()->Disconnect();
-    });
-
-    _stopServerButton = std::make_unique<zcom::Button>(L"Close server");
-    _stopServerButton->SetBaseSize(100, 25);
-    _stopServerButton->SetOffsetPixels(-40, 80);
-    _stopServerButton->SetHorizontalAlignment(zcom::Alignment::END);
-    _stopServerButton->SetBorderVisibility(true);
-    _stopServerButton->SetBorderColor(D2D1::ColorF(0.8f, 0.2f, 0.2f));
-    _stopServerButton->SetActivation(zcom::ButtonActivation::RELEASE);
-    _stopServerButton->SetOnActivated([&]()
-    {
-        znet::NetworkInterface::Instance()->StopServer();
+        APP_NETWORK->CloseManager();
     });
 
     _connectedUsersPanel = std::make_unique<zcom::Panel>();
@@ -157,8 +141,9 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _usernameButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _usernameButton->SetOnActivated([&]()
     {
-        znet::NetworkInterface::Instance()->SetUsername(_usernameInput->GetText());
+        APP_NETWORK->SetUsername(_usernameInput->GetText());
         _usernameInput->SetText(L"");
+        _networkPanelChanged = true;
     });
 
     _offlineLabel = std::make_unique<zcom::Label>(L"Try watching something with others");
@@ -211,8 +196,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _canvas->AddComponent(_addFileButton.get());
     _canvas->AddComponent(_closeOverlayButton.get());
     _canvas->AddComponent(_networkStatusLabel.get());
-    _canvas->AddComponent(_disconnectButton.get());
-    _canvas->AddComponent(_stopServerButton.get());
+    _canvas->AddComponent(_closeNetworkButton.get());
     _canvas->AddComponent(_connectedUsersPanel.get());
     _canvas->AddComponent(_usernameInput.get());
     _canvas->AddComponent(_usernameButton.get());
@@ -222,8 +206,8 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _canvas->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.75f));
 
     // Init network panel
-    _networkMode = znet::NetworkInterface::Instance()->Mode();
-    _SetUpNetworkPanel();
+    _networkPanelChanged = true;
+    _RearrangeNetworkPanel();
 }
 
 void PlaybackOverlayScene::_Uninit()
@@ -275,20 +259,9 @@ void PlaybackOverlayScene::_Update()
             _startServerPanelOpen = false;
         }
     }
-    else
-    {
-        znet::NetworkMode netMode = znet::NetworkInterface::Instance()->Mode();
-        if (netMode != _networkMode)
-        {
-            _networkMode = netMode;
-            _SetUpNetworkPanel();
-        }
-    }
 
     _InvokePlaylistChange();
-
-    // Process connected user changes
-    _ProcessCurrentUsers();
+    _InvokeNetworkPanelChange();
 
     // File dialog
     _CheckFileDialogCompletion();
@@ -298,66 +271,6 @@ void PlaybackOverlayScene::_Update()
     _ManageReadyItems();
     _RearrangePlaylistPanel();
     _RearrangeNetworkPanel();
-}
-
-void PlaybackOverlayScene::_ProcessCurrentUsers()
-{
-    if (_networkMode == znet::NetworkMode::OFFLINE)
-    {
-        if (!_currentUserIds.empty())
-            _currentUserIds.clear();
-        if (!_currentUserNames.empty())
-            _currentUserNames.clear();
-        return;
-    }
-
-    // Create an updated list of connected users, new users, and gone users
-    auto users = znet::NetworkInterface::Instance()->Users();
-    std::vector<int64_t> newIdList;
-    std::vector<std::wstring> newNameList;
-    for (int i = 0; i < users.size(); i++)
-    {
-        newIdList.push_back(users[i].id);
-        newNameList.push_back(users[i].name);
-    }
-    std::vector<int64_t> newUsers;
-    for (int i = 0; i < newIdList.size(); i++)
-    {
-        int index = -1;
-        for (int j = 0; j < _currentUserIds.size(); j++)
-        {
-            if (_currentUserIds[j] == newIdList[i])
-            {
-                index = j;
-                break;
-            }
-        }
-
-        if (index == -1)
-        {
-            newUsers.push_back(newIdList[i]);
-        }
-        else
-        {
-            // Update user names
-            _currentUserNames[index] = newNameList[i];
-        }
-    }
-    std::vector<int64_t> goneUsers;
-    for (int i = 0; i < _currentUserIds.size(); i++)
-    {
-        if (std::find(newIdList.begin(), newIdList.end(), _currentUserIds[i]) == newIdList.end())
-        {
-            goneUsers.push_back(_currentUserIds[i]);
-        }
-    }
-
-    if (newUsers.empty() && goneUsers.empty())
-    {
-        return;
-    }
-    _currentUserIds = std::move(newIdList);
-    _currentUserNames = std::move(newNameList);
 }
 
 void PlaybackOverlayScene::_CheckFileDialogCompletion()
@@ -820,113 +733,53 @@ void PlaybackOverlayScene::_RearrangeQueuePanel()
     //_playlistPanel->Resize();
 }
 
-void PlaybackOverlayScene::_SetUpNetworkPanel()
-{
-    if (_networkMode == znet::NetworkMode::OFFLINE)
-    {
-        _networkStatusLabel->SetVisible(false);
-        _disconnectButton->SetVisible(false);
-        _stopServerButton->SetVisible(false);
-        _connectedUsersPanel->SetVisible(false);
-        _usernameInput->SetVisible(false);
-        _usernameButton->SetVisible(false);
-        _offlineLabel->SetVisible(true);
-        _connectButton->SetVisible(true);
-        _startServerButton->SetVisible(true);
-    }
-    else if (_networkMode == znet::NetworkMode::SERVER)
-    {
-        _networkStatusLabel->SetVisible(true);
-        _disconnectButton->SetVisible(false);
-        _stopServerButton->SetVisible(true);
-        _connectedUsersPanel->SetVisible(true);
-        _usernameInput->SetVisible(true);
-        _usernameButton->SetVisible(true);
-        _offlineLabel->SetVisible(false);
-        _connectButton->SetVisible(false);
-        _startServerButton->SetVisible(false);
-    }
-    else if (_networkMode == znet::NetworkMode::CLIENT)
-    {
-        _networkStatusLabel->SetVisible(true);
-        _disconnectButton->SetVisible(true);
-        _stopServerButton->SetVisible(false);
-        _connectedUsersPanel->SetVisible(true);
-        _usernameInput->SetVisible(true);
-        _usernameButton->SetVisible(true);
-        _offlineLabel->SetVisible(false);
-        _connectButton->SetVisible(false);
-        _startServerButton->SetVisible(false);
-    }
-}
-
 void PlaybackOverlayScene::_RearrangeNetworkPanel()
 {
-    if (!_focused)
+    if (!_networkPanelChanged)
         return;
-
-    if (_networkMode == znet::NetworkMode::OFFLINE)
+    _networkPanelChanged = false;
+    
+    if (APP_NETWORK->ManagerStatus() == znet::NetworkStatus::ONLINE)
+        _RearrangeNetworkPanel_Online();
+    else
         _RearrangeNetworkPanel_Offline();
-    else if (_networkMode == znet::NetworkMode::SERVER)
-        _RearrangeNetworkPanel_Server();
-    else if (_networkMode == znet::NetworkMode::CLIENT)
-        _RearrangeNetworkPanel_Client();
 }
 
 void PlaybackOverlayScene::_RearrangeNetworkPanel_Offline()
 {
+    _networkStatusLabel->SetVisible(false);
+    _closeNetworkButton->SetVisible(false);
+    _connectedUsersPanel->SetVisible(false);
+    _usernameInput->SetVisible(false);
+    _usernameButton->SetVisible(false);
+    _offlineLabel->SetVisible(true);
+    _connectButton->SetVisible(true);
+    _startServerButton->SetVisible(true);
 
-}
-
-void PlaybackOverlayScene::_RearrangeNetworkPanel_Server()
-{
-    // Update network label
-    std::string statusString = znet::NetworkInterface::Instance()->StatusString();
-    _networkStatusLabel->SetText(string_to_wstring(statusString));
-
-    // Add all users
     _connectedUsersPanel->ClearItems();
-
-    { // This client
-        auto user = znet::NetworkInterface::Instance()->ThisUser();
-        std::wstring name = L"[User " + string_to_wstring(int_to_str(user.id)) + L"] " + user.name;
-        zcom::Label* usernameLabel = new zcom::Label(name);
-        usernameLabel->SetBaseHeight(25);
-        usernameLabel->SetParentWidthPercent(1.0f);
-        usernameLabel->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
-        usernameLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
-        usernameLabel->SetMargins({ 5.0f, 0.0f, 5.0f, 0.0f });
-        _connectedUsersPanel->AddItem(usernameLabel, true);
-    }
-
-    // Others
-    for (int i = 0; i < _currentUserIds.size(); i++)
-    {
-        std::wstring name = L"[User " + string_to_wstring(int_to_str(_currentUserIds[i])) + L"] " + _currentUserNames[i];
-
-        zcom::Label* usernameLabel = new zcom::Label(name);
-        usernameLabel->SetBaseHeight(25);
-        usernameLabel->SetParentWidthPercent(1.0f);
-        usernameLabel->SetVerticalOffsetPixels(25 + 25 * i);
-        usernameLabel->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f * (i % 2)));
-        usernameLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
-        usernameLabel->SetMargins({ 5.0f, 0.0f, 5.0f, 0.0f });
-        _connectedUsersPanel->AddItem(usernameLabel, true);
-    }
     _connectedUsersPanel->Resize();
 }
 
-void PlaybackOverlayScene::_RearrangeNetworkPanel_Client()
+void PlaybackOverlayScene::_RearrangeNetworkPanel_Online()
 {
-    // Update network label
-    std::string statusString = znet::NetworkInterface::Instance()->StatusString();
-    _networkStatusLabel->SetText(string_to_wstring(statusString));
+    _networkStatusLabel->SetVisible(true);
+    _closeNetworkButton->SetVisible(true);
+    _closeNetworkButton->Text()->SetText(APP_NETWORK->CloseLabel());
+    _connectedUsersPanel->SetVisible(true);
+    _usernameInput->SetVisible(true);
+    _usernameButton->SetVisible(true);
+    _offlineLabel->SetVisible(false);
+    _connectButton->SetVisible(false);
+    _startServerButton->SetVisible(false);
+
+    // Update network status label
+    _networkStatusLabel->SetText(APP_NETWORK->ManagerStatusString());
 
     // Add all users
     _connectedUsersPanel->ClearItems();
 
     { // This client
-        auto user = znet::NetworkInterface::Instance()->ThisUser();
+        auto user = APP_NETWORK->ThisUser();
         std::wstring name = L"[User " + string_to_wstring(int_to_str(user.id)) + L"] " + user.name;
         zcom::Label* usernameLabel = new zcom::Label(name);
         usernameLabel->SetBaseHeight(25);
@@ -938,9 +791,10 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel_Client()
     }
 
     // Others
-    for (int i = 0; i < _currentUserIds.size(); i++)
+    auto users = APP_NETWORK->Users();
+    for (int i = 0; i < users.size(); i++)
     {
-        std::wstring name = L"[User " + string_to_wstring(int_to_str(_currentUserIds[i])) + L"] " + _currentUserNames[i];
+        std::wstring name = L"[User " + string_to_wstring(int_to_str(users[i].id)) + L"] " + users[i].name;
 
         zcom::Label* usernameLabel = new zcom::Label(name);
         usernameLabel->SetBaseHeight(25);
@@ -960,13 +814,14 @@ void PlaybackOverlayScene::_InvokePlaylistChange()
     {
         _playlistChangedReceiver->GetEvent();
         _playlistChanged = true;
+        _lastPlaylistUpdate = ztime::Main();
     }
 
     // Update periodically to account for any bugged cases
     if (ztime::Main() - _lastPlaylistUpdate > _playlistUpdateInterval)
     {
-        _lastPlaylistUpdate = ztime::Main();
         _playlistChanged = true;
+        _lastPlaylistUpdate = ztime::Main();
     }
 }
 
@@ -1025,6 +880,22 @@ void PlaybackOverlayScene::_HandlePlaylistMouseMove(zcom::Base* item, int x, int
             _readyItemPanel->ScrollVertically(_readyItemPanel->VerticalScroll() - (-y / 10 + 1));
         else if (y >= _readyItemPanel->GetHeight())
             _readyItemPanel->ScrollVertically(_readyItemPanel->VerticalScroll() + ((y - _readyItemPanel->GetHeight()) / 10 + 1));
+    }
+}
+
+void PlaybackOverlayScene::_InvokeNetworkPanelChange()
+{
+    if (_networkEventTracker.EventReceived())
+    {
+        _networkPanelChanged = true;
+        _lastNetworkPanelUpdate = ztime::Main();
+    }
+
+    // Update periodically to account for any bugged cases
+    if (ztime::Main() - _lastNetworkPanelUpdate > _networkPanelUpdateInterval)
+    {
+        _networkPanelChanged = true;
+        _lastNetworkPanelUpdate = ztime::Main();
     }
 }
 

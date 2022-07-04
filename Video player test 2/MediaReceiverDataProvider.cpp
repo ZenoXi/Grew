@@ -111,7 +111,7 @@ void MediaReceiverDataProvider::_Initialize()
     _chapters = _chapterReceiver.GetChapters();
 
     // Send receive confirmation
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::METADATA_CONFIRMATION), { _hostId });
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::METADATA_CONFIRMATION), { _hostId });
 
     _initializing = false;
 

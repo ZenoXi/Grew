@@ -131,7 +131,7 @@ void znet::ClientConnectionManager::_Connect(std::string ip, uint16_t port)
         _managementThread = std::thread(&ClientConnectionManager::_ManageConnections, this);
 
         App::Instance()->events.RaiseEvent(ConnectionSuccessEvent{});
-        App::Instance()->events.RaiseEvent(NetworkStateChangedEvent{ NetworkStateChangedEvent::CLIENT });
+        App::Instance()->events.RaiseEvent(NetworkStateChangedEvent{ "client" });
     }
     else
     {
@@ -680,5 +680,5 @@ void znet::ClientConnectionManager::_ManageConnections()
         connection->Disconnect();
     }
     App::Instance()->events.RaiseEvent(DisconnectEvent{});
-    App::Instance()->events.RaiseEvent(NetworkStateChangedEvent{ NetworkStateChangedEvent::OFFLINE });
+    App::Instance()->events.RaiseEvent(NetworkStateChangedEvent{ "offline" });
 }

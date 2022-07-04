@@ -1,4 +1,4 @@
-#include "NetworkInterface.h"
+#include "NetworkInterfaceOld.h"
 
 NetworkInterfaceOld* NetworkInterfaceOld::_instance = nullptr;
 

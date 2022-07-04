@@ -3,7 +3,8 @@
 
 #include "Options.h"
 #include "LastIpOptionAdapter.h"
-#include "NetworkInterfaceNew.h"
+#include "Network.h"
+#include "ServerManager.h"
 
 StartServerScene::StartServerScene()
 {
@@ -222,16 +223,22 @@ void StartServerScene::_StartClicked()
         }
         else
         {
-            //_startButton->SetBackgroundColor(D2D1::ColorF(0.5f, 0.25f, 0.25f));
-            //_startButton->Text()->SetText(L"Cancel");
-            _startButton->SetBackgroundColor(D2D1::ColorF(0.15f, 0.15f, 0.15f));
-            _startButton->Text()->SetFontColor(D2D1::ColorF(0.4f, 0.4f, 0.4f));
             _startLoadingInfoLabel->SetVisible(false);
-            znet::NetworkInterface::Instance()->StartServer(str_to_int(port));
-            znet::NetworkInterface::Instance()->SetUsername(_usernameInput->GetText());
-            _starting = true;
-            _startSuccessful = true;
-            _closeScene = true;
+
+            auto serverManager = std::make_unique<znet::ServerManager>(str_to_int(port));
+            if (serverManager->Status() == znet::NetworkStatus::ONLINE)
+            {
+                APP_NETWORK->SetManager(std::move(serverManager));
+                APP_NETWORK->SetUsername(_usernameInput->GetText());
+                _starting = true;
+                _startSuccessful = true;
+                _closeScene = true;
+            }
+            else
+            {
+                _startLoadingInfoLabel->SetText(L"Server start failed");
+                _startLoadingInfoLabel->SetVisible(true);
+            }
         }
     }
 }

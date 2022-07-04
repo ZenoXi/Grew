@@ -1,7 +1,7 @@
 #pragma once
 
 #include "IMediaDataProvider.h"
-#include "NetworkInterfaceNew.h"
+#include "Network.h"
 
 class MediaReceiverDataProvider : public IMediaDataProvider
 {

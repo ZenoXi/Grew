@@ -57,14 +57,8 @@ struct UserConnectedEvent
 
 struct NetworkStateChangedEvent
 {
-    enum State {
-        OFFLINE,
-        CLIENT,
-        SERVER
-    };
-
     static const char* _NAME_() { return "network_state_changed"; }
-    State newState;
+    std::string newStateName;
 };
 
 struct UserDisconnectedEvent

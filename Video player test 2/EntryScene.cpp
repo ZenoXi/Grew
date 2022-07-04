@@ -9,7 +9,7 @@
 #include "StartServerScene.h"
 #include "PlaybackScene.h"
 #include "PlaybackOverlayScene.h"
-#include "NetworkInterfaceNew.h"
+#include "Network.h"
 
 EntryScene::EntryScene() {}
 

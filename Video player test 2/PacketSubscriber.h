@@ -7,7 +7,8 @@ namespace znet
 {
     class PacketSubscriber
     {
-        friend class NetworkInterface;
+        friend class NetworkInterface; // TODO: remove this line
+        friend class Network;
 
         int32_t _packetId = -1;
         virtual void _OnPacketReceived(Packet packet, int64_t userId) = 0;

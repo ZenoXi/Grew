@@ -3,7 +3,8 @@
 
 #include "Options.h"
 #include "LastIpOptionAdapter.h"
-#include "NetworkInterfaceNew.h"
+#include "Network.h"
+#include "ClientManager.h"
 
 ConnectScene::ConnectScene()
 {
@@ -222,15 +223,15 @@ void ConnectScene::_Update()
     // Check connection status
     if (_connecting)
     {
-        auto status = znet::NetworkInterface::Instance()->Status();
-        if (status == znet::ConnectionStatus::CONNECTED)
+        auto status = APP_NETWORK->ManagerStatus();
+        if (status == znet::NetworkStatus::ONLINE)
         {
             _connectionSuccessful = true;
             _connecting = false;
             _closeScene = true;
-            znet::NetworkInterface::Instance()->SetUsername(_usernameInput->GetText());
+            APP_NETWORK->SetUsername(_usernameInput->GetText());
         }
-        else if (status != znet::ConnectionStatus::CONNECTING)
+        else if (status != znet::NetworkStatus::INITIALIZING)
         {
             _connectionSuccessful = false;
             _connecting = false;
@@ -308,14 +309,13 @@ void ConnectScene::_ConnectClicked()
             _connectButton->Text()->SetText(L"Cancel");
             _connectLoadingImage->ResetAnimation();
             _connectLoadingInfoLabel->SetVisible(false);
-            znet::NetworkInterface::Instance()->Connect(ip, str_to_int(port));
+            APP_NETWORK->SetManager(std::make_unique<znet::ClientManager>(ip, str_to_int(port)));
 
             LastIpOptionAdapter optAdapter(Options::Instance()->GetValue("lastIps"));
             bool ipValid = optAdapter.AddIp(ip, port);
             Options::Instance()->SetValue("lastIps", optAdapter.ToOptionString());
             _RearrangeRecentConnectionsPanel();
         }
-        //
     }
     else
     {
@@ -329,7 +329,7 @@ void ConnectScene::_CancelClicked()
 {
     if (_connecting)
     {
-        znet::NetworkInterface::Instance()->Disconnect();
+        APP_NETWORK->CloseManager();
         _connecting = false;
     }
     _connectionSuccessful = false;

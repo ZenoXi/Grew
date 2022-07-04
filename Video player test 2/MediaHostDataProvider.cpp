@@ -1,6 +1,6 @@
 #include "MediaHostDataProvider.h"
 
-#include "NetworkInterfaceNew.h"
+#include "Network.h"
 
 #include <iostream>
 
@@ -32,9 +32,9 @@ void MediaHostDataProvider::Stop()
     _INIT_THREAD_STOP = true;
     _PACKET_THREAD_STOP = true;
 
-    znet::NetworkInterface::Instance()->AbortSend((int32_t)znet::PacketType::VIDEO_PACKET);
-    znet::NetworkInterface::Instance()->AbortSend((int32_t)znet::PacketType::AUDIO_PACKET);
-    znet::NetworkInterface::Instance()->AbortSend((int32_t)znet::PacketType::SUBTITLE_PACKET);
+    APP_NETWORK->AbortSend((int32_t)znet::PacketType::VIDEO_PACKET);
+    APP_NETWORK->AbortSend((int32_t)znet::PacketType::AUDIO_PACKET);
+    APP_NETWORK->AbortSend((int32_t)znet::PacketType::SUBTITLE_PACKET);
 
     if (_initializationThread.joinable())
         _initializationThread.join();
@@ -163,7 +163,7 @@ void MediaHostDataProvider::_Initialize()
     };
 
     // Send stream metadata
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::STREAM_METADATA).From(streamMetadata), _destinationUsers);
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::STREAM_METADATA).From(streamMetadata), _destinationUsers);
 
     // Send streams
     for (int i = 0; i < _videoData.streams.size(); i++)
@@ -172,7 +172,7 @@ void MediaHostDataProvider::_Initialize()
         auto bytes = std::make_unique<int8_t[]>(serializedData.Size());
         std::copy_n(serializedData.Bytes(), serializedData.Size(), bytes.get());
         znet::Packet streamPacket(std::move(bytes), serializedData.Size(), (int)znet::PacketType::VIDEO_STREAM);
-        znet::NetworkInterface::Instance()->Send(std::move(streamPacket), _destinationUsers);
+        APP_NETWORK->Send(std::move(streamPacket), _destinationUsers);
     }
     for (int i = 0; i < _audioData.streams.size(); i++)
     {
@@ -180,7 +180,7 @@ void MediaHostDataProvider::_Initialize()
         auto bytes = std::make_unique<int8_t[]>(serializedData.Size());
         std::copy_n(serializedData.Bytes(), serializedData.Size(), bytes.get());
         znet::Packet streamPacket(std::move(bytes), serializedData.Size(), (int)znet::PacketType::AUDIO_STREAM);
-        znet::NetworkInterface::Instance()->Send(std::move(streamPacket), _destinationUsers);
+        APP_NETWORK->Send(std::move(streamPacket), _destinationUsers);
     }
     for (int i = 0; i < _subtitleData.streams.size(); i++)
     {
@@ -188,7 +188,7 @@ void MediaHostDataProvider::_Initialize()
         auto bytes = std::make_unique<int8_t[]>(serializedData.Size());
         std::copy_n(serializedData.Bytes(), serializedData.Size(), bytes.get());
         znet::Packet streamPacket(std::move(bytes), serializedData.Size(), (int)znet::PacketType::SUBTITLE_STREAM);
-        znet::NetworkInterface::Instance()->Send(std::move(streamPacket), _destinationUsers);
+        APP_NETWORK->Send(std::move(streamPacket), _destinationUsers);
     }
     for (int i = 0; i < _attachmentStreams.size(); i++)
     {
@@ -196,7 +196,7 @@ void MediaHostDataProvider::_Initialize()
         auto bytes = std::make_unique<int8_t[]>(serializedData.Size());
         std::copy_n(serializedData.Bytes(), serializedData.Size(), bytes.get());
         znet::Packet streamPacket(std::move(bytes), serializedData.Size(), (int)znet::PacketType::ATTACHMENT_STREAM);
-        znet::NetworkInterface::Instance()->Send(std::move(streamPacket), _destinationUsers);
+        APP_NETWORK->Send(std::move(streamPacket), _destinationUsers);
     }
     for (int i = 0; i < _dataStreams.size(); i++)
     {
@@ -204,7 +204,7 @@ void MediaHostDataProvider::_Initialize()
         auto bytes = std::make_unique<int8_t[]>(serializedData.Size());
         std::copy_n(serializedData.Bytes(), serializedData.Size(), bytes.get());
         znet::Packet streamPacket(std::move(bytes), serializedData.Size(), (int)znet::PacketType::DATA_STREAM);
-        znet::NetworkInterface::Instance()->Send(std::move(streamPacket), _destinationUsers);
+        APP_NETWORK->Send(std::move(streamPacket), _destinationUsers);
     }
     for (int i = 0; i < _unknownStreams.size(); i++)
     {
@@ -212,7 +212,7 @@ void MediaHostDataProvider::_Initialize()
         auto bytes = std::make_unique<int8_t[]>(serializedData.Size());
         std::copy_n(serializedData.Bytes(), serializedData.Size(), bytes.get());
         znet::Packet streamPacket(std::move(bytes), serializedData.Size(), (int)znet::PacketType::UNKNOWN_STREAM);
-        znet::NetworkInterface::Instance()->Send(std::move(streamPacket), _destinationUsers);
+        APP_NETWORK->Send(std::move(streamPacket), _destinationUsers);
     }
     // Send chapters
     for (int i = 0; i < _chapters.size(); i++)
@@ -221,7 +221,7 @@ void MediaHostDataProvider::_Initialize()
         auto bytes = std::make_unique<int8_t[]>(serializedData.Size());
         std::copy_n(serializedData.Bytes(), serializedData.Size(), bytes.get());
         znet::Packet chapterPacket(std::move(bytes), serializedData.Size(), (int)znet::PacketType::CHAPTER);
-        znet::NetworkInterface::Instance()->Send(std::move(chapterPacket), _destinationUsers);
+        APP_NETWORK->Send(std::move(chapterPacket), _destinationUsers);
     }
 
     // Wait for confirmation
@@ -272,13 +272,13 @@ void MediaHostDataProvider::_ReadPackets()
             _ClearSubtitlePackets();
 
             // Clear outgoing packets
-            znet::NetworkInterface::Instance()->AbortSend((int32_t)znet::PacketType::VIDEO_PACKET);
-            znet::NetworkInterface::Instance()->AbortSend((int32_t)znet::PacketType::AUDIO_PACKET);
-            znet::NetworkInterface::Instance()->AbortSend((int32_t)znet::PacketType::SUBTITLE_PACKET);
+            APP_NETWORK->AbortSend((int32_t)znet::PacketType::VIDEO_PACKET);
+            APP_NETWORK->AbortSend((int32_t)znet::PacketType::AUDIO_PACKET);
+            APP_NETWORK->AbortSend((int32_t)znet::PacketType::SUBTITLE_PACKET);
 
             // Send seek order
             //znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::INITIATE_SEEK).From(_seekData), { _destinationUsers });
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::SEEK_DISCONTINUITY)/*.From(_seekData)*/, { _destinationUsers });
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::SEEK_DISCONTINUITY)/*.From(_seekData)*/, { _destinationUsers });
             std::cout << "Seek order sent" << std::endl;
 
             _waitForDiscontinuity = false;
@@ -306,7 +306,7 @@ void MediaHostDataProvider::_ReadPackets()
                 auto data = videoPacket.Serialize();
                 auto bytes = std::make_unique<int8_t[]>(data.Size());
                 std::copy_n(data.Bytes(), data.Size(), bytes.get());
-                NetworkInterface::Instance()->Send(Packet(std::move(bytes), data.Size(), (int)PacketType::VIDEO_PACKET), _destinationUsers);
+                APP_NETWORK->Send(Packet(std::move(bytes), data.Size(), (int)PacketType::VIDEO_PACKET), _destinationUsers);
 
                 // Add packet to local playback
                 _AddVideoPacket(std::move(videoPacket));
@@ -323,7 +323,7 @@ void MediaHostDataProvider::_ReadPackets()
                 auto data = audioPacket.Serialize();
                 auto bytes = std::make_unique<int8_t[]>(data.Size());
                 std::copy_n(data.Bytes(), data.Size(), bytes.get());
-                NetworkInterface::Instance()->Send(Packet(std::move(bytes), data.Size(), (int)PacketType::AUDIO_PACKET), _destinationUsers);
+                APP_NETWORK->Send(Packet(std::move(bytes), data.Size(), (int)PacketType::AUDIO_PACKET), _destinationUsers);
 
                 // Add packet to local playback
                 _AddAudioPacket(std::move(audioPacket));
@@ -340,7 +340,7 @@ void MediaHostDataProvider::_ReadPackets()
                 auto data = subtitlePacket.Serialize();
                 auto bytes = std::make_unique<int8_t[]>(data.Size());
                 std::copy_n(data.Bytes(), data.Size(), bytes.get());
-                NetworkInterface::Instance()->Send(Packet(std::move(bytes), data.Size(), (int)PacketType::SUBTITLE_PACKET), _destinationUsers);
+                APP_NETWORK->Send(Packet(std::move(bytes), data.Size(), (int)PacketType::SUBTITLE_PACKET), _destinationUsers);
 
                 // Add packet to local playback
                 _AddSubtitlePacket(std::move(subtitlePacket));

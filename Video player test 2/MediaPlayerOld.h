@@ -1,6 +1,6 @@
 #pragma once
 
-#include "NetworkInterface.h"
+#include "NetworkInterfaceOld.h"
 #include "MediaDecoder.h"
 
 #pragma comment( lib,"xaudio2.lib" )

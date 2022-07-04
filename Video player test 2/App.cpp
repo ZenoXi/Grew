@@ -11,6 +11,9 @@
 #include "PlaylistEventHandler_Client.h"
 #include "PlaylistEventHandler_Server.h"
 
+#include "ClientManager.h"
+#include "ServerManager.h"
+
 App* App::_instance = nullptr;
 
 App::App(DisplayWindow& dw, std::string startScene)
@@ -430,32 +433,27 @@ void App::_HandleNetworkStateChanges()
     {
         auto ev = _networkStateEventReceiver.GetEvent();
 
-        switch (ev.newState)
-        {
-        case ev.OFFLINE:
+        if (ev.newStateName == "offline")
         {
             _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
             playlist.SetEventHandler<PlaylistEventHandler_Offline>();
-            break;
         }
-        case ev.CLIENT:
+        else if (ev.newStateName == znet::ClientManager::StaticName())
         {
             _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
             playlist.SetEventHandler<PlaylistEventHandler_Client>();
-            break;
         }
-        case ev.SERVER:
+        else if (ev.newStateName == znet::ServerManager::StaticName())
         {
             // _serverPlaylist should be created first, because client handler
             // constructor synchronously sends packets to the server playlist
             _serverPlaylist.SetEventHandler<PlaylistEventHandler_Server>();
             playlist.SetEventHandler<PlaylistEventHandler_Client>();
-            break;
         }
-        default:
+        else
+        {
             _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
             playlist.SetEventHandler<PlaylistEventHandler_None>();
-            break;
         }
     }
 }

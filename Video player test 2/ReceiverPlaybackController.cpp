@@ -29,8 +29,7 @@ void ReceiverPlaybackController::Update()
     // Send current playback position
     if ((ztime::Main() - _lastPositionNotification).GetDuration(SECONDS) >= 1)
     {
-        znet::NetworkInterface::Instance()->Send(
-            znet::Packet((int)znet::PacketType::PLAYBACK_POSITION).From(_player->TimerPosition().GetTicks()), { _hostId }, 3);
+        APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_POSITION).From(_player->TimerPosition().GetTicks()), { _hostId }, 3);
         _lastPositionNotification = ztime::Main();
     }
 
@@ -45,7 +44,7 @@ void ReceiverPlaybackController::Update()
             _waitingForResume = true;
 
             // Notify host of seek finish
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::SEEK_FINISHED), { _hostId }, 1);
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::SEEK_FINISHED), { _hostId }, 1);
         }
     }
 
@@ -108,7 +107,7 @@ void ReceiverPlaybackController::_CheckForPlay()
         // Show notification
         int64_t userId = packetPair.first.Cast<int64_t>();
         Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
-        if (scene && userId != znet::NetworkInterface::Instance()->ThisUser().id)
+        if (scene && userId != APP_NETWORK->ThisUser().id)
         {
             zcom::NotificationInfo ninfo;
             ninfo.duration = Duration(1, SECONDS);
@@ -132,7 +131,7 @@ void ReceiverPlaybackController::_CheckForPause()
         // Show notification
         int64_t userId = packetPair.first.Cast<int64_t>();
         Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
-        if (scene && userId != znet::NetworkInterface::Instance()->ThisUser().id)
+        if (scene && userId != APP_NETWORK->ThisUser().id)
         {
             zcom::NotificationInfo ninfo;
             ninfo.duration = Duration(1, SECONDS);
@@ -173,7 +172,7 @@ void ReceiverPlaybackController::_CheckForInitiateSeek()
         _player->WaitDiscontinuity();
 
         //Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
-        //if (scene && seekData.userId != znet::NetworkInterface::Instance()->ThisUser().id)
+        //if (scene && seekData.userId != APP_NETWORK->ThisUser().id)
         //{
         //    zcom::NotificationInfo ninfo;
         //    ninfo.duration = Duration(1, SECONDS);
@@ -206,7 +205,7 @@ void ReceiverPlaybackController::_CheckForInitiateSeek()
 
         // Show notifications
         Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
-        if (scene && seekData.userId != znet::NetworkInterface::Instance()->ThisUser().id)
+        if (scene && seekData.userId != APP_NETWORK->ThisUser().id)
         {
             zcom::NotificationInfo ninfo;
             ninfo.duration = Duration(2, SECONDS);
@@ -278,7 +277,7 @@ void ReceiverPlaybackController::Play()
         return;
 
     _Play();
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::RESUME_REQUEST), { _hostId }, 1);
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::RESUME_REQUEST), { _hostId }, 1);
 }
 
 void ReceiverPlaybackController::Pause()
@@ -287,7 +286,7 @@ void ReceiverPlaybackController::Pause()
         return;
 
     _Pause();
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PAUSE_REQUEST), { _hostId }, 1);
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PAUSE_REQUEST), { _hostId }, 1);
 }
 
 void ReceiverPlaybackController::_Play()
@@ -327,7 +326,7 @@ void ReceiverPlaybackController::Seek(TimePoint time)
     // Send request to host
     IMediaDataProvider::SeekData seekData;
     seekData.time = time;
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::SEEK_REQUEST).From(seekData), { _hostId }, 1);
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::SEEK_REQUEST).From(seekData), { _hostId }, 1);
 
     _timerController.AddStop("waitseek");
     _waitingForSeek = true;
@@ -342,7 +341,7 @@ void ReceiverPlaybackController::SetVideoStream(int index)
     // Send request to host
     IMediaDataProvider::SeekData seekData;
     seekData.videoStreamIndex = index;
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::SEEK_REQUEST).From(seekData), { _hostId }, 1);
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::SEEK_REQUEST).From(seekData), { _hostId }, 1);
 
     _currentVideoStream = index;
     _timerController.AddStop("waitseek");
@@ -357,7 +356,7 @@ void ReceiverPlaybackController::SetAudioStream(int index)
     // Send request to host
     IMediaDataProvider::SeekData seekData;
     seekData.audioStreamIndex = index;
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::SEEK_REQUEST).From(seekData), { _hostId }, 1);
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::SEEK_REQUEST).From(seekData), { _hostId }, 1);
 
     _currentAudioStream = index;
     _timerController.AddStop("waitseek");
@@ -372,7 +371,7 @@ void ReceiverPlaybackController::SetSubtitleStream(int index)
     // Send request to host
     IMediaDataProvider::SeekData seekData;
     seekData.subtitleStreamIndex = index;
-    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::SEEK_REQUEST).From(seekData), { _hostId }, 1);
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::SEEK_REQUEST).From(seekData), { _hostId }, 1);
 
     _currentSubtitleStream = index;
     _timerController.AddStop("waitseek");
@@ -398,7 +397,7 @@ std::wstring ReceiverPlaybackController::_UsernameFromId(int64_t id)
         username << L"[Owner] ";
     else
         username << L"[User " << id << "] ";
-    auto users = znet::NetworkInterface::Instance()->Users();
+    auto users = APP_NETWORK->Users();
     for (auto& user : users)
     {
         if (user.id == id)

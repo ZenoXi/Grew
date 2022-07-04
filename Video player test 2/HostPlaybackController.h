@@ -2,7 +2,7 @@
 
 #include "BasePlaybackController.h"
 #include "MediaHostDataProvider.h"
-#include "NetworkInterfaceNew.h"
+#include "Network.h"
 
 class HostPlaybackController : public BasePlaybackController
 {

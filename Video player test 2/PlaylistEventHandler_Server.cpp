@@ -2,7 +2,7 @@
 #include "Playlist.h"
 
 #include "App.h"
-#include "NetworkInterfaceNew.h"
+#include "Network.h"
 #include "PacketBuilder.h"
 
 PlaylistEventHandler_Server::PlaylistEventHandler_Server(Playlist_Internal* playlist)
@@ -73,20 +73,14 @@ void PlaylistEventHandler_Server::_CheckForUserDisconnect()
                     std::vector<int64_t> destUsers{ _playlist->readyItems[i]->GetUserId() };
                     if (destUsers[0] != _playlist->startRequestIssuer)
                         destUsers.push_back(_playlist->startRequestIssuer);
-                    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), destUsers);
+                    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), destUsers);
 
                     _playlist->currentlyStarting = -1;
                     _playlist->startRequestIssuer = -1;
                 }
 
                 // Send remove order to all clients
-                auto users = znet::NetworkInterface::Instance()->Users();
-                std::vector<int64_t> userIds;
-                userIds.push_back(0);
-                for (auto& user : users)
-                    userIds.push_back(user.id);
-                znet::NetworkInterface::Instance()->
-                    Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_REMOVE).From(_playlist->readyItems[i]->GetMediaId()), userIds);
+                APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_REMOVE).From(_playlist->readyItems[i]->GetMediaId()), APP_NETWORK->UserIds(true));
 
                 // Remove from playlist
                 _playlist->readyItems.erase(_playlist->readyItems.begin() + i);
@@ -119,8 +113,7 @@ void PlaylistEventHandler_Server::_CheckForPlaylistRequest()
                 .Add(filename.data(), filename.length());
 
             // Send packet back to request issuer
-            znet::NetworkInterface::Instance()->
-                Send(znet::Packet(builder.Release(), builder.UsedBytes(), (int)znet::PacketType::PLAYLIST_ITEM_ADD), { userId });
+            APP_NETWORK->Send(znet::Packet(builder.Release(), builder.UsedBytes(), (int)znet::PacketType::PLAYLIST_ITEM_ADD), { userId });
         }
     }
 }
@@ -160,12 +153,7 @@ void PlaylistEventHandler_Server::_CheckForItemAddRequest()
             .Add(filename.data(), filename.length());
 
         // Send item packet to all clients
-        auto users = znet::NetworkInterface::Instance()->Users();
-        std::vector<int64_t> userIds;
-        userIds.push_back(0);
-        for (auto& user : users)
-            userIds.push_back(user.id);
-        znet::NetworkInterface::Instance()->Send(znet::Packet(builder.Release(), builder.UsedBytes(), (int)znet::PacketType::PLAYLIST_ITEM_ADD), userIds);
+        APP_NETWORK->Send(znet::Packet(builder.Release(), builder.UsedBytes(), (int)znet::PacketType::PLAYLIST_ITEM_ADD), APP_NETWORK->UserIds(true));
 
         // Add item to internal playlist
         _playlist->readyItems.push_back(std::move(item));
@@ -196,17 +184,12 @@ void PlaylistEventHandler_Server::_CheckForItemRemoveRequest()
                     _playlist->readyItems[i]->GetItemId() == _playlist->currentlyPlaying)
                 {
                     // Send deny response
-                    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_REMOVE_DENIED).From(mediaId), { userId });
+                    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_REMOVE_DENIED).From(mediaId), { userId });
                     break;
                 }
 
                 // Send remove order to all clients
-                auto users = znet::NetworkInterface::Instance()->Users();
-                std::vector<int64_t> userIds;
-                userIds.push_back(0);
-                for (auto& user : users)
-                    userIds.push_back(user.id);
-                znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_REMOVE).From(mediaId), userIds);
+                APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_REMOVE).From(mediaId), APP_NETWORK->UserIds(true));
 
                 _playlist->readyItems.erase(_playlist->readyItems.begin() + i);
                 break;
@@ -215,7 +198,7 @@ void PlaylistEventHandler_Server::_CheckForItemRemoveRequest()
         if (!itemFound)
         {
             // Send deny response
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_REMOVE_DENIED).From(mediaId), { userId });
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_REMOVE_DENIED).From(mediaId), { userId });
         }
     }
 }
@@ -235,7 +218,7 @@ void PlaylistEventHandler_Server::_CheckForStartRequest()
         if (_playlist->currentlyStarting != -1)
         {
             // Send deny response to issuer
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), { userId });
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), { userId });
             continue;
         }
 
@@ -248,12 +231,12 @@ void PlaylistEventHandler_Server::_CheckForStartRequest()
                 if (_playlist->readyItems[i]->GetUserId() == MISSING_HOST_ID)
                 {
                     // Send deny response to issuer
-                    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), { userId });
+                    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), { userId });
                     break;
                 }
 
                 // Send play order to host
-                znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_ORDER).From(mediaId), { _playlist->readyItems[i]->GetUserId() });
+                APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_ORDER).From(mediaId), { _playlist->readyItems[i]->GetUserId() });
                 
                 _playlist->currentlyStarting = _playlist->readyItems[i]->GetItemId();
                 _playlist->startRequestIssuer = userId;
@@ -263,7 +246,7 @@ void PlaylistEventHandler_Server::_CheckForStartRequest()
         }
 
         // Item doesn't exist, send deny response to issuer
-        znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), { userId });
+        APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), { userId });
     }
 }
 
@@ -296,14 +279,16 @@ void PlaylistEventHandler_Server::_CheckForStartResponse()
                         builder.Add(mediaId).Add(hostId);
 
                         // Send play start order to all clients except the host
-                        auto users = znet::NetworkInterface::Instance()->Users();
-                        std::vector<int64_t> userIds;
-                        if (_playlist->readyItems[i]->GetUserId() != 0)
-                            userIds.push_back(0);
-                        for (auto& user : users)
-                            if (user.id != _playlist->readyItems[i]->GetUserId())
-                                userIds.push_back(user.id);
-                        znet::NetworkInterface::Instance()->Send(znet::Packet(builder.Release(), builder.UsedBytes(), (int)znet::PacketType::PLAYBACK_START), userIds);
+                        auto userIds = APP_NETWORK->UserIds(true);
+                        for (int j = 0; j < userIds.size(); j++)
+                        {
+                            if (userIds[j] == _playlist->readyItems[i]->GetUserId())
+                            {
+                                userIds.erase(userIds.begin() + j);
+                                break;
+                            }
+                        }
+                        APP_NETWORK->Send(znet::Packet(builder.Release(), builder.UsedBytes(), (int)znet::PacketType::PLAYBACK_START), userIds);
 
                         _playlist->currentlyPlaying = _playlist->readyItems[i]->GetItemId();
                         break;
@@ -313,7 +298,7 @@ void PlaylistEventHandler_Server::_CheckForStartResponse()
             else if (response == 0)
             {
                 // Send response to issuer
-                znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), { _playlist->startRequestIssuer });
+                APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), { _playlist->startRequestIssuer });
             }
 
             _playlist->currentlyStarting = -1;
@@ -333,7 +318,7 @@ void PlaylistEventHandler_Server::_CheckForStopRequest()
 
         if (_playlist->currentlyPlaying == -1)
         {
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_DENIED), { userId });
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_DENIED), { userId });
             continue;
         }
 
@@ -343,12 +328,7 @@ void PlaylistEventHandler_Server::_CheckForStopRequest()
             if (_playlist->readyItems[i]->GetItemId() == _playlist->currentlyPlaying)
             {
                 // Sent playback stop order to all clients
-                auto users = znet::NetworkInterface::Instance()->Users();
-                std::vector<int64_t> userIds;
-                userIds.push_back(0);
-                for (auto& user : users)
-                    userIds.push_back(user.id);
-                znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP), userIds);
+                APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP), APP_NETWORK->UserIds(true));
 
                 _playlist->currentlyPlaying = -1;
                 break;
@@ -372,7 +352,7 @@ void PlaylistEventHandler_Server::_CheckForItemMoveRequest()
 
         if (slot >= _playlist->readyItems.size() || slot < 0)
         {
-            znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED).From(mediaId), { userId });
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED).From(mediaId), { userId });
             continue;
         }
 
@@ -383,7 +363,7 @@ void PlaylistEventHandler_Server::_CheckForItemMoveRequest()
             {
                 if (slot == i)
                 {
-                    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED).From(mediaId), { userId });
+                    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED).From(mediaId), { userId });
                     break;
                 }
 
@@ -396,13 +376,8 @@ void PlaylistEventHandler_Server::_CheckForItemMoveRequest()
                     std::rotate(v.begin() + oldIndex, v.begin() + oldIndex + 1, v.begin() + newIndex + 1);
 
                 // Sent item move order to all clients
-                auto users = znet::NetworkInterface::Instance()->Users();
-                std::vector<int64_t> userIds;
-                userIds.push_back(0);
-                for (auto& user : users)
-                    userIds.push_back(user.id);
                 struct MoveData { int64_t mediaId; int32_t slot; } moveData{ mediaId, slot };
-                znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE).From(moveData), userIds);
+                APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE).From(moveData), APP_NETWORK->UserIds(true));
                 // Not that useful (though interesting), but moveData could be replaced by:
                 // struct { int64_t mediaId; int32_t slot; } { mediaId, slot }
 
@@ -427,7 +402,7 @@ void PlaylistEventHandler_Server::_UpdateStartOrderTimeout()
                     std::vector<int64_t> destUsers{ _playlist->readyItems[i]->GetUserId() };
                     if (destUsers[0] != _playlist->startRequestIssuer)
                         destUsers.push_back(_playlist->startRequestIssuer);
-                    znet::NetworkInterface::Instance()->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), destUsers);
+                    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), destUsers);
 
                     _playlist->currentlyStarting = -1;
                     _playlist->startRequestIssuer = -1;
