@@ -48,7 +48,7 @@ public:
         other._head = 0;
         other._size = 0;
     }
-    FixedQueue& operator= (const FixedQueue&& other) noexcept
+    FixedQueue& operator= (FixedQueue&& other) noexcept
     {
         if (this != &other)
         {
