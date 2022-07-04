@@ -401,6 +401,13 @@ void PlaybackScene::_Unfocus()
 
 void PlaybackScene::_Update()
 {
+    // Close playback scene if playback init failed
+    if (_playback->InitFailed())
+    {
+        App::Instance()->UninitScene(GetName());
+        return;
+    }
+
     // Keep control panel fixed while stream menu is open or scene is unfocused
     if (_streamMenuPanel->GetVisible() || !Focused())
         _playbackControllerPanel->SetFixed(true);
