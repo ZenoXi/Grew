@@ -3,9 +3,9 @@
 #include "ChiliWin.h"
 #include <shobjidl.h>
 
-std::wstring OpenFile()
+std::vector<std::wstring> OpenFiles()
 {
-    std::wstring result = L"";
+    std::vector<std::wstring> result;
 
     HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
     if (SUCCEEDED(hr))
@@ -18,43 +18,45 @@ std::wstring OpenFile()
 
         if (SUCCEEDED(hr))
         {
+            // Allow multiple file open
+            FILEOPENDIALOGOPTIONS opt;
+            pFileOpen->GetOptions(&opt);
+            opt |= FOS_ALLOWMULTISELECT;
+            hr = pFileOpen->SetOptions(opt);
+
             // Show the Open dialog box.
             hr = pFileOpen->Show(NULL);
 
-            // Get the file name from the dialog box.
+            // Get the file name from the dialog box (by creating a stack of ugly 'if (SUCCEEDED(hr))' thanks winapi)
             if (SUCCEEDED(hr))
             {
-                IShellItem* pItem;
-                hr = pFileOpen->GetResult(&pItem);
+                IShellItemArray* pItems;
+                hr = pFileOpen->GetResults(&pItems);
                 if (SUCCEEDED(hr))
                 {
-                    PWSTR pszFilePath;
-                    hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
-
-                    // Display the file name to the user.
+                    DWORD count;
+                    hr = pItems->GetCount(&count);
                     if (SUCCEEDED(hr))
                     {
-                        result = pszFilePath;
-                        CoTaskMemFree(pszFilePath);
+                        for (DWORD i = 0; i < count; i++)
+                        {
+                            IShellItem* pItem;
+                            hr = pItems->GetItemAt(i, &pItem);
+                            if (SUCCEEDED(hr))
+                            {
+                                PWSTR pszFilePath;
+                                hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+                                if (SUCCEEDED(hr))
+                                {
+                                    result.push_back(pszFilePath);
+                                    CoTaskMemFree(pszFilePath);
+                                }
+                                pItem->Release();
+                            }
+                        }
                     }
-                    else
-                    {
-                        //std::cout << "[Err]Failed extract path" << std::endl;
-                    }
-                    pItem->Release();
+                    pItems->Release();
                 }
-                else
-                {
-                    //std::cout << "[Err]Failed to get result" << std::endl;
-                }
-            }
-            else if (hr == HRESULT_FROM_WIN32(ERROR_CANCELLED))
-            {
-                //std::cout << "[Err]Selection canceled" << std::endl;
-            }
-            else
-            {
-                //std::cout << "[Err]Unknown" << std::endl;
             }
             pFileOpen->Release();
         }
@@ -64,7 +66,7 @@ std::wstring OpenFile()
     return result;
 }
 
-std::wstring SaveFile()
+std::vector<std::wstring> SaveFile()
 {
     std::wstring result;
 
@@ -122,5 +124,5 @@ std::wstring SaveFile()
         CoUninitialize();
     }
 
-    return result;
+    return { result };
 }

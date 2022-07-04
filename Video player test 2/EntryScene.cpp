@@ -215,13 +215,21 @@ void EntryScene::_Update()
         if (_fileDialog.Done())
         {
             _fileLoading = false;
-            std::wstring filename = _fileDialog.Result();
-            if (filename != L"")
+
+            auto paths = _fileDialog.ParsedResult();
+            if (!paths.empty())
             {
-                auto item = std::make_unique<PlaylistItem>(filename);
-                int64_t itemId = item->GetItemId();
-                App::Instance()->playlist.Request_AddItem(std::move(item));
-                App::Instance()->playlist.Request_PlayItem(itemId);
+                // Open all selected files
+                for (int i = 0; i < paths.size(); i++)
+                {
+                    auto item = std::make_unique<PlaylistItem>(paths[i]);
+                    int64_t itemId = item->GetItemId();
+                    App::Instance()->playlist.Request_AddItem(std::move(item));
+                    // Play first item
+                    if (i == 0)
+                        App::Instance()->playlist.Request_PlayItem(itemId);
+                }
+
                 App::Instance()->UninitScene(GetName());
                 App::Instance()->MoveSceneToFront(PlaybackScene::StaticName());
             }
