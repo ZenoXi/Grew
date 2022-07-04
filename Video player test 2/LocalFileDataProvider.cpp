@@ -39,7 +39,6 @@ LocalFileDataProvider::LocalFileDataProvider(LocalFileDataProvider* other)
     _packetThreadController.Add("eof", sizeof(bool));
 
     _filename = other->_filename;
-    avformat_open_input(&_avfContext, _filename.c_str(), NULL, NULL);
 }
 
 LocalFileDataProvider::~LocalFileDataProvider()
@@ -51,8 +50,11 @@ LocalFileDataProvider::~LocalFileDataProvider()
         _initializationThread.join();
 
     Stop();
-    avformat_close_input(&_avfContext);
-    avformat_free_context(_avfContext);
+    if (_avfContext)
+    {
+        avformat_close_input(&_avfContext);
+        avformat_free_context(_avfContext);
+    }
 }
 
 void LocalFileDataProvider::Start()
@@ -118,14 +120,6 @@ void LocalFileDataProvider::_Initialize()
     std::cout << "Init started.." << std::endl;
 
     // Open file
-    _avfContext = avformat_alloc_context();
-    if (!_avfContext)
-    {
-        _initFailed = true;
-        _initializing = false;
-        std::cout << "Init failed." << std::endl;
-        return;
-    }
     if (avformat_open_input(&_avfContext, _filename.c_str(), NULL, NULL) != 0)
     {
         _initFailed = true;
@@ -212,15 +206,8 @@ void LocalFileDataProvider::_Initialize()
     _dataStreams = std::move(fprocessor.dataStreams);
     _unknownStreams = std::move(fprocessor.unknownStreams);
 
-    // Reset file handle
+    // Close file handle
     avformat_close_input(&_avfContext);
-    if (avformat_open_input(&_avfContext, _filename.c_str(), NULL, NULL) != 0)
-    {
-        _initFailed = true;
-        _initializing = false;
-        std::cout << "Init failed." << std::endl;
-        return;
-    }
 
     if (!_videoData.streams.empty()) _videoData.currentStream = 0;
     if (!_audioData.streams.empty()) _audioData.currentStream = 0;
@@ -233,6 +220,10 @@ void LocalFileDataProvider::_Initialize()
 
 void LocalFileDataProvider::_ReadPackets()
 {
+    // Open file
+    if (avformat_open_input(&_avfContext, _filename.c_str(), NULL, NULL) != 0)
+        return; // TODO: show error notification
+
     AVPacket* packet = av_packet_alloc();
     bool holdPacket = false;
     bool eof = false;
