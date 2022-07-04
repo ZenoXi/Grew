@@ -89,6 +89,14 @@ std::vector<PlaylistItem*> Playlist::LoadingItems() const
     return items;
 }
 
+std::vector<PlaylistItem*> Playlist::FailedItems() const
+{
+    std::vector<PlaylistItem*> items;
+    for (auto& item : _playlist->failedItems)
+        items.push_back(item.get());
+    return items;
+}
+
 std::vector<PlaylistItem*> Playlist::AllItems() const
 {
     std::vector<PlaylistItem*> items;
@@ -97,6 +105,8 @@ std::vector<PlaylistItem*> Playlist::AllItems() const
     for (auto& item : _playlist->pendingItems)
         items.push_back(item.get());
     for (auto& item : _playlist->loadingItems)
+        items.push_back(item.get());
+    for (auto& item : _playlist->failedItems)
         items.push_back(item.get());
     return items;
 }

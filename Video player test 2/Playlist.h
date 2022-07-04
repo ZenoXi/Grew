@@ -24,6 +24,7 @@ public:
     std::vector<std::unique_ptr<PlaylistItem>> readyItems;
     std::vector<std::unique_ptr<PlaylistItem>> pendingItems;
     std::vector<std::unique_ptr<PlaylistItem>> loadingItems;
+    std::vector<std::unique_ptr<PlaylistItem>> failedItems;
 
     int64_t pendingItemPlay = -1;
     int64_t pendingItemStop = -1;
@@ -54,6 +55,7 @@ public:
     std::vector<PlaylistItem*> ReadyItems() const;
     std::vector<PlaylistItem*> PendingItems() const;
     std::vector<PlaylistItem*> LoadingItems() const;
+    std::vector<PlaylistItem*> FailedItems() const;
     std::vector<PlaylistItem*> AllItems() const;
     int64_t PendingItemPlay() const;
     int64_t PendingItemStop() const;

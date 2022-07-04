@@ -129,6 +129,17 @@ void PlaylistEventHandler_Client::OnDeleteItemRequest(int64_t itemId)
             return;
         }
     }
+
+    // Check failed items
+    for (int i = 0; i < _playlist->failedItems.size(); i++)
+    {
+        if (_playlist->failedItems[i]->GetItemId() == itemId)
+        {
+            _playlist->failedItems.erase(_playlist->failedItems.begin() + i);
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
+            return;
+        }
+    }
 }
 
 void PlaylistEventHandler_Client::OnPlayItemRequest(int64_t itemId)
@@ -257,21 +268,12 @@ void PlaylistEventHandler_Client::_CheckForItemAdd()
             {
                 if (_playlist->pendingItems[i]->GetItemId() == callbackId)
                 {
-                    // mediaId of -1 means rejected add request
-                    if (mediaId != -1)
-                    {
-                        // Move confirmed item
-                        _playlist->pendingItems[i]->SetMediaId(mediaId);
-                        _playlist->pendingItems[i]->SetUserId(hostId);
-                        _playlist->pendingItems[i]->SetCustomStatus(L"");
-                        _playlist->readyItems.push_back(std::move(_playlist->pendingItems[i]));
-                        _playlist->pendingItems.erase(_playlist->pendingItems.begin() + i);
-                    }
-                    else
-                    {
-                        _playlist->pendingItems[i]->SetMediaId(-2);
-                    }
-                    break;
+                    // Move confirmed item
+                    _playlist->pendingItems[i]->SetMediaId(mediaId);
+                    _playlist->pendingItems[i]->SetUserId(hostId);
+                    _playlist->pendingItems[i]->SetCustomStatus(L"");
+                    _playlist->readyItems.push_back(std::move(_playlist->pendingItems[i]));
+                    _playlist->pendingItems.erase(_playlist->pendingItems.begin() + i);
                 }
             }
         }
@@ -310,7 +312,11 @@ void PlaylistEventHandler_Client::_CheckForItemAddDeny()
         {
             if (_playlist->pendingItems[i]->GetItemId() == callbackId)
             {
+                // Move to failed list
+                _playlist->pendingItems[i]->SetCustomStatus(L"Denied");
                 _playlist->pendingItems[i]->SetMediaId(ADD_DENIED_MEDIA_ID);
+                _playlist->failedItems.push_back(std::move(_playlist->pendingItems[i]));
+                _playlist->pendingItems.erase(_playlist->pendingItems.begin() + i);
                 App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
                 break;
             }
@@ -644,23 +650,34 @@ void PlaylistEventHandler_Client::_ManageLoadingItems()
     for (int i = 0; i < _playlist->loadingItems.size(); i++)
     {
         auto& item = _playlist->loadingItems[i];
-        if (!item->DataProvider()->Initializing() && !item->DataProvider()->InitFailed())
+        if (!item->DataProvider()->Initializing())
         {
-            // Construct packet
-            std::wstring filename = item->GetFilename();
-            PacketBuilder builder = PacketBuilder();
-            builder.Add(item->GetItemId())
-                .Add(item->GetDuration())
-                .Add(filename.data(), filename.length());
+            if (!item->DataProvider()->InitFailed())
+            {
+                // Construct packet
+                std::wstring filename = item->GetFilename();
+                PacketBuilder builder = PacketBuilder();
+                builder.Add(item->GetItemId())
+                    .Add(item->GetDuration())
+                    .Add(filename.data(), filename.length());
 
-            // Send add request
-            APP_NETWORK->
-                Send(znet::Packet(builder.Release(), builder.UsedBytes(), (int)znet::PacketType::PLAYLIST_ITEM_ADD_REQUEST), { 0 });
+                // Send add request
+                APP_NETWORK->Send(znet::Packet(builder.Release(), builder.UsedBytes(), (int)znet::PacketType::PLAYLIST_ITEM_ADD_REQUEST), { 0 });
 
-            // Move item to pending list
-            _playlist->pendingItems.push_back(std::move(_playlist->loadingItems[i]));
-            _playlist->loadingItems.erase(_playlist->loadingItems.begin() + i);
+                // Move item to pending list
+                _playlist->pendingItems.push_back(std::move(_playlist->loadingItems[i]));
+                _playlist->loadingItems.erase(_playlist->loadingItems.begin() + i);
+            }
+            else
+            {
+                // Move to failed list
+                _playlist->loadingItems[i]->SetCustomStatus(L"Init failed..");
+                _playlist->failedItems.push_back(std::move(_playlist->loadingItems[i]));
+                _playlist->loadingItems.erase(_playlist->loadingItems.begin() + i);
+            }
+
             i--;
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
         }
     }
 }

@@ -73,6 +73,17 @@ void PlaylistEventHandler_Offline::OnDeleteItemRequest(int64_t itemId)
             return;
         }
     }
+
+    // Check failed items
+    for (int i = 0; i < _playlist->failedItems.size(); i++)
+    {
+        if (_playlist->failedItems[i]->GetItemId() == itemId)
+        {
+            _playlist->failedItems.erase(_playlist->failedItems.begin() + i);
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
+            return;
+        }
+    }
 }
 
 void PlaylistEventHandler_Offline::OnPlayItemRequest(int64_t itemId)
@@ -157,11 +168,22 @@ void PlaylistEventHandler_Offline::_ManageLoadingItems()
     for (int i = 0; i < _playlist->loadingItems.size(); i++)
     {
         auto& item = _playlist->loadingItems[i];
-        if (!item->DataProvider()->Initializing() && !item->DataProvider()->InitFailed())
+        if (!item->DataProvider()->Initializing())
         {
-            // Move item to ready list
-            _playlist->readyItems.push_back(std::move(_playlist->loadingItems[i]));
-            _playlist->loadingItems.erase(_playlist->loadingItems.begin() + i);
+            if (!item->DataProvider()->InitFailed())
+            {
+                // Move item to ready list
+                _playlist->readyItems.push_back(std::move(_playlist->loadingItems[i]));
+                _playlist->loadingItems.erase(_playlist->loadingItems.begin() + i);
+            }
+            else
+            {
+                // Move to failed list
+                _playlist->loadingItems[i]->SetCustomStatus(L"Init failed..");
+                _playlist->failedItems.push_back(std::move(_playlist->loadingItems[i]));
+                _playlist->loadingItems.erase(_playlist->loadingItems.begin() + i);
+            }
+
             i--;
             App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
         }
