@@ -6,6 +6,7 @@
 #include "PlaylistEvents.h"
 
 #include "Label.h"
+#include "Image.h"
 #include "TextInput.h"
 #include "OverlayPlaylistItem.h"
 
@@ -25,22 +26,43 @@ struct PlaybackOverlaySceneOptions : public SceneOptionsBase
 
 class PlaybackOverlayScene : public Scene
 {
+    std::unique_ptr<zcom::Panel> _sideMenuPanel = nullptr;
     std::unique_ptr<zcom::Panel> _playlistPanel = nullptr;
     std::unique_ptr<zcom::Panel> _readyItemPanel = nullptr;
-    std::unique_ptr<zcom::Panel> _loadingItemPanel = nullptr;
+    std::unique_ptr<zcom::Label> _playlistLabel = nullptr;
     std::vector<std::unique_ptr<zcom::OverlayPlaylistItem>> _playlistItems;
     std::vector<zcom::OverlayPlaylistItem*> _readyItems;
     std::vector<zcom::OverlayPlaylistItem*> _pendingItems;
     std::vector<zcom::OverlayPlaylistItem*> _loadingItems;
+    std::vector<zcom::OverlayPlaylistItem*> _failedItems;
+
+    std::unique_ptr<zcom::Button> _addFileButton = nullptr;
+    std::unique_ptr<zcom::Button> _addFolderButton = nullptr;
+    std::unique_ptr<zcom::Button> _openPlaylistButton = nullptr;
+    std::unique_ptr<zcom::Button> _savePlaylistButton = nullptr;
+    std::unique_ptr<zcom::Button> _manageSavedPlaylistsButton = nullptr;
+    std::unique_ptr<zcom::Button> _closeOverlayButton = nullptr;
+
     bool _addingFile = false;
     std::unique_ptr<AsyncFileDialog> _fileDialog = nullptr;
-    std::unique_ptr<zcom::Button> _addFileButton = nullptr;
-    std::unique_ptr<zcom::Button> _closeOverlayButton = nullptr;
+
+    std::unique_ptr<zcom::Panel> _networkBannerPanel = nullptr;
     std::unique_ptr<zcom::Label> _networkStatusLabel = nullptr;
     std::unique_ptr<zcom::Button> _closeNetworkButton = nullptr;
-    std::unique_ptr<zcom::Panel> _connectedUsersPanel = nullptr;
-    std::unique_ptr<zcom::TextInput> _usernameInput = nullptr;
+    std::unique_ptr<zcom::Button> _toggleChatButton = nullptr;
     std::unique_ptr<zcom::Button> _usernameButton = nullptr;
+    std::unique_ptr<zcom::TextInput> _usernameInput = nullptr;
+    bool _selectUsernameInput = false;
+    std::unique_ptr<zcom::Button> _toggleUserListButton = nullptr;
+    std::unique_ptr<zcom::Label> _connectedUserCountLabel = nullptr;
+    std::unique_ptr<zcom::Label> _networkLatencyLabel = nullptr;
+    std::unique_ptr<zcom::Image> _downloadSpeedImage = nullptr;
+    std::unique_ptr<zcom::Label> _downloadSpeedLabel = nullptr;
+    std::unique_ptr<zcom::Image> _uploadSpeedImage = nullptr;
+    std::unique_ptr<zcom::Label> _uploadSpeedLabel = nullptr;
+    std::unique_ptr<zcom::Panel> _connectedUsersPanel = nullptr;
+
+    std::unique_ptr<zcom::Panel> _chatPanel = nullptr;
 
     std::unique_ptr<zcom::Label> _offlineLabel = nullptr;
     std::unique_ptr<zcom::Button> _connectButton = nullptr;
@@ -59,9 +81,9 @@ public:
     void _Unfocus();
     void _Update();
 private:
-    void _SetUpPacketReceivers(znet::NetworkMode netMode);
     void _CheckFileDialogCompletion();
     void _ManageLoadingItems();
+    void _ManageFailedItems();
     void _ManageReadyItems();
 public:
     ID2D1Bitmap1* _Draw(Graphics g);
@@ -78,7 +100,6 @@ private:
     void _SplitItems();
     void _SortItems();
     void _RearrangeNetworkPanel();
-    void _RearrangeQueuePanel();
     void _RearrangeNetworkPanel_Offline();
     void _RearrangeNetworkPanel_Online();
 
@@ -151,6 +172,9 @@ private:
     TimePoint _lastNetworkPanelUpdate = 0;
     Duration _networkPanelUpdateInterval = Duration(5, SECONDS);
     void _InvokeNetworkPanelChange();
+
+    std::unique_ptr<EventReceiver<NetworkStatsEvent>> _networkStatsEventReceiver = nullptr;
+    void _UpdateNetworkStats();
 
     // Shorcut handling
 

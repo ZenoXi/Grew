@@ -23,52 +23,62 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     // Init playlist changed receiver
     _playlistChangedReceiver = std::make_unique<EventReceiver<PlaylistChangedEvent>>(&App::Instance()->events);
 
+    // Init network stat receiver
+    _networkStatsEventReceiver = std::make_unique<EventReceiver<NetworkStatsEvent>>(&App::Instance()->events);
+
     // Set up shortcut handler
     _shortcutHandler = std::make_unique<PlaybackOverlayShortcutHandler>();
     _shortcutHandler->AddOnKeyDown([&](BYTE keyCode)
     {
         return _HandleKeyDown(keyCode);
     });
-    
-    _playlistPanel = std::make_unique<zcom::Panel>();
-    _playlistPanel->SetParentHeightPercent(1.0f);
-    _playlistPanel->SetBaseSize(600, -110);
-    _playlistPanel->SetOffsetPixels(40, 40);
-    _playlistPanel->SetBorderVisibility(true);
-    _playlistPanel->SetBorderColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
-    _playlistPanel->SetCornerRounding(3.0f);
-    _playlistPanel->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
+
     zcom::PROP_Shadow shadowProps;
-    shadowProps.offsetX = 5.0f;
-    shadowProps.offsetY = 5.0f;
+    shadowProps.offsetX = 0.0f;
+    shadowProps.offsetY = 0.0f;
     shadowProps.blurStandardDeviation = 5.0f;
     shadowProps.color = D2D1::ColorF(0, 1.0f);
+    
+    _sideMenuPanel = std::make_unique<zcom::Panel>();
+    _sideMenuPanel->SetParentHeightPercent(1.0f);
+    _sideMenuPanel->SetBaseWidth(199);
+    _sideMenuPanel->SetBackgroundColor(D2D1::ColorF(0.13f, 0.13f, 0.13f));
+    _sideMenuPanel->SetTabIndex(-1);
+    _sideMenuPanel->SetProperty(shadowProps);
+    _sideMenuPanel->SetZIndex(1);
+
+    _playlistPanel = std::make_unique<zcom::Panel>();
+    _playlistPanel->SetParentSizePercent(1.0f, 1.0f);
+    _playlistPanel->SetBaseWidth(-200 + -400);
+    _playlistPanel->SetHorizontalOffsetPixels(200);
+    _playlistPanel->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     _playlistPanel->SetProperty(shadowProps);
+    _playlistPanel->SetTabIndex(-1);
 
     _readyItemPanel = std::make_unique<zcom::Panel>();
     _readyItemPanel->SetParentSizePercent(1.0f, 1.0f);
-    _readyItemPanel->SetBaseHeight(-140);
-    _readyItemPanel->SetBorderVisibility(true);
-    _readyItemPanel->SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+    _readyItemPanel->SetBaseHeight(-40);
+    _readyItemPanel->SetVerticalOffsetPixels(40);
     _readyItemPanel->VerticalScrollable(true);
     _readyItemPanel->AddPostLeftPressed([=](zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y) { _HandlePlaylistLeftClick(item, targets, x, y); }, { this });
     _readyItemPanel->AddOnLeftReleased([=](zcom::Base* item, int x, int y) { _HandlePlaylistLeftRelease(item, x, y); }, { this });
     _readyItemPanel->AddOnMouseMove([=](zcom::Base* item, int x, int y) { _HandlePlaylistMouseMove(item, x, y); }, { this });
+    _readyItemPanel->SetTabIndex(-1);
 
-    _loadingItemPanel = std::make_unique<zcom::Panel>();
-    _loadingItemPanel->SetParentWidthPercent(1.0f);
-    _loadingItemPanel->SetBaseHeight(140);
-    _loadingItemPanel->SetVerticalAlignment(zcom::Alignment::END);
-    _loadingItemPanel->VerticalScrollable(true);
+    _playlistLabel = std::make_unique<zcom::Label>(L"Playlist");
+    _playlistLabel->SetBaseSize(100, 40);
+    _playlistLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+    _playlistLabel->SetMargins({ 10.0f });
+    _playlistLabel->SetFontSize(24.0f);
 
-    _playlistPanel->AddItem(_readyItemPanel.get());
-    _playlistPanel->AddItem(_loadingItemPanel.get());
-
-    _addFileButton = std::make_unique<zcom::Button>(L"Add file");
-    _addFileButton->SetBaseSize(100, 25);
-    _addFileButton->SetOffsetPixels(40, -40);
-    _addFileButton->SetVerticalAlignment(zcom::Alignment::END);
-    _addFileButton->SetBorderVisibility(true);
+    _addFileButton = std::make_unique<zcom::Button>(L"Add files");
+    _addFileButton->SetParentWidthPercent(1.0f);
+    _addFileButton->SetBaseHeight(30);
+    _addFileButton->SetVerticalOffsetPixels(0);
+    _addFileButton->SetButtonHoverColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
+    _addFileButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
+    _addFileButton->Text()->SetFontSize(16.0f);
+    _addFileButton->Text()->SetMargins({ 10.0f });
     _addFileButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _addFileButton->SetOnActivated([&]()
     {
@@ -80,24 +90,94 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         _fileDialog->Open();
     });
 
-    _closeOverlayButton = std::make_unique<zcom::Button>(L"Close overlay");
-    _closeOverlayButton->SetBaseSize(100, 25);
-    _closeOverlayButton->SetOffsetPixels(-40, 40);
-    _closeOverlayButton->SetHorizontalAlignment(zcom::Alignment::END);
-    _closeOverlayButton->SetBorderVisibility(true);
+    _addFolderButton = std::make_unique<zcom::Button>(L"Add folder");
+    _addFolderButton->SetParentWidthPercent(1.0f);
+    _addFolderButton->SetBaseHeight(30);
+    _addFolderButton->SetVerticalOffsetPixels(30);
+    _addFolderButton->SetButtonHoverColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.2f));
+    _addFolderButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
+    _addFolderButton->Text()->SetFontSize(16.0f);
+    _addFolderButton->Text()->SetMargins({ 10.0f });
+    _addFolderButton->SetActivation(zcom::ButtonActivation::RELEASE);
+    _addFolderButton->SetOnActivated([&]()
+    {
+        
+    });
+    _addFolderButton->SetActive(false);
+
+    _openPlaylistButton = std::make_unique<zcom::Button>(L"Open playlist");
+    _openPlaylistButton->SetParentWidthPercent(1.0f);
+    _openPlaylistButton->SetBaseHeight(30);
+    _openPlaylistButton->SetVerticalOffsetPixels(70);
+    _openPlaylistButton->SetButtonHoverColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.2f));
+    _openPlaylistButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
+    _openPlaylistButton->Text()->SetFontSize(16.0f);
+    _openPlaylistButton->Text()->SetMargins({ 10.0f });
+    _openPlaylistButton->SetActivation(zcom::ButtonActivation::RELEASE);
+    _openPlaylistButton->SetOnActivated([&]()
+    {
+
+    });
+    _openPlaylistButton->SetActive(false);
+
+    _savePlaylistButton = std::make_unique<zcom::Button>(L"Save playlist");
+    _savePlaylistButton->SetParentWidthPercent(1.0f);
+    _savePlaylistButton->SetBaseHeight(30);
+    _savePlaylistButton->SetVerticalOffsetPixels(100);
+    _savePlaylistButton->SetButtonHoverColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.2f));
+    _savePlaylistButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
+    _savePlaylistButton->Text()->SetFontSize(16.0f);
+    _savePlaylistButton->Text()->SetMargins({ 10.0f });
+    _savePlaylistButton->SetActivation(zcom::ButtonActivation::RELEASE);
+    _savePlaylistButton->SetOnActivated([&]()
+    {
+
+    });
+    _savePlaylistButton->SetActive(false);
+
+    _manageSavedPlaylistsButton = std::make_unique<zcom::Button>(L"Manage saved playlists");
+    _manageSavedPlaylistsButton->SetParentWidthPercent(1.0f);
+    _manageSavedPlaylistsButton->SetBaseHeight(30);
+    _manageSavedPlaylistsButton->SetVerticalOffsetPixels(130);
+    _manageSavedPlaylistsButton->SetButtonHoverColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.2f));
+    _manageSavedPlaylistsButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
+    _manageSavedPlaylistsButton->Text()->SetFontSize(16.0f);
+    _manageSavedPlaylistsButton->Text()->SetMargins({ 10.0f });
+    _manageSavedPlaylistsButton->SetActivation(zcom::ButtonActivation::RELEASE);
+    _manageSavedPlaylistsButton->SetOnActivated([&]()
+    {
+
+    });
+    _manageSavedPlaylistsButton->SetActive(false);
+
+    _closeOverlayButton = std::make_unique<zcom::Button>(L"Close overlay (Esc)");
+    _closeOverlayButton->SetParentWidthPercent(1.0f);
+    _closeOverlayButton->SetBaseHeight(30);
+    _closeOverlayButton->SetVerticalAlignment(zcom::Alignment::END);
+    _closeOverlayButton->SetButtonHoverColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.2f));
+    _closeOverlayButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
+    _closeOverlayButton->Text()->SetFontSize(16.0f);
+    _closeOverlayButton->Text()->SetMargins({ 10.0f });
     _closeOverlayButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _closeOverlayButton->SetOnActivated([&]()
     {
         App::Instance()->MoveSceneToBack(this->GetName());
     });
 
+    _networkBannerPanel = std::make_unique<zcom::Panel>();
+    _networkBannerPanel->SetBaseSize(340, 60);
+    _networkBannerPanel->SetOffsetPixels(-30, 30);
+    _networkBannerPanel->SetHorizontalAlignment(zcom::Alignment::END);
+    _networkBannerPanel->SetBackgroundColor(D2D1::ColorF(0.13f, 0.13f, 0.13f));
+    _networkBannerPanel->SetProperty(shadowProps);
+    _networkBannerPanel->SetZIndex(1);
+
     _networkStatusLabel = std::make_unique<zcom::Label>(L"");
-    _networkStatusLabel->SetBaseSize(200, 25);
-    _networkStatusLabel->SetOffsetPixels(-140, 80);
-    _networkStatusLabel->SetHorizontalAlignment(zcom::Alignment::END);
+    _networkStatusLabel->SetBaseSize(200, 30);
     _networkStatusLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
-    _networkStatusLabel->SetFontSize(18.0f);
+    _networkStatusLabel->SetFontSize(22.0f);
     _networkStatusLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
+    _networkStatusLabel->SetMargins({ 10.0f });
     zcom::PROP_Shadow textShadow;
     textShadow.offsetX = 2.0f;
     textShadow.offsetY = 2.0f;
@@ -106,49 +186,182 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _networkStatusLabel->SetProperty(textShadow);
 
     _closeNetworkButton = std::make_unique<zcom::Button>(L"");
-    _closeNetworkButton->SetBaseSize(100, 25);
-    _closeNetworkButton->SetOffsetPixels(-40, 80);
+    _closeNetworkButton->SetBaseSize(100, 30);
     _closeNetworkButton->SetHorizontalAlignment(zcom::Alignment::END);
-    _closeNetworkButton->SetBorderVisibility(true);
-    _closeNetworkButton->SetBorderColor(D2D1::ColorF(0.8f, 0.2f, 0.2f));
+    _closeNetworkButton->Text()->SetFontSize(16.0f);
+    _closeNetworkButton->SetBackgroundColor(D2D1::ColorF(0.15f, 0.1f, 0.1f));
+    _closeNetworkButton->SetButtonHoverColor(D2D1::ColorF(0.2f, 0.1f, 0.1f));
     _closeNetworkButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _closeNetworkButton->SetOnActivated([&]()
     {
         APP_NETWORK->CloseManager();
     });
 
-    _connectedUsersPanel = std::make_unique<zcom::Panel>();
-    _connectedUsersPanel->SetBaseSize(300, 200);
-    _connectedUsersPanel->SetOffsetPixels(-40, 120);
-    _connectedUsersPanel->SetHorizontalAlignment(zcom::Alignment::END);
-    _connectedUsersPanel->SetBorderVisibility(true);
-    _connectedUsersPanel->SetBorderColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
-    _connectedUsersPanel->SetCornerRounding(3.0f);
-    _connectedUsersPanel->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
-    _connectedUsersPanel->SetProperty(shadowProps);
+    _toggleChatButton = std::make_unique<zcom::Button>();
+    _toggleChatButton->SetBaseSize(30, 30);
+    _toggleChatButton->SetOffsetPixels(0, 30);
+    _toggleChatButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
+    _toggleChatButton->SetButtonImage(ResourceManager::GetImage("chat_vdim"));
+    _toggleChatButton->SetButtonHoverImage(ResourceManager::GetImage("chat_dim"));
+    _toggleChatButton->SetButtonClickImage(ResourceManager::GetImage("chat_dim"));
+    _toggleChatButton->SetButtonColorAll(D2D1::ColorF(0.13f, 0.13f, 0.13f));
+    _toggleChatButton->SetSelectable(false);
+    _toggleChatButton->SetActivation(zcom::ButtonActivation::PRESS);
+    _toggleChatButton->SetOnActivated([&]()
+    {
+        if (_chatPanel->GetVisible())
+        {
+            _chatPanel->SetVisible(false);
+            _toggleChatButton->SetButtonColorAll(D2D1::ColorF(0.13f, 0.13f, 0.13f));
+        }
+        else
+        {
+            _chatPanel->SetVisible(true);
+            _toggleChatButton->SetButtonColorAll(D2D1::ColorF(0.1f, 0.1f, 0.1f));
+        }
+    });
 
-    _usernameInput = std::make_unique<zcom::TextInput>();
-    _usernameInput->SetBaseSize(200, 25);
-    _usernameInput->SetOffsetPixels(-140, 330);
-    _usernameInput->SetPlaceholderText(L"New username");
-    _usernameInput->SetHorizontalAlignment(zcom::Alignment::END);
+    _toggleUserListButton = std::make_unique<zcom::Button>();
+    _toggleUserListButton->SetBaseSize(30, 30);
+    _toggleUserListButton->SetOffsetPixels(30, 30);
+    _toggleUserListButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
+    _toggleUserListButton->SetButtonImage(ResourceManager::GetImage("user_vdim"));
+    _toggleUserListButton->SetButtonHoverImage(ResourceManager::GetImage("user_dim"));
+    _toggleUserListButton->SetButtonClickImage(ResourceManager::GetImage("user_dim"));
+    _toggleUserListButton->SetButtonColorAll(D2D1::ColorF(0.13f, 0.13f, 0.13f));
+    _toggleUserListButton->SetSelectable(false);
+    _toggleUserListButton->SetActivation(zcom::ButtonActivation::PRESS);
+    _toggleUserListButton->SetOnActivated([&]()
+    {
+        if (_connectedUsersPanel->GetVisible())
+        {
+            _connectedUsersPanel->SetVisible(false);
+            _toggleUserListButton->SetButtonColorAll(D2D1::ColorF(0.13f, 0.13f, 0.13f));
+        }
+        else
+        {
+            _connectedUsersPanel->SetVisible(true);
+            _toggleUserListButton->SetButtonColorAll(D2D1::ColorF(0.1f, 0.1f, 0.1f));
+        }
+    });
 
-    _usernameButton = std::make_unique<zcom::Button>(L"Change");
-    _usernameButton->SetBaseSize(80, 25);
-    _usernameButton->SetOffsetPixels(-40, 330);
-    _usernameButton->SetHorizontalAlignment(zcom::Alignment::END);
-    _usernameButton->SetBorderVisibility(true);
-    _usernameButton->SetActivation(zcom::ButtonActivation::RELEASE);
+    _connectedUserCountLabel = std::make_unique<zcom::Label>(L"");
+    _connectedUserCountLabel->SetBaseSize(30, 12);
+    _connectedUserCountLabel->SetOffsetPixels(30, 48);
+    _connectedUserCountLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+    _connectedUserCountLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+    _connectedUserCountLabel->SetFontSize(10.0f);
+    //_connectedUserCountLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
+    //_connectedUserCountLabel->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
+    _connectedUserCountLabel->SetFontColor(D2D1::ColorF(0.6f, 0.6f, 0.6f));
+
+    _usernameButton = std::make_unique<zcom::Button>(L"");
+    _usernameButton->SetBaseSize(180, 30);
+    _usernameButton->SetOffsetPixels(60, 30);
+    _usernameButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
+    _usernameButton->SetButtonColor(D2D1::ColorF(0.13f, 0.13f, 0.13f));
+    _usernameButton->SetButtonHoverColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
+    _usernameButton->SetButtonClickColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
+    _usernameButton->Text()->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+    _usernameButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
+    _usernameButton->Text()->SetFontSize(14.0f);
+    _usernameButton->Text()->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
+    _usernameButton->Text()->SetFontColor(D2D1::ColorF(0.6f, 0.6f, 0.6f));
+    _usernameButton->Text()->SetMargins({ 10.0f, 0.0f, 10.0f });
+    _usernameButton->Text()->SetCutoff(L"...");
+    _usernameButton->SetSelectable(false);
+    _usernameButton->SetActivation(zcom::ButtonActivation::PRESS);
     _usernameButton->SetOnActivated([&]()
     {
-        APP_NETWORK->SetUsername(_usernameInput->GetText());
-        _usernameInput->SetText(L"");
-        _networkPanelChanged = true;
+        _usernameButton->SetVisible(false);
+        _usernameInput->SetVisible(true);
+        _usernameInput->SetText(APP_NETWORK->ThisUser().name);
+        _selectUsernameInput = true;
     });
+    _usernameButton->SetZIndex(1);
+
+    _usernameInput = std::make_unique<zcom::TextInput>();
+    _usernameInput->SetBaseSize(180, 30);
+    _usernameInput->SetOffsetPixels(60, 30);
+    _usernameInput->SetPlaceholderText(L"New username");
+    _usernameInput->SetBorderVisibility(false);
+    _usernameInput->SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
+    _usernameInput->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
+    _usernameInput->SetVisible(false);
+    _usernameInput->AddOnKeyDown([&](BYTE key)
+    {
+        bool quit = false;
+        if (key == VK_ESCAPE)
+        {
+            quit = true;
+        }
+        else if (key == VK_RETURN)
+        {
+            APP_NETWORK->SetUsername(_usernameInput->GetText());
+            _networkPanelChanged = true;
+            quit = true;
+        }
+
+        if (quit)
+        {
+            _usernameButton->SetVisible(true);
+            _usernameInput->SetVisible(false);
+            return true;
+        }
+        return false;
+    });
+
+    _networkLatencyLabel = std::make_unique<zcom::Label>(L"-");
+    _networkLatencyLabel->SetBaseSize(45, 30);
+    _networkLatencyLabel->SetOffsetPixels(240, 30);
+    _networkLatencyLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+    _networkLatencyLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+    _networkLatencyLabel->SetFontSize(14.0f);
+    _networkLatencyLabel->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
+    _networkLatencyLabel->SetFontColor(D2D1::ColorF(0.6f, 0.6f, 0.6f));
+
+    _downloadSpeedImage = std::make_unique<zcom::Image>();
+    _downloadSpeedImage->SetBaseSize(15, 15);
+    _downloadSpeedImage->SetOffsetPixels(285, 31);
+    _downloadSpeedImage->SetImage(ResourceManager::GetImage("download_color_15"));
+
+    _downloadSpeedLabel = std::make_unique<zcom::Label>(L"0b/s");
+    _downloadSpeedLabel->SetBaseSize(40, 15);
+    _downloadSpeedLabel->SetOffsetPixels(300, 31);
+    _downloadSpeedLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+    _downloadSpeedLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+    _downloadSpeedLabel->SetFontSize(11.0f);
+    _downloadSpeedLabel->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
+    _downloadSpeedLabel->SetFontColor(D2D1::ColorF(0.6f, 0.6f, 0.6f));
+
+    _uploadSpeedImage = std::make_unique<zcom::Image>();
+    _uploadSpeedImage->SetBaseSize(15, 15);
+    _uploadSpeedImage->SetOffsetPixels(285, 44);
+    _uploadSpeedImage->SetImage(ResourceManager::GetImage("upload_color_15"));
+
+    _uploadSpeedLabel = std::make_unique<zcom::Label>(L"0b/s");
+    _uploadSpeedLabel->SetBaseSize(40, 15);
+    _uploadSpeedLabel->SetOffsetPixels(300, 44);
+    _uploadSpeedLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+    _uploadSpeedLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+    _uploadSpeedLabel->SetFontSize(11.0f);
+    _uploadSpeedLabel->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
+    _uploadSpeedLabel->SetFontColor(D2D1::ColorF(0.6f, 0.6f, 0.6f));
+
+    _connectedUsersPanel = std::make_unique<zcom::Panel>();
+    _connectedUsersPanel->SetBaseSize(340, 200);
+    _connectedUsersPanel->SetOffsetPixels(-30, 91);
+    _connectedUsersPanel->SetHorizontalAlignment(zcom::Alignment::END);
+    _connectedUsersPanel->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
+    _connectedUsersPanel->SetProperty(shadowProps);
+    _connectedUsersPanel->SetVisible(false);
+
+    _chatPanel = std::make_unique<zcom::Panel>();
+    _chatPanel->SetVisible(false);
 
     _offlineLabel = std::make_unique<zcom::Label>(L"Try watching something with others");
     _offlineLabel->SetBaseSize(260, 60);
-    _offlineLabel->SetOffsetPixels(-100, -30);
+    _offlineLabel->SetOffsetPixels(-70, -30);
     _offlineLabel->SetAlignment(zcom::Alignment::END, zcom::Alignment::CENTER);
     _offlineLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
     _offlineLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
@@ -159,7 +372,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
 
     _connectButton = std::make_unique<zcom::Button>(L"Connect");
     _connectButton->SetBaseSize(80, 25);
-    _connectButton->SetOffsetPixels(-240, 20);
+    _connectButton->SetOffsetPixels(-210, 20);
     _connectButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::CENTER);
     _connectButton->Text()->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
     _connectButton->Text()->SetFontStretch(DWRITE_FONT_STRETCH_CONDENSED);
@@ -176,7 +389,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
 
     _startServerButton = std::make_unique<zcom::Button>(L"Start server");
     _startServerButton->SetBaseSize(80, 25);
-    _startServerButton->SetOffsetPixels(-140, 20);
+    _startServerButton->SetOffsetPixels(-110, 20);
     _startServerButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::CENTER);
     _startServerButton->Text()->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
     _startServerButton->Text()->SetFontStretch(DWRITE_FONT_STRETCH_CONDENSED);
@@ -191,15 +404,35 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         App::Instance()->MoveSceneToFront(StartServerScene::StaticName());
     });
 
+    // NESTING
 
+    _sideMenuPanel->AddItem(_addFileButton.get());
+    _sideMenuPanel->AddItem(_addFolderButton.get());
+    _sideMenuPanel->AddItem(_openPlaylistButton.get());
+    _sideMenuPanel->AddItem(_savePlaylistButton.get());
+    _sideMenuPanel->AddItem(_manageSavedPlaylistsButton.get());
+    _sideMenuPanel->AddItem(_closeOverlayButton.get());
+
+    _playlistPanel->AddItem(_playlistLabel.get());
+    _playlistPanel->AddItem(_readyItemPanel.get());
+
+    _networkBannerPanel->AddItem(_networkStatusLabel.get());
+    _networkBannerPanel->AddItem(_closeNetworkButton.get());
+    _networkBannerPanel->AddItem(_toggleChatButton.get());
+    _networkBannerPanel->AddItem(_toggleUserListButton.get());
+    _networkBannerPanel->AddItem(_connectedUserCountLabel.get());
+    _networkBannerPanel->AddItem(_usernameButton.get());
+    _networkBannerPanel->AddItem(_usernameInput.get());
+    _networkBannerPanel->AddItem(_networkLatencyLabel.get());
+    _networkBannerPanel->AddItem(_downloadSpeedImage.get());
+    _networkBannerPanel->AddItem(_downloadSpeedLabel.get());
+    _networkBannerPanel->AddItem(_uploadSpeedImage.get());
+    _networkBannerPanel->AddItem(_uploadSpeedLabel.get());
+
+    _canvas->AddComponent(_sideMenuPanel.get());
     _canvas->AddComponent(_playlistPanel.get());
-    _canvas->AddComponent(_addFileButton.get());
-    _canvas->AddComponent(_closeOverlayButton.get());
-    _canvas->AddComponent(_networkStatusLabel.get());
-    _canvas->AddComponent(_closeNetworkButton.get());
+    _canvas->AddComponent(_networkBannerPanel.get());
     _canvas->AddComponent(_connectedUsersPanel.get());
-    _canvas->AddComponent(_usernameInput.get());
-    _canvas->AddComponent(_usernameButton.get());
     _canvas->AddComponent(_offlineLabel.get());
     _canvas->AddComponent(_connectButton.get());
     _canvas->AddComponent(_startServerButton.get());
@@ -228,6 +461,7 @@ void PlaybackOverlayScene::_Unfocus()
 
 void PlaybackOverlayScene::_Update()
 {
+    _sideMenuPanel->Update();
     _playlistPanel->Update();
     _connectedUsersPanel->Update();
 
@@ -260,14 +494,22 @@ void PlaybackOverlayScene::_Update()
         }
     }
 
+    if (_selectUsernameInput)
+    {
+        _usernameInput->OnSelected();
+        _selectUsernameInput = false;
+    }
+
     _InvokePlaylistChange();
     _InvokeNetworkPanelChange();
+    _UpdateNetworkStats();
 
     // File dialog
     _CheckFileDialogCompletion();
 
     // Update UI items
     _ManageLoadingItems();
+    _ManageFailedItems();
     _ManageReadyItems();
     _RearrangePlaylistPanel();
     _RearrangeNetworkPanel();
@@ -279,10 +521,15 @@ void PlaybackOverlayScene::_CheckFileDialogCompletion()
     {
         if (_fileDialog->Done())
         {
-            if (_fileDialog->Result() != L"")
+            auto paths = _fileDialog->ParsedResult();
+            if (!paths.empty())
             {
-                auto newItem = std::make_unique<PlaylistItem>(_fileDialog->Result());
-                App::Instance()->playlist.Request_AddItem(std::move(newItem));
+                // Open all selected files
+                for (int i = 0; i < paths.size(); i++)
+                {
+                    auto item = std::make_unique<PlaylistItem>(paths[i]);
+                    App::Instance()->playlist.Request_AddItem(std::move(item));
+                }
             }
             _addingFile = false;
             _fileDialog.reset();
@@ -298,6 +545,19 @@ void PlaybackOverlayScene::_ManageLoadingItems()
         if (_loadingItems[i]->Delete())
         {
             App::Instance()->playlist.Request_DeleteItem(_loadingItems[i]->GetItemId());
+            _playlistChanged = true;
+        }
+    }
+}
+
+void PlaybackOverlayScene::_ManageFailedItems()
+{
+    for (int i = 0; i < _failedItems.size(); i++)
+    {
+        // Delete
+        if (_failedItems[i]->Delete())
+        {
+            App::Instance()->playlist.Request_DeleteItem(_failedItems[i]->GetItemId());
             _playlistChanged = true;
         }
     }
@@ -358,9 +618,9 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
     playColor.b *= 0.3f;
 
     _readyItemPanel->ClearItems();
-    _loadingItemPanel->ClearItems();
     _readyItems.clear();
     _loadingItems.clear();
+    _failedItems.clear();
 
     _RemoveDeletedItems();
     _AddMissingItems();
@@ -383,6 +643,13 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
         // Complex offsets when rearranging items
         if (_heldItemId != -1 && _movedFar)
         {
+            // Calculate current slot of moved item
+            int currentSlot = _currentMouseYPos / ITEM_HEIGHT;
+            if (currentSlot >= (int)_readyItems.size())
+                currentSlot = _readyItems.size() - 1;
+            else if (currentSlot < 0)
+                currentSlot = 0;
+
             if (_readyItems[i]->GetItemId() == _heldItemId)
             {
                 // Place the moving item above others
@@ -401,13 +668,6 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
             }
             else
             {
-                // Calculate current slot of moved item
-                int currentSlot = _currentMouseYPos / ITEM_HEIGHT;
-                if (currentSlot >= (int)_readyItems.size())
-                    currentSlot = _readyItems.size() - 1;
-                else if (currentSlot < 0)
-                    currentSlot = 0;
-
                 // Shift all items below moved item by 1 spot
                 if (currentItem == currentSlot)
                     currentHeight += ITEM_HEIGHT;
@@ -415,15 +675,20 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
 
                 _readyItems[i]->SetVerticalOffsetPixels(currentHeight);
                 // Slightly ugly way to make sure every other line is highlighted
-                _readyItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.02f * ((currentHeight / ITEM_HEIGHT) % 2)));
+                _readyItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.02f * ((currentHeight / ITEM_HEIGHT) % 2 == 0)));
                 currentHeight += ITEM_HEIGHT;
             }
+
+            // Account for edge case of moving to last slot while there are loading/pending items
+            if (currentSlot == _readyItems.size() - 1 && i == _readyItems.size() - 1)
+                currentHeight += ITEM_HEIGHT;
         }
         else
         {
             _readyItems[i]->SetVerticalOffsetPixels(currentHeight);
-            _readyItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.02f * (i % 2)));
+            _readyItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.02f * ((currentHeight / ITEM_HEIGHT) % 2 == 0)));
             currentHeight += ITEM_HEIGHT;
+            currentItem++;
         }
 
         Playlist& playlist = App::Instance()->playlist;
@@ -503,22 +768,24 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
     {
         _pendingItems[i]->SetParentWidthPercent(1.0f);
         _pendingItems[i]->SetBaseHeight(ITEM_HEIGHT);
-        _pendingItems[i]->SetVerticalOffsetPixels(ITEM_HEIGHT * i);
-        _pendingItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.03f * (i % 2)));
+        _pendingItems[i]->SetVerticalOffsetPixels(currentHeight);
+        _pendingItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.02f * ((currentHeight / ITEM_HEIGHT) % 2 == 0)));
         _pendingItems[i]->SetButtonVisibility(0);
         _pendingItems[i]->SetCustomStatus(L"Waiting for server..");
-        _loadingItemPanel->AddItem(_pendingItems[i]);
+        _readyItemPanel->AddItem(_pendingItems[i]);
+        currentHeight += ITEM_HEIGHT;
+        currentItem++;
     }
     // Add loading items
     for (int i = 0; i < _loadingItems.size(); i++)
     {
         _loadingItems[i]->SetParentWidthPercent(1.0f);
         _loadingItems[i]->SetBaseHeight(ITEM_HEIGHT);
-        _loadingItems[i]->SetVerticalOffsetPixels(ITEM_HEIGHT * (i + _pendingItems.size()));
-        _loadingItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.03f * ((i + _pendingItems.size()) % 2)));
+        _loadingItems[i]->SetVerticalOffsetPixels(currentHeight);
+        _loadingItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.02f * ((currentHeight / ITEM_HEIGHT) % 2 == 0)));
         if (_loadingItems[i]->GetItemId() == App::Instance()->playlist.CurrentlyPlaying())
         {
-            _loadingItems[i]->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
+            _loadingItems[i]->SetBackgroundColor(playColor);
             _loadingItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_STOP);
         }
         else
@@ -526,7 +793,21 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
             _loadingItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_DELETE);
         }
         _loadingItems[i]->SetCustomStatus(L"Initializing..");
-        _loadingItemPanel->AddItem(_loadingItems[i]);
+        _readyItemPanel->AddItem(_loadingItems[i]);
+        currentHeight += ITEM_HEIGHT;
+        currentItem++;
+    }
+    // Add failed items
+    for (int i = 0; i < _failedItems.size(); i++)
+    {
+        _failedItems[i]->SetParentWidthPercent(1.0f);
+        _failedItems[i]->SetBaseHeight(ITEM_HEIGHT);
+        _failedItems[i]->SetVerticalOffsetPixels(currentHeight);
+        _failedItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 0.0f, 0.0f, 0.03 + 0.01f * ((currentHeight / ITEM_HEIGHT) % 2 == 0)));
+        _failedItems[i]->SetButtonVisibility(zcom::OverlayPlaylistItem::BTN_DELETE);
+        _readyItemPanel->AddItem(_failedItems[i]);
+        currentHeight += ITEM_HEIGHT;
+        currentItem++;
     }
 
     _playlistPanel->Resize();
@@ -623,6 +904,22 @@ void PlaybackOverlayScene::_SplitItems()
         }
     }
 
+    // Create set of failed playlist item ids
+    std::set<int64_t> failedItemIds;
+    for (auto& item : App::Instance()->playlist.FailedItems())
+        failedItemIds.insert(item->GetItemId());
+    // Move pending UI items to separate array
+    _failedItems.clear();
+    for (int i = 0; i < items.size(); i++)
+    {
+        if (failedItemIds.find(items[i]->GetItemId()) != failedItemIds.end())
+        {
+            _failedItems.push_back(items[i]);
+            items.erase(items.begin() + i);
+            i--;
+        }
+    }
+
     // Assign remaining items to ready array
     _readyItems = items;
 }
@@ -704,35 +1001,6 @@ void PlaybackOverlayScene::_SortItems()
     }
 }
 
-void PlaybackOverlayScene::_RearrangeQueuePanel()
-{
-    //_playlistPanel->ClearItems();
-    //for (int i = 0; i < _readyItems.size(); i++)
-    //{
-    //    _playlistPanel->AddItem(_readyItems[i].get());
-    //    _readyItems[i]->SetVerticalOffsetPixels(25 * i);
-    //    _readyItems[i]->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f * (i % 2)));
-    //    if (_readyItems[i]->GetMediaId() == _currentlyPlaying)
-    //    {
-    //        _readyItems[i]->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
-    //        _readyItems[i]->SetButtonVisibility(zcom::MediaQueueItem::BTN_STOP);
-    //        //_readyItems[i]->SetNowPlaying(true);
-    //    }
-    //    else
-    //    {
-    //        _readyItems[i]->SetButtonVisibility(zcom::MediaQueueItem::BTN_PLAY | zcom::MediaQueueItem::BTN_DELETE);
-    //        //_readyItems[i]->SetNowPlaying(false);
-    //    }
-
-    //}
-    //for (int i = 0; i < _loadingItems.size(); i++)
-    //{
-    //    _playlistPanel->AddItem(_loadingItems[i].get());
-    //    _loadingItems[i]->SetVerticalOffsetPixels(25 * (i + _readyItems.size()));
-    //}
-    //_playlistPanel->Resize();
-}
-
 void PlaybackOverlayScene::_RearrangeNetworkPanel()
 {
     if (!_networkPanelChanged)
@@ -747,11 +1015,8 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel()
 
 void PlaybackOverlayScene::_RearrangeNetworkPanel_Offline()
 {
-    _networkStatusLabel->SetVisible(false);
-    _closeNetworkButton->SetVisible(false);
+    _networkBannerPanel->SetVisible(false);
     _connectedUsersPanel->SetVisible(false);
-    _usernameInput->SetVisible(false);
-    _usernameButton->SetVisible(false);
     _offlineLabel->SetVisible(true);
     _connectButton->SetVisible(true);
     _startServerButton->SetVisible(true);
@@ -762,12 +1027,8 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel_Offline()
 
 void PlaybackOverlayScene::_RearrangeNetworkPanel_Online()
 {
-    _networkStatusLabel->SetVisible(true);
-    _closeNetworkButton->SetVisible(true);
+    _networkBannerPanel->SetVisible(true);
     _closeNetworkButton->Text()->SetText(APP_NETWORK->CloseLabel());
-    _connectedUsersPanel->SetVisible(true);
-    _usernameInput->SetVisible(true);
-    _usernameButton->SetVisible(true);
     _offlineLabel->SetVisible(false);
     _connectButton->SetVisible(false);
     _startServerButton->SetVisible(false);
@@ -775,11 +1036,17 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel_Online()
     // Update network status label
     _networkStatusLabel->SetText(APP_NETWORK->ManagerStatusString());
 
+    // Update username label
+    auto user = APP_NETWORK->ThisUser();
+    if (user.name.empty())
+        _usernameButton->Text()->SetText(L"No username set");
+    else
+        _usernameButton->Text()->SetText(user.name);
+
     // Add all users
     _connectedUsersPanel->ClearItems();
 
     { // This client
-        auto user = APP_NETWORK->ThisUser();
         std::wstring name = L"[User " + string_to_wstring(int_to_str(user.id)) + L"] " + user.name;
         zcom::Label* usernameLabel = new zcom::Label(name);
         usernameLabel->SetBaseHeight(25);
@@ -806,6 +1073,13 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel_Online()
         _connectedUsersPanel->AddItem(usernameLabel, true);
     }
     _connectedUsersPanel->Resize();
+
+    // Update user count label
+    std::wostringstream ss(L"");
+    ss << string_to_wstring(int_to_str(users.size() + 1));// << " user";
+    //if (!users.empty())
+    //    ss << L's';
+    _connectedUserCountLabel->SetText(ss.str());
 }
 
 void PlaybackOverlayScene::_InvokePlaylistChange()
@@ -832,6 +1106,11 @@ void PlaybackOverlayScene::_HandlePlaylistLeftClick(zcom::Base* item, std::vecto
 
     // If a button was clicked, don't handle
     if (targets.front().target->GetName() == std::make_unique<zcom::Button>()->GetName())
+        return;
+
+    // If click was outside ready item range, don't handle (ignores pending/loading items)
+    int slot = (y + _readyItemPanel->VisualVerticalScroll()) / 25;
+    if (slot >= _readyItems.size())
         return;
 
     // Check if item was clicked
@@ -896,6 +1175,85 @@ void PlaybackOverlayScene::_InvokeNetworkPanelChange()
     {
         _networkPanelChanged = true;
         _lastNetworkPanelUpdate = ztime::Main();
+    }
+}
+
+std::wstring BytesToString(size_t bytes)
+{
+    std::wostringstream ss(L"");
+
+    // Gigabytes
+    if (bytes >= 1000000000)
+    {
+        size_t gbWhole = bytes / 1000000000;
+        size_t gbFrac = (bytes / 100000000) % 10;
+        if (gbWhole >= 100)
+        {
+            ss << gbWhole << L"gb";
+            return ss.str();
+        }
+        else
+        {
+            ss << gbWhole << L'.' << gbFrac << L"gb";
+            return ss.str();
+        }
+    }
+    // Megabytes
+    else if (bytes >= 1000000)
+    {
+        size_t mbWhole = bytes / 1000000;
+        size_t mbFrac = (bytes / 100000) % 10;
+        if (mbWhole >= 100)
+        {
+            ss << mbWhole << L"mb";
+            return ss.str();
+        }
+        else
+        {
+            ss << mbWhole << L'.' << mbFrac << L"mb";
+            return ss.str();
+        }
+    }
+    // Kilobytes
+    else if (bytes >= 1000)
+    {
+        size_t kbWhole = bytes / 1000;
+        size_t kbFrac = (bytes / 100) % 10;
+        if (kbWhole >= 100)
+        {
+            ss << kbWhole << L"kb";
+            return ss.str();
+        }
+        else
+        {
+            ss << kbWhole << L'.' << kbFrac << L"kb";
+            return ss.str();
+        }
+    }
+    // Bytes
+    else
+    {
+        ss << bytes << L"b";
+        return ss.str();
+    }
+}
+
+void PlaybackOverlayScene::_UpdateNetworkStats()
+{
+    if (_networkStatsEventReceiver->EventCount() > 0)
+    {
+        auto ev = _networkStatsEventReceiver->GetEvent();
+
+        // Latency
+        if (ev.latency != -1)
+            _networkLatencyLabel->SetText(string_to_wstring(int_to_str(ev.latency / 1000) + "ms"));
+        else
+            _networkLatencyLabel->SetText(L"-");
+
+        // Download
+        _downloadSpeedLabel->SetText(BytesToString(ev.bytesReceived * 1000 / ev.timeInterval.GetDuration(MILLISECONDS)) + L"/s");
+        // Upload
+        _uploadSpeedLabel->SetText(BytesToString(ev.bytesSent * 1000 / ev.timeInterval.GetDuration(MILLISECONDS)) + L"/s");
     }
 }
 
