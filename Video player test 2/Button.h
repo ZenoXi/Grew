@@ -175,6 +175,20 @@ namespace zcom
         Button(const Button&) = delete;
         Button& operator=(const Button&) = delete;
 
+        void SetButtonImageAll(ID2D1Bitmap* image)
+        {
+            _image = image;
+            _imageHovered = image;
+            _imageClicked = image;
+        }
+
+        void SetButtonColorAll(D2D1_COLOR_F color)
+        {
+            _color = color;
+            _colorHovered = color;
+            _colorClicked = color;
+        }
+
         void SetButtonImage(ID2D1Bitmap* image)
         {
             _image = image;
