@@ -44,6 +44,7 @@ class PlaybackOverlayScene : public Scene
     std::unique_ptr<zcom::Button> _closeOverlayButton = nullptr;
 
     bool _addingFile = false;
+    bool _addingFolder = false;
     std::unique_ptr<AsyncFileDialog> _fileDialog = nullptr;
 
     std::unique_ptr<zcom::Panel> _networkBannerPanel = nullptr;
@@ -82,6 +83,7 @@ public:
     void _Update();
 private:
     void _CheckFileDialogCompletion();
+    void _OpenAllFilesInFolder(std::wstring path);
     void _ManageLoadingItems();
     void _ManageFailedItems();
     void _ManageReadyItems();

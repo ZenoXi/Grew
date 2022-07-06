@@ -8,6 +8,10 @@
 #include "MediaReceiverDataProvider.h"
 #include "MediaHostDataProvider.h"
 
+#include "FileTypes.h"
+
+#include <filesystem>
+
 PlaybackOverlayScene::PlaybackOverlayScene()
 {
 }
@@ -82,34 +86,42 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _addFileButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _addFileButton->SetOnActivated([&]()
     {
-        if (_addingFile)
+        if (_addingFile || _addingFolder)
             return;
 
         _addingFile = true;
         _fileDialog = std::make_unique<AsyncFileDialog>();
-        _fileDialog->Open();
+        FileDialogOptions opt;
+        opt.allowedExtensions = SUPORTED_MEDIA_FILE_TYPES_WINAPI;
+        _fileDialog->Open(opt);
     });
 
     _addFolderButton = std::make_unique<zcom::Button>(L"Add folder");
     _addFolderButton->SetParentWidthPercent(1.0f);
     _addFolderButton->SetBaseHeight(30);
     _addFolderButton->SetVerticalOffsetPixels(30);
-    _addFolderButton->SetButtonHoverColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.2f));
+    _addFolderButton->SetButtonHoverColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     _addFolderButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
     _addFolderButton->Text()->SetFontSize(16.0f);
     _addFolderButton->Text()->SetMargins({ 10.0f });
     _addFolderButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _addFolderButton->SetOnActivated([&]()
     {
-        
+        if (_addingFile || _addingFolder)
+            return;
+
+        _addingFolder = true;
+        _fileDialog = std::make_unique<AsyncFileDialog>();
+        FileDialogOptions opt;
+        opt.openFolders = true;
+        _fileDialog->Open(opt);
     });
-    _addFolderButton->SetActive(false);
 
     _openPlaylistButton = std::make_unique<zcom::Button>(L"Open playlist");
     _openPlaylistButton->SetParentWidthPercent(1.0f);
     _openPlaylistButton->SetBaseHeight(30);
     _openPlaylistButton->SetVerticalOffsetPixels(70);
-    _openPlaylistButton->SetButtonHoverColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.2f));
+    _openPlaylistButton->SetButtonHoverColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     _openPlaylistButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
     _openPlaylistButton->Text()->SetFontSize(16.0f);
     _openPlaylistButton->Text()->SetMargins({ 10.0f });
@@ -124,7 +136,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _savePlaylistButton->SetParentWidthPercent(1.0f);
     _savePlaylistButton->SetBaseHeight(30);
     _savePlaylistButton->SetVerticalOffsetPixels(100);
-    _savePlaylistButton->SetButtonHoverColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.2f));
+    _savePlaylistButton->SetButtonHoverColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     _savePlaylistButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
     _savePlaylistButton->Text()->SetFontSize(16.0f);
     _savePlaylistButton->Text()->SetMargins({ 10.0f });
@@ -139,7 +151,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _manageSavedPlaylistsButton->SetParentWidthPercent(1.0f);
     _manageSavedPlaylistsButton->SetBaseHeight(30);
     _manageSavedPlaylistsButton->SetVerticalOffsetPixels(130);
-    _manageSavedPlaylistsButton->SetButtonHoverColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.2f));
+    _manageSavedPlaylistsButton->SetButtonHoverColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     _manageSavedPlaylistsButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
     _manageSavedPlaylistsButton->Text()->SetFontSize(16.0f);
     _manageSavedPlaylistsButton->Text()->SetMargins({ 10.0f });
@@ -154,7 +166,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _closeOverlayButton->SetParentWidthPercent(1.0f);
     _closeOverlayButton->SetBaseHeight(30);
     _closeOverlayButton->SetVerticalAlignment(zcom::Alignment::END);
-    _closeOverlayButton->SetButtonHoverColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.2f));
+    _closeOverlayButton->SetButtonHoverColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     _closeOverlayButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
     _closeOverlayButton->Text()->SetFontSize(16.0f);
     _closeOverlayButton->Text()->SetMargins({ 10.0f });
@@ -517,23 +529,54 @@ void PlaybackOverlayScene::_Update()
 
 void PlaybackOverlayScene::_CheckFileDialogCompletion()
 {
-    if (_addingFile)
+    if (_addingFile || _addingFolder)
     {
         if (_fileDialog->Done())
         {
-            auto paths = _fileDialog->ParsedResult();
-            if (!paths.empty())
+            if (_addingFile)
             {
-                // Open all selected files
-                for (int i = 0; i < paths.size(); i++)
+                auto paths = _fileDialog->ParsedResult();
+                if (!paths.empty())
                 {
-                    auto item = std::make_unique<PlaylistItem>(paths[i]);
-                    App::Instance()->playlist.Request_AddItem(std::move(item));
+                    // Open all selected files
+                    for (int i = 0; i < paths.size(); i++)
+                    {
+                        auto item = std::make_unique<PlaylistItem>(paths[i]);
+                        App::Instance()->playlist.Request_AddItem(std::move(item));
+                    }
                 }
+                _addingFile = false;
+                _fileDialog.reset();
             }
-            _addingFile = false;
-            _fileDialog.reset();
+            else if (_addingFolder)
+            {
+                auto path = _fileDialog->Result();
+                if (!path.empty())
+                {
+                    _OpenAllFilesInFolder(path);
+                }
+                _addingFolder = false;
+                _fileDialog.reset();
+            }
         }
+    }
+}
+
+void PlaybackOverlayScene::_OpenAllFilesInFolder(std::wstring path)
+{
+    namespace fs = std::filesystem;
+
+    auto allowedExtensions = ExtractPureExtensions(L"" EXTENSIONS_VIDEO ";" EXTENSIONS_AUDIO);
+    for (const auto& entry : fs::directory_iterator(path))
+    {
+        if (!entry.is_regular_file())
+            continue;
+        if (std::find(allowedExtensions.begin(), allowedExtensions.end(), entry.path().extension().wstring().substr(1)) == allowedExtensions.end())
+            continue;
+
+        // Add file to playlist
+        auto item = std::make_unique<PlaylistItem>(entry.path());
+        App::Instance()->playlist.Request_AddItem(std::move(item));
     }
 }
 
