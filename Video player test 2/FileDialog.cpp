@@ -3,7 +3,7 @@
 #include "ChiliWin.h"
 #include <shobjidl.h>
 
-std::vector<std::wstring> OpenFiles()
+std::vector<std::wstring> OpenFiles(FileDialogOptions options)
 {
     std::vector<std::wstring> result;
 
@@ -22,10 +22,26 @@ std::vector<std::wstring> OpenFiles()
             FILEOPENDIALOGOPTIONS opt;
             pFileOpen->GetOptions(&opt);
             opt |= FOS_ALLOWMULTISELECT;
+            if (options.openFolders)
+                opt |= FOS_PICKFOLDERS;
             hr = pFileOpen->SetOptions(opt);
 
+            // Set file types
+            if (!options.openFolders && !options.allowedExtensions.empty())
+            {
+                COMDLG_FILTERSPEC* types = new COMDLG_FILTERSPEC[options.allowedExtensions.size()];
+                for (int i = 0; i < options.allowedExtensions.size(); i++)
+                {
+                    options.allowedExtensions[i].insert(0, L"*.");
+                    types[i] = { L"", options.allowedExtensions[i].c_str() };
+                }
+                hr = pFileOpen->SetFileTypes(options.allowedExtensions.size(), types);
+                //delete[] types;
+            }
+
             // Show the Open dialog box.
-            hr = pFileOpen->Show(NULL);
+            if (SUCCEEDED(hr))
+                hr = pFileOpen->Show(NULL);
 
             // Get the file name from the dialog box (by creating a stack of ugly 'if (SUCCEEDED(hr))' thanks winapi)
             if (SUCCEEDED(hr))
@@ -66,7 +82,7 @@ std::vector<std::wstring> OpenFiles()
     return result;
 }
 
-std::vector<std::wstring> SaveFile()
+std::vector<std::wstring> SaveFile(FileDialogOptions options)
 {
     std::wstring result;
 

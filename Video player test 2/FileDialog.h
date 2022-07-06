@@ -4,8 +4,16 @@
 #include <vector>
 #include <thread>
 
-std::vector<std::wstring> OpenFiles();
-std::vector<std::wstring> SaveFile();
+struct FileDialogOptions
+{
+    // Empty vector allows everything
+    std::vector<std::wstring> allowedExtensions;
+    // File dialog will be used to select a folder
+    bool openFolders = false;
+};
+
+std::vector<std::wstring> OpenFiles(FileDialogOptions);
+std::vector<std::wstring> SaveFile(FileDialogOptions);
 
 class AsyncFileDialog
 {
@@ -14,19 +22,19 @@ class AsyncFileDialog
     std::vector<std::wstring> _paths;
 
 public:
-    void Open()
+    void Open(FileDialogOptions options = FileDialogOptions{})
     {
         _done = false;
         _paths.clear();
-        _fileDialogThread = std::thread(&AsyncFileDialog::_ShowDialog, this, static_cast<std::vector<std::wstring>(*)()>(&OpenFiles));
+        _fileDialogThread = std::thread(&AsyncFileDialog::_ShowDialog, this, static_cast<std::vector<std::wstring>(*)(FileDialogOptions)>(&OpenFiles), options);
         _fileDialogThread.detach();
     }
 
-    void Save()
+    void Save(FileDialogOptions options = FileDialogOptions{})
     {
         _done = false;
         _paths.clear();
-        _fileDialogThread = std::thread(&AsyncFileDialog::_ShowDialog, this, static_cast<std::vector<std::wstring>(*)()>(&SaveFile));
+        _fileDialogThread = std::thread(&AsyncFileDialog::_ShowDialog, this, static_cast<std::vector<std::wstring>(*)(FileDialogOptions)>(&SaveFile), options);
         _fileDialogThread.detach();
     }
 
@@ -77,9 +85,9 @@ public:
     }
 
 private:
-    void _ShowDialog(std::vector<std::wstring>(*dialogFunc)())
+    void _ShowDialog(std::vector<std::wstring>(*dialogFunc)(FileDialogOptions), FileDialogOptions options)
     {
-        _paths = dialogFunc();
+        _paths = dialogFunc(options);
         _done = true;
     }
 };
