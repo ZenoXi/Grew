@@ -1,8 +1,11 @@
 #pragma once
 
+#include "Functions.h"
+
 #include <vector>
 #include <string>
 
+// The file types which are likely to be supported by ffmpeg
 // These file types are taken from VLC github
 
 #define EXTENSIONS_VIDEO "\
@@ -36,11 +39,33 @@
 *.tta;*.voc;*.vqf;*.w64;*.wav;\
 *.wma;*.wv;*.xa;*.xm"
 
-// The file types which are likely to be supported by ffmpeg
-static const std::vector<std::pair<std::wstring, std::wstring>> SUPORTED_MEDIA_FILE_TYPES
+static const std::vector<std::pair<std::wstring, std::wstring>> SUPORTED_MEDIA_FILE_TYPES_WINAPI
 {
     { L"Media files", L"" EXTENSIONS_VIDEO ";" EXTENSIONS_AUDIO },
     { L"Video files", L"" EXTENSIONS_VIDEO },
     { L"Audio files", L"" EXTENSIONS_AUDIO },
     { L"All files", L"*.*" }
+};
+
+static std::vector<std::wstring> ExtractPureExtensions(std::wstring extstr)
+{
+    std::vector<std::wstring> pureExts;
+    // Split along ';'
+    split_wstr(extstr, pureExts, L';', true);
+
+    // Remove the '*.' prefix
+    for (int i = 0; i < pureExts.size(); i++)
+    {
+        if (pureExts[i].length() < 3)
+        {
+            pureExts.erase(pureExts.begin() + i);
+            i--;
+            continue;
+        }
+
+        if (pureExts[i][0] == L'*' && pureExts[i][1] == L'.')
+            pureExts[i].erase(0, 2);
+    }
+
+    return pureExts;
 }
