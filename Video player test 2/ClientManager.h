@@ -80,12 +80,17 @@ namespace znet
             size_t bytesUnconfirmed = 0;
             size_t maxUnconfirmedBytes = 250000; // 1 MB
             std::queue<TimePoint> packetsInTransmittion;
+
+            TimePoint latencyPacketSendTime = ztime::Main();
+            TimePoint latencyPacketReceiveTime = ztime::Main();
+            Duration latencyPacketInterval = Duration(100, MILLISECONDS);
+            bool latencyPacketInTransmission = false;
             FixedQueue<Duration> packetLatencies;
 
             size_t bytesSentSinceLastPrint = 0;
             size_t bytesReceivedSinceLastPrint = 0;
             TimePoint lastPrintTime = ztime::Main();
-            Duration printInterval = Duration(3, SECONDS);
+            Duration printInterval = Duration(1, SECONDS);
             bool printStats = true;
 
             TimePoint lastKeepAliveReceiveTime = ztime::Main();
@@ -99,6 +104,7 @@ namespace znet
         void _AddPacketToOutQueue(_PacketData packet, int priority);
 
         void _ManageConnections();
+        bool _SendLatencyProbePackets(_ManagerThreadData& data);
         bool _CheckIfConnectionExists(_ManagerThreadData& data);
         bool _ProcessIncomingPackets(_ManagerThreadData& data);
         bool _ProcessOutgoingPackets(_ManagerThreadData& data);

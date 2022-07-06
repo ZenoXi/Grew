@@ -472,6 +472,12 @@ void znet::ServerManager::_ProcessIncomingPackets(_ManagerThreadData& data)
             // Increment connection speed counter
             data.bytesSentSinceLastPrint += pack1.Cast<size_t>();
         }
+        // LATENCY PROBE
+        else if (pack1.id == (int32_t)PacketType::LATENCY_PROBE)
+        {
+            // Send packet back
+            client->Send(znet::Packet((int)znet::PacketType::LATENCY_PROBE).From(0), 1024 /* Arbitrarily large priority */);
+        }
         // USER DATA
         else if (pack1.id == (int32_t)PacketType::USER_DATA)
         {
@@ -674,11 +680,6 @@ void znet::ServerManager::_PrintNetworkStats(_ManagerThreadData& data)
         App::Instance()->events.RaiseEvent(NetworkStatsEvent{ timeElapsed, (int64_t)data.bytesSentSinceLastPrint, (int64_t)data.bytesReceivedSinceLastPrint, -1 });
 
         data.lastPrintTime = ztime::Main();
-        if (data.printStats)
-        {
-            std::cout << "[INFO] Avg. send speed: " << data.bytesSentSinceLastPrint / timeElapsed.GetDuration(MILLISECONDS) << "kb/s" << std::endl;
-            std::cout << "[INFO] Avg. receive speed: " << data.bytesReceivedSinceLastPrint / timeElapsed.GetDuration(MILLISECONDS) << "kb/s" << std::endl;
-        }
         data.bytesSentSinceLastPrint = 0;
         data.bytesReceivedSinceLastPrint = 0;
     }

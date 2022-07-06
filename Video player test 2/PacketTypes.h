@@ -73,6 +73,9 @@ namespace znet
         //  int64_t - split id
         SPLIT_PACKET_ABORT,
 
+        // Sent then received by the client. Used to measure latency between client and server
+        LATENCY_PROBE,
+
         // // // // // // // // // // // // // // // // // // //
         // // // // // // // // // // // // // // // // // // //
         // PLAYBACK // // // // // // // // // // // // // // //

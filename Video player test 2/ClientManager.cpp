@@ -397,12 +397,12 @@ void znet::ClientManager::_ManageConnections()
 
     while (!_MANAGEMENT_THR_STOP)
     {
+        if (_SendLatencyProbePackets(data))
+            break;
         if (_CheckIfConnectionExists(data))
             break;
-
         if (_ProcessIncomingPackets(data))
             break;
-
         if (_ProcessOutgoingPackets(data))
             break;
 
@@ -421,6 +421,21 @@ void znet::ClientManager::_ManageConnections()
     }
     App::Instance()->events.RaiseEvent(DisconnectEvent{});
     App::Instance()->events.RaiseEvent(NetworkStateChangedEvent{ "offline" });
+}
+
+bool znet::ClientManager::_SendLatencyProbePackets(_ManagerThreadData& data)
+{
+    if (!data.latencyPacketInTransmission)
+    {
+        if (ztime::Main() - data.latencyPacketReceiveTime >= data.latencyPacketInterval)
+        {
+            data.connection->Send(znet::Packet((int)znet::PacketType::LATENCY_PROBE).From(0), 1024 /* Arbitrarily large priority */);
+            data.latencyPacketInTransmission = true;
+            data.latencyPacketSendTime = ztime::Main();
+        }
+    }
+
+    return false;
 }
 
 bool znet::ClientManager::_CheckIfConnectionExists(_ManagerThreadData& data)
@@ -459,11 +474,16 @@ bool znet::ClientManager::_ProcessIncomingPackets(_ManagerThreadData& data)
             TimePoint returnTime = data.threadTimer.Now();
             TimePoint sendTime = data.packetsInTransmittion.front();
             data.packetsInTransmittion.pop();
-            data.packetLatencies.Push(returnTime - sendTime);
         }
         else if (pack1.id == (int32_t)PacketType::KEEP_ALIVE)
         {
             data.lastKeepAliveReceiveTime = ztime::Main();
+        }
+        else if (pack1.id == (int32_t)PacketType::LATENCY_PROBE)
+        {
+            data.latencyPacketReceiveTime = ztime::Main();
+            data.latencyPacketInTransmission = false;
+            data.packetLatencies.Push(data.latencyPacketReceiveTime - data.latencyPacketSendTime);
         }
         else if (pack1.id == (int32_t)PacketType::DISCONNECT_REQUEST)
         {
@@ -685,7 +705,7 @@ bool znet::ClientManager::_ProcessOutgoingPackets(_ManagerThreadData& data)
 void znet::ClientManager::_PrintNetworkStats(_ManagerThreadData& data)
 {
     Duration timeElapsed = ztime::Main() - data.lastPrintTime;
-    if (data.printStats && timeElapsed >= data.printInterval)
+    if (timeElapsed >= data.printInterval)
     {
         int64_t latency = 0;
         for (int i = 0; i < data.packetLatencies.Size(); i++)
@@ -695,9 +715,6 @@ void znet::ClientManager::_PrintNetworkStats(_ManagerThreadData& data)
         App::Instance()->events.RaiseEvent(NetworkStatsEvent{ timeElapsed, (int64_t)data.bytesSentSinceLastPrint, (int64_t)data.bytesReceivedSinceLastPrint, latency });
 
         data.lastPrintTime = ztime::Main();
-        std::cout << "[INFO] Avg. send speed: " << data.bytesSentSinceLastPrint / timeElapsed.GetDuration(MILLISECONDS) << "kb/s" << std::endl;
-        std::cout << "[INFO] Avg. receive speed: " << data.bytesReceivedSinceLastPrint / timeElapsed.GetDuration(MILLISECONDS) << "kb/s" << std::endl;
-        std::cout << "[INFO] Avg. latency over " << data.packetLatencies.Size() << " packets: " << latency << "us" << std::endl;
         data.bytesSentSinceLastPrint = 0;
         data.bytesReceivedSinceLastPrint = 0;
     }

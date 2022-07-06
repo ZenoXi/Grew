@@ -84,7 +84,7 @@ namespace znet
             size_t bytesSentSinceLastPrint = 0;
             size_t bytesReceivedSinceLastPrint = 0;
             TimePoint lastPrintTime = ztime::Main();
-            Duration printInterval = Duration(3, SECONDS);
+            Duration printInterval = Duration(1, SECONDS);
             bool printStats = true;
 
             TimePoint lastKeepAliveSendTime = ztime::Main();
