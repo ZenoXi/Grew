@@ -886,6 +886,7 @@ namespace zcom
                 OnMouseMove(GetMousePosX(), GetMousePosY());
             }, { this, "" });
             ReindexTabOrder();
+            OnMouseMove(GetMousePosX(), GetMousePosY());
         }
 
         void RemoveItem(Base* item)
@@ -898,6 +899,8 @@ namespace zcom
                     if (_items[i].owned)
                         delete _items[i].item;
                     _items.erase(_items.begin() + i);
+                    ReindexTabOrder();
+                    OnMouseMove(GetMousePosX(), GetMousePosY());
                     return;
                 }
             }
@@ -909,6 +912,8 @@ namespace zcom
             if (_items[index].owned)
                 delete _items[index].item;
             _items.erase(_items.begin() + index);
+            ReindexTabOrder();
+            OnMouseMove(GetMousePosX(), GetMousePosY());
         }
 
         int ItemCount() const
@@ -933,6 +938,7 @@ namespace zcom
             }
             _items.clear();
             _selectableItems.clear();
+            OnMouseMove(GetMousePosX(), GetMousePosY());
         }
 
         void ReindexTabOrder()
