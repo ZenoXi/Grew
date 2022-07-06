@@ -10,6 +10,7 @@
 #include "PlaybackScene.h"
 #include "PlaybackOverlayScene.h"
 #include "Network.h"
+#include "FileTypes.h"
 
 EntryScene::EntryScene() {}
 
@@ -278,7 +279,9 @@ void EntryScene::OnFileSelected()
 {
     if (!_fileLoading)
     {
-        _fileDialog.Open();
+        FileDialogOptions opt;
+        opt.allowedExtensions = SUPORTED_MEDIA_FILE_TYPES_WINAPI;
+        _fileDialog.Open(opt);
         _fileLoading = true;
     }
 }
