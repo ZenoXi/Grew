@@ -883,10 +883,12 @@ namespace zcom
                 //    }
                 //}
                 _RecalculateLayout(GetWidth(), GetHeight());
-                OnMouseMove(GetMousePosX(), GetMousePosY());
+                if (GetMouseInside())
+                    OnMouseMove(GetMousePosX(), GetMousePosY());
             }, { this, "" });
             ReindexTabOrder();
-            OnMouseMove(GetMousePosX(), GetMousePosY());
+            if (GetMouseInside())
+                OnMouseMove(GetMousePosX(), GetMousePosY());
         }
 
         void RemoveItem(Base* item)
@@ -900,7 +902,8 @@ namespace zcom
                         delete _items[i].item;
                     _items.erase(_items.begin() + i);
                     ReindexTabOrder();
-                    OnMouseMove(GetMousePosX(), GetMousePosY());
+                    if (GetMouseInsideArea())
+                        OnMouseMove(GetMousePosX(), GetMousePosY());
                     return;
                 }
             }
@@ -913,7 +916,8 @@ namespace zcom
                 delete _items[index].item;
             _items.erase(_items.begin() + index);
             ReindexTabOrder();
-            OnMouseMove(GetMousePosX(), GetMousePosY());
+            if (GetMouseInside())
+                OnMouseMove(GetMousePosX(), GetMousePosY());
         }
 
         int ItemCount() const
