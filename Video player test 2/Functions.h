@@ -104,8 +104,11 @@ Pos2D<T> line_segment_intersection(const Pos2D<T>& s1, const Pos2D<T>& e1, const
 std::string wstring_to_string(std::wstring ws);
 std::wstring string_to_wstring(std::string s);
 void split_str(std::string str, std::vector<std::string>& output, char split = ' ', bool ignoreEmpty = false);
+void split_wstr(std::wstring str, std::vector<std::wstring>& output, wchar_t split = L' ', bool ignoreEmpty = false);
 template<size_t Count>
 void split_str(std::string str, std::array<std::string, Count>& output, char split = ' ', bool ignoreEmpty = false);
+template<size_t Count>
+void split_wstr(std::wstring str, std::array<std::wstring, Count>& output, wchar_t split = L' ', bool ignoreEmpty = false);
 int64_t str_to_int(std::string str, int base = 10);
 float str_to_float(std::string str);
 double str_to_double(std::string str);
@@ -427,6 +430,34 @@ float triangle_height(const Pos2D<T>& A, const Pos2D<T>& B, const Pos2D<T>& C)
 // Strings
 template<size_t Count>
 void split_str(std::string str, std::array<std::string, Count>& output, char split, bool ignoreEmpty)
+{
+    int beginIndex = 0;
+    for (int count = 0; count < output.size(); count++)
+    {
+        // Find start point
+        if (ignoreEmpty)
+        {
+            while (str[beginIndex] == split)
+                beginIndex++;
+        }
+        if (count == output.size() - 1)
+            break;
+
+        for (int i = beginIndex; i < str.length(); i++)
+        {
+            if (str[i] == split)
+            {
+                output[count] = str.substr(beginIndex, i - beginIndex);
+                beginIndex = i + 1;
+                break;
+            }
+        }
+    }
+    output[output.size() - 1] = str.substr(beginIndex);
+}
+
+template<size_t Count>
+void split_wstr(std::wstring str, std::array<std::wstring, Count>& output, wchar_t split, bool ignoreEmpty)
 {
     int beginIndex = 0;
     for (int count = 0; count < output.size(); count++)

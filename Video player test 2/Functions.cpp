@@ -200,22 +200,38 @@ void split_str(std::string str, std::vector<std::string>& output, char split, bo
             break;
         }
     }
+}
 
-    //std::string t; t.reserve(10);
-    //for (int i = 0; i < str.length(); i++) {
-    //    if (str[i] != split) {
-    //        t.push_back(str[i]);
-    //    }
-    //    else if (str[i] == split && t.length() > 0) {
-    //        output.push_back(t);
-    //        t.clear();
-    //    }
-    //}
+void split_wstr(std::wstring str, std::vector<std::wstring>& output, wchar_t split, bool ignoreEmpty)
+{
+    int beginIndex = 0;
+    while (beginIndex < str.length())
+    {
+        // Find start point
+        if (ignoreEmpty)
+        {
+            while (str[beginIndex] == split)
+                beginIndex++;
+        }
+        if (beginIndex == str.length())
+            break;
 
-    //if (t.length() > 0) {
-    //    output.push_back(t);
-    //    t.clear();
-    //}
+        int i = beginIndex;
+        for (; i < str.length(); i++)
+        {
+            if (str[i] == split)
+            {
+                output.push_back(str.substr(beginIndex, i - beginIndex));
+                beginIndex = i + 1;
+                break;
+            }
+        }
+        if (i == str.length())
+        {
+            output.push_back(str.substr(beginIndex));
+            break;
+        }
+    }
 }
 
 int64_t str_to_int(std::string str, int base)
