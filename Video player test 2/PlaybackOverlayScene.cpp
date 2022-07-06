@@ -66,7 +66,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _readyItemPanel->VerticalScrollable(true);
     _readyItemPanel->AddPostLeftPressed([=](zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y) { _HandlePlaylistLeftClick(item, targets, x, y); }, { this });
     _readyItemPanel->AddOnLeftReleased([=](zcom::Base* item, int x, int y) { _HandlePlaylistLeftRelease(item, x, y); }, { this });
-    _readyItemPanel->AddOnMouseMove([=](zcom::Base* item, int x, int y) { _HandlePlaylistMouseMove(item, x, y); }, { this });
+    _readyItemPanel->AddOnMouseMove([=](zcom::Base* item, int x, int y, bool duplicate) { _HandlePlaylistMouseMove(item, x, y, duplicate); }, { this });
     _readyItemPanel->SetTabIndex(-1);
 
     _playlistLabel = std::make_unique<zcom::Label>(L"Playlist");
@@ -1185,7 +1185,7 @@ void PlaybackOverlayScene::_HandlePlaylistLeftRelease(zcom::Base* item, int x, i
     }
 }
 
-void PlaybackOverlayScene::_HandlePlaylistMouseMove(zcom::Base* item, int x, int y)
+void PlaybackOverlayScene::_HandlePlaylistMouseMove(zcom::Base* item, int x, int y, bool duplicate)
 {
     if (_heldItemId != -1)
     {
