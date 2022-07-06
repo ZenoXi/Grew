@@ -339,7 +339,7 @@ namespace zcom
                 _horizontalScroll = MaxHorizontalScroll();
         }
 
-        EventTargets _OnMouseMove(int x, int y)
+        EventTargets _OnMouseMove(int x, int y, bool duplicate)
         {
             std::vector<Base*> hoveredComponents;
 

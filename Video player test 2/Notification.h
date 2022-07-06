@@ -56,7 +56,7 @@ namespace zcom
             
         }
 
-        EventTargets _OnMouseMove(int x, int y)
+        EventTargets _OnMouseMove(int x, int y, bool duplicate)
         {
             _panel->OnMouseMove(x, y);
             return EventTargets().Add(this, x, y);

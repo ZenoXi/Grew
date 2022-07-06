@@ -40,9 +40,9 @@ namespace zcom
             }
         }
 
-        EventTargets _OnMouseMove(int x, int y)
+        EventTargets _OnMouseMove(int x, int y, bool duplicate)
         {
-            auto targets = Panel::_OnMouseMove(x, y);
+            auto targets = Panel::_OnMouseMove(x, y, duplicate);
             Base* mainTarget = targets.MainTarget();
             auto it = std::find_if(_menuItems.begin(), _menuItems.end(), [mainTarget](std::unique_ptr<MenuItem>& item) { return item.get() == mainTarget; });
             if (it != _menuItems.end())

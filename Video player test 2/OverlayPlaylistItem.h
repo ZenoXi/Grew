@@ -281,7 +281,7 @@ namespace zcom
             _mainPanel->Resize();
         }
 
-        EventTargets _OnMouseMove(int x, int y)
+        EventTargets _OnMouseMove(int x, int y, bool duplicate)
         {
             return _mainPanel->OnMouseMove(x, y).Add(this, x, y);
         }

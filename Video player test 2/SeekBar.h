@@ -219,8 +219,11 @@ namespace zcom
 
         }
 
-        EventTargets _OnMouseMove(int x, int y)
+        EventTargets _OnMouseMove(int x, int y, bool duplicate)
         {
+            if (duplicate)
+                return EventTargets().Add(this, x, y);
+
             int timeTextWidth = ceilf(_maxTimeWidth) + _margins * 2;
             int seekBarWidth = GetWidth() - timeTextWidth * 2;
             int xPos = GetMousePosX() - timeTextWidth;

@@ -118,8 +118,11 @@ namespace zcom
 
         }
 
-        EventTargets _OnMouseMove(int x, int y)
+        EventTargets _OnMouseMove(int x, int y, bool duplicate)
         {
+            if (duplicate)
+                return EventTargets().Add(this, x, y);
+
             int iconWidth = 30;
             int textWidth = _volumeLabel->GetWidth();
             int volumeSliderWidth = _extendedWidth - textWidth - iconWidth - _margins * 2;

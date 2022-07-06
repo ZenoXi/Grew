@@ -52,8 +52,11 @@ namespace zcom
             }
         }
 
-        EventTargets _OnMouseMove(int x, int y)
+        EventTargets _OnMouseMove(int x, int y, bool duplicate)
         {
+            if (duplicate)
+                return Panel::_OnMouseMove(x, y, duplicate);
+
             _SetCursorVisibility(true);
 
             if (!_panelShown)
@@ -65,7 +68,7 @@ namespace zcom
                 _targetOpacity = 1.0f;
             }
 
-            EventTargets targets = Panel::_OnMouseMove(x, y);
+            EventTargets targets = Panel::_OnMouseMove(x, y, duplicate);
             if (targets.Size() == 1)
             {
                 _hanging = true;

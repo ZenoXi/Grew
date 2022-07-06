@@ -185,7 +185,7 @@ namespace zcom
         int _mousePosX = 0;
         int _mousePosY = 0;
         // Pre default handling
-        Event<void, Base*, int, int> _onMouseMove;
+        Event<void, Base*, int, int, bool> _onMouseMove;
         Event<void, Base*> _onMouseEnter;
         Event<void, Base*> _onMouseEnterArea;
         Event<void, Base*> _onMouseLeave;
@@ -197,7 +197,7 @@ namespace zcom
         Event<void, Base*, int, int> _onWheelUp;
         Event<void, Base*, int, int> _onWheelDown;
         // Post default handling
-        Event<void, Base*, std::vector<EventTargets::Params>, int, int> _postMouseMove;
+        Event<void, Base*, std::vector<EventTargets::Params>, int, int, bool> _postMouseMove;
         Event<void, Base*, std::vector<EventTargets::Params>, int, int> _postLeftPressed;
         Event<void, Base*, std::vector<EventTargets::Params>, int, int> _postRightPressed;
         Event<void, Base*, std::vector<EventTargets::Params>, int, int> _postLeftReleased;
@@ -527,13 +527,18 @@ namespace zcom
         // Mouse events
         EventTargets OnMouseMove(int x, int y)
         {
-            if (!_active) return EventTargets();
+            if (!_active)
+                return EventTargets();
+
+            bool duplicateMove = false;
+            if (_mousePosX == x && _mousePosY == y)
+                duplicateMove = true;
 
             _mousePosX = x;
             _mousePosY = y;
-            _onMouseMove.InvokeAll(this, x, y);
-            auto targets = _OnMouseMove(x, y);
-            _postMouseMove.InvokeAll(this, targets.GetTargets(), x, y);
+            _onMouseMove.InvokeAll(this, x, y, duplicateMove);
+            auto targets = _OnMouseMove(x, y, duplicateMove);
+            _postMouseMove.InvokeAll(this, targets.GetTargets(), x, y, duplicateMove);
             return targets;
         }
         void OnMouseEnter()
@@ -651,7 +656,7 @@ namespace zcom
             _OnDeselected();
         }
     protected:
-        virtual EventTargets _OnMouseMove(int x, int y) { return EventTargets().Add(this, x, y); }
+        virtual EventTargets _OnMouseMove(int x, int y, bool duplicate) { return EventTargets().Add(this, x, y); }
         virtual void _OnMouseEnter() {}
         virtual void _OnMouseLeave() {}
         virtual void _OnMouseEnterArea() {}
@@ -672,7 +677,7 @@ namespace zcom
         int GetMousePosX() const { return _mousePosX; }
         int GetMousePosY() const { return _mousePosY; }
 
-        void AddOnMouseMove(std::function<void(Base*, int, int)> handler, EventInfo info = { nullptr, "" })
+        void AddOnMouseMove(std::function<void(Base*, int, int, bool)> handler, EventInfo info = { nullptr, "" })
         {
             _onMouseMove.Add(handler, info);
         }
@@ -717,7 +722,7 @@ namespace zcom
             _onWheelDown.Add(handler, info);
         }
 
-        void AddPostMouseMove(std::function<void(Base*, std::vector<EventTargets::Params>, int, int)> handler, EventInfo info = { nullptr, "" })
+        void AddPostMouseMove(std::function<void(Base*, std::vector<EventTargets::Params>, int, int, bool)> handler, EventInfo info = { nullptr, "" })
         {
             _postMouseMove.Add(handler, info);
         }
