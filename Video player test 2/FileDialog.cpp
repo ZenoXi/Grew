@@ -32,11 +32,13 @@ std::vector<std::wstring> OpenFiles(FileDialogOptions options)
                 COMDLG_FILTERSPEC* types = new COMDLG_FILTERSPEC[options.allowedExtensions.size()];
                 for (int i = 0; i < options.allowedExtensions.size(); i++)
                 {
-                    options.allowedExtensions[i].insert(0, L"*.");
-                    types[i] = { L"", options.allowedExtensions[i].c_str() };
+                    types[i] = {
+                        options.allowedExtensions[i].first.c_str(),
+                        options.allowedExtensions[i].second.c_str()
+                    };
                 }
                 hr = pFileOpen->SetFileTypes(options.allowedExtensions.size(), types);
-                //delete[] types;
+                delete[] types;
             }
 
             // Show the Open dialog box.

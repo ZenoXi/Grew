@@ -7,7 +7,10 @@
 struct FileDialogOptions
 {
     // Empty vector allows everything
-    std::vector<std::wstring> allowedExtensions;
+    // First pair item is the group name
+    // Second pair item are the extensions belonging to the group
+    // Refer to https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-ifiledialog-setfiletypes
+    std::vector<std::pair<std::wstring, std::wstring>> allowedExtensions;
     // File dialog will be used to select a folder
     bool openFolders = false;
 };
