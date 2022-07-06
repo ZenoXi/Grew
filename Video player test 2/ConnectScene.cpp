@@ -181,6 +181,8 @@ void ConnectScene::_Init(const SceneOptionsBase* options)
 
 void ConnectScene::_Uninit()
 {
+    _canvas->ClearComponents();
+
     _mainPanel = nullptr;
     _titleLabel = nullptr;
     _separator1 = nullptr;

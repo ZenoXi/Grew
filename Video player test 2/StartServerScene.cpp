@@ -148,6 +148,8 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
 
 void StartServerScene::_Uninit()
 {
+    _canvas->ClearComponents();
+
     _mainPanel = nullptr;
     _titleLabel = nullptr;
     _separatorTitle = nullptr;
