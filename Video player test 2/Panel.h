@@ -799,7 +799,7 @@ namespace zcom
             _contentHeight = maxBottomEdge + _margins.bottom;
         }
 
-    private:
+    protected:
         struct Item
         {
             Base* item;
@@ -807,8 +807,8 @@ namespace zcom
             bool hasShadow;
             //bool layoutChanged;
         };
-
         std::vector<Item> _items;
+    private:
         //std::vector<Base*> _items;
         //std::vector<bool> _owned;
         //std::vector<bool> _hasShadow;
@@ -1020,6 +1020,11 @@ namespace zcom
             if (_margins != margins)
             {
                 _margins = margins;
+                if (_deferUpdates)
+                {
+                    _updatesDeferred = true;
+                    return;
+                }
                 Resize();
             }
         }
