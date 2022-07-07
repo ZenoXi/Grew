@@ -819,6 +819,8 @@ namespace zcom
 
         // Auto child resize
         //bool _layoutChanged = false;
+        bool _deferUpdates = false;
+        bool _updatesDeferred = false;
 
         // Scrolling
         struct _ScrollAnimation
@@ -859,7 +861,7 @@ namespace zcom
             // By default allow iterating nested components
             SetTabIndex(0);
         }
-        ~Panel()
+        virtual ~Panel()
         {
             ClearItems();
         }
@@ -873,20 +875,23 @@ namespace zcom
             _items.push_back({ item, transferOwnership, false });
             item->AddOnLayoutChanged([&, item]()
             {
-                //for (int i = 0; i < _items.size(); i++)
-                //{
-                //    if (_items[i].item == item)
-                //    {
-                //        _items[i].layoutChanged = true;
-                //        _layoutChanged = true;
-                //        return;
-                //    }
-                //}
+                if (_deferUpdates)
+                {
+                    _updatesDeferred = true;
+                    return;
+                }
                 _RecalculateLayout(GetWidth(), GetHeight());
                 if (GetMouseInside())
                     OnMouseMove(GetMousePosX(), GetMousePosY());
             }, { this, "" });
+
             ReindexTabOrder();
+            if (_deferUpdates)
+            {
+                _updatesDeferred = true;
+                return;
+            }
+            _RecalculateLayout(GetWidth(), GetHeight());
             if (GetMouseInside())
                 OnMouseMove(GetMousePosX(), GetMousePosY());
         }
@@ -902,6 +907,12 @@ namespace zcom
                         delete _items[i].item;
                     _items.erase(_items.begin() + i);
                     ReindexTabOrder();
+                    if (_deferUpdates)
+                    {
+                        _updatesDeferred = true;
+                        return;
+                    }
+                    _RecalculateLayout(GetWidth(), GetHeight());
                     if (GetMouseInsideArea())
                         OnMouseMove(GetMousePosX(), GetMousePosY());
                     return;
@@ -916,6 +927,12 @@ namespace zcom
                 delete _items[index].item;
             _items.erase(_items.begin() + index);
             ReindexTabOrder();
+            if (_deferUpdates)
+            {
+                _updatesDeferred = true;
+                return;
+            }
+            _RecalculateLayout(GetWidth(), GetHeight());
             if (GetMouseInside())
                 OnMouseMove(GetMousePosX(), GetMousePosY());
         }
@@ -942,7 +959,30 @@ namespace zcom
             }
             _items.clear();
             _selectableItems.clear();
-            OnMouseMove(GetMousePosX(), GetMousePosY());
+            //OnMouseMove(GetMousePosX(), GetMousePosY());
+        }
+
+        // Calling this function suppresses layout updates on item add/remove/layout change
+        // until 'ResumeLayoutUpdates()' is called, at which point the deferred updates are executed.
+        // Useful when doing lots of item manipulation, which causes many layout updates
+        // when only 1 is required at the end.
+        void DeferLayoutUpdates()
+        {
+            _deferUpdates = true;
+            _updatesDeferred = false;
+        }
+
+        // Enables reactive layout updates. Any deferred updates are executed.
+        void ResumeLayoutUpdates()
+        {
+            _deferUpdates = false;
+            if (_updatesDeferred)
+            {
+                _RecalculateLayout(GetWidth(), GetHeight());
+                if (GetMouseInside())
+                    OnMouseMove(GetMousePosX(), GetMousePosY());
+                _updatesDeferred = false;
+            }
         }
 
         void ReindexTabOrder()
