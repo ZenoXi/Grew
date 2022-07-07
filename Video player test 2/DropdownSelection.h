@@ -129,7 +129,7 @@ namespace zcom
             _menuPanelEmpty = true;
             auto defaultItem = std::make_unique<MenuItem>(_defaultText);
             defaultItem->SetDisabled(true);
-            _menuPanel->AddMenuItem(std::move(defaultItem));
+            _menuPanel->AddItem(std::move(defaultItem));
             _AddPanelToCanvas();
         }
         ~DropdownSelection()
@@ -145,15 +145,15 @@ namespace zcom
         {
             if (_menuPanelEmpty)
             {
-                _menuPanel->ClearMenuItems();
+                _menuPanel->ClearItems();
                 _menuPanelEmpty = false;
             }
-            _menuPanel->AddMenuItem(std::make_unique<MenuItem>(text, onSelected));
+            _menuPanel->AddItem(std::make_unique<MenuItem>(text, onSelected));
         }
 
         void ClearItems()
         {
-            _menuPanel->ClearMenuItems();
+            _menuPanel->ClearItems();
             _menuPanelEmpty = true;
         }
 

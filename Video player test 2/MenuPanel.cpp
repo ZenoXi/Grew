@@ -22,13 +22,13 @@ void zcom::MenuPanel::_AddHandlerToCanvas()
         {
             if (targets->Contains(_openChildPanel))
             {
-                for (auto& it : _menuItems)
+                for (auto& it : _items)
                 {
-                    if (it->GetMenuPanel() == _openChildPanel)
+                    if (((MenuItem*)it.item)->GetMenuPanel() == _openChildPanel)
                     {
                         if (_hoveredItem)
                             _hoveredItem->SetBackgroundColor(D2D1::ColorF(0, 0.0f));
-                        _hoveredItem = it.get();
+                        _hoveredItem = (MenuItem*)it.item;
                         _hoveredItem->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f));
                         break;
                     }
@@ -37,11 +37,11 @@ void zcom::MenuPanel::_AddHandlerToCanvas()
             else if (!targets->Contains(this))
             {
                 bool unhighlight = true;
-                for (auto& it : _menuItems)
+                for (auto& it : _items)
                 {
-                    if (it->GetMenuPanel() == _openChildPanel)
+                    if (((MenuItem*)it.item)->GetMenuPanel() == _openChildPanel)
                     {
-                        if (_hoveredItem == it.get())
+                        if (_hoveredItem == (MenuItem*)it.item)
                         {
                             unhighlight = false;
                             break;

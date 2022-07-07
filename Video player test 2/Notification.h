@@ -18,7 +18,7 @@ namespace zcom
         D2D1_COLOR_F borderColor = D2D1::ColorF(0.25f, 0.25f, 0.25f);
     };
 
-    class Notification : public Base
+    class Notification : public Panel
     {
 #pragma region base_class
     protected:
@@ -43,79 +43,7 @@ namespace zcom
             {
                 SetOpacity(1.0f);
             }
-            _panel->Update();
-        }
-
-        void _OnDraw(Graphics g)
-        {
-            g.target->DrawBitmap(_panel->Draw(g));
-        }
-
-        void _OnResize(int width, int height)
-        {
-            
-        }
-
-        EventTargets _OnMouseMove(int x, int y, bool duplicate)
-        {
-            _panel->OnMouseMove(x, y);
-            return EventTargets().Add(this, x, y);
-        }
-
-        void _OnMouseLeave()
-        {
-            _panel->OnMouseLeave();
-        }
-
-        void _OnMouseEnter()
-        {
-            _panel->OnMouseEnter();
-        }
-
-        void _OnMouseLeaveArea()
-        {
-            _panel->OnMouseLeaveArea();
-        }
-
-        void _OnMouseEnterArea()
-        {
-            _panel->OnMouseEnterArea();
-        }
-
-        EventTargets _OnLeftPressed(int x, int y)
-        {
-            _panel->OnLeftPressed(x, y);
-            return EventTargets().Add(this, x, y);
-        }
-
-        EventTargets _OnLeftReleased(int x, int y)
-        {
-            _panel->OnLeftReleased(x, y);
-            return EventTargets().Add(this, x, y);
-        }
-
-        EventTargets _OnRightPressed(int x, int y)
-        {
-            _panel->OnRightPressed(x, y);
-            return EventTargets().Add(this, x, y);
-        }
-
-        EventTargets _OnRightReleased(int x, int y)
-        {
-            _panel->OnRightReleased(x, y);
-            return EventTargets().Add(this, x, y);
-        }
-
-        EventTargets _OnWheelUp(int x, int y)
-        {
-            _panel->OnWheelUp(x, y);
-            return EventTargets();
-        }
-
-        EventTargets _OnWheelDown(int x, int y)
-        {
-            _panel->OnWheelDown(x, y);
-            return EventTargets();
+            Panel::_OnUpdate();
         }
 
     public:
@@ -123,7 +51,6 @@ namespace zcom
 #pragma endregion
 
     private:
-        std::unique_ptr<Panel> _panel = nullptr;
         std::unique_ptr<Label> _titleLabel = nullptr;
         std::unique_ptr<Label> _bodyLabel = nullptr;
         std::unique_ptr<Button> _closeButton = nullptr;
@@ -185,20 +112,19 @@ namespace zcom
             }
 
             int notificationHeight = (int)ceil(textHeight) + marginsVertical * 2;
-            SetBaseSize(notificationWidth, notificationHeight);
 
-            // Create panel
-            _panel = std::make_unique<Panel>();
-            _panel->SetBaseSize(notificationWidth, notificationHeight);
-            _panel->SetMargins({ marginsHorizontal, marginsVertical, marginsHorizontal, marginsVertical });
+            // Set main properties
+            DeferLayoutUpdates();
+            SetBaseSize(notificationWidth, notificationHeight);
+            SetMargins({ marginsHorizontal, marginsVertical, marginsHorizontal, marginsVertical });
             if (_titleLabel)
-                _panel->AddItem(_titleLabel.get());
+                AddItem(_titleLabel.get());
             if (_closeButton)
-                _panel->AddItem(_closeButton.get());
+                AddItem(_closeButton.get());
             if (_bodyLabel)
-                _panel->AddItem(_bodyLabel.get());
-            _panel->SetSize(notificationWidth, notificationHeight);
-            _panel->Resize();
+                AddItem(_bodyLabel.get());
+            SetSize(notificationWidth, notificationHeight);
+            ResumeLayoutUpdates();
             
             // Set fadeout vars
             _creationTime = ztime::Main();
@@ -210,7 +136,10 @@ namespace zcom
             SetBackgroundColor(D2D1::ColorF(0.15f, 0.15f, 0.15f));
             SetCornerRounding(5.0f);
         }
-        ~Notification() {}
+        ~Notification()
+        {
+            ClearItems();
+        }
         Notification(Notification&&) = delete;
         Notification& operator=(Notification&&) = delete;
         Notification(const Notification&) = delete;

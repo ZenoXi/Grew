@@ -44,10 +44,10 @@ namespace zcom
         {
             auto targets = Panel::_OnMouseMove(x, y, duplicate);
             Base* mainTarget = targets.MainTarget();
-            auto it = std::find_if(_menuItems.begin(), _menuItems.end(), [mainTarget](std::unique_ptr<MenuItem>& item) { return item.get() == mainTarget; });
-            if (it != _menuItems.end())
+            auto it = std::find_if(_items.begin(), _items.end(), [mainTarget](Item& item) { return item.item == mainTarget; });
+            if (it != _items.end())
             {
-                MenuItem* item = it->get();
+                MenuItem* item = (MenuItem*)it->item;
 
                 if (_hoveredItem)
                     _hoveredItem->SetBackgroundColor(D2D1::ColorF(0, 0.0f));
@@ -102,10 +102,10 @@ namespace zcom
         {
             auto targets = Panel::_OnLeftPressed(x, y);
             Base* mainTarget = targets.MainTarget();
-            auto it = std::find_if(_menuItems.begin(), _menuItems.end(), [mainTarget](std::unique_ptr<MenuItem>& item) { return item.get() == mainTarget; });
-            if (it != _menuItems.end())
+            auto it = std::find_if(_items.begin(), _items.end(), [mainTarget](Item& item) { return item.item == mainTarget; });
+            if (it != _items.end())
             {
-                MenuItem* item = it->get();
+                MenuItem* item = (MenuItem*)it->item;
 
                 _childHoverEndTime = ztime::Main() - _hoverToShowDuration;
                 _childHoverStartTime = ztime::Main() - _hoverToShowDuration;
@@ -125,11 +125,12 @@ namespace zcom
                             if (!item->Checked())
                             {
                                 // Uncheck others from same group
-                                for (int i = 0; i < _menuItems.size(); i++)
+                                for (int i = 0; i < _items.size(); i++)
                                 {
-                                    if (_menuItems[i]->CheckGroup() == item->CheckGroup() && _menuItems[i]->Checked())
+                                    MenuItem* mItem = (MenuItem*)_items[i].item;
+                                    if (mItem->CheckGroup() == item->CheckGroup() && mItem->Checked())
                                     {
-                                        _menuItems[i]->SetChecked(false);
+                                        mItem->SetChecked(false);
                                     }
                                 }
 
@@ -161,8 +162,6 @@ namespace zcom
         MenuPanel* _openChildPanel = nullptr;
         MenuItem* _hoveredItem = nullptr;
 
-        std::vector<std::unique_ptr<MenuItem>> _menuItems;
-
         RECT _bounds = { 0, 0, 0, 0 };
         RECT _parentRect = { 0, 0, 0, 0 };
         int _maxWidth = 600;
@@ -192,7 +191,7 @@ namespace zcom
             SetProperty(shadow);
             SetVisible(false);
         }
-        ~MenuPanel() { ClearMenuItems(); }
+        ~MenuPanel() { ClearItems(); }
         MenuPanel(MenuPanel&&) = delete;
         MenuPanel& operator=(MenuPanel&&) = delete;
         MenuPanel(const MenuPanel&) = delete;
@@ -216,20 +215,15 @@ namespace zcom
             }
         }
 
-        void AddMenuItem(std::unique_ptr<MenuItem> item)
+        void AddItem(std::unique_ptr<MenuItem> item)
         {
-            AddItem(item.get());
-            _menuItems.push_back(std::move(item));
+            Panel::AddItem(item.release(), true);
             _RearrangeMenuItems();
         }
 
-        void ClearMenuItems()
+        void ClearItems()
         {
-            for (auto& item : _menuItems)
-            {
-                RemoveItem(item.get());
-            }
-            _menuItems.clear();
+            Panel::ClearItems();
             _RearrangeMenuItems();
         }
 
@@ -290,12 +284,12 @@ namespace zcom
             Resize();
             int totalHeight = MARGINS;
             int maxWidth = 0;
-            for (int i = 0; i < _menuItems.size(); i++)
+            for (int i = 0; i < _items.size(); i++)
             {
-                _menuItems[i]->SetOffsetPixels(MARGINS, totalHeight);
-                _menuItems[i]->SetBaseWidth(-MARGINS * 2);
-                totalHeight += _menuItems[i]->GetHeight();
-                int width = _menuItems[i]->CalculateWidth();
+                _items[i].item->SetOffsetPixels(MARGINS, totalHeight);
+                _items[i].item->SetBaseWidth(-MARGINS * 2);
+                totalHeight += _items[i].item->GetHeight();
+                int width = ((MenuItem*)_items[i].item)->CalculateWidth();
                 if (width > maxWidth)
                     maxWidth = width;
             }

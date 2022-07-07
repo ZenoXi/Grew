@@ -11,7 +11,7 @@
 
 namespace zcom
 {
-    class OverlayPlaylistItem : public Base
+    class OverlayPlaylistItem : public Panel
     {
     public:
         enum Buttons
@@ -71,18 +71,16 @@ namespace zcom
             _stopButton->SetBackgroundImage(ResourceManager::GetImage("item_stop"));
             _stopButton->SetVisible(false);
 
-            _mainPanel = std::make_unique<Panel>();
-            _mainPanel->SetSize(GetWidth(), GetHeight());
-            _mainPanel->AddItem(_filenameLabel.get());
-            _mainPanel->AddItem(_statusLabel.get());
-            _mainPanel->AddItem(_playButton.get());
-            _mainPanel->AddItem(_deleteButton.get());
-            _mainPanel->AddItem(_stopButton.get());
+            AddItem(_filenameLabel.get());
+            AddItem(_statusLabel.get());
+            AddItem(_playButton.get());
+            AddItem(_deleteButton.get());
+            AddItem(_stopButton.get());
             SetButtonVisibility(BTN_DELETE);
         }
         ~OverlayPlaylistItem()
         {
-            _mainPanel->ClearItems();
+            ClearItems();
         }
         OverlayPlaylistItem(OverlayPlaylistItem&&) = delete;
         OverlayPlaylistItem& operator=(OverlayPlaylistItem&&) = delete;
@@ -230,11 +228,10 @@ namespace zcom
             // Filename label
             _filenameLabel->SetBaseWidth(offset);
 
-            _mainPanel->Resize();
+            Resize();
         }
 
     private:
-        std::unique_ptr<Panel> _mainPanel = nullptr;
         std::unique_ptr<Label> _filenameLabel = nullptr;
         std::unique_ptr<Label> _statusLabel = nullptr;
         std::unique_ptr<Button> _playButton = nullptr;
@@ -255,86 +252,6 @@ namespace zcom
 
 #pragma region base_class
     private:
-        void _OnUpdate()
-        {
-            _mainPanel->Update();
-        }
-
-        void _OnDraw(Graphics g)
-        {
-            g.target->DrawBitmap(
-                _mainPanel->Draw(g),
-                D2D1::RectF(
-                    _mainPanel->GetX(),
-                    _mainPanel->GetY(),
-                    _mainPanel->GetX() + _mainPanel->GetWidth(),
-                    _mainPanel->GetY() + _mainPanel->GetHeight()
-                ),
-                _mainPanel->GetOpacity()
-            );
-        }
-
-        void _OnResize(int width, int height)
-        {
-            _mainPanel->SetSize(GetWidth(), GetHeight());
-            _mainPanel->SetScreenPosition(GetScreenX(), GetScreenY());
-            _mainPanel->Resize();
-        }
-
-        EventTargets _OnMouseMove(int x, int y, bool duplicate)
-        {
-            return _mainPanel->OnMouseMove(x, y).Add(this, x, y);
-        }
-
-        void _OnMouseLeave()
-        {
-            _mainPanel->OnMouseLeave();
-        }
-
-        void _OnMouseEnter()
-        {
-            _mainPanel->OnMouseEnter();
-        }
-
-        void _OnMouseLeaveArea()
-        {
-            _mainPanel->OnMouseLeaveArea();
-        }
-
-        void _OnMouseEnterArea()
-        {
-            _mainPanel->OnMouseEnterArea();
-        }
-
-        EventTargets _OnLeftPressed(int x, int y)
-        {
-            return _mainPanel->OnLeftPressed(x, y).Add(this, x, y);
-        }
-
-        EventTargets _OnLeftReleased(int x, int y)
-        {
-            return _mainPanel->OnLeftReleased(x, y).Add(this, x, y);
-        }
-
-        EventTargets _OnRightPressed(int x, int y)
-        {
-            return _mainPanel->OnRightPressed(x, y).Add(this, x, y);
-        }
-
-        EventTargets _OnRightReleased(int x, int y)
-        {
-            return _mainPanel->OnRightReleased(x, y).Add(this, x, y);
-        }
-
-        EventTargets _OnWheelUp(int x, int y)
-        {
-            return _mainPanel->OnWheelUp(x, y);
-        }
-
-        EventTargets _OnWheelDown(int x, int y)
-        {
-            return _mainPanel->OnWheelDown(x, y);
-        }
 
     public:
         const char* GetName() const { return "overlay_playlist_item"; }
