@@ -660,6 +660,7 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
     playColor.g *= 0.3f;
     playColor.b *= 0.3f;
 
+    _readyItemPanel->DeferLayoutUpdates();
     _readyItemPanel->ClearItems();
     _readyItems.clear();
     _loadingItems.clear();
@@ -853,7 +854,7 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
         currentItem++;
     }
 
-    _playlistPanel->Resize();
+    _readyItemPanel->ResumeLayoutUpdates();
 }
 
 void PlaybackOverlayScene::_RemoveDeletedItems()
