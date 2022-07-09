@@ -57,7 +57,7 @@ namespace zcom
         {
             _mainPanel->SetSize(GetWidth(), GetHeight());
             _mainPanel->SetScreenPosition(GetScreenX(), GetScreenY());
-            _mainPanel->Resize();
+            //_mainPanel->Resize();
         }
 
         EventTargets _OnMouseMove(int x, int y)
@@ -438,7 +438,7 @@ namespace zcom
             // Filename label
             _filenameLabel->SetBaseWidth(offset);
 
-            _mainPanel->Resize();
+            //_mainPanel->Resize();
         }
     };
 }

@@ -7,9 +7,7 @@ namespace zcom
     class ControlBarBackground : public Base
     {
 #pragma region base_class
-    private:
-        void _OnUpdate() {}
-
+    protected:
         void _OnDraw(Graphics g)
         {
             ID2D1GradientStopCollection* gradientStopCollection = nullptr;
@@ -62,8 +60,6 @@ namespace zcom
             brush->Release();
             gradientStopCollection->Release();
         }
-
-        void _OnResize(int width, int height) {}
 #pragma endregion
 
     public:

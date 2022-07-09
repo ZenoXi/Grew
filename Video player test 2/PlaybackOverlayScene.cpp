@@ -473,9 +473,10 @@ void PlaybackOverlayScene::_Unfocus()
 
 void PlaybackOverlayScene::_Update()
 {
-    _sideMenuPanel->Update();
-    _playlistPanel->Update();
-    _connectedUsersPanel->Update();
+    _canvas->Update();
+    //_sideMenuPanel->Update();
+    //_playlistPanel->Update();
+    //_connectedUsersPanel->Update();
 
     if (_connectPanelOpen)
     {
@@ -629,15 +630,6 @@ void PlaybackOverlayScene::_ManageReadyItems()
             _playlistChanged = true;
         }
     }
-}
-
-ID2D1Bitmap1* PlaybackOverlayScene::_Draw(Graphics g)
-{
-    // Draw UI
-    ID2D1Bitmap* bitmap = _canvas->Draw(g);
-    g.target->DrawBitmap(bitmap);
-
-    return nullptr;
 }
 
 void PlaybackOverlayScene::_Resize(int width, int height)
@@ -1066,7 +1058,6 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel_Offline()
     _startServerButton->SetVisible(true);
 
     _connectedUsersPanel->ClearItems();
-    _connectedUsersPanel->Resize();
 }
 
 void PlaybackOverlayScene::_RearrangeNetworkPanel_Online()
@@ -1088,6 +1079,7 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel_Online()
         _usernameButton->Text()->SetText(user.name);
 
     // Add all users
+    _connectedUsersPanel->DeferLayoutUpdates();
     _connectedUsersPanel->ClearItems();
 
     { // This client
@@ -1116,7 +1108,7 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel_Online()
         usernameLabel->SetMargins({ 5.0f, 0.0f, 5.0f, 0.0f });
         _connectedUsersPanel->AddItem(usernameLabel, true);
     }
-    _connectedUsersPanel->Resize();
+    _connectedUsersPanel->ResumeLayoutUpdates();
 
     // Update user count label
     std::wostringstream ss(L"");
@@ -1310,6 +1302,9 @@ bool PlaybackOverlayScene::_HandleKeyDown(BYTE keyCode)
         App::Instance()->MoveSceneToBack(this->GetName());
         return true;
     }
+    //case VK_NUMPAD0:
+        //_offlineLabel->SetVisible(!_offlineLabel->GetVisible());
+        //return true;
     }
     return false;
 }

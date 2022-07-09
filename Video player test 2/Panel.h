@@ -72,6 +72,7 @@ namespace zcom
                     {
                         _verticalScrollBar.opacity = 1.0f;
                     }
+                    InvokeRedraw();
                 }
             }
             // Fade horizontal scrollbar
@@ -102,6 +103,7 @@ namespace zcom
                     {
                         _horizontalScrollBar.opacity = 1.0f;
                     }
+                    InvokeRedraw();
                 }
             }
 
@@ -130,7 +132,7 @@ namespace zcom
                     int endPos = _verticalScrollAnimation.endPos;
                     _verticalScroll = startPos + (endPos - startPos) * moveProgress;
                 }
-                Resize();
+                _RecalculateLayout(GetWidth(), GetHeight());
                 OnMouseMove(GetMousePosX(), GetMousePosY());
             }
             // Animate horizontal scroll
@@ -158,7 +160,7 @@ namespace zcom
                     int endPos = _horizontalScrollAnimation.endPos;
                     _horizontalScroll = startPos + (endPos - startPos) * moveProgress;
                 }
-                Resize();
+                _RecalculateLayout(GetWidth(), GetHeight());
                 OnMouseMove(GetMousePosX(), GetMousePosY());
             }
 
@@ -166,6 +168,18 @@ namespace zcom
             {
                 item.item->Update();
             }
+        }
+
+        bool _Redraw()
+        {
+            for (auto& item : _items)
+            {
+                if (item.item->Redraw())
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         void _OnDraw(Graphics g)
@@ -191,13 +205,15 @@ namespace zcom
                         break;
                     }
                 }
-                bitmaps.insert(it.base(), { item.item->Draw(g), item });
+                if (item.item->Redraw())
+                    item.item->Draw(g);
+                bitmaps.insert(it.base(), { item.item->Image(), item });
             }
 
             // Draw the bitmaps
             for (auto& it : bitmaps)
             {
-                if (it.second.item->GetOpacity() <= 0.0f)
+                if (it.second.item->GetOpacity() <= 0.0f || !it.second.item->GetVisible())
                     continue;
 
                 // Draw shadow
@@ -333,10 +349,6 @@ namespace zcom
         void _OnResize(int width, int height)
         {
             _RecalculateLayout(width, height);
-            if (_verticalScroll > MaxVerticalScroll())
-                _verticalScroll = MaxVerticalScroll();
-            if (_horizontalScroll > MaxHorizontalScroll())
-                _horizontalScroll = MaxHorizontalScroll();
         }
 
         EventTargets _OnMouseMove(int x, int y, bool duplicate)
@@ -733,7 +745,7 @@ namespace zcom
         const char* GetName() const { return "panel"; }
 #pragma endregion
 
-    private:
+    protected:
         void _RecalculateLayout(int width, int height)
         {
             // Calculate item sizes and positions
@@ -745,22 +757,24 @@ namespace zcom
 
                 int newWidth = (int)std::round(GetWidth() * item->GetParentWidthPercent()) + item->GetBaseWidth();
                 int newHeight = (int)std::round(GetHeight() * item->GetParentHeightPercent()) + item->GetBaseHeight();
-                // SetSize does limit checking so the resulting size and newWidth/newHeight can mismatch
-                item->SetSize(newWidth, newHeight);
+                if (newWidth < 1)
+                    newWidth = 1;
+                if (newHeight < 1)
+                    newHeight = 1;
 
                 int newPosX = 0;
                 if (item->GetHorizontalAlignment() == Alignment::START)
                 {
-                    newPosX += std::round((GetWidth() - item->GetWidth()) * item->GetHorizontalOffsetPercent());
+                    newPosX += std::round((GetWidth() - newWidth) * item->GetHorizontalOffsetPercent());
                 }
                 else if (item->GetHorizontalAlignment() == Alignment::CENTER)
                 {
-                    newPosX = (GetWidth() - item->GetWidth()) / 2;
+                    newPosX = (GetWidth() - newWidth) / 2;
                 }
                 else if (item->GetHorizontalAlignment() == Alignment::END)
                 {
-                    newPosX = GetWidth() - item->GetWidth();
-                    newPosX -= std::round((GetWidth() - item->GetWidth()) * item->GetHorizontalOffsetPercent());
+                    newPosX = GetWidth() - newWidth;
+                    newPosX -= std::round((GetWidth() - newWidth) * item->GetHorizontalOffsetPercent());
                 }
                 newPosX += item->GetHorizontalOffsetPixels();
                 newPosX += _margins.left;
@@ -772,34 +786,40 @@ namespace zcom
                 int newPosY = 0;
                 if (item->GetVerticalAlignment() == Alignment::START)
                 {
-                    newPosY += std::round((GetHeight() - item->GetHeight()) * item->GetVerticalOffsetPercent());
+                    newPosY += std::round((GetHeight() - newHeight) * item->GetVerticalOffsetPercent());
                 }
                 else if (item->GetVerticalAlignment() == Alignment::CENTER)
                 {
-                    newPosY = (GetHeight() - item->GetHeight()) / 2;
+                    newPosY = (GetHeight() - newHeight) / 2;
                 }
                 else if (item->GetVerticalAlignment() == Alignment::END)
                 {
-                    newPosY = GetHeight() - item->GetHeight();
-                    newPosY -= std::round((GetHeight() - item->GetHeight()) * item->GetVerticalOffsetPercent());
+                    newPosY = GetHeight() - newHeight;
+                    newPosY -= std::round((GetHeight() - newHeight) * item->GetVerticalOffsetPercent());
                 }
                 newPosY += item->GetVerticalOffsetPixels();
                 newPosY += _margins.top;
 
                 item->SetPosition(newPosX, newPosY);
                 item->SetScreenPosition(GetScreenX() + newPosX, GetScreenY() + newPosY);
-                item->Resize(item->GetWidth(), item->GetHeight());
+                item->Resize(newWidth, newHeight);
 
-                if (newPosX + item->GetWidth() > maxRightEdge)
-                    maxRightEdge = newPosX + item->GetWidth();
-                if (newPosY + item->GetHeight() > maxBottomEdge)
-                    maxBottomEdge = newPosY + item->GetHeight();
+                if (newPosX + newWidth > maxRightEdge)
+                    maxRightEdge = newPosX + newWidth;
+                if (newPosY + newHeight > maxBottomEdge)
+                    maxBottomEdge = newPosY + newHeight;
             }
             _contentWidth = maxRightEdge + _margins.right;
             _contentHeight = maxBottomEdge + _margins.bottom;
+
+            if (_verticalScroll > MaxVerticalScroll())
+                _verticalScroll = MaxVerticalScroll();
+            if (_horizontalScroll > MaxHorizontalScroll())
+                _horizontalScroll = MaxHorizontalScroll();
+
+            InvokeRedraw();
         }
 
-    protected:
         struct Item
         {
             Base* item;
@@ -959,6 +979,12 @@ namespace zcom
             }
             _items.clear();
             _selectableItems.clear();
+            if (_deferUpdates)
+            {
+                _updatesDeferred = true;
+                return;
+            }
+            _RecalculateLayout(GetWidth(), GetHeight());
             //OnMouseMove(GetMousePosX(), GetMousePosY());
         }
 
@@ -1025,7 +1051,7 @@ namespace zcom
                     _updatesDeferred = true;
                     return;
                 }
-                Resize();
+                _RecalculateLayout(GetWidth(), GetHeight());
             }
         }
 
@@ -1091,6 +1117,7 @@ namespace zcom
                 _verticalScroll = maxScroll;
             else if (_verticalScroll < 0)
                 _verticalScroll = 0;
+            InvokeRedraw();
         }
 
         int HorizontalScroll() const
@@ -1117,6 +1144,7 @@ namespace zcom
                 _horizontalScroll = maxScroll;
             else if (_horizontalScroll < 0)
                 _horizontalScroll = 0;
+            InvokeRedraw();
         }
 
         int ScrollStepSize() const

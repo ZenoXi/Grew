@@ -64,9 +64,19 @@ void Scene::Update()
     _UpdateNotifications();
 }
 
-ID2D1Bitmap1* Scene::Draw(Graphics g)
+bool Scene::Redraw()
+{
+    return _Redraw();
+}
+
+ID2D1Bitmap* Scene::Draw(Graphics g)
 {
     return _Draw(g);
+}
+
+ID2D1Bitmap* Scene::Image()
+{
+    return _Image();
 }
 
 void Scene::Resize(int width, int height)
@@ -126,6 +136,7 @@ void Scene::_UpdateNotifications()
 
 void Scene::_RearrangeNotifications()
 {
+    _notificationPanel->DeferLayoutUpdates();
     _notificationPanel->ClearItems();
 
     zcom::Alignment vAlignment;
@@ -173,7 +184,5 @@ void Scene::_RearrangeNotifications()
         _notificationPanel->AddItem(_notifications[i].get());
     }
     _notificationPanel->SetBaseHeight(std::abs(offsetY));
-
-    if (_canvas)
-        _canvas->Resize();
+    _notificationPanel->ResumeLayoutUpdates();
 }

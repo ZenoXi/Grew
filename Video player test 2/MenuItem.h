@@ -11,11 +11,6 @@ namespace zcom
     {
 #pragma region base_class
     protected:
-        void _OnUpdate()
-        {
-
-        }
-
         void _OnDraw(Graphics g)
         {
             // Create grayscale version of _icon
@@ -105,11 +100,7 @@ namespace zcom
         void _OnResize(int width, int height)
         {
             if (_label)
-            {
-                _label->SetWidth(width - 50);
-                _label->SetHeight(height);
-                _label->Resize();
-            }
+                _label->Resize(width - 50, height);
         }
 
         //EventTargets _OnLeftPressed(int x, int y)
@@ -153,12 +144,10 @@ namespace zcom
             _onClick = onClick;
 
             _label = std::make_unique<Label>(text);
-            _label->SetWidth(GetWidth() - 50);
-            _label->SetHeight(GetHeight());
+            _label->Resize(GetWidth() - 50, GetHeight());
             _label->SetVerticalTextAlignment(zcom::Alignment::CENTER);
             _label->SetMargins({ 5.0f });
             _label->SetCutoff(L"...");
-            _label->Resize();
 
             _checkmarkIcon = ResourceManager::GetImage("checkmark");
 
@@ -211,6 +200,7 @@ namespace zcom
                 if (_icon)
                     SafeFullRelease((IUnknown**)&_iconGrayscale);
                 _icon = icon;
+                InvokeRedraw();
             }
         }
 
@@ -227,6 +217,7 @@ namespace zcom
         void SetChecked(bool checked)
         {
             _checked = checked;
+            InvokeRedraw();
         }
 
         bool Checked() const
@@ -253,6 +244,7 @@ namespace zcom
                     _label->SetFontColor(D2D1::ColorF(0.4f, 0.4f, 0.4f));
                 else
                     _label->SetFontColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
+                InvokeRedraw();
             }
         }
 

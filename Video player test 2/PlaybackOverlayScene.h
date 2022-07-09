@@ -88,7 +88,6 @@ private:
     void _ManageFailedItems();
     void _ManageReadyItems();
 public:
-    ID2D1Bitmap1* _Draw(Graphics g);
     void _Resize(int width, int height);
 
     const char* GetName() const { return "playback_overlay"; }

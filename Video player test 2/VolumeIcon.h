@@ -13,7 +13,7 @@ namespace zcom
     class VolumeIcon : public Base
     {
 #pragma region base_class
-    private:
+    protected:
         void _OnUpdate()
         {
             Duration elapsed = ztime::Main() - _displayStart;
@@ -69,7 +69,9 @@ namespace zcom
 
             g.target->FillRoundedRectangle(roundedrect, _brush);
             g.target->DrawBitmap(_iconBitmap, bitmaprect);
-            g.target->DrawBitmap(_textLabel->Draw(g), textrect);
+            if (_textLabel->Redraw())
+                _textLabel->Draw(g);
+            g.target->DrawBitmap(_textLabel->Image(), textrect);
         }
 
         void _OnResize(int width, int height)
@@ -101,7 +103,6 @@ namespace zcom
             _textLabel->SetVerticalTextAlignment(Alignment::CENTER);
             _textLabel->SetFontSize(16.0f);
             _textLabel->SetFontColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
-            _textLabel->Resize();
         }
         ~VolumeIcon()
         {

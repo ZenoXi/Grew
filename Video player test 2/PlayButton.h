@@ -14,7 +14,7 @@ namespace zcom
     class PlayButton : public Button
     {
 #pragma region base_class
-    private:
+    protected:
         EventTargets _OnLeftPressed(int x, int y)
         {
             _clicked = true;

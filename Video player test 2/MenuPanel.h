@@ -281,7 +281,7 @@ namespace zcom
         {
             constexpr int MARGINS = 2;
 
-            Resize();
+            _RecalculateLayout(GetWidth(), GetHeight());
             int totalHeight = MARGINS;
             int maxWidth = 0;
             for (int i = 0; i < _items.size(); i++)

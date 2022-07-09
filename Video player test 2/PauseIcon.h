@@ -11,7 +11,7 @@ namespace zcom
     class PauseIcon : public Base
     {
 #pragma region base_class
-    private:
+    protected:
         void _OnUpdate()
         {
             Duration elapsed = ztime::Main() - _displayStart;

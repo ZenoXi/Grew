@@ -227,8 +227,6 @@ namespace zcom
 
             // Filename label
             _filenameLabel->SetBaseWidth(offset);
-
-            Resize();
         }
 
     private:
@@ -251,7 +249,7 @@ namespace zcom
         bool _hostMissing = false;
 
 #pragma region base_class
-    private:
+    protected:
 
     public:
         const char* GetName() const { return "overlay_playlist_item"; }

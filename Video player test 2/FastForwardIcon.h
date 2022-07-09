@@ -18,7 +18,7 @@ namespace zcom
     class FastForwardIcon : public Base
     {
 #pragma region base_class
-    private:
+    protected:
         void _OnUpdate()
         {
             Duration elapsed = ztime::Main() - _displayStart;
@@ -39,6 +39,10 @@ namespace zcom
                 {
                     SetOpacity(1.0f);
                 }
+
+                // Arrow movement is calculated in 'Draw()'
+                // If 'progress' < 1.0f, then Redrawing is necessary every frame;
+                InvokeRedraw();
             }
         }
 
@@ -67,7 +71,9 @@ namespace zcom
             roundedrect.rect.bottom = size.width;
             
             g.target->FillRoundedRectangle(roundedrect, _brush);
-            g.target->DrawBitmap(_textLabel->Draw(g), textrect);
+            if (_textLabel->Redraw())
+                _textLabel->Draw(g);
+            g.target->DrawBitmap(_textLabel->Image(), textrect);
 
             // Draw triangle
             Duration elapsed = ztime::Main() - _displayStart;
@@ -155,11 +161,6 @@ namespace zcom
             pTriangleGeometry2->Release();
         }
 
-        void _OnResize(int width, int height)
-        {
-
-        }
-
     public:
         const char* GetName() const { return "fast_forward_icon"; }
 #pragma endregion
@@ -186,7 +187,6 @@ namespace zcom
             _textLabel->SetVerticalTextAlignment(Alignment::CENTER);
             _textLabel->SetFontSize(16.0f);
             _textLabel->SetFontColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
-            _textLabel->Resize();
 
             _direction = direction;
         }

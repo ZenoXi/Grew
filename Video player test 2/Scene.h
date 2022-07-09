@@ -38,7 +38,9 @@ public:
     bool Focused() const;
 
     void Update();
-    ID2D1Bitmap1* Draw(Graphics g);
+    bool Redraw();
+    ID2D1Bitmap* Draw(Graphics g);
+    ID2D1Bitmap* Image();
     void Resize(int width, int height);
 
     zcom::Canvas* GetCanvas() const;
@@ -50,7 +52,9 @@ private:
     virtual void _Unfocus() = 0;
 
     virtual void _Update() = 0;
-    virtual ID2D1Bitmap1* _Draw(Graphics g) = 0;
+    virtual bool _Redraw() { return _canvas->Redraw(); }
+    virtual ID2D1Bitmap* _Draw(Graphics g) { return _canvas->Draw(g); }
+    virtual ID2D1Bitmap* _Image() { return _canvas->Image(); }
     virtual void _Resize(int width, int height) = 0;
 
 public:

@@ -74,6 +74,7 @@ private: // Main app thread
     ThreadController _mainThreadController;
     std::thread _mainThread;
     std::mutex _m_main;
+    bool sceneChanged = false;
 public:
     void LoopThread();
 

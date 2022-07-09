@@ -129,6 +129,7 @@ namespace zcom
         friend class Canvas;
 
         ID2D1Bitmap1* _canvas = nullptr;
+        bool _redraw = true;
 
         // Position description
         Alignment _hPosAlign = Alignment::START;
@@ -382,11 +383,15 @@ namespace zcom
         }
         void SetSize(int width, int height)
         {
+            if (width == _width && height == _height)
+                return;
+
             if (width <= 0) width = 1;
             if (height <= 0) height = 1;
             _width = width;
             _height = height;
             SafeFullRelease((IUnknown**)&_canvas);
+            _redraw = true;
             //if (_canvas)
             //{
             //    _canvas->Release();
@@ -395,10 +400,17 @@ namespace zcom
         }
         void SetOpacity(float opacity)
         {
+            if (opacity == _opacity)
+                return;
+
             _opacity = opacity;
+            _redraw = true;
         }
         void SetActive(bool active)
         {
+            if (active == _active)
+                return;
+
             if (!active)
             {
                 OnDeselected();
@@ -406,9 +418,13 @@ namespace zcom
                 OnRightReleased();
             }
             _active = active;
+            _redraw = true;
         }
         void SetVisible(bool visible)
         {
+            if (visible == _visible)
+                return;
+
             if (!visible)
             {
                 OnDeselected();
@@ -416,6 +432,7 @@ namespace zcom
                 OnRightReleased();
             }
             _visible = visible;
+            _redraw = true;
         }
 
         // Selection
@@ -430,7 +447,11 @@ namespace zcom
         }
         void SetZIndex(int index)
         {
+            if (index == _zIndex)
+                return;
+
             _zIndex = index;
+            _redraw = true;
         }
         void SetTabIndex(int index)
         {
@@ -445,19 +466,35 @@ namespace zcom
 
         void SetBorderVisibility(bool visible)
         {
+            if (visible == _borderVisible)
+                return;
+
             _borderVisible = visible;
+            _redraw = true;
         }
         void SetBorderWidth(float width)
         {
+            if (width == _borderWidth)
+                return;
+
             _borderWidth = width;
+            _redraw = true;
         }
         void SetBorderColor(D2D1_COLOR_F color)
         {
+            if (color == _borderColor)
+                return;
+
             _borderColor = color;
+            _redraw = true;
         }
         void SetSelectedBorderColor(D2D1_COLOR_F color)
         {
+            if (color == _selectedBorderColor)
+                return;
+
             _selectedBorderColor = color;
+            _redraw = true;
         }
 
         // Background
@@ -466,11 +503,19 @@ namespace zcom
 
         void SetBackgroundColor(D2D1_COLOR_F color)
         {
+            if (color == _backgroundColor)
+                return;
+
             _backgroundColor = color;
+            _redraw = true;
         }
         void SetBackgroundImage(ID2D1Bitmap* image)
         {
+            if (image == _background)
+                return;
+
             _background = image;
+            _redraw = true;
         }
 
         // Corner rounding
@@ -478,7 +523,11 @@ namespace zcom
 
         void SetCornerRounding(float rounding)
         {
+            if (rounding == _cornerRounding)
+                return;
+
             _cornerRounding = rounding;
+            _redraw = true;
         }
 
         // Other properties
@@ -497,6 +546,10 @@ namespace zcom
                 *propPtr = prop;
                 _properties.insert({ _Prop::_NAME_(), std::move(propPtr) });
             }
+
+            // Properties might not change the visuals,
+            // but optimising for that scenario is unnecessary
+            _redraw = true;
         }
 
         template<class _Prop>
@@ -522,6 +575,10 @@ namespace zcom
         void RemoveProperty()
         {
             _properties.erase(_Prop::_NAME_());
+
+            // Properties might not change the visuals,
+            // but optimising for that scenario is unnecessary
+            _redraw = true;
         }
 
         // Mouse events
@@ -645,6 +702,7 @@ namespace zcom
             if (_selected) return;
 
             _selected = true;
+            _redraw = true;
             _OnSelected();
         }
         void OnDeselected()
@@ -653,6 +711,7 @@ namespace zcom
             if (!_selected) return;
 
             _selected = false;
+            _redraw = true;
             _OnDeselected();
         }
     protected:
@@ -844,8 +903,22 @@ namespace zcom
             _OnUpdate();
         }
 
+        // If this function returns true, the 'Draw()' function should be called
+        // to redraw any visual changes
+        bool Redraw()
+        {
+            return _redraw || !_canvas || _Redraw();
+        }
+
+        void InvokeRedraw()
+        {
+            _redraw = true;
+        }
+
         ID2D1Bitmap* Draw(Graphics g)
         {
+            _redraw = false;
+
             if (!_canvas)
             {
                 g.target->CreateBitmap(
@@ -1042,8 +1115,9 @@ namespace zcom
                     grayscaleBitmap->Release();
                 }
             }
-            else
+            else if (_Redraw())
             {
+                _OnDraw(g);
                 g.target->Clear();
             }
 
@@ -1054,19 +1128,18 @@ namespace zcom
             return _canvas;
         }
 
+        ID2D1Bitmap* Image()
+        {
+            return _canvas;
+        }
+
         void Resize(int width, int height)
         {
             if (width != _width || height != _height)
             {
-                std::cout << "[WARN]Size not set prior to resizing '" << GetName() << "'" << std::endl;
                 SetSize(width, height);
+                _OnResize(_width, _height);
             }
-            _OnResize(_width, _height);
-        }
-
-        void Resize()
-        {
-            Resize(_width, _height);
         }
 
         // Additional functions
@@ -1089,9 +1162,10 @@ namespace zcom
         }
 
     protected:
-        virtual void _OnUpdate() = 0;
-        virtual void _OnDraw(Graphics g) = 0;
-        virtual void _OnResize(int width, int height) = 0;
+        virtual void _OnUpdate() {}
+        virtual bool _Redraw() { return false; }
+        virtual void _OnDraw(Graphics g) {}
+        virtual void _OnResize(int width, int height) {}
 
     public:
         virtual const char* GetName() const { return "base"; }

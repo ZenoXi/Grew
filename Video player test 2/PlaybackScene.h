@@ -12,6 +12,7 @@
 
 #include "ComponentBase.h"
 #include "Panel.h"
+#include "Image.h"
 #include "PlaybackControllerPanel.h"
 #include "SeekBar.h"
 #include "ControlBarBackground.h"
@@ -72,9 +73,16 @@ class PlaybackScene : public Scene
 
     Playback* _playback;
     bool _streamMenuSetup = false;
+    bool _chaptersSet = false;
+
+    // Common canvas to which UI and playback is drawn
+    ID2D1Bitmap1* _ccanvas = nullptr;
+    bool _redraw = false;
 
     ID2D1Bitmap* _videoFrameBitmap = nullptr;
     ID2D1Bitmap* _subtitleFrameBitmap = nullptr;
+    bool _videoFrameChanged = false;
+    bool _subtitleFrameChanged = false;
 
 public:
     PlaybackScene();
@@ -84,7 +92,9 @@ public:
     void _Focus();
     void _Unfocus();
     void _Update();
-    ID2D1Bitmap1* _Draw(Graphics g);
+    bool _Redraw();
+    ID2D1Bitmap* _Draw(Graphics g);
+    ID2D1Bitmap* _Image();
     void _Resize(int width, int height);
 
     const char* GetName() const { return "playback"; }

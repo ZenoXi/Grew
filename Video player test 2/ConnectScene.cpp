@@ -245,15 +245,6 @@ void ConnectScene::_Update()
     }
 }
 
-ID2D1Bitmap1* ConnectScene::_Draw(Graphics g)
-{
-    // Draw UI
-    ID2D1Bitmap* bitmap = _canvas->Draw(g);
-    g.target->DrawBitmap(bitmap);
-
-    return nullptr;
-}
-
 void ConnectScene::_Resize(int width, int height)
 {
 
@@ -343,6 +334,7 @@ void ConnectScene::_RearrangeRecentConnectionsPanel()
     LastIpOptionAdapter optAdapter(Options::Instance()->GetValue("lastIps"));
     auto ipList = optAdapter.GetList();
     ID2D1Bitmap* removeIcon = ResourceManager::GetImage("item_delete");
+    _recentConnectionsPanel->DeferLayoutUpdates();
     _recentConnectionsPanel->ClearItems();
     for (int i = 0; i < ipList.size(); i++)
     {
@@ -379,7 +371,7 @@ void ConnectScene::_RearrangeRecentConnectionsPanel()
         _recentConnectionsPanel->AddItem(ipButton, true);
         _recentConnectionsPanel->AddItem(removeButton, true);
     }
-    _recentConnectionsPanel->Resize();
+    _recentConnectionsPanel->ResumeLayoutUpdates();
 
     if (ipList.empty())
         _noRecentConnectionsLabel->SetVisible(true);

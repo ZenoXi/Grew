@@ -16,10 +16,14 @@ namespace zcom
     class VolumeSlider : public Base
     {
 #pragma region base_class
-    private:
+    protected:
         void _OnUpdate()
         {
+            float initialHeight = _volumeBarHeight;
             _volumeBarHeightTransition.Apply(_volumeBarHeight);
+            if (_volumeBarHeight != initialHeight)
+                InvokeRedraw();
+
             int newWidth = GetBaseWidth();
             _itemWidthTransition.Apply(newWidth);
             SetBaseWidth(newWidth);
@@ -102,8 +106,10 @@ namespace zcom
             }
 
             // Draw value string
+            if (_volumeLabel->Redraw())
+                _volumeLabel->Draw(g);
             g.target->DrawBitmap(
-                _volumeLabel->Draw(g),
+                _volumeLabel->Image(),
                 D2D1::RectF(
                     _extendedWidth - _volumeLabel->GetWidth(),
                     0,
@@ -111,11 +117,6 @@ namespace zcom
                     GetHeight()
                 )
             );
-        }
-
-        void _OnResize(int width, int height)
-        {
-
         }
 
         EventTargets _OnMouseMove(int x, int y, bool duplicate)
@@ -151,6 +152,8 @@ namespace zcom
                 SetValue(xPosNorm);
                 _moved = true;
             }
+
+            InvokeRedraw();
             return EventTargets().Add(this, x, y);
         }
 
@@ -184,6 +187,7 @@ namespace zcom
                 SetValue(xPosNorm);
                 _moved = true;
                 _held = true;
+                InvokeRedraw();
             }
             return EventTargets().Add(this, x, y);
         }
@@ -200,6 +204,7 @@ namespace zcom
             {
                 SetValue(_value + 0.05f);
                 _moved = true;
+                InvokeRedraw();
             }
             return EventTargets().Add(this, x, y);
         }
@@ -210,6 +215,7 @@ namespace zcom
             {
                 SetValue(_value - 0.05f);
                 _moved = true;
+                InvokeRedraw();
             }
             return EventTargets().Add(this, x, y);
         }
@@ -310,6 +316,8 @@ namespace zcom
             _volumeLabel->SetText(valueStr.str());
 
             Options::Instance()->SetValue("volume", float_to_str(GetVolume()));
+
+            InvokeRedraw();
         }
 
         float GetVolume() const

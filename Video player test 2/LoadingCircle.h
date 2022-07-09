@@ -11,10 +11,11 @@ namespace zcom
     class LoadingCircle : public Base
     {
 #pragma region base_class
-    private:
+    protected:
         void _OnUpdate()
         {
-
+            if (GetVisible())
+                InvokeRedraw();
         }
 
         void _OnDraw(Graphics g)
@@ -56,14 +57,16 @@ namespace zcom
             g.target->SetTransform(D2D1::Matrix3x2F::Rotation(angle, { size.width / 2.0f, size.width / 2.0f }));
             g.target->DrawBitmap(_circleBitmap, circlerect);
             g.target->SetTransform(D2D1::Matrix3x2F::Identity());
-            g.target->DrawBitmap(_textLabel->Draw(g), textrect);
+
+            if (_textLabel->Redraw())
+                _textLabel->Draw(g);
+            g.target->DrawBitmap(_textLabel->Image(), textrect);
 
         }
 
         void _OnResize(int width, int height)
         {
-            _textLabel->SetSize(width - 10, 20);
-            _textLabel->Resize();
+            _textLabel->Resize(width - 10, 20);
         }
 
     public:
@@ -88,7 +91,6 @@ namespace zcom
             _textLabel->SetFontSize(16.0f);
             //_textLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
             _textLabel->SetWordWrap(true);
-            _textLabel->Resize();
         }
         ~LoadingCircle()
         {
@@ -109,8 +111,7 @@ namespace zcom
             if (_textLabel->GetText() != text)
             {
                 _textLabel->SetText(text);
-                _textLabel->SetHeight(ceil(_textLabel->GetTextHeight()));
-                _textLabel->Resize();
+                _textLabel->Resize(_textLabel->GetWidth(), ceil(_textLabel->GetTextHeight()));
             }
         }
     };

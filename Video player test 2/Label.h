@@ -18,12 +18,7 @@ namespace zcom
     class Label : public Base
     {
 #pragma region base_class
-    private:
-        void _OnUpdate()
-        {
-
-        }
-
+    protected:
         void _OnDraw(Graphics g)
         {
             // Create resources
@@ -103,6 +98,8 @@ namespace zcom
                 L"en-us",
                 &_dwriteTextFormat
             );
+
+            InvokeRedraw();
         }
 
         void _CreateTextLayout()
@@ -183,6 +180,8 @@ namespace zcom
             {
                 _dwriteTextLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
             }
+
+            InvokeRedraw();
         }
 
     public:
@@ -310,6 +309,9 @@ namespace zcom
 
         void SetText(std::wstring text)
         {
+            if (text == _text)
+                return;
+
             _text = text;
             _CreateTextLayout();
         }
@@ -326,6 +328,7 @@ namespace zcom
         void SetVerticalTextAlignment(Alignment alignment)
         {
             _vTextAlignment = alignment;
+            InvokeRedraw();
         }
 
         void SetWordWrap(bool wrap)
@@ -411,6 +414,7 @@ namespace zcom
         {
             _fontColor = color;
             SafeFullRelease((IUnknown**)&_textBrush);
+            InvokeRedraw();
         }
     };
 }

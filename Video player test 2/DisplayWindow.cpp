@@ -798,14 +798,17 @@ void WindowGraphics::Close()
 
 void WindowGraphics::BeginFrame()
 {
-    p_Target->BeginDraw();
-    p_Target->Clear(D2D1::ColorF(0, 0, 0));
+    //p_Target->BeginDraw();
+    //p_Target->Clear(D2D1::ColorF(0, 0, 0));
 }
 
-void WindowGraphics::EndFrame()
+void WindowGraphics::EndFrame(bool swap)
 {
-    p_Target->EndDraw();
-    p_SwapChain->Present(1, 0);
+    //p_Target->EndDraw();
+    if (swap)
+        p_SwapChain->Present(1, 0);
+    else
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
 }
 
 void WindowGraphics::SetFullscreen(bool f)

@@ -245,15 +245,6 @@ void EntryScene::_Update()
     }
 }
 
-ID2D1Bitmap1* EntryScene::_Draw(Graphics g)
-{
-    // Draw UI
-    ID2D1Bitmap* bitmap = _canvas->Draw(g);
-    g.target->DrawBitmap(bitmap);
-
-    return nullptr;
-}
-
 void EntryScene::_Resize(int width, int height)
 {
     

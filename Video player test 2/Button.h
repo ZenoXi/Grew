@@ -24,10 +24,10 @@ namespace zcom
     class Button : public Base, public KeyboardEventHandler
     {
 #pragma region base_class
-    private:
-        void _OnUpdate()
+    protected:
+        bool _Redraw()
         {
-
+            return _text->Redraw();
         }
 
         void _OnDraw(Graphics g)
@@ -83,8 +83,17 @@ namespace zcom
 
         void _OnResize(int width, int height)
         {
-            _text->SetSize(width, height);
-            _text->Resize();
+            _text->Resize(width, height);
+        }
+
+        void _OnMouseEnterArea()
+        {
+            InvokeRedraw();
+        }
+
+        void _OnMouseLeaveArea()
+        {
+            InvokeRedraw();
         }
 
         EventTargets _OnLeftPressed(int x, int y)
@@ -94,6 +103,7 @@ namespace zcom
                 _activated = true;
                 _OnActivated.InvokeAll();
             }
+            InvokeRedraw();
             return EventTargets().Add(this, x, y);
         }
 
@@ -107,6 +117,7 @@ namespace zcom
                     _OnActivated.InvokeAll();
                 }
             }
+            InvokeRedraw();
             return EventTargets().Add(this, x, y);
         }
 
@@ -177,46 +188,64 @@ namespace zcom
 
         void SetButtonImageAll(ID2D1Bitmap* image)
         {
-            _image = image;
-            _imageHovered = image;
-            _imageClicked = image;
+            SetButtonImage(image);
+            SetButtonHoverImage(image);
+            SetButtonClickImage(image);
         }
 
         void SetButtonColorAll(D2D1_COLOR_F color)
         {
-            _color = color;
-            _colorHovered = color;
-            _colorClicked = color;
+            SetButtonColor(color);
+            SetButtonHoverColor(color);
+            SetButtonClickColor(color);
         }
 
         void SetButtonImage(ID2D1Bitmap* image)
         {
+            if (image == _image)
+                return;
             _image = image;
+            InvokeRedraw();
         }
 
         void SetButtonColor(D2D1_COLOR_F color)
         {
+            if (color == _color)
+                return;
             _color = color;
+            InvokeRedraw();
         }
 
         void SetButtonHoverImage(ID2D1Bitmap* image)
         {
+            if (image == _imageHovered)
+                return;
             _imageHovered = image;
+            InvokeRedraw();
         }
 
         void SetButtonHoverColor(D2D1_COLOR_F color)
         {
+            if (color == _colorHovered)
+                return;
             _colorHovered = color;
+            InvokeRedraw();
         }
 
         void SetButtonClickImage(ID2D1Bitmap* image)
         {
+            if (image == _imageClicked)
+                return;
             _imageClicked = image;
+            InvokeRedraw();
         }
 
         void SetButtonClickColor(D2D1_COLOR_F color)
         {
+            if (color == _colorClicked)
+                return;
             _colorClicked = color;
+            InvokeRedraw();
         }
 
         void SetPreset(ButtonPreset preset)
@@ -225,22 +254,16 @@ namespace zcom
             {
             case ButtonPreset::NO_EFFECTS:
             {
-                _image = nullptr;
-                _color = D2D1::ColorF(0, 0.0f);
-                _imageHovered = nullptr;
-                _colorHovered = D2D1::ColorF(0, 0.0f);
-                _imageClicked = nullptr;
-                _colorClicked = D2D1::ColorF(0, 0.0f);
+                SetButtonImageAll(nullptr);
+                SetButtonColorAll(D2D1::ColorF(0, 0.0f));
                 break;
             }
             case ButtonPreset::DEFAULT:
             {
-                _image = nullptr;
-                _color = D2D1::ColorF(0, 0.0f);
-                _imageHovered = nullptr;
-                _colorHovered = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f);
-                _imageClicked = nullptr;
-                _colorClicked = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.1f);
+                SetButtonImageAll(nullptr);
+                SetButtonColor(D2D1::ColorF(0, 0.0f));
+                SetButtonHoverColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f));
+                SetButtonClickColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.1f));
                 break;
             }
             default:

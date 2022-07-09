@@ -22,6 +22,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
 
     _playback = &App::Instance()->playback;
     _streamMenuSetup = false;
+    _chaptersSet = false;
 
     // Set up shortcut handler
     _shortcutHandler = std::make_unique<PlaybackShortcutHandler>();
@@ -352,6 +353,8 @@ void PlaybackScene::_Uninit()
 {
     App::Instance()->window.SetFullscreen(false);
 
+    zcom::SafeFullRelease((IUnknown**)&_ccanvas);
+
     _canvas->ClearComponents();
     _controlBar->ClearItems();
     _playbackControllerPanel->ClearItems();
@@ -490,15 +493,61 @@ void PlaybackScene::_Update()
         }
         _seekBar->SetCurrentTime(_playback->Controller()->CurrentTime());
         _seekBar->SetDuration(_playback->DataProvider()->MediaDuration());
-        _seekBar->SetChapters(_playback->DataProvider()->GetChapters());
+        if (!_chaptersSet)
+        {
+            _seekBar->SetChapters(_playback->DataProvider()->GetChapters());
+            _chaptersSet = true;
+        }
     }
 
     // Update UI
     _canvas->Update();
+
+    // Check for redraw
+    if (!_playback->Initializing())
+    {
+        if (_playback->VideoAdapter()->VideoDataChanged())
+        {
+            _redraw = true;
+            _videoFrameChanged = true;
+        }
+        if (_playback->VideoAdapter()->SubtitleDataChanged())
+        {
+            _redraw = true;
+            _subtitleFrameChanged = true;
+        }
+    }
 }
 
-ID2D1Bitmap1* PlaybackScene::_Draw(Graphics g)
+bool PlaybackScene::_Redraw()
 {
+    return _redraw || !_ccanvas || _canvas->Redraw();
+}
+
+ID2D1Bitmap* PlaybackScene::_Draw(Graphics g)
+{
+    _redraw = false;
+
+    // Create _ccanvas
+    if (!_ccanvas)
+    {
+        g.target->CreateBitmap(
+            D2D1::SizeU(_canvas->GetWidth(), _canvas->GetHeight()),
+            nullptr,
+            0,
+            D2D1::BitmapProperties1(
+                D2D1_BITMAP_OPTIONS_TARGET,
+                { DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED }
+            ),
+            &_ccanvas
+        );
+        g.refs->push_back((IUnknown**)&_ccanvas);
+    }
+
+    ID2D1Image* stash;
+    g.target->GetTarget(&stash);
+    g.target->SetTarget(_ccanvas);
+
     g.target->Clear(D2D1::ColorF(0.05f, 0.05f, 0.05f));
 
     if (!_playback->Initializing())
@@ -507,7 +556,7 @@ ID2D1Bitmap1* PlaybackScene::_Draw(Graphics g)
         const VideoFrame& subtitleFrame = _playback->VideoAdapter()->GetSubtitleData();
 
         // Update video bitmap
-        if (!_videoFrameBitmap || _playback->VideoAdapter()->VideoDataChanged())
+        if (_videoFrameChanged)
         {
             if (_videoFrameBitmap)
                 zcom::SafeFullRelease((IUnknown**)&_videoFrameBitmap);
@@ -537,7 +586,7 @@ ID2D1Bitmap1* PlaybackScene::_Draw(Graphics g)
         }
 
         // Update subtitle bitmap
-        if (!_subtitleFrameBitmap || _playback->VideoAdapter()->SubtitleDataChanged())
+        if (_subtitleFrameChanged)
         {
             if (_subtitleFrameBitmap)
                 zcom::SafeFullRelease((IUnknown**)&_subtitleFrameBitmap);
@@ -657,15 +706,26 @@ ID2D1Bitmap1* PlaybackScene::_Draw(Graphics g)
     }
 
     // Draw UI
-    ID2D1Bitmap* bitmap = _canvas->Draw(g);
-    g.target->DrawBitmap(bitmap);
+    if (_canvas->Redraw())
+        _canvas->Draw(g);
+    g.target->DrawBitmap(_canvas->Image());
 
-    return nullptr;
+    // Unstash
+    g.target->SetTarget(stash);
+    stash->Release();
+
+    return _ccanvas;
+}
+
+ID2D1Bitmap* PlaybackScene::_Image()
+{
+    return _ccanvas;
 }
 
 void PlaybackScene::_Resize(int width, int height)
 {
-    
+    zcom::SafeFullRelease((IUnknown**)&_ccanvas);
+    _redraw = true;
 }
 
 void PlaybackScene::_SetupStreamMenu()

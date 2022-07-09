@@ -72,30 +72,39 @@ namespace zcom
             _panel->Update();
         }
 
+        bool Redraw()
+        {
+            return _panel->Redraw();
+        }
+
+        void InvokeRedraw()
+        {
+            _panel->InvokeRedraw();
+        }
+
         ID2D1Bitmap* Draw(Graphics g)
         {
             return _panel->Draw(g);
         }
 
-        void Resize(int width, int height)
+        ID2D1Bitmap* Image()
         {
-            _panel->SetSize(width, height);
-            _panel->Resize();
+            return _panel->Image();
         }
 
-        void Resize()
+        void Resize(int width, int height)
         {
-            _panel->Resize();
+            _panel->Resize(width, height);
         }
 
         int GetWidth() const
         {
-            return _width;
+            return _panel->GetWidth();
         }
 
         int GetHeight() const
         {
-            return _height;
+            return _panel->GetHeight();
         }
 
         void SetBackgroundColor(D2D1_COLOR_F color)

@@ -17,10 +17,13 @@ namespace zcom
     class SeekBar : public Base
     {
 #pragma region base_class
-    private:
+    protected:
         void _OnUpdate()
         {
+            float initialValue = _timeBarHeight;
             _timeBarHeightTransition.Apply(_timeBarHeight);
+            if (_timeBarHeight != initialValue)
+                InvokeRedraw();
         }
 
         void _OnDraw(Graphics g)
@@ -214,11 +217,6 @@ namespace zcom
             );
         }
 
-        void _OnResize(int width, int height)
-        {
-
-        }
-
         EventTargets _OnMouseMove(int x, int y, bool duplicate)
         {
             if (duplicate)
@@ -277,6 +275,7 @@ namespace zcom
                 if (xPos > seekBarWidth) xPos = seekBarWidth;
                 _heldPosition = xPos;
             }
+            InvokeRedraw();
             return EventTargets().Add(this, x, y);
         }
 
@@ -307,6 +306,7 @@ namespace zcom
                 float xPosNorm = xPos / (float)seekBarWidth;
                 _held = true;
                 _heldPosition = xPos;
+                InvokeRedraw();
             }
             return EventTargets().Add(this, x, y);
         }
@@ -425,20 +425,47 @@ namespace zcom
 
         void SetCurrentTime(TimePoint time)
         {
+            if (time == _currentTime)
+                return;
+
+            // Check if seekbar visually changes
+            float progressBefore = _currentTime.GetTicks() / (double)_duration.GetTicks();
+            float progressAfter = time.GetTicks() / (double)_duration.GetTicks();
+            int timeTextWidth = ceilf(_maxTimeWidth) + _margins * 2;
+            int seekBarWidth = GetWidth() - timeTextWidth * 2;
+            int viewedPartWidthBefore = seekBarWidth * progressBefore;
+            int viewedPartWidthAfter = seekBarWidth * progressAfter;
+            if (viewedPartWidthBefore != viewedPartWidthAfter)
+                InvokeRedraw();
+
             _currentTime = time;
         }
 
         void SetBufferedDuration(Duration duration)
         {
+            if (duration == _buffered)
+                return;
+
+            if (duration < 0)
+            {
+                duration = 0;
+            }
+            else if (duration > _duration)
+            {
+                duration = _duration;
+            }
+
+            // Check if seekbar visually changes
+            float progressBefore = _buffered.GetTicks() / (double)_duration.GetTicks();
+            float progressAfter = duration.GetTicks() / (double)_duration.GetTicks();
+            int timeTextWidth = ceilf(_maxTimeWidth) + _margins * 2;
+            int seekBarWidth = GetWidth() - timeTextWidth * 2;
+            int bufferedPartWidthBefore = seekBarWidth * progressBefore;
+            int bufferedPartWidthAfter = seekBarWidth * progressAfter;
+            if (bufferedPartWidthBefore != bufferedPartWidthAfter)
+                InvokeRedraw();
+
             _buffered = duration;
-            if (_buffered < 0)
-            {
-                _buffered = 0;
-            }
-            else if (_buffered > _duration)
-            {
-                _buffered = _duration;
-            }
         }
 
         Duration GetDuration() const
@@ -448,7 +475,11 @@ namespace zcom
 
         void SetDuration(Duration duration)
         {
+            if (duration == _duration)
+                return;
+
             _duration = duration;
+            InvokeRedraw();
         }
 
         void AddOnTimeHovered(std::function<void(int, TimePoint, std::wstring)> func)
@@ -493,6 +524,8 @@ namespace zcom
                 //    _chapters[i - 1].end = _chapters[i].start;
                 //}
             }
+
+            InvokeRedraw();
         }
     };
 }

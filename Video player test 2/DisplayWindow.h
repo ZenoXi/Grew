@@ -92,7 +92,7 @@ public:
     bool Initialized() const { return _initialized; };
 
     void BeginFrame();
-    void EndFrame();
+    void EndFrame(bool swap);
     void SetFullscreen(bool f);
     void ResizeBuffers(int width, int height);
     void ReleaseResource(IUnknown** ref);

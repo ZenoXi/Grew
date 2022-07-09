@@ -133,6 +133,7 @@ bool App::InitScene(std::string name, SceneOptionsBase* options)
     {
         _activeScenes.back()->Focus();
     }
+    sceneChanged = true;
     return true;
 }
 
@@ -146,6 +147,7 @@ bool App::ReinitScene(std::string name, SceneOptionsBase* options)
         scene->Init(options);
         if (focused)
             scene->Focus();
+        sceneChanged = true;
         return true;
     }
     else
@@ -173,6 +175,7 @@ void App::_UninitScene(std::string name)
     _activeScenes.erase(std::find(_activeScenes.begin(), _activeScenes.end(), scene));
     if (newFocus && !_activeScenes.empty())
         _activeScenes.back()->Focus();
+    sceneChanged = true;
 }
 
 bool App::MoveSceneToFront(std::string name)
@@ -185,6 +188,7 @@ bool App::MoveSceneToFront(std::string name)
     _activeScenes.push_back(_activeScenes[index]);
     _activeScenes.erase(_activeScenes.begin() + index);
     _activeScenes.back()->Focus();
+    sceneChanged = true;
     return true;
 }
 
@@ -202,6 +206,7 @@ bool App::MoveSceneToBack(std::string name)
         scene->Unfocus();
         _activeScenes.back()->Focus();
     }
+    sceneChanged = true;
     return true;
 }
 
@@ -217,6 +222,7 @@ bool App::MoveSceneUp(std::string name)
         _activeScenes[index + 1]->Unfocus();
     }
     std::swap(_activeScenes[index], _activeScenes[index + 1]);
+    sceneChanged = true;
     return true;
 }
 
@@ -232,6 +238,7 @@ bool App::MoveSceneDown(std::string name)
         _activeScenes[index + -1]->Focus();
     }
     std::swap(_activeScenes[index], _activeScenes[index - 1]);
+    sceneChanged = true;
     return true;
 }
 
@@ -251,6 +258,7 @@ bool App::MoveSceneBehind(std::string name, std::string behind)
         scene->Unfocus();
         _activeScenes.back()->Focus();
     }
+    sceneChanged = true;
     return true;
 }
 
@@ -269,6 +277,7 @@ bool App::MoveSceneInFront(std::string name, std::string inFront)
         _activeScenes[behindSceneIndex]->Unfocus();
         _activeScenes.back()->Focus();
     }
+    sceneChanged = true;
     return true;
 }
 
@@ -397,14 +406,57 @@ void App::LoopThread()
         //        scene->Draw(window.gfx.GetGraphics());
         //}
 
-        window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+        //Clock timer = Clock(0);
+        //TimePoint start;
+        //Duration update = 0;
+        //Duration draw = 0;
+
+        bool redraw = false;
+        if (sceneChanged)
+        {
+            sceneChanged = false;
+            redraw = true;
+            window.gfx.GetGraphics().target->BeginDraw();
+            window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+        }
 
         auto activeScenes = ActiveScenes();
         for (auto& scene : activeScenes)
         {
+            //timer.Update();
+            //start = timer.Now();
             scene->Update();
-            scene->Draw(window.gfx.GetGraphics());
+            //timer.Update();
+            //update += timer.Now() - start;
+
+            //timer.Update();
+            //start = timer.Now();
+            if (scene->Redraw())
+            {
+                if (!redraw)
+                    window.gfx.GetGraphics().target->BeginDraw();
+
+                scene->Draw(window.gfx.GetGraphics());
+                redraw = true;
+            }
+            //timer.Update();
+            //draw += timer.Now() - start;
         }
+        if (redraw)
+        {
+            std::cout << "Redrawn (" << framecounter++ << ")\n";
+            //timer.Update();
+            //start = timer.Now();
+            window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+            for (auto& scene : activeScenes)
+            {
+                window.gfx.GetGraphics().target->DrawBitmap(scene->Image());
+            }
+            window.gfx.GetGraphics().target->EndDraw();
+            //timer.Update();
+            //draw += timer.Now() - start;
+        }
+
         // Uninit scenes
         while (!_scenesToUninitialize.empty())
         {
@@ -412,18 +464,21 @@ void App::LoopThread()
             _scenesToUninitialize.pop();
         }
 
+        //std::cout << "Update: " << update.GetDuration(MICROSECONDS) << "us\n";
+        //std::cout << "Draw: " << draw.GetDuration(MICROSECONDS) << "us\n";
+
         //// Draw UI
         //layout.componentCanvas.Update();
         //ID2D1Bitmap* bitmap = layout.componentCanvas.Draw(window.gfx.GetGraphics());
         //window.gfx.GetDeviceContext()->DrawBitmap(bitmap);
 
-        window.gfx.EndFrame();
+        window.gfx.EndFrame(redraw);
         window.gfx.Unlock();
 
         // Prevent deadlock from extremely short unlock-lock cycle
         Clock sleepTimer = Clock(0);
         do sleepTimer.Update();
-        while (sleepTimer.Now().GetTime(MICROSECONDS) < 100);
+        while (sleepTimer.Now().GetTime(MICROSECONDS) < 10);
     }
 }
 

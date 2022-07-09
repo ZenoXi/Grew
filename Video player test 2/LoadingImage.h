@@ -10,10 +10,11 @@ namespace zcom
     class LoadingImage : public Base
     {
 #pragma region base_class
-    private:
+    protected:
         void _OnUpdate()
         {
-
+            if (GetVisible())
+                InvokeRedraw();
         }
 
         void _OnDraw(Graphics g)

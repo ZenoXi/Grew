@@ -179,15 +179,6 @@ void StartServerScene::_Update()
     _canvas->Update();
 }
 
-ID2D1Bitmap1* StartServerScene::_Draw(Graphics g)
-{
-    // Draw UI
-    ID2D1Bitmap* bitmap = _canvas->Draw(g);
-    g.target->DrawBitmap(bitmap);
-
-    return nullptr;
-}
-
 void StartServerScene::_Resize(int width, int height)
 {
 

@@ -11,10 +11,34 @@ namespace zcom
     class TextInput : public Base, public KeyboardEventHandler
     {
 #pragma region base_class
-    private:
+    protected:
         void _OnUpdate()
         {
-
+            // Update caret visibility
+            if (!Selected())
+            {
+                if (_caretVisible)
+                {
+                    _caretVisible = false;
+                    InvokeRedraw();
+                }
+            }
+            else
+            {
+                if (ztime::Main().GetTime(MILLISECONDS) % 1000 < 500)
+                {
+                    if (!_caretVisible)
+                    {
+                        _caretVisible = true;
+                        InvokeRedraw();
+                    }
+                }
+                else if (_caretVisible)
+                {
+                    _caretVisible = false;
+                    InvokeRedraw();
+                }
+            }
         }
 
         void _OnDraw(Graphics g)
@@ -72,7 +96,7 @@ namespace zcom
             }
 
             // Draw caret
-            if (ztime::Main().GetTime(MILLISECONDS) % 1000 < 500 && Selected())
+            if (_caretVisible)
             {
                 FLOAT posX, posY;
                 DWRITE_HIT_TEST_METRICS hitMetrics;
@@ -91,11 +115,6 @@ namespace zcom
             }
         }
 
-        void _OnResize(int width, int height)
-        {
-
-        }
-
         void _OnSelected(); // Uses 'App'
 
         void _OnDeselected(); // Uses 'App'
@@ -109,6 +128,7 @@ namespace zcom
                 if (_cursorPos > 0)
                 {
                     _cursorPos--;
+                    InvokeRedraw();
                 }
                 break;
             }
@@ -117,17 +137,20 @@ namespace zcom
                 if (_cursorPos < _text.length())
                 {
                     _cursorPos++;
+                    InvokeRedraw();
                 }
                 break;
             }
             case VK_HOME:
             {
                 _cursorPos = 0;
+                InvokeRedraw();
                 break;
             }
             case VK_END:
             {
                 _cursorPos = _text.length();
+                InvokeRedraw();
                 break;
             }
             case VK_TAB:
@@ -250,6 +273,8 @@ namespace zcom
             {
                 _dwriteTextLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
             }
+
+            InvokeRedraw();
         }
 
         void _CreatePlaceholderTextLayout()
@@ -283,6 +308,8 @@ namespace zcom
             {
                 _dwritePlaceholderTextLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
             }
+
+            InvokeRedraw();
         }
 
     public:
@@ -298,6 +325,7 @@ namespace zcom
         unsigned int _cursorPos = 0;
         unsigned int _selectionStart = 0;
         unsigned int _selectionLength = 0;
+        bool _caretVisible = false;
 
         ID2D1SolidColorBrush* _textBrush = nullptr;
         ID2D1SolidColorBrush* _placeholderTextBrush = nullptr;
