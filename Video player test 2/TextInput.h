@@ -25,7 +25,8 @@ namespace zcom
             }
             else
             {
-                if (ztime::Main().GetTime(MILLISECONDS) % 1000 < 500)
+                _caretTimer.Update();
+                if (_caretTimer.Now().GetTime(MILLISECONDS) % 1000 < 500)
                 {
                     if (!_caretVisible)
                     {
@@ -128,6 +129,7 @@ namespace zcom
                 if (_cursorPos > 0)
                 {
                     _cursorPos--;
+                    _caretTimer.Reset();
                     InvokeRedraw();
                 }
                 break;
@@ -137,6 +139,7 @@ namespace zcom
                 if (_cursorPos < _text.length())
                 {
                     _cursorPos++;
+                    _caretTimer.Reset();
                     InvokeRedraw();
                 }
                 break;
@@ -144,12 +147,14 @@ namespace zcom
             case VK_HOME:
             {
                 _cursorPos = 0;
+                _caretTimer.Reset();
                 InvokeRedraw();
                 break;
             }
             case VK_END:
             {
                 _cursorPos = _text.length();
+                _caretTimer.Reset();
                 InvokeRedraw();
                 break;
             }
@@ -185,6 +190,7 @@ namespace zcom
                 {
                     _text.erase(_text.begin() + _cursorPos - 1);
                     _cursorPos--;
+                    _caretTimer.Reset();
                     _CreateTextLayout();
                 }
                 handled = true;
@@ -226,6 +232,7 @@ namespace zcom
                 {
                     _text.insert(_text.begin() + _cursorPos, text.begin(), text.end());
                     _cursorPos += text.length();
+                    _caretTimer.Reset();
                     _CreateTextLayout();
                 }
 
@@ -236,6 +243,7 @@ namespace zcom
             {
                 _text.insert(_text.begin() + _cursorPos, ch);
                 _cursorPos++;
+                _caretTimer.Reset();
                 _CreateTextLayout();
             }
 
@@ -326,6 +334,7 @@ namespace zcom
         unsigned int _selectionStart = 0;
         unsigned int _selectionLength = 0;
         bool _caretVisible = false;
+        Clock _caretTimer = Clock(0);
 
         ID2D1SolidColorBrush* _textBrush = nullptr;
         ID2D1SolidColorBrush* _placeholderTextBrush = nullptr;
