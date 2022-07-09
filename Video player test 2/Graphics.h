@@ -16,3 +16,11 @@ struct Graphics
     ID2D1Factory1* factory = nullptr;
     std::vector<IUnknown**>* refs = nullptr;
 };
+
+inline bool operator==(const D2D1_COLOR_F& cl, const D2D1_COLOR_F& cr)
+{
+    return cl.a == cr.a
+        && cl.b == cr.b
+        && cl.g == cr.g
+        && cl.r == cr.r;
+}
