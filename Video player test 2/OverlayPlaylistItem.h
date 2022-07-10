@@ -21,12 +21,17 @@ namespace zcom
             BTN_DELETE = 0x4
         };
 
-    public:
-        OverlayPlaylistItem(int64_t itemId)
+    protected:
+        friend class Scene;
+        friend class Base;
+        OverlayPlaylistItem(Scene* scene) : Panel(scene) {}
+        void Init(int64_t itemId)
         {
+            Panel::Init();
+
             _itemId = itemId;
 
-            _filenameLabel = std::make_unique<Label>(L"");
+            _filenameLabel = Create<Label>(L"");
             _filenameLabel->SetParentWidthPercent(1.0f);
             _filenameLabel->SetBaseSize(-150, 25);
             _filenameLabel->SetMargins({ 5.f, 0.f, 5.f, 0.f });
@@ -35,7 +40,7 @@ namespace zcom
             _filenameLabel->SetVerticalTextAlignment(Alignment::CENTER);
             _filenameLabel->SetCutoff(L"...");
 
-            _statusLabel = std::make_unique<Label>(L"Initializing...");
+            _statusLabel = Create<Label>(L"Initializing...");
             _statusLabel->SetBaseSize(150, 25);
             _statusLabel->SetHorizontalOffsetPixels(-25);
             _statusLabel->SetHorizontalAlignment(Alignment::END);
@@ -47,7 +52,7 @@ namespace zcom
             _statusLabel->SetVerticalTextAlignment(Alignment::CENTER);
             _statusLabel->SetCutoff(L"...");
 
-            _playButton = std::make_unique<Button>();
+            _playButton = Create<Button>();
             _playButton->SetBaseSize(25, 25);
             _playButton->SetHorizontalAlignment(Alignment::END);
             _playButton->SetActivation(ButtonActivation::RELEASE);
@@ -55,7 +60,7 @@ namespace zcom
             _playButton->SetBackgroundImage(ResourceManager::GetImage("item_play"));
             _playButton->SetVisible(false);
 
-            _deleteButton = std::make_unique<Button>();
+            _deleteButton = Create<Button>();
             _deleteButton->SetBaseSize(25, 25);
             _deleteButton->SetHorizontalAlignment(Alignment::END);
             _deleteButton->SetActivation(ButtonActivation::RELEASE);
@@ -63,7 +68,7 @@ namespace zcom
             _deleteButton->SetBackgroundImage(ResourceManager::GetImage("item_delete"));
             _deleteButton->SetVisible(false);
 
-            _stopButton = std::make_unique<Button>();
+            _stopButton = Create<Button>();
             _stopButton->SetBaseSize(25, 25);
             _stopButton->SetHorizontalAlignment(Alignment::END);
             _stopButton->SetActivation(ButtonActivation::RELEASE);
@@ -78,6 +83,7 @@ namespace zcom
             AddItem(_stopButton.get());
             SetButtonVisibility(BTN_DELETE);
         }
+    public:
         ~OverlayPlaylistItem()
         {
             ClearItems();

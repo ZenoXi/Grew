@@ -33,17 +33,17 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     });
 
     // Initialize scene
-    _controlBar = new zcom::Panel();
+    _controlBar = Create<zcom::Panel>();
     _controlBar->SetParentWidthPercent(1.0f);
     _controlBar->SetBaseHeight(80);
     _controlBar->SetVerticalAlignment(zcom::Alignment::END);
     //_controlBar->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.7f));
 
-    _controlBarBackground = std::make_unique<zcom::ControlBarBackground>();
+    _controlBarBackground = Create<zcom::ControlBarBackground>();
     _controlBarBackground->SetParentSizePercent(1.0f, 1.0f);
     _controlBarBackground->SetZIndex(-2);
 
-    _seekBar = std::make_unique<zcom::SeekBar>(1000000); // Placeholder duration until data provider loads
+    _seekBar = Create<zcom::SeekBar>(1000000); // Placeholder duration until data provider loads
     _seekBar->SetParentWidthPercent(1.0f);
     _seekBar->SetBaseWidth(-20);
     _seekBar->SetHorizontalOffsetPercent(0.5f);
@@ -84,7 +84,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
         _timeHoverPanel->SetVisible(false);
     });
 
-    _timeHoverPanel = std::make_unique<zcom::Panel>();
+    _timeHoverPanel = Create<zcom::Panel>();
     _timeHoverPanel->SetBaseSize(120, 20);
     _timeHoverPanel->SetVerticalAlignment(zcom::Alignment::END);
     _timeHoverPanel->SetVerticalOffsetPixels(-55);
@@ -97,14 +97,14 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     timePanelShadow.color = D2D1::ColorF(0);
     _timeHoverPanel->SetProperty(timePanelShadow);
 
-    _timeLabel = std::make_unique<zcom::Label>(L"");
+    _timeLabel = Create<zcom::Label>(L"");
     _timeLabel->SetHorizontalOffsetPixels(5);
     _timeLabel->SetParentHeightPercent(1.0f);
     _timeLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
     _timeLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
     _timeLabel->SetFontColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
 
-    _chapterLabel = std::make_unique<zcom::Label>(L"");
+    _chapterLabel = Create<zcom::Label>(L"");
     _chapterLabel->SetHorizontalOffsetPixels(-5);
     _chapterLabel->SetParentHeightPercent(1.0f);
     _chapterLabel->SetHorizontalAlignment(zcom::Alignment::END);
@@ -122,14 +122,14 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _timeHoverPanel->AddItem(_timeLabel.get());
     _timeHoverPanel->AddItem(_chapterLabel.get());
 
-    _volumeSlider = std::make_unique<zcom::VolumeSlider>(0.0f);
+    _volumeSlider = Create<zcom::VolumeSlider>(0.0f);
     _volumeSlider->SetBaseWidth(30);
     _volumeSlider->SetBaseHeight(30);
     _volumeSlider->SetHorizontalOffsetPixels(80);
     _volumeSlider->SetVerticalAlignment(zcom::Alignment::END);
     _volumeSlider->SetVerticalOffsetPixels(-5);
 
-    _playButton = std::make_unique<zcom::PlayButton>();
+    _playButton = Create<zcom::PlayButton>();
     _playButton->SetBaseWidth(30);
     _playButton->SetBaseHeight(30);
     _playButton->SetHorizontalOffsetPercent(0.5f);
@@ -137,7 +137,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _playButton->SetVerticalOffsetPixels(-5);
     _playButton->SetPaused(true);
 
-    _playNextButton = std::make_unique<zcom::Button>(L"");
+    _playNextButton = Create<zcom::Button>(L"");
     _playNextButton->SetBaseSize(30, 30);
     _playNextButton->SetHorizontalOffsetPercent(0.5f);
     _playNextButton->SetHorizontalOffsetPixels(40);
@@ -166,7 +166,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
         }
     });
 
-    _playPreviousButton = std::make_unique<zcom::Button>(L"");
+    _playPreviousButton = Create<zcom::Button>(L"");
     _playPreviousButton->SetBaseSize(30, 30);
     _playPreviousButton->SetHorizontalOffsetPercent(0.5f);
     _playPreviousButton->SetHorizontalOffsetPixels(-40);
@@ -196,7 +196,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
         }
     });
 
-    _overlayButton = std::make_unique<zcom::Button>(L"");
+    _overlayButton = Create<zcom::Button>(L"");
     _overlayButton->SetBaseSize(30, 30);
     _overlayButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
     _overlayButton->SetOffsetPixels(-120, -5);
@@ -211,7 +211,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
         App::Instance()->MoveSceneToFront(PlaybackOverlayScene::StaticName());
     });
 
-    _settingsButton = std::make_unique<zcom::Button>(L"");
+    _settingsButton = Create<zcom::Button>(L"");
     _settingsButton->SetBaseSize(30, 30);
     _settingsButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
     _settingsButton->SetOffsetPixels(-160, -5);
@@ -239,22 +239,22 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
         }
     });
 
-    _streamMenuPanel = std::make_unique<zcom::MenuPanel>(_canvas);
-    _videoStreamMenuPanel = std::make_unique<zcom::MenuPanel>(_canvas);
-    _audioStreamMenuPanel = std::make_unique<zcom::MenuPanel>(_canvas);
-    _subtitleStreamMenuPanel = std::make_unique<zcom::MenuPanel>(_canvas);
+    _streamMenuPanel = Create<zcom::MenuPanel>(_canvas);
+    _videoStreamMenuPanel = Create<zcom::MenuPanel>(_canvas);
+    _audioStreamMenuPanel = Create<zcom::MenuPanel>(_canvas);
+    _subtitleStreamMenuPanel = Create<zcom::MenuPanel>(_canvas);
 
     _streamMenuPanel->SetBaseWidth(150);
     _streamMenuPanel->SetZIndex(255);
-    _streamMenuPanel->AddItem(std::make_unique<zcom::MenuItem>(_videoStreamMenuPanel.get(), L"Video tracks"));
-    _streamMenuPanel->AddItem(std::make_unique<zcom::MenuItem>(_audioStreamMenuPanel.get(), L"Audio tracks"));
-    _streamMenuPanel->AddItem(std::make_unique<zcom::MenuItem>(_subtitleStreamMenuPanel.get(), L"Subtitle tracks"));
+    _streamMenuPanel->AddItem(Create<zcom::MenuItem>(_videoStreamMenuPanel.get(), L"Video tracks"));
+    _streamMenuPanel->AddItem(Create<zcom::MenuItem>(_audioStreamMenuPanel.get(), L"Audio tracks"));
+    _streamMenuPanel->AddItem(Create<zcom::MenuItem>(_subtitleStreamMenuPanel.get(), L"Subtitle tracks"));
 
-    _videoStreamMenuPanel->AddItem(std::make_unique<zcom::MenuItem>(L"None"));
-    _audioStreamMenuPanel->AddItem(std::make_unique<zcom::MenuItem>(L"None"));
-    _subtitleStreamMenuPanel->AddItem(std::make_unique<zcom::MenuItem>(L"None"));
+    _videoStreamMenuPanel->AddItem(Create<zcom::MenuItem>(L"None"));
+    _audioStreamMenuPanel->AddItem(Create<zcom::MenuItem>(L"None"));
+    _subtitleStreamMenuPanel->AddItem(Create<zcom::MenuItem>(L"None"));
 
-    _fullscreenButton = std::make_unique<zcom::Button>(L"");
+    _fullscreenButton = Create<zcom::Button>(L"");
     _fullscreenButton->SetBaseSize(30, 30);
     _fullscreenButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
     _fullscreenButton->SetOffsetPixels(-80, -5);
@@ -281,7 +281,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
         }
     });
 
-    _loadingCircle = std::make_unique<zcom::LoadingCircle>();
+    _loadingCircle = Create<zcom::LoadingCircle>();
     _loadingCircle->SetBaseSize(100, 180);
     _loadingCircle->SetOffsetPercent(0.5f, 0.5f);
     _loadingCircle->SetVerticalOffsetPixels(40);
@@ -297,39 +297,39 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _controlBar->AddItem(_settingsButton.get());
     _controlBar->AddItem(_fullscreenButton.get());
 
-    _playbackControllerPanel = std::make_unique<zcom::PlaybackControllerPanel>(_controlBar);
+    _playbackControllerPanel = Create<zcom::PlaybackControllerPanel>(_controlBar.get());
     _playbackControllerPanel->SetParentSizePercent(1.0f, 1.0f);
-    _playbackControllerPanel->AddItem(_controlBar);
+    _playbackControllerPanel->AddItem(_controlBar.get());
     //_playbackControllerPanel->SetZIndex(NOTIF_PANEL_Z_INDEX + 1); // Place above notification panel
     //_bottomControlPanel->SetZIndex(1);
 
     zcom::PROP_Shadow shadow;
     shadow.color = D2D1::ColorF(0, 0.9f);
     
-    _skipBackwardsIcon = std::make_unique<zcom::FastForwardIcon>(zcom::FastForwardDirection::LEFT);
+    _skipBackwardsIcon = Create<zcom::FastForwardIcon>(zcom::FastForwardDirection::LEFT);
     _skipBackwardsIcon->SetBaseSize(60, 60);
     _skipBackwardsIcon->SetVerticalOffsetPercent(0.5f);
     _skipBackwardsIcon->SetHorizontalOffsetPixels(100);
     _skipBackwardsIcon->SetProperty(shadow);
 
-    _skipForwardsIcon = std::make_unique<zcom::FastForwardIcon>(zcom::FastForwardDirection::RIGHT);
+    _skipForwardsIcon = Create<zcom::FastForwardIcon>(zcom::FastForwardDirection::RIGHT);
     _skipForwardsIcon->SetBaseSize(60, 60);
     _skipForwardsIcon->SetVerticalOffsetPercent(0.5f);
     _skipForwardsIcon->SetHorizontalOffsetPixels(-100);
     _skipForwardsIcon->SetHorizontalAlignment(zcom::Alignment::END);
     _skipForwardsIcon->SetProperty(shadow);
 
-    _pauseIcon = std::make_unique<zcom::PauseIcon>();
+    _pauseIcon = Create<zcom::PauseIcon>();
     _pauseIcon->SetBaseSize(60, 60);
     _pauseIcon->SetOffsetPercent(0.5f, 0.5f);
     _pauseIcon->SetProperty(shadow);
 
-    _resumeIcon = std::make_unique<zcom::ResumeIcon>();
+    _resumeIcon = Create<zcom::ResumeIcon>();
     _resumeIcon->SetBaseSize(60, 60);
     _resumeIcon->SetOffsetPercent(0.5f, 0.5f);
     _resumeIcon->SetProperty(shadow);
 
-    _volumeIcon = std::make_unique<zcom::VolumeIcon>();
+    _volumeIcon = Create<zcom::VolumeIcon>();
     _volumeIcon->SetBaseSize(60, 60);
     _volumeIcon->SetHorizontalOffsetPercent(0.5f);
     _volumeIcon->SetVerticalOffsetPixels(60);
@@ -733,16 +733,16 @@ void PlaybackScene::_SetupStreamMenu()
 {
     // Add video streams to menu
     _videoStreamMenuPanel->ClearItems();
-    auto noVideoStreamItem = std::make_unique<zcom::MenuItem>(L"None", [&](bool) { _playback->Controller()->SetVideoStream(-1); });
+    auto noVideoStreamItem = Create<zcom::MenuItem>(L"None", [&](bool) { _playback->Controller()->SetVideoStream(-1); });
     noVideoStreamItem->SetCheckable(true);
     noVideoStreamItem->SetCheckGroup(0);
     _videoStreamMenuPanel->AddItem(std::move(noVideoStreamItem));
-    _videoStreamMenuPanel->AddItem(std::make_unique<zcom::MenuItem>());
+    _videoStreamMenuPanel->AddItem(Create<zcom::MenuItem>());
     auto videoStreams = _playback->Controller()->GetAvailableVideoStreams();
     for (int i = 0; i < videoStreams.size(); i++)
     {
         videoStreams[i] = int_to_str(i + 1) + ".  " + videoStreams[i];
-        auto streamItem = std::make_unique<zcom::MenuItem>(string_to_wstring(videoStreams[i]), [&, i](bool) { _playback->Controller()->SetVideoStream(i); });
+        auto streamItem = Create<zcom::MenuItem>(string_to_wstring(videoStreams[i]), [&, i](bool) { _playback->Controller()->SetVideoStream(i); });
         streamItem->SetCheckable(true);
         streamItem->SetCheckGroup(0);
         if (i == _playback->Controller()->CurrentVideoStream())
@@ -752,16 +752,16 @@ void PlaybackScene::_SetupStreamMenu()
 
     // Add audio streams to menu
     _audioStreamMenuPanel->ClearItems();
-    auto noAudioStreamItem = std::make_unique<zcom::MenuItem>(L"None", [&](bool) { _playback->Controller()->SetAudioStream(-1); });
+    auto noAudioStreamItem = Create<zcom::MenuItem>(L"None", [&](bool) { _playback->Controller()->SetAudioStream(-1); });
     noAudioStreamItem->SetCheckable(true);
     noAudioStreamItem->SetCheckGroup(0);
     _audioStreamMenuPanel->AddItem(std::move(noAudioStreamItem));
-    _audioStreamMenuPanel->AddItem(std::make_unique<zcom::MenuItem>());
+    _audioStreamMenuPanel->AddItem(Create<zcom::MenuItem>());
     auto audioStreams = _playback->Controller()->GetAvailableAudioStreams();
     for (int i = 0; i < audioStreams.size(); i++)
     {
         audioStreams[i] = int_to_str(i + 1) + ".  " + audioStreams[i];
-        auto streamItem = std::make_unique<zcom::MenuItem>(string_to_wstring(audioStreams[i]), [&, i](bool) { _playback->Controller()->SetAudioStream(i); });
+        auto streamItem = Create<zcom::MenuItem>(string_to_wstring(audioStreams[i]), [&, i](bool) { _playback->Controller()->SetAudioStream(i); });
         streamItem->SetCheckable(true);
         streamItem->SetCheckGroup(0);
         if (i == _playback->Controller()->CurrentAudioStream())
@@ -771,21 +771,21 @@ void PlaybackScene::_SetupStreamMenu()
 
     // Add subtitle streams to menu
     _subtitleStreamMenuPanel->ClearItems();
-    auto addSubtitlesItem = std::make_unique<zcom::MenuItem>(L"Add subtitles from file", [&](bool) { /* Add subtitles */ });
+    auto addSubtitlesItem = Create<zcom::MenuItem>(L"Add subtitles from file", [&](bool) { /* Add subtitles */ });
     addSubtitlesItem->SetIcon(ResourceManager::GetImage("plus"));
     addSubtitlesItem->SetDisabled(true);
     _subtitleStreamMenuPanel->AddItem(std::move(addSubtitlesItem));
-    _subtitleStreamMenuPanel->AddItem(std::make_unique<zcom::MenuItem>());
-    auto noSubtitleStreamItem = std::make_unique<zcom::MenuItem>(L"None", [&](bool) { _playback->Controller()->SetSubtitleStream(-1); });
+    _subtitleStreamMenuPanel->AddItem(Create<zcom::MenuItem>());
+    auto noSubtitleStreamItem = Create<zcom::MenuItem>(L"None", [&](bool) { _playback->Controller()->SetSubtitleStream(-1); });
     noSubtitleStreamItem->SetCheckable(true);
     noSubtitleStreamItem->SetCheckGroup(0);
     _subtitleStreamMenuPanel->AddItem(std::move(noSubtitleStreamItem));
-    _subtitleStreamMenuPanel->AddItem(std::make_unique<zcom::MenuItem>());
+    _subtitleStreamMenuPanel->AddItem(Create<zcom::MenuItem>());
     auto subtitleStreams = _playback->Controller()->GetAvailableSubtitleStreams();
     for (int i = 0; i < subtitleStreams.size(); i++)
     {
         subtitleStreams[i] = int_to_str(i + 1) + ".  " + subtitleStreams[i];
-        auto streamItem = std::make_unique<zcom::MenuItem>(string_to_wstring(subtitleStreams[i]), [&, i](bool) { _playback->Controller()->SetSubtitleStream(i); });
+        auto streamItem = Create<zcom::MenuItem>(string_to_wstring(subtitleStreams[i]), [&, i](bool) { _playback->Controller()->SetSubtitleStream(i); });
         streamItem->SetCheckable(true);
         streamItem->SetCheckGroup(0);
         if (i == _playback->Controller()->CurrentSubtitleStream())

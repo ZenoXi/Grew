@@ -91,19 +91,23 @@ namespace zcom
 
         std::unique_ptr<Label> _textLabel = nullptr;
 
-    public:
-        VolumeIcon()
+    protected:
+        friend class Scene;
+        friend class Base;
+        VolumeIcon(Scene* scene) : Base(scene) {}
+        void Init()
         {
             SetVisible(false);
 
             _iconBitmap = ResourceManager::GetImage("volume_icon");
-            _textLabel = std::make_unique<Label>();
+            _textLabel = Create<Label>();
             _textLabel->SetSize(60, 20);
             _textLabel->SetHorizontalTextAlignment(TextAlignment::CENTER);
             _textLabel->SetVerticalTextAlignment(Alignment::CENTER);
             _textLabel->SetFontSize(16.0f);
             _textLabel->SetFontColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
         }
+    public:
         ~VolumeIcon()
         {
             SafeFullRelease((IUnknown**)&_brush);

@@ -156,7 +156,7 @@ namespace zcom
 
         bool _hovered = false;
 
-        Label* _text = nullptr;
+        std::unique_ptr<Label> _text = nullptr;
 
         ID2D1Bitmap* _image = nullptr;
         D2D1_COLOR_F _color = D2D1::ColorF(0, 0.0f);
@@ -165,22 +165,20 @@ namespace zcom
         ID2D1Bitmap* _imageClicked = nullptr;
         D2D1_COLOR_F _colorClicked = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.1f);
 
-    public:
-        Button(std::wstring text = L"") : _text(new Label(text))
+    protected:
+        friend class Scene;
+        friend class Base;
+        Button(Scene* scene) : Base(scene) {}
+        void Init(std::wstring text = L"")
         {
             SetSelectable(true);
+            _text = Create<Label>(text);
             _text->SetSize(GetWidth(), GetHeight());
             _text->SetHorizontalTextAlignment(TextAlignment::CENTER);
             _text->SetVerticalTextAlignment(Alignment::CENTER);
         }
-        ~Button()
-        {
-            if (_text)
-            {
-                delete _text;
-                _text = nullptr;
-            }
-        }
+    public:
+        ~Button() {}
         Button(Button&&) = delete;
         Button& operator=(Button&&) = delete;
         Button(const Button&) = delete;
@@ -290,7 +288,7 @@ namespace zcom
 
         Label* Text()
         {
-            return _text;
+            return _text.get();
         }
     };
 }

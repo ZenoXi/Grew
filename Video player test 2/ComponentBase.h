@@ -133,8 +133,8 @@ namespace zcom
         template<class T, typename... Args>
         std::unique_ptr<T> Create(Args&&... args)
         {
-            auto uptr = std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-            uptr->_scene = _scene;
+            auto uptr = std::unique_ptr<T>(new T(_scene));
+            uptr->Init(std::forward<Args>(args)...);
             return uptr;
         }
     protected:
@@ -223,7 +223,7 @@ namespace zcom
         Event<void> _onLayoutChanged;
 
     public:
-        Base(/*Scene* scene*/) : _scene(nullptr) {}
+        Base(Scene* scene) : _scene(scene) {}
         virtual ~Base()
         {
             SafeFullRelease((IUnknown**)&_canvas);

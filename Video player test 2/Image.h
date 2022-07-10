@@ -83,8 +83,12 @@ namespace zcom
         ID2D1Bitmap* _image = nullptr;
         ImageStretchMode _mode = ImageStretchMode::NONE;
 
+    protected:
+        friend class Scene;
+        friend class Base;
+        Image(Scene* scene) : Base(scene) {}
+        void Init() {}
     public:
-        Image() {}
         ~Image()
         {
         }

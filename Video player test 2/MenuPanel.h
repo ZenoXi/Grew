@@ -175,9 +175,14 @@ namespace zcom
         TimePoint _showTime = 0;
         Duration _hoverToShowDuration = Duration(250, MILLISECONDS);
 
-    public:
-        MenuPanel(Canvas* sceneCanvas)
+    protected:
+        friend class Scene;
+        friend class Base;
+        MenuPanel(Scene* scene) : Panel(scene) {}
+        void Init(Canvas* sceneCanvas)
         {
+            Panel::Init();
+
             _sceneCanvas = sceneCanvas;
             _AddHandlerToCanvas();
 
@@ -191,6 +196,7 @@ namespace zcom
             SetProperty(shadow);
             SetVisible(false);
         }
+    public:
         ~MenuPanel() { ClearItems(); }
         MenuPanel(MenuPanel&&) = delete;
         MenuPanel& operator=(MenuPanel&&) = delete;

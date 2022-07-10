@@ -42,7 +42,7 @@ class PlaybackScene : public Scene
 {
     MediaPlayerOld* _player = nullptr;
 
-    zcom::Panel* _controlBar = nullptr;
+    std::unique_ptr<zcom::Panel> _controlBar = nullptr;
     
     std::unique_ptr<zcom::ControlBarBackground> _controlBarBackground = nullptr;
     std::unique_ptr<zcom::SeekBar> _seekBar = nullptr;

@@ -39,9 +39,14 @@ namespace zcom
         ID2D1Bitmap* _pauseIcon = nullptr;
         ID2D1Bitmap* _pauseIconHover = nullptr;
 
-    public:
-        PlayButton()
+    protected:
+        friend class Scene;
+        friend class Base;
+        PlayButton(Scene* scene) : Button(scene) {}
+        void Init()
         {
+            Button::Init();
+
             _playIcon = ResourceManager::GetImage("play_dim");
             _playIconHover = ResourceManager::GetImage("play");
             _pauseIcon = ResourceManager::GetImage("pause_dim");
@@ -50,6 +55,7 @@ namespace zcom
             SetPaused(false);
             SetSelectable(false);
         }
+    public:
         ~PlayButton()
         {
             //SafeFullRelease((IUnknown**)&_primaryColorBrush);

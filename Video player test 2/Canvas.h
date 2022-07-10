@@ -25,9 +25,8 @@ namespace zcom
         std::unique_ptr<Panel> _panel;
 
     public:
-        Canvas(int width, int height) : _width(width), _height(height)
+        Canvas(std::unique_ptr<Panel> panel, int width, int height) : _panel(std::move(panel)), _width(width), _height(height)
         {
-            _panel = std::make_unique<Panel>();
             _panel->SetSize(_width, _height);
             _panel->SetBackgroundColor(D2D1::ColorF(0, 0));
         }

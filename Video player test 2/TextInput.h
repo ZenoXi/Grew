@@ -345,8 +345,11 @@ namespace zcom
         IDWriteTextLayout* _dwriteTextLayout = nullptr;
         IDWriteTextLayout* _dwritePlaceholderTextLayout = nullptr;
 
-    public:
-        TextInput()
+    protected:
+        friend class Scene;
+        friend class Base;
+        TextInput(Scene* scene) : Base(scene) {}
+        void Init()
         {
             SetSelectable(true);
             SetBorderVisibility(true);
@@ -373,20 +376,8 @@ namespace zcom
 
             _CreateTextLayout();
             _CreatePlaceholderTextLayout();
-            //_dwriteFactory->CreateTextLayout(
-            //    L"000:00:00",
-            //    9,
-            //    _dwriteTextFormat,
-            //    1000,
-            //    0,
-            //    &_dwriteTextLayout
-            //);
-
-            //DWRITE_TEXT_METRICS metrics;
-            //_dwriteTextLayout->GetMetrics(&metrics);
-            //_textHeight = metrics.height;
-            //_maxTimeWidth = metrics.width;
         }
+    public:
         ~TextInput()
         {
             SafeFullRelease((IUnknown**)&_textBrush);

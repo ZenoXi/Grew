@@ -875,13 +875,17 @@ namespace zcom
         bool _horizontalScrollable = false;
         bool _verticalScrollable = false;
 
-    public:
-        Panel()
+    protected:
+        friend class Scene;
+        friend class Base;
+        Panel(Scene* scene) : Base(scene) {}
+        void Init()
         {
             // By default allow iterating nested components
             SetTabIndex(0);
         }
-        virtual ~Panel()
+    public:
+        ~Panel()
         {
             ClearItems();
         }

@@ -21,7 +21,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     }
 
 
-    _mainPanel = std::make_unique<zcom::Panel>();
+    _mainPanel = Create<zcom::Panel>();
     _mainPanel->SetBaseSize(500, 500);
     _mainPanel->SetAlignment(zcom::Alignment::CENTER, zcom::Alignment::CENTER);
     _mainPanel->SetBackgroundColor(D2D1::ColorF(0.2f, 0.2f, 0.2f));
@@ -31,32 +31,32 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     mainPanelShadow.color = D2D1::ColorF(0, 0.75f);
     _mainPanel->SetProperty(mainPanelShadow);
 
-    _titleLabel = std::make_unique<zcom::Label>(L"Start server");
+    _titleLabel = Create<zcom::Label>(L"Start server");
     _titleLabel->SetBaseSize(400, 30);
     _titleLabel->SetOffsetPixels(30, 30);
     _titleLabel->SetFontSize(42.0f);
     _titleLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
 
-    _separatorTitle = std::make_unique<zcom::EmptyPanel>();
+    _separatorTitle = Create<zcom::EmptyPanel>();
     _separatorTitle->SetBaseSize(440, 1);
     _separatorTitle->SetVerticalOffsetPixels(80);
     _separatorTitle->SetHorizontalAlignment(zcom::Alignment::CENTER);
     _separatorTitle->SetBorderVisibility(true);
     _separatorTitle->SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
 
-    _portLabel = std::make_unique<zcom::Label>(L"Port:");
+    _portLabel = Create<zcom::Label>(L"Port:");
     _portLabel->SetBaseSize(80, 30);
     _portLabel->SetOffsetPixels(30, 90);
     _portLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
     _portLabel->SetFontSize(18.0f);
 
-    _portInput = std::make_unique<zcom::TextInput>();
+    _portInput = Create<zcom::TextInput>();
     _portInput->SetBaseSize(60, 30);
     _portInput->SetOffsetPixels(120, 90);
     _portInput->SetCornerRounding(5.0f);
     _portInput->SetTabIndex(0);
 
-    _presetDropdown = std::make_unique<zcom::DropdownSelection>(L"Presets", _canvas, L"No presets added");
+    _presetDropdown = Create<zcom::DropdownSelection>(L"Presets", _canvas, L"No presets added");
     _presetDropdown->SetBaseSize(100, 30);
     _presetDropdown->SetOffsetPixels(-30, 90);
     _presetDropdown->SetHorizontalAlignment(zcom::Alignment::END);
@@ -69,27 +69,27 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     buttonShadow.blurStandardDeviation = 2.0f;
     _presetDropdown->SetProperty(buttonShadow);
 
-    _separatorTop = std::make_unique<zcom::EmptyPanel>();
+    _separatorTop = Create<zcom::EmptyPanel>();
     _separatorTop->SetBaseSize(440, 1);
     _separatorTop->SetVerticalOffsetPixels(130);
     _separatorTop->SetHorizontalAlignment(zcom::Alignment::CENTER);
     _separatorTop->SetBorderVisibility(true);
     _separatorTop->SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
 
-    _usernameLabel = std::make_unique<zcom::Label>(L"Username:");
+    _usernameLabel = Create<zcom::Label>(L"Username:");
     _usernameLabel->SetBaseSize(80, 30);
     _usernameLabel->SetOffsetPixels(30, 140);
     _usernameLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
     _usernameLabel->SetFontSize(18.0f);
 
-    _usernameInput = std::make_unique<zcom::TextInput>();
+    _usernameInput = Create<zcom::TextInput>();
     _usernameInput->SetBaseSize(240, 30);
     _usernameInput->SetOffsetPixels(120, 140);
     _usernameInput->SetCornerRounding(5.0f);
     _usernameInput->SetPlaceholderText(L"(Optional)");
     _usernameInput->SetTabIndex(2);
 
-    _separatorBottom = std::make_unique<zcom::EmptyPanel>();
+    _separatorBottom = Create<zcom::EmptyPanel>();
     _separatorBottom->SetBaseSize(440, 1);
     _separatorBottom->SetVerticalOffsetPixels(-80);
     _separatorBottom->SetHorizontalAlignment(zcom::Alignment::CENTER);
@@ -97,7 +97,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     _separatorBottom->SetBorderVisibility(true);
     _separatorBottom->SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
 
-    _startButton = std::make_unique<zcom::Button>(L"Start");
+    _startButton = Create<zcom::Button>(L"Start");
     _startButton->SetBaseSize(80, 30);
     _startButton->SetOffsetPixels(-30, -30);
     _startButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
@@ -109,7 +109,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     _startButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _startButton->SetOnActivated([&]() { _StartClicked(); });
 
-    _cancelButton = std::make_unique<zcom::Button>();
+    _cancelButton = Create<zcom::Button>();
     _cancelButton->SetBaseSize(30, 30);
     _cancelButton->SetOffsetPixels(-30, 30);
     _cancelButton->SetHorizontalAlignment(zcom::Alignment::END);
@@ -117,7 +117,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     _cancelButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _cancelButton->SetOnActivated([&]() { _CancelClicked(); });
 
-    _startLoadingInfoLabel = std::make_unique<zcom::Label>(L"");
+    _startLoadingInfoLabel = Create<zcom::Label>(L"");
     _startLoadingInfoLabel->SetBaseSize(300, 30);
     _startLoadingInfoLabel->SetOffsetPixels(-130, -30);
     _startLoadingInfoLabel->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);

@@ -62,9 +62,14 @@ namespace zcom
 
         bool _destroy = false;
 
-    public:
-        Notification(int notificationWidth, NotificationInfo info = NotificationInfo{})
+    protected:
+        friend class Scene;
+        friend class Base;
+        Notification(Scene* scene) : Panel(scene) {}
+        void Init(int notificationWidth, NotificationInfo info = NotificationInfo{})
         {
+            Panel::Init();
+
             int marginsHorizontal = 5;
             int marginsVertical = 2;
             int textWidth = notificationWidth - marginsHorizontal * 2;
@@ -79,7 +84,7 @@ namespace zcom
             float textHeight = 0.0f;
             if (!info.title.empty())
             {
-                _titleLabel = std::make_unique<Label>(info.title);
+                _titleLabel = Create<Label>(info.title);
                 _titleLabel->SetOffsetPixels(0, 0);
                 _titleLabel->SetBaseSize(textWidth - 20, 20);
                 _titleLabel->SetFontSize(16.0f);
@@ -88,7 +93,7 @@ namespace zcom
                 _titleLabel->SetProperty(shadowProps);
                 textHeight += 20.0f;
 
-                _closeButton = std::make_unique<Button>();
+                _closeButton = Create<Button>();
                 _closeButton->SetOffsetPixels(textWidth - 20, 0);
                 _closeButton->SetBaseSize(20, 20);
                 _closeButton->SetActivation(ButtonActivation::RELEASE);
@@ -98,7 +103,7 @@ namespace zcom
             }
             if (!info.text.empty())
             {
-                _bodyLabel = std::make_unique<Label>(info.text);
+                _bodyLabel = Create<Label>(info.text);
                 _bodyLabel->SetOffsetPixels(0, textHeight);
                 _bodyLabel->SetWidth(textWidth);
                 _bodyLabel->SetWordWrap(true);
@@ -125,7 +130,7 @@ namespace zcom
                 AddItem(_bodyLabel.get());
             SetSize(notificationWidth, notificationHeight);
             ResumeLayoutUpdates();
-            
+
             // Set fadeout vars
             _creationTime = ztime::Main();
             _showDuration = info.duration;
@@ -136,6 +141,7 @@ namespace zcom
             SetBackgroundColor(D2D1::ColorF(0.15f, 0.15f, 0.15f));
             SetCornerRounding(5.0f);
         }
+    public:
         ~Notification()
         {
             ClearItems();

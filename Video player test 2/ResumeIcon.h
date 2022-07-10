@@ -110,11 +110,15 @@ namespace zcom
         TimePoint _displayStart = TimePoint(-1, MINUTES);
         Duration _displayDuration = Duration(800, MILLISECONDS);
 
-    public:
-        ResumeIcon()
+    protected:
+        friend class Scene;
+        friend class Base;
+        ResumeIcon(Scene* scene) : Base(scene) {}
+        void Init()
         {
             SetVisible(false);
         }
+    public:
         ~ResumeIcon()
         {
             SafeFullRelease((IUnknown**)&_brush);

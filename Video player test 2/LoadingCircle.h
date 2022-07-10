@@ -80,11 +80,14 @@ namespace zcom
 
         std::unique_ptr<Label> _textLabel = nullptr;
 
-    public:
-        LoadingCircle()
+    protected:
+        friend class Scene;
+        friend class Base;
+        LoadingCircle(Scene* scene) : Base(scene) {}
+        void Init()
         {
             _circleBitmap = ResourceManager::GetImage("loading_circle");
-            _textLabel = std::make_unique<Label>();
+            _textLabel = Create<Label>();
             _textLabel->SetSize(GetWidth() - 10, 20);
             _textLabel->SetHorizontalTextAlignment(TextAlignment::CENTER);
             _textLabel->SetVerticalTextAlignment(Alignment::CENTER);
@@ -92,6 +95,7 @@ namespace zcom
             //_textLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
             _textLabel->SetWordWrap(true);
         }
+    public:
         ~LoadingCircle()
         {
             SafeFullRelease((IUnknown**)&_brush);

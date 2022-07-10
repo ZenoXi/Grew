@@ -360,8 +360,11 @@ namespace zcom
 
         TimePoint _mouseHoverStart = 0;
 
-    public:
-        SeekBar(long long int duration)
+    protected:
+        friend class Scene;
+        friend class Base;
+        SeekBar(Scene* scene) : Base(scene) {}
+        void Init(long long int duration)
         {
             _duration = duration;
 
@@ -398,6 +401,7 @@ namespace zcom
             _textHeight = metrics.height;
             _maxTimeWidth = metrics.width;
         }
+    public:
         ~SeekBar()
         {
             // Release resources

@@ -130,20 +130,24 @@ namespace zcom
 
         bool _disabled = false;
 
-    public:
+    protected:
+        friend class Scene;
+        friend class Base;
+        MenuItem(Scene* scene) : Base(scene) {}
         // Separator
-        MenuItem()
+        void Init()
         {
             _separator = true;
 
             SetBaseHeight(3);
             SetParentWidthPercent(1.0f);
         }
-        MenuItem(std::wstring text, std::function<void(bool)> onClick = [](bool) {})
+        // Regular button/check item
+        void Init(std::wstring text, std::function<void(bool)> onClick = [](bool) {})
         {
             _onClick = onClick;
 
-            _label = std::make_unique<Label>(text);
+            _label = Create<Label>(text);
             _label->Resize(GetWidth() - 50, GetHeight());
             _label->SetVerticalTextAlignment(zcom::Alignment::CENTER);
             _label->SetMargins({ 5.0f });
@@ -154,11 +158,15 @@ namespace zcom
             SetBaseHeight(25);
             SetParentWidthPercent(1.0f);
         }
-        MenuItem(MenuPanel* panel, std::wstring text) : MenuItem(text)
+        // Deeper menu
+        void Init(MenuPanel* panel, std::wstring text)
         {
+            Init(text);
+
             _menuPanel = panel;
             _menuExpandArrow = ResourceManager::GetImage("menu_expand");
         }
+    public:
         ~MenuItem() {}
         MenuItem(MenuItem&&) = delete;
         MenuItem& operator=(MenuItem&&) = delete;

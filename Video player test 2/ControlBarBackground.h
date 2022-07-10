@@ -62,8 +62,12 @@ namespace zcom
         }
 #pragma endregion
 
+    protected:
+        friend class Scene;
+        friend class Base;
+        ControlBarBackground(Scene* scene) : Base(scene) {}
+        void Init() {}
     public:
-        ControlBarBackground() {}
         ~ControlBarBackground() {}
         ControlBarBackground(ControlBarBackground&&) = delete;
         ControlBarBackground& operator=(ControlBarBackground&&) = delete;

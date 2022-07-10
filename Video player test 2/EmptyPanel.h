@@ -17,8 +17,12 @@ namespace zcom
         const char* GetName() const { return "empty_panel"; }
 #pragma endregion
 
+    protected:
+        friend class Scene;
+        friend class Base;
+        EmptyPanel(Scene* scene) : Base(scene) {}
+        void Init() {}
     public:
-        EmptyPanel() {}
         ~EmptyPanel() {}
         EmptyPanel(EmptyPanel&&) = delete;
         EmptyPanel& operator=(EmptyPanel&&) = delete;

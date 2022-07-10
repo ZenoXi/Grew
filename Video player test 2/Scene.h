@@ -55,6 +55,13 @@ public:
         return uptr;
     }
 
+    std::unique_ptr<zcom::Panel> CreatePanel()
+    {
+        auto uptr = std::unique_ptr<zcom::Panel>(new zcom::Panel(this));
+        uptr->Init();
+        return uptr;
+    }
+
     App* GetApp() const { return _app; }
 
     zcom::Canvas* GetCanvas() const;

@@ -209,9 +209,14 @@ namespace zcom
         IDWriteTextFormat* _dwriteTextFormat = nullptr;
         IDWriteTextLayout* _dwriteTextLayout = nullptr;
 
-    public:
-        Label(std::wstring text = L"") : _text(text)
+    protected:
+        friend class Scene;
+        friend class Base;
+        Label(Scene* scene) : Base(scene) {}
+        void Init(std::wstring text = L"")
         {
+            _text = text;
+
             // Create text rendering resources
             DWriteCreateFactory(
                 DWRITE_FACTORY_TYPE_SHARED,
@@ -221,6 +226,7 @@ namespace zcom
             _CreateTextFormat();
             _CreateTextLayout();
         }
+    public:
         ~Label()
         {
             SafeFullRelease((IUnknown**)&_textBrush);

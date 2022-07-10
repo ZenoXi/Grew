@@ -43,7 +43,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     shadowProps.blurStandardDeviation = 5.0f;
     shadowProps.color = D2D1::ColorF(0, 1.0f);
     
-    _sideMenuPanel = std::make_unique<zcom::Panel>();
+    _sideMenuPanel = Create<zcom::Panel>();
     _sideMenuPanel->SetParentHeightPercent(1.0f);
     _sideMenuPanel->SetBaseWidth(199);
     _sideMenuPanel->SetBackgroundColor(D2D1::ColorF(0.13f, 0.13f, 0.13f));
@@ -51,7 +51,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _sideMenuPanel->SetProperty(shadowProps);
     _sideMenuPanel->SetZIndex(1);
 
-    _playlistPanel = std::make_unique<zcom::Panel>();
+    _playlistPanel = Create<zcom::Panel>();
     _playlistPanel->SetParentSizePercent(1.0f, 1.0f);
     _playlistPanel->SetBaseWidth(-200 + -400);
     _playlistPanel->SetHorizontalOffsetPixels(200);
@@ -59,7 +59,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _playlistPanel->SetProperty(shadowProps);
     _playlistPanel->SetTabIndex(-1);
 
-    _readyItemPanel = std::make_unique<zcom::Panel>();
+    _readyItemPanel = Create<zcom::Panel>();
     _readyItemPanel->SetParentSizePercent(1.0f, 1.0f);
     _readyItemPanel->SetBaseHeight(-40);
     _readyItemPanel->SetVerticalOffsetPixels(40);
@@ -69,13 +69,13 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _readyItemPanel->AddOnMouseMove([=](zcom::Base* item, int x, int y, bool duplicate) { _HandlePlaylistMouseMove(item, x, y, duplicate); }, { this });
     _readyItemPanel->SetTabIndex(-1);
 
-    _playlistLabel = std::make_unique<zcom::Label>(L"Playlist");
+    _playlistLabel = Create<zcom::Label>(L"Playlist");
     _playlistLabel->SetBaseSize(100, 40);
     _playlistLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
     _playlistLabel->SetMargins({ 10.0f });
     _playlistLabel->SetFontSize(24.0f);
 
-    _addFileButton = std::make_unique<zcom::Button>(L"Add files");
+    _addFileButton = Create<zcom::Button>(L"Add files");
     _addFileButton->SetParentWidthPercent(1.0f);
     _addFileButton->SetBaseHeight(30);
     _addFileButton->SetVerticalOffsetPixels(0);
@@ -96,7 +96,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         _fileDialog->Open(opt);
     });
 
-    _addFolderButton = std::make_unique<zcom::Button>(L"Add folder");
+    _addFolderButton = Create<zcom::Button>(L"Add folder");
     _addFolderButton->SetParentWidthPercent(1.0f);
     _addFolderButton->SetBaseHeight(30);
     _addFolderButton->SetVerticalOffsetPixels(30);
@@ -117,7 +117,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         _fileDialog->Open(opt);
     });
 
-    _openPlaylistButton = std::make_unique<zcom::Button>(L"Open playlist");
+    _openPlaylistButton = Create<zcom::Button>(L"Open playlist");
     _openPlaylistButton->SetParentWidthPercent(1.0f);
     _openPlaylistButton->SetBaseHeight(30);
     _openPlaylistButton->SetVerticalOffsetPixels(70);
@@ -132,7 +132,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     });
     _openPlaylistButton->SetActive(false);
 
-    _savePlaylistButton = std::make_unique<zcom::Button>(L"Save playlist");
+    _savePlaylistButton = Create<zcom::Button>(L"Save playlist");
     _savePlaylistButton->SetParentWidthPercent(1.0f);
     _savePlaylistButton->SetBaseHeight(30);
     _savePlaylistButton->SetVerticalOffsetPixels(100);
@@ -147,7 +147,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     });
     _savePlaylistButton->SetActive(false);
 
-    _manageSavedPlaylistsButton = std::make_unique<zcom::Button>(L"Manage saved playlists");
+    _manageSavedPlaylistsButton = Create<zcom::Button>(L"Manage saved playlists");
     _manageSavedPlaylistsButton->SetParentWidthPercent(1.0f);
     _manageSavedPlaylistsButton->SetBaseHeight(30);
     _manageSavedPlaylistsButton->SetVerticalOffsetPixels(130);
@@ -162,7 +162,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     });
     _manageSavedPlaylistsButton->SetActive(false);
 
-    _closeOverlayButton = std::make_unique<zcom::Button>(L"Close overlay (Esc)");
+    _closeOverlayButton = Create<zcom::Button>(L"Close overlay (Esc)");
     _closeOverlayButton->SetParentWidthPercent(1.0f);
     _closeOverlayButton->SetBaseHeight(30);
     _closeOverlayButton->SetVerticalAlignment(zcom::Alignment::END);
@@ -176,7 +176,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         App::Instance()->MoveSceneToBack(this->GetName());
     });
 
-    _networkBannerPanel = std::make_unique<zcom::Panel>();
+    _networkBannerPanel = Create<zcom::Panel>();
     _networkBannerPanel->SetBaseSize(340, 60);
     _networkBannerPanel->SetOffsetPixels(-30, 30);
     _networkBannerPanel->SetHorizontalAlignment(zcom::Alignment::END);
@@ -184,7 +184,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _networkBannerPanel->SetProperty(shadowProps);
     _networkBannerPanel->SetZIndex(1);
 
-    _networkStatusLabel = std::make_unique<zcom::Label>(L"");
+    _networkStatusLabel = Create<zcom::Label>(L"");
     _networkStatusLabel->SetBaseSize(200, 30);
     _networkStatusLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
     _networkStatusLabel->SetFontSize(22.0f);
@@ -197,7 +197,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     textShadow.color = D2D1::ColorF(0, 1.0f);
     _networkStatusLabel->SetProperty(textShadow);
 
-    _closeNetworkButton = std::make_unique<zcom::Button>(L"");
+    _closeNetworkButton = Create<zcom::Button>(L"");
     _closeNetworkButton->SetBaseSize(100, 30);
     _closeNetworkButton->SetHorizontalAlignment(zcom::Alignment::END);
     _closeNetworkButton->Text()->SetFontSize(16.0f);
@@ -209,7 +209,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         APP_NETWORK->CloseManager();
     });
 
-    _toggleChatButton = std::make_unique<zcom::Button>();
+    _toggleChatButton = Create<zcom::Button>();
     _toggleChatButton->SetBaseSize(30, 30);
     _toggleChatButton->SetOffsetPixels(0, 30);
     _toggleChatButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
@@ -233,7 +233,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         }
     });
 
-    _toggleUserListButton = std::make_unique<zcom::Button>();
+    _toggleUserListButton = Create<zcom::Button>();
     _toggleUserListButton->SetBaseSize(30, 30);
     _toggleUserListButton->SetOffsetPixels(30, 30);
     _toggleUserListButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
@@ -257,7 +257,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         }
     });
 
-    _connectedUserCountLabel = std::make_unique<zcom::Label>(L"");
+    _connectedUserCountLabel = Create<zcom::Label>(L"");
     _connectedUserCountLabel->SetBaseSize(30, 12);
     _connectedUserCountLabel->SetOffsetPixels(30, 48);
     _connectedUserCountLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
@@ -267,7 +267,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     //_connectedUserCountLabel->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
     _connectedUserCountLabel->SetFontColor(D2D1::ColorF(0.6f, 0.6f, 0.6f));
 
-    _usernameButton = std::make_unique<zcom::Button>(L"");
+    _usernameButton = Create<zcom::Button>(L"");
     _usernameButton->SetBaseSize(180, 30);
     _usernameButton->SetOffsetPixels(60, 30);
     _usernameButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
@@ -292,7 +292,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     });
     _usernameButton->SetZIndex(1);
 
-    _usernameInput = std::make_unique<zcom::TextInput>();
+    _usernameInput = Create<zcom::TextInput>();
     _usernameInput->SetBaseSize(180, 30);
     _usernameInput->SetOffsetPixels(60, 30);
     _usernameInput->SetPlaceholderText(L"New username");
@@ -323,7 +323,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         return false;
     });
 
-    _networkLatencyLabel = std::make_unique<zcom::Label>(L"-");
+    _networkLatencyLabel = Create<zcom::Label>(L"-");
     _networkLatencyLabel->SetBaseSize(45, 30);
     _networkLatencyLabel->SetOffsetPixels(240, 30);
     _networkLatencyLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
@@ -332,12 +332,12 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _networkLatencyLabel->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
     _networkLatencyLabel->SetFontColor(D2D1::ColorF(0.6f, 0.6f, 0.6f));
 
-    _downloadSpeedImage = std::make_unique<zcom::Image>();
+    _downloadSpeedImage = Create<zcom::Image>();
     _downloadSpeedImage->SetBaseSize(15, 15);
     _downloadSpeedImage->SetOffsetPixels(285, 31);
     _downloadSpeedImage->SetImage(ResourceManager::GetImage("download_color_15"));
 
-    _downloadSpeedLabel = std::make_unique<zcom::Label>(L"0b/s");
+    _downloadSpeedLabel = Create<zcom::Label>(L"0b/s");
     _downloadSpeedLabel->SetBaseSize(40, 15);
     _downloadSpeedLabel->SetOffsetPixels(300, 31);
     _downloadSpeedLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
@@ -346,12 +346,12 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _downloadSpeedLabel->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
     _downloadSpeedLabel->SetFontColor(D2D1::ColorF(0.6f, 0.6f, 0.6f));
 
-    _uploadSpeedImage = std::make_unique<zcom::Image>();
+    _uploadSpeedImage = Create<zcom::Image>();
     _uploadSpeedImage->SetBaseSize(15, 15);
     _uploadSpeedImage->SetOffsetPixels(285, 44);
     _uploadSpeedImage->SetImage(ResourceManager::GetImage("upload_color_15"));
 
-    _uploadSpeedLabel = std::make_unique<zcom::Label>(L"0b/s");
+    _uploadSpeedLabel = Create<zcom::Label>(L"0b/s");
     _uploadSpeedLabel->SetBaseSize(40, 15);
     _uploadSpeedLabel->SetOffsetPixels(300, 44);
     _uploadSpeedLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
@@ -360,7 +360,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _uploadSpeedLabel->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
     _uploadSpeedLabel->SetFontColor(D2D1::ColorF(0.6f, 0.6f, 0.6f));
 
-    _connectedUsersPanel = std::make_unique<zcom::Panel>();
+    _connectedUsersPanel = Create<zcom::Panel>();
     _connectedUsersPanel->SetBaseSize(340, 200);
     _connectedUsersPanel->SetOffsetPixels(-30, 91);
     _connectedUsersPanel->SetHorizontalAlignment(zcom::Alignment::END);
@@ -368,10 +368,10 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _connectedUsersPanel->SetProperty(shadowProps);
     _connectedUsersPanel->SetVisible(false);
 
-    _chatPanel = std::make_unique<zcom::Panel>();
+    _chatPanel = Create<zcom::Panel>();
     _chatPanel->SetVisible(false);
 
-    _offlineLabel = std::make_unique<zcom::Label>(L"Try watching something with others");
+    _offlineLabel = Create<zcom::Label>(L"Try watching something with others");
     _offlineLabel->SetBaseSize(260, 60);
     _offlineLabel->SetOffsetPixels(-70, -30);
     _offlineLabel->SetAlignment(zcom::Alignment::END, zcom::Alignment::CENTER);
@@ -382,7 +382,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _offlineLabel->SetProperty(textShadow);
     _offlineLabel->SetWordWrap(true);
 
-    _connectButton = std::make_unique<zcom::Button>(L"Connect");
+    _connectButton = Create<zcom::Button>(L"Connect");
     _connectButton->SetBaseSize(80, 25);
     _connectButton->SetOffsetPixels(-210, 20);
     _connectButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::CENTER);
@@ -399,7 +399,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         App::Instance()->MoveSceneToFront(ConnectScene::StaticName());
     });
 
-    _startServerButton = std::make_unique<zcom::Button>(L"Start server");
+    _startServerButton = Create<zcom::Button>(L"Start server");
     _startServerButton->SetBaseSize(80, 25);
     _startServerButton->SetOffsetPixels(-110, 20);
     _startServerButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::CENTER);
@@ -878,7 +878,7 @@ void PlaybackOverlayScene::_AddMissingItems()
     // Add missing items
     for (auto& item : App::Instance()->playlist.AllItems())
         if (itemIds.find(item->GetItemId()) == itemIds.end())
-            _playlistItems.push_back(std::make_unique<zcom::OverlayPlaylistItem>(item->GetItemId()));
+            _playlistItems.push_back(Create<zcom::OverlayPlaylistItem>(item->GetItemId()));
 }
 
 void PlaybackOverlayScene::_UpdateItemDetails()
@@ -1084,13 +1084,13 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel_Online()
 
     { // This client
         std::wstring name = L"[User " + string_to_wstring(int_to_str(user.id)) + L"] " + user.name;
-        zcom::Label* usernameLabel = new zcom::Label(name);
+        auto usernameLabel = Create<zcom::Label>(name);
         usernameLabel->SetBaseHeight(25);
         usernameLabel->SetParentWidthPercent(1.0f);
         usernameLabel->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::Orange, 0.2f));
         usernameLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         usernameLabel->SetMargins({ 5.0f, 0.0f, 5.0f, 0.0f });
-        _connectedUsersPanel->AddItem(usernameLabel, true);
+        _connectedUsersPanel->AddItem(usernameLabel.release(), true);
     }
 
     // Others
@@ -1099,14 +1099,14 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel_Online()
     {
         std::wstring name = L"[User " + string_to_wstring(int_to_str(users[i].id)) + L"] " + users[i].name;
 
-        zcom::Label* usernameLabel = new zcom::Label(name);
+        auto usernameLabel = Create<zcom::Label>(name);
         usernameLabel->SetBaseHeight(25);
         usernameLabel->SetParentWidthPercent(1.0f);
         usernameLabel->SetVerticalOffsetPixels(25 + 25 * i);
         usernameLabel->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f * (i % 2)));
         usernameLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         usernameLabel->SetMargins({ 5.0f, 0.0f, 5.0f, 0.0f });
-        _connectedUsersPanel->AddItem(usernameLabel, true);
+        _connectedUsersPanel->AddItem(usernameLabel.release(), true);
     }
     _connectedUsersPanel->ResumeLayoutUpdates();
 
@@ -1141,7 +1141,7 @@ void PlaybackOverlayScene::_HandlePlaylistLeftClick(zcom::Base* item, std::vecto
         return;
 
     // If a button was clicked, don't handle
-    if (targets.front().target->GetName() == std::make_unique<zcom::Button>()->GetName())
+    if (targets.front().target->GetName() == Create<zcom::Button>()->GetName())
         return;
 
     // If click was outside ready item range, don't handle (ignores pending/loading items)
@@ -1152,7 +1152,7 @@ void PlaybackOverlayScene::_HandlePlaylistLeftClick(zcom::Base* item, std::vecto
     // Check if item was clicked
     for (auto& target : targets)
     {
-        if (target.target->GetName() == std::make_unique<zcom::OverlayPlaylistItem>(0)->GetName())
+        if (target.target->GetName() == Create<zcom::OverlayPlaylistItem>(0)->GetName())
         {
             _heldItemId = ((zcom::OverlayPlaylistItem*)target.target)->GetItemId();
             _clickYPos = y + _readyItemPanel->VisualVerticalScroll();

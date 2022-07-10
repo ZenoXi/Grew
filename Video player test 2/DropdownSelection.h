@@ -47,10 +47,14 @@ namespace zcom
         std::wstring _defaultText;
         RECT _menuBounds = {0, 0, 0, 0};
 
-    public:
-        DropdownSelection(std::wstring text, Canvas* canvas, std::wstring defaultText = L"No items")
-            : Button(text)
+    protected:
+        friend class Scene;
+        friend class Base;
+        DropdownSelection(Scene* scene) : Button(scene) {}
+        void Init(std::wstring text, Canvas* canvas, std::wstring defaultText = L"No items")
         {
+            Button::Init(text);
+
             SetSelectable(true);
             Text()->SetSize(GetWidth(), GetHeight());
             Text()->SetVerticalTextAlignment(Alignment::CENTER);
@@ -59,15 +63,16 @@ namespace zcom
 
             _canvas = canvas;
             _defaultText = defaultText;
-            _menuPanel = std::make_unique<zcom::MenuPanel>(_canvas);
+            _menuPanel = Create<zcom::MenuPanel>(_canvas);
             _menuPanel->SetMaxWidth(300);
             _menuPanel->SetZIndex(512); // Arbitrarily chosen number that's almost guaranteed to be higher than all other components
             _menuPanelEmpty = true;
-            auto defaultItem = std::make_unique<MenuItem>(_defaultText);
+            auto defaultItem = Create<MenuItem>(_defaultText);
             defaultItem->SetDisabled(true);
             _menuPanel->AddItem(std::move(defaultItem));
             _AddPanelToCanvas();
         }
+    public:
         ~DropdownSelection()
         {
             _RemovePanelFromCanvas();
@@ -84,7 +89,7 @@ namespace zcom
                 _menuPanel->ClearItems();
                 _menuPanelEmpty = false;
             }
-            _menuPanel->AddItem(std::make_unique<MenuItem>(text, onSelected));
+            _menuPanel->AddItem(Create<MenuItem>(text, onSelected));
         }
 
         void ClearItems()

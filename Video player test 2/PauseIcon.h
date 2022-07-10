@@ -97,11 +97,15 @@ namespace zcom
         TimePoint _displayStart = TimePoint(-1, MINUTES);
         Duration _displayDuration = Duration(800, MILLISECONDS);
 
-    public:
-        PauseIcon()
+    protected:
+        friend class Scene;
+        friend class Base;
+        PauseIcon(Scene* scene) : Base(scene) {}
+        void Init()
         {
             SetVisible(false);
         }
+    public:
         ~PauseIcon()
         {
             SafeFullRelease((IUnknown**)&_brush);

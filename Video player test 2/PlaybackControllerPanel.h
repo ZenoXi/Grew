@@ -111,15 +111,21 @@ namespace zcom
         bool _fading;
         float _fadeDuration = 0.1f;
 
-    public:
-        PlaybackControllerPanel(Base* panel) : _panel(panel)
+    protected:
+        friend class Scene;
+        friend class Base;
+        PlaybackControllerPanel(Scene* scene) : Panel(scene) {}
+        void Init(Base* panel)
         {
+            _panel = panel;
+
             SetOpacity(0.0f);
             //Resize();
 
             _hanging = false;
             _fading = false;
         }
+    public:
         ~PlaybackControllerPanel() {}
         PlaybackControllerPanel(PlaybackControllerPanel&&) = delete;
         PlaybackControllerPanel& operator=(PlaybackControllerPanel&&) = delete;

@@ -4,7 +4,7 @@
 Scene::Scene(App* app)
     : _app(app)
 {
-    _notificationPanel = std::make_unique<zcom::Panel>();
+    _notificationPanel = Create<zcom::Panel>();
     _notificationPanel->SetBaseHeight(10);
     _notificationPanel->SetBaseWidth(220);
     _notificationPanel->SetZIndex(NOTIF_PANEL_Z_INDEX);
@@ -19,7 +19,7 @@ Scene::~Scene()
 
 void Scene::Init(const SceneOptionsBase* options)
 {
-    _canvas = new zcom::Canvas(App::Instance()->window.width, App::Instance()->window.height);
+    _canvas = new zcom::Canvas(Create<zcom::Panel>(), App::Instance()->window.width, App::Instance()->window.height);
     _Init(options);
     _canvas->AddComponent(_notificationPanel.get());
     _canvas->Resize(App::Instance()->window.width, App::Instance()->window.height);
@@ -102,7 +102,7 @@ void Scene::SetNotificationPosition(NotificationPosition position)
 
 void Scene::ShowNotification(zcom::NotificationInfo info)
 {
-    auto notification = std::make_unique<zcom::Notification>(200, info);
+    auto notification = Create<zcom::Notification>(200, info);
     zcom::PROP_Shadow shadowProps;
     shadowProps.offsetX = 2.0f;
     shadowProps.offsetY = 2.0f;

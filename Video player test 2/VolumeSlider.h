@@ -258,8 +258,11 @@ namespace zcom
 
         TimePoint _mouseHoverStart = 0;
 
-    public:
-        VolumeSlider(float value, int extendedWidth = 150)
+    protected:
+        friend class Scene;
+        friend class Base;
+        VolumeSlider(Scene* scene) : Base(scene) {}
+        void Init(float value, int extendedWidth = 150)
         {
             _value = value;
             _extendedWidth = extendedWidth;
@@ -267,7 +270,7 @@ namespace zcom
             _volumeIcon = ResourceManager::GetImage("volume_dim_30");
             _volumeIconHover = ResourceManager::GetImage("volume_30");
 
-            _volumeLabel = std::make_unique<Label>(L"");
+            _volumeLabel = Create<Label>(L"");
             _volumeLabel->SetSize(40, 30);
             _volumeLabel->SetFontSize(15.0f);
             _volumeLabel->SetFont(L"Calibri");
@@ -280,6 +283,7 @@ namespace zcom
             valueStr << (int)roundf(_value * 100.0f) << "%";
             _volumeLabel->SetText(valueStr.str());
         }
+    public:
         ~VolumeSlider()
         {
             // Release resources

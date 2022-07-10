@@ -176,12 +176,15 @@ namespace zcom
 
         std::unique_ptr<Label> _textLabel = nullptr;
 
-    public:
-        FastForwardIcon(FastForwardDirection direction)
+    protected:
+        friend class Scene;
+        friend class Base;
+        FastForwardIcon(Scene* scene) : Base(scene) {}
+        void Init(FastForwardDirection direction)
         {
             SetVisible(false);
 
-            _textLabel = std::make_unique<Label>();
+            _textLabel = Create<Label>();
             _textLabel->SetSize(60, 20);
             _textLabel->SetHorizontalTextAlignment(TextAlignment::CENTER);
             _textLabel->SetVerticalTextAlignment(Alignment::CENTER);
@@ -190,6 +193,7 @@ namespace zcom
 
             _direction = direction;
         }
+    public:
         ~FastForwardIcon()
         {
             SafeFullRelease((IUnknown**)&_brush);

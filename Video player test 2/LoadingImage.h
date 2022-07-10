@@ -86,11 +86,12 @@ namespace zcom
         float _dotRadius = 5.0f;
         float _dotSpacing = 15.0f;
 
+    protected:
+        friend class Scene;
+        friend class Base;
+        LoadingImage(Scene* scene) : Base(scene) {}
+        void Init() {}
     public:
-        LoadingImage()
-        {
-
-        }
         ~LoadingImage()
         {
             SafeFullRelease((IUnknown**)&_brush);
