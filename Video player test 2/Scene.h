@@ -22,14 +22,17 @@ enum class NotificationPosition
 
 #define NOTIF_PANEL_Z_INDEX 255
 
+class App;
+
 class Scene
 {
 protected:
+    App* _app;
     zcom::Canvas* _canvas;
     bool _focused = false;
 
 public:
-    Scene();
+    Scene(App* app);
     virtual ~Scene();
     void Init(const SceneOptionsBase* options);
     void Uninit();
@@ -42,6 +45,17 @@ public:
     ID2D1Bitmap* Draw(Graphics g);
     ID2D1Bitmap* Image();
     void Resize(int width, int height);
+
+    // Component creation
+    template<class T, typename... Args>
+    std::unique_ptr<T> Create(Args&&... args)
+    {
+        auto uptr = std::unique_ptr<T>(new T(this));
+        uptr->Init(std::forward<Args>(args)...);
+        return uptr;
+    }
+
+    App* GetApp() const { return _app; }
 
     zcom::Canvas* GetCanvas() const;
 

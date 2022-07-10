@@ -12,7 +12,9 @@
 #include "Network.h"
 #include "FileTypes.h"
 
-EntryScene::EntryScene() {}
+EntryScene::EntryScene(App* app)
+    : Scene(app)
+{}
 
 void EntryScene::_Init(const SceneOptionsBase* options)
 {

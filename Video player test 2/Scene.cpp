@@ -1,7 +1,8 @@
 #include "App.h" // App.h must be included first
 #include "Scene.h"
 
-Scene::Scene()
+Scene::Scene(App* app)
+    : _app(app)
 {
     _notificationPanel = std::make_unique<zcom::Panel>();
     _notificationPanel->SetBaseHeight(10);

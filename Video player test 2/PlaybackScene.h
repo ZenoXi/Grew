@@ -85,7 +85,7 @@ class PlaybackScene : public Scene
     bool _subtitleFrameChanged = false;
 
 public:
-    PlaybackScene();
+    PlaybackScene(App* app);
 
     void _Init(const SceneOptionsBase* options);
     void _Uninit();

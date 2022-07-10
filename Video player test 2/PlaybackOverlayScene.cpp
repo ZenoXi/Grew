@@ -12,9 +12,9 @@
 
 #include <filesystem>
 
-PlaybackOverlayScene::PlaybackOverlayScene()
-{
-}
+PlaybackOverlayScene::PlaybackOverlayScene(App* app)
+    : Scene(app)
+{}
 
 void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
 {

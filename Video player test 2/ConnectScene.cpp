@@ -6,7 +6,8 @@
 #include "Network.h"
 #include "ClientManager.h"
 
-ConnectScene::ConnectScene()
+ConnectScene::ConnectScene(App* app)
+    : Scene(app)
 {
 
 }

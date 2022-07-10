@@ -39,7 +39,7 @@ class StartServerScene : public Scene
     bool _closeScene = false;
 
 public:
-    StartServerScene();
+    StartServerScene(App* app);
 
     const char* GetName() const { return "start_server"; }
     static const char* StaticName() { return "start_server"; }

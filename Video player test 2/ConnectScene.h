@@ -42,7 +42,7 @@ class ConnectScene : public Scene
     bool _closeScene = false;
 
 public:
-    ConnectScene();
+    ConnectScene(App* app);
 
     const char* GetName() const { return "connect"; }
     static const char* StaticName() { return "connect"; }

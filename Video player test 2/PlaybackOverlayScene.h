@@ -74,7 +74,7 @@ class PlaybackOverlayScene : public Scene
     std::unique_ptr<PlaybackOverlayShortcutHandler> _shortcutHandler = nullptr;
 
 public:
-    PlaybackOverlayScene();
+    PlaybackOverlayScene(App* app);
 
     void _Init(const SceneOptionsBase* options);
     void _Uninit();

@@ -75,11 +75,11 @@ void App::Init(DisplayWindow& dw, std::string startScene)
     }
 
     // Add scenes
-    Instance()->_scenes.push_back(new EntryScene());
-    Instance()->_scenes.push_back(new ConnectScene());
-    Instance()->_scenes.push_back(new StartServerScene());
-    Instance()->_scenes.push_back(new PlaybackScene());
-    Instance()->_scenes.push_back(new PlaybackOverlayScene()); // Must be after PlaybackScene()
+    Instance()->_scenes.push_back(new EntryScene(_instance));
+    Instance()->_scenes.push_back(new ConnectScene(_instance));
+    Instance()->_scenes.push_back(new StartServerScene(_instance));
+    Instance()->_scenes.push_back(new PlaybackScene(_instance));
+    Instance()->_scenes.push_back(new PlaybackOverlayScene(_instance)); // Must be after PlaybackScene()
     Instance()->InitScene(startScene, nullptr);
     Instance()->InitScene(PlaybackOverlayScene::StaticName(), nullptr);
 

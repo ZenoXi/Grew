@@ -37,7 +37,7 @@ class EntryScene : public Scene
 
 
 public:
-    EntryScene();
+    EntryScene(App* app);
 
     const char* GetName() const { return "entry"; }
     static const char* StaticName() { return "entry"; }

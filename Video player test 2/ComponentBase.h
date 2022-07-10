@@ -10,6 +10,8 @@
 #include "MouseEventHandler.h"
 #include "Event.h"
 
+class Scene;
+
 namespace zcom
 {
     enum class Alignment
@@ -126,7 +128,18 @@ namespace zcom
     // The base component class
     class Base
     {
-        friend class Canvas;
+    public:
+        // Component creation
+        template<class T, typename... Args>
+        std::unique_ptr<T> Create(Args&&... args)
+        {
+            auto uptr = std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+            uptr->_scene = _scene;
+            return uptr;
+        }
+    protected:
+        Scene* _scene = nullptr;
+    private:
 
         ID2D1Bitmap1* _canvas = nullptr;
         bool _redraw = true;
@@ -210,7 +223,7 @@ namespace zcom
         Event<void> _onLayoutChanged;
 
     public:
-        Base() {}
+        Base(/*Scene* scene*/) : _scene(nullptr) {}
         virtual ~Base()
         {
             SafeFullRelease((IUnknown**)&_canvas);
@@ -1170,4 +1183,13 @@ namespace zcom
     public:
         virtual const char* GetName() const { return "base"; }
     };
+
 }
+
+//#include "Scene.h"
+//
+//template<class T, typename... Args>
+//std::unique_ptr<T> zcom::Base::Create(Args&&... args)
+//{
+//    return _scene->Create(std::forward<Args>(args)...);
+//}

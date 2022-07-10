@@ -6,7 +6,8 @@
 #include "Network.h"
 #include "ServerManager.h"
 
-StartServerScene::StartServerScene()
+StartServerScene::StartServerScene(App* app)
+    : Scene(app)
 {
 
 }
@@ -18,6 +19,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     {
         opt = *reinterpret_cast<const StartServerSceneOptions*>(options);
     }
+
 
     _mainPanel = std::make_unique<zcom::Panel>();
     _mainPanel->SetBaseSize(500, 500);
