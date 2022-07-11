@@ -37,6 +37,11 @@ namespace zcom
             }
         }
 
+        bool _Redraw()
+        {
+            return _textLabel->Redraw();
+        }
+
         void _OnDraw(Graphics g)
         {
             if (!_brush)
