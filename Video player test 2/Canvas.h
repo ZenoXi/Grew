@@ -14,13 +14,13 @@ namespace zcom
         int _width;
         int _height;
 
-        Event<void, const EventTargets*> _mouseMoveHandlers;
-        Event<void, const EventTargets*> _leftPressedHandlers;
-        Event<void, const EventTargets*> _leftReleasedHandlers;
-        Event<void, const EventTargets*> _rightPressedHandlers;
-        Event<void, const EventTargets*> _rightReleasedHandlers;
-        Event<void, const EventTargets*> _wheelUpHandlers;
-        Event<void, const EventTargets*> _wheelDownHandlers;
+        Event<bool, const EventTargets*> _mouseMoveHandlers;
+        Event<bool, const EventTargets*> _leftPressedHandlers;
+        Event<bool, const EventTargets*> _leftReleasedHandlers;
+        Event<bool, const EventTargets*> _rightPressedHandlers;
+        Event<bool, const EventTargets*> _rightReleasedHandlers;
+        Event<bool, const EventTargets*> _wheelUpHandlers;
+        Event<bool, const EventTargets*> _wheelDownHandlers;
 
         std::unique_ptr<Panel> _panel;
 
@@ -144,7 +144,7 @@ namespace zcom
         // MOUSE EVENT MANAGER FUNCTIONS
         //
 
-        void _OnMouseMove(int x, int y)
+        bool _OnMouseMove(int x, int y)
         {
             if (!_panel->GetMouseInside())
                 _panel->OnMouseEnter();
@@ -153,7 +153,14 @@ namespace zcom
 
             auto targets = _panel->OnMouseMove(x, y);
             targets.Remove(_panel.get());
-            _mouseMoveHandlers.InvokeAll(&targets);
+
+            bool handled = false;
+            for (auto& handler : _mouseMoveHandlers)
+            {
+                if (handler(&targets))
+                    handled = true;
+            }
+            return handled;
         }
 
         void _OnMouseLeave()
@@ -167,7 +174,7 @@ namespace zcom
 
         }
 
-        void _OnLeftPressed(int x, int y)
+        bool _OnLeftPressed(int x, int y)
         {
             auto targets = _panel->OnLeftPressed(x, y);
             targets.Remove(_panel.get());
@@ -185,42 +192,83 @@ namespace zcom
                 }
             }
 
-            _leftPressedHandlers.InvokeAll(&targets);
+            bool handled = false;
+            for (auto& handler : _leftPressedHandlers)
+            {
+                if (handler(&targets))
+                    handled = true;
+            }
+            return handled;
         }
 
-        void _OnLeftReleased(int x, int y)
+        bool _OnLeftReleased(int x, int y)
         {
             auto targets = _panel->OnLeftReleased(x, y);
             targets.Remove(_panel.get());
-            _leftReleasedHandlers.InvokeAll(&targets);
+
+            bool handled = false;
+            for (auto& handler : _leftReleasedHandlers)
+            {
+                if (handler(&targets))
+                    handled = true;
+            }
+            return handled;
         }
 
-        void _OnRightPressed(int x, int y)
+        bool _OnRightPressed(int x, int y)
         {
             auto targets = _panel->OnRightPressed(x, y);
             targets.Remove(_panel.get());
-            _rightPressedHandlers.InvokeAll(&targets);
+
+            bool handled = false;
+            for (auto& handler : _rightPressedHandlers)
+            {
+                if (handler(&targets))
+                    handled = true;
+            }
+            return handled;
         }
 
-        void _OnRightReleased(int x, int y)
+        bool _OnRightReleased(int x, int y)
         {
             auto targets = _panel->OnRightReleased(x, y);
             targets.Remove(_panel.get());
-            _rightReleasedHandlers.InvokeAll(&targets);
+
+            bool handled = false;
+            for (auto& handler : _rightReleasedHandlers)
+            {
+                if (handler(&targets))
+                    handled = true;
+            }
+            return handled;
         }
 
-        void _OnWheelUp(int x, int y)
+        bool _OnWheelUp(int x, int y)
         {
             auto targets = _panel->OnWheelUp(x, y);
             targets.Remove(_panel.get());
-            _wheelUpHandlers.InvokeAll(&targets);
+
+            bool handled = false;
+            for (auto& handler : _wheelUpHandlers)
+            {
+                if (handler(&targets))
+                    handled = true;
+            }
+            return handled;
         }
 
-        void _OnWheelDown(int x, int y)
+        bool _OnWheelDown(int x, int y)
         {
             auto targets = _panel->OnWheelDown(x, y);
             targets.Remove(_panel.get());
-            _wheelDownHandlers.InvokeAll(&targets);
+
+            bool handled = false;
+            for (auto& handler : _wheelDownHandlers)
+            {
+                if (handler(&targets))
+                    handled = true;
+            }
+            return handled;
         }
 
         //
@@ -253,37 +301,37 @@ namespace zcom
         }
 
 
-        void AddOnMouseMove(std::function<void(const EventTargets*)> func)
+        void AddOnMouseMove(std::function<bool(const EventTargets*)> func)
         {
             _mouseMoveHandlers.Add(func);
         }
 
-        void AddOnLeftPressed(std::function<void(const EventTargets*)> func)
+        void AddOnLeftPressed(std::function<bool(const EventTargets*)> func)
         {
             _leftPressedHandlers.Add(func);
         }
 
-        void AddOnLeftReleased(std::function<void(const EventTargets*)> func)
+        void AddOnLeftReleased(std::function<bool(const EventTargets*)> func)
         {
             _leftReleasedHandlers.Add(func);
         }
 
-        void AddOnRightPressed(std::function<void(const EventTargets*)> func)
+        void AddOnRightPressed(std::function<bool(const EventTargets*)> func)
         {
             _rightPressedHandlers.Add(func);
         }
 
-        void AddOnRightReleased(std::function<void(const EventTargets*)> func)
+        void AddOnRightReleased(std::function<bool(const EventTargets*)> func)
         {
             _rightReleasedHandlers.Add(func);
         }
 
-        void AddOnWheelUp(std::function<void(const EventTargets*)> func)
+        void AddOnWheelUp(std::function<bool(const EventTargets*)> func)
         {
             _wheelUpHandlers.Add(func);
         }
 
-        void AddOnWheelDown(std::function<void(const EventTargets*)> func)
+        void AddOnWheelDown(std::function<bool(const EventTargets*)> func)
         {
             _wheelDownHandlers.Add(func);
         }

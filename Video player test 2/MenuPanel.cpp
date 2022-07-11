@@ -68,16 +68,17 @@ void zcom::MenuPanel::_AddHandlerToCanvas()
                 _hoveredItem = nullptr;
             }
         }
+        return false;
     });
 
     _sceneCanvas->AddOnLeftPressed([&](const EventTargets* targets)
     {
         if (!GetVisible())
-            return;
+            return false;
         if ((ztime::Main() - _showTime).GetDuration(MILLISECONDS) < 100)
-            return;
+            return false;
         if (_openChildPanel)
-            return;
+            return false;
 
         if (!targets->Contains(this) && !targets->Contains(_parentPanel))
         {
@@ -85,5 +86,6 @@ void zcom::MenuPanel::_AddHandlerToCanvas()
             if (_parentPanel)
                 _parentPanel->OnChildClosed(targets);
         }
+        return false;
     });
 }

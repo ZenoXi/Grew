@@ -11,22 +11,22 @@ protected:
     int _mousePosX = 0;
     int _mousePosY = 0;
 
-    virtual void _OnMouseMove(int x, int y) {}
+    virtual bool _OnMouseMove(int x, int y) { return false; }
     virtual void _OnMouseLeave() {}
     virtual void _OnMouseEnter() {}
-    virtual void _OnLeftPressed(int x, int y) {}
-    virtual void _OnLeftReleased(int x, int y) {}
-    virtual void _OnRightPressed(int x, int y) {}
-    virtual void _OnRightReleased(int x, int y) {}
-    virtual void _OnWheelUp(int x, int y) {}
-    virtual void _OnWheelDown(int x, int y) {}
+    virtual bool _OnLeftPressed(int x, int y) { return false; }
+    virtual bool _OnLeftReleased(int x, int y) { return false; }
+    virtual bool _OnRightPressed(int x, int y) { return false; }
+    virtual bool _OnRightReleased(int x, int y) { return false; }
+    virtual bool _OnWheelUp(int x, int y) { return false; }
+    virtual bool _OnWheelDown(int x, int y) { return false; }
 
 public:
-    void OnMouseMove(int x, int y)
+    bool OnMouseMove(int x, int y)
     {
         _mousePosX = x;
         _mousePosY = y;
-        _OnMouseMove(x, y);
+        return _OnMouseMove(x, y);
     }
     void OnMouseLeave()
     {
@@ -38,33 +38,33 @@ public:
         _mouseInWindow = true;
         _OnMouseEnter();
     }
-    void OnLeftPressed(int x, int y)
+    bool OnLeftPressed(int x, int y)
     {
         _mouseLeftClicked = true;
-        _OnLeftPressed(x, y);
+        return _OnLeftPressed(x, y);
     }
-    void OnLeftReleased(int x, int y)
+    bool OnLeftReleased(int x, int y)
     {
         _mouseLeftClicked = false;
-        _OnLeftReleased(x, y);
+        return _OnLeftReleased(x, y);
     }
-    void OnRightPressed(int x, int y)
+    bool OnRightPressed(int x, int y)
     {
         _mouseRightClicked = true;
-        _OnRightPressed(x, y);
+        return _OnRightPressed(x, y);
     }
-    void OnRightReleased(int x, int y)
+    bool OnRightReleased(int x, int y)
     {
         _mouseRightClicked = false;
-        _OnRightReleased(x, y);
+        return _OnRightReleased(x, y);
     }
-    void OnWheelUp(int x, int y)
+    bool OnWheelUp(int x, int y)
     {
-        _OnWheelUp(x, y);
+        return _OnWheelUp(x, y);
     }
-    void OnWheelDown(int x, int y)
+    bool OnWheelDown(int x, int y)
     {
-        _OnWheelDown(x, y);
+        return _OnWheelDown(x, y);
     }
 
     bool MouseInWindow() { return _mouseInWindow; }

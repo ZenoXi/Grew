@@ -38,6 +38,7 @@ public:
     static App* Instance();
 
 private: // Scene control
+    Scene* _overlayScene = nullptr;
     std::vector<Scene*> _scenes;
     int _currentSceneIndex = -1;
     std::vector<Scene*> _activeScenes;

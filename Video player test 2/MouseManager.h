@@ -7,7 +7,7 @@
 class MouseManager : public MouseEventHandler
 {
     std::vector<MouseEventHandler*> _handlers;
-    MouseEventHandler* _exclusiveHandler = nullptr;
+    MouseEventHandler* _overlayHandler = nullptr;
 
 public:
     MouseManager() {};
@@ -29,39 +29,43 @@ public:
         }
     }
 
-    void SetExclusiveHandler(MouseEventHandler* handler)
+    void SetOverlayHandler(MouseEventHandler* handler)
     {
-        _exclusiveHandler = handler;
-    }
-
-    void ResetExclusiveHandler()
-    {
-        _exclusiveHandler = nullptr;
+        _overlayHandler = handler;
     }
 
 private: // Mouse event handling
-    void _OnMouseMove(int x, int y)
+    bool _OnMouseMove(int x, int y)
     {
-        if (_exclusiveHandler)
+        if (_overlayHandler)
         {
-            _exclusiveHandler->OnMouseMove(x, y);
-            return;
+            bool clicked = false;
+            for (auto& handler : _handlers)
+            {
+                if (handler->MouseLeftClicked()) { clicked = true; break; }
+                if (handler->MouseRightClicked()) { clicked = true; break; }
+            }
+            if (!clicked)
+            {
+                if (_overlayHandler->OnMouseMove(x, y))
+                {
+                    for (auto& handler : _handlers)
+                        handler->OnMouseLeave();
+                    return true;
+                }
+            }
         }
 
         for (auto& handler : _handlers)
         {
-            handler->OnMouseMove(x, y);
+            if (handler->OnMouseMove(x, y))
+                return true;
         }
+        return false;
     }
 
     void _OnMouseLeave()
     {
-        if (_exclusiveHandler)
-        {
-            _exclusiveHandler->OnMouseLeave();
-            return;
-        }
-
         for (auto& handler : _handlers)
         {
             handler->OnMouseLeave();
@@ -70,99 +74,69 @@ private: // Mouse event handling
 
     void _OnMouseEnter()
     {
-        if (_exclusiveHandler)
-        {
-            _exclusiveHandler->OnMouseEnter();
-            return;
-        }
-
         for (auto& handler : _handlers)
         {
             handler->OnMouseEnter();
         }
     }
 
-    void _OnLeftPressed(int x, int y)
+    bool _OnLeftPressed(int x, int y)
     {
-        if (_exclusiveHandler)
-        {
-            _exclusiveHandler->OnLeftPressed(x, y);
-            return;
-        }
-
         for (auto& handler : _handlers)
         {
-            handler->OnLeftPressed(x, y);
+            if (handler->OnLeftPressed(x, y))
+                return true;
         }
+        return false;
     }
 
-    void _OnLeftReleased(int x, int y)
+    bool _OnLeftReleased(int x, int y)
     {
-        if (_exclusiveHandler)
-        {
-            _exclusiveHandler->OnLeftReleased(x, y);
-            return;
-        }
-
         for (auto& handler : _handlers)
         {
-            handler->OnLeftReleased(x, y);
+            if (handler->OnLeftReleased(x, y))
+                return true;
         }
+        return false;
     }
 
-    void _OnRightPressed(int x, int y)
+    bool _OnRightPressed(int x, int y)
     {
-        if (_exclusiveHandler)
-        {
-            _exclusiveHandler->OnRightPressed(x, y);
-            return;
-        }
-
         for (auto& handler : _handlers)
         {
-            handler->OnRightPressed(x, y);
+            if (handler->OnRightPressed(x, y))
+                return true;
         }
+        return false;
     }
 
-    void _OnRightReleased(int x, int y)
+    bool _OnRightReleased(int x, int y)
     {
-        if (_exclusiveHandler)
-        {
-            _exclusiveHandler->OnRightReleased(x, y);
-            return;
-        }
-
         for (auto& handler : _handlers)
         {
-            handler->OnRightReleased(x, y);
+            if (handler->OnRightReleased(x, y))
+                return true;
         }
+        return false;
     }
 
-    void _OnWheelUp(int x, int y)
+    bool _OnWheelUp(int x, int y)
     {
-        if (_exclusiveHandler)
-        {
-            _exclusiveHandler->OnWheelUp(x, y);
-            return;
-        }
-
         for (auto& handler : _handlers)
         {
-            handler->OnWheelUp(x, y);
+            if (handler->OnWheelUp(x, y))
+                return true;
         }
+        return false;
     }
 
-    void _OnWheelDown(int x, int y)
+    bool _OnWheelDown(int x, int y)
     {
-        if (_exclusiveHandler)
-        {
-            _exclusiveHandler->OnWheelDown(x, y);
-            return;
-        }
-
         for (auto& handler : _handlers)
         {
-            handler->OnWheelDown(x, y);
+            if (handler->OnWheelDown(x, y))
+                return true;
         }
+        return false;
     }
 };

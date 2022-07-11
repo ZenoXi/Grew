@@ -1,5 +1,6 @@
 #include "App.h"
 
+#include "OverlayScene.h"
 #include "EntryScene.h";
 #include "ConnectScene.h"
 #include "StartServerScene.h"
@@ -73,6 +74,11 @@ void App::Init(DisplayWindow& dw, std::string startScene)
     {
         _instance = new App(dw, startScene);
     }
+
+    // Overlay scene is always initialized and on top
+    Instance()->_overlayScene = new OverlayScene(_instance);
+    Instance()->_overlayScene->Init(nullptr);
+    Instance()->_overlayScene->Focus();
 
     // Add scenes
     Instance()->_scenes.push_back(new EntryScene(_instance));
@@ -373,8 +379,8 @@ void App::LoopThread()
         {
             int w = LOWORD(wmSize.lParam);
             int h = HIWORD(wmSize.lParam);
-            //layout.Resize(w, h);
-            //layout.componentCanvas.Resize(w, h);
+
+            _overlayScene->Resize(w, h);
             auto activeScenes = ActiveScenes();
             for (auto& scene : activeScenes)
                 scene->Resize(w, h);
@@ -420,6 +426,18 @@ void App::LoopThread()
             window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0.3f, 0.3f, 0.3f));
         }
 
+        { // Overlay scene
+            _overlayScene->Update();
+            if (_overlayScene->Redraw())
+            {
+                if (!redraw)
+                    window.gfx.GetGraphics().target->BeginDraw();
+
+                _overlayScene->Draw(window.gfx.GetGraphics());
+                redraw = true;
+            }
+        }
+
         auto activeScenes = ActiveScenes();
         for (auto& scene : activeScenes)
         {
@@ -452,6 +470,8 @@ void App::LoopThread()
             {
                 window.gfx.GetGraphics().target->DrawBitmap(scene->Image());
             }
+            // Draw overlay scene last
+            window.gfx.GetGraphics().target->DrawBitmap(_overlayScene->Image());
             window.gfx.GetGraphics().target->EndDraw();
             //timer.Update();
             //draw += timer.Now() - start;
@@ -476,6 +496,8 @@ void App::LoopThread()
         window.gfx.Unlock();
 
         // Prevent deadlock from extremely short unlock-lock cycle
+        // (it doesn't make sense to me either but for some reason
+        // the mutexes aren't locked in order of 'Lock()' calls)
         Clock sleepTimer = Clock(0);
         do sleepTimer.Update();
         while (sleepTimer.Now().GetTime(MICROSECONDS) < 10);
