@@ -82,6 +82,14 @@ private: // Mouse event handling
 
     bool _OnLeftPressed(int x, int y)
     {
+        if (_overlayHandler)
+        {
+            if (_overlayHandler->OnLeftPressed(x, y))
+            {
+                return true;
+            }
+        }
+
         for (auto& handler : _handlers)
         {
             if (handler->OnLeftPressed(x, y))
@@ -92,6 +100,14 @@ private: // Mouse event handling
 
     bool _OnLeftReleased(int x, int y)
     {
+        if (_overlayHandler)
+        {
+            if (_overlayHandler->OnLeftReleased(x, y))
+            {
+                return true;
+            }
+        }
+
         for (auto& handler : _handlers)
         {
             if (handler->OnLeftReleased(x, y))
@@ -102,6 +118,14 @@ private: // Mouse event handling
 
     bool _OnRightPressed(int x, int y)
     {
+        if (_overlayHandler)
+        {
+            if (_overlayHandler->OnRightPressed(x, y))
+            {
+                return true;
+            }
+        }
+
         for (auto& handler : _handlers)
         {
             if (handler->OnRightPressed(x, y))
@@ -112,6 +136,14 @@ private: // Mouse event handling
 
     bool _OnRightReleased(int x, int y)
     {
+        if (_overlayHandler)
+        {
+            if (_overlayHandler->OnRightReleased(x, y))
+            {
+                return true;
+            }
+        }
+
         for (auto& handler : _handlers)
         {
             if (handler->OnRightReleased(x, y))
@@ -122,6 +154,14 @@ private: // Mouse event handling
 
     bool _OnWheelUp(int x, int y)
     {
+        if (_overlayHandler)
+        {
+            if (_overlayHandler->OnWheelUp(x, y))
+            {
+                return true;
+            }
+        }
+
         for (auto& handler : _handlers)
         {
             if (handler->OnWheelUp(x, y))
@@ -132,6 +172,14 @@ private: // Mouse event handling
 
     bool _OnWheelDown(int x, int y)
     {
+        if (_overlayHandler)
+        {
+            if (_overlayHandler->OnWheelDown(x, y))
+            {
+                return true;
+            }
+        }
+
         for (auto& handler : _handlers)
         {
             if (handler->OnWheelDown(x, y))
