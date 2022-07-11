@@ -15,6 +15,8 @@
 #include <thread>
 #include <mutex>
 
+class OverlayScene;
+
 // Singleton
 class App
 {
@@ -46,6 +48,8 @@ private: // Scene control
 public:
     bool SetScene(std::string name, SceneOptionsBase* options);
     Scene* CurrentScene();
+
+    OverlayScene* Overlay() { return (OverlayScene*)_overlayScene; }
     // Initializes the scene and places it behind all scenes, unfocused (unless no scenes are initialized)
     bool InitScene(std::string name, SceneOptionsBase* options);
     // Uninitializes and immediatelly initializes the scene with new options, keeping focus/z-order the same
