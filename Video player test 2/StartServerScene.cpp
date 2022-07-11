@@ -56,7 +56,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     _portInput->SetCornerRounding(5.0f);
     _portInput->SetTabIndex(0);
 
-    _presetDropdown = Create<zcom::DropdownSelection>(L"Presets", _canvas, L"No presets added");
+    _presetDropdown = Create<zcom::DropdownSelection>(L"Presets", L"No presets added");
     _presetDropdown->SetBaseSize(100, 30);
     _presetDropdown->SetOffsetPixels(-30, 90);
     _presetDropdown->SetHorizontalAlignment(zcom::Alignment::END);

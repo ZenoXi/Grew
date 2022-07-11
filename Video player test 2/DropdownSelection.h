@@ -41,7 +41,6 @@ namespace zcom
     private:
         ID2D1Bitmap* _downArrow = nullptr;
 
-        Canvas* _canvas = nullptr;
         std::unique_ptr<MenuPanel> _menuPanel = nullptr;
         bool _menuPanelEmpty = true;
         std::wstring _defaultText;
@@ -51,7 +50,7 @@ namespace zcom
         friend class Scene;
         friend class Base;
         DropdownSelection(Scene* scene) : Button(scene) {}
-        void Init(std::wstring text, Canvas* canvas, std::wstring defaultText = L"No items")
+        void Init(std::wstring text, std::wstring defaultText = L"No items")
         {
             Button::Init(text);
 
@@ -61,22 +60,17 @@ namespace zcom
             Text()->SetMargins({ 5.0f });
             _downArrow = ResourceManager::GetImage("menu_expand_down");
 
-            _canvas = canvas;
             _defaultText = defaultText;
-            _menuPanel = Create<zcom::MenuPanel>(_canvas);
+            _menuPanel = Create<zcom::MenuPanel>();
             _menuPanel->SetMaxWidth(300);
             _menuPanel->SetZIndex(512); // Arbitrarily chosen number that's almost guaranteed to be higher than all other components
             _menuPanelEmpty = true;
             auto defaultItem = Create<MenuItem>(_defaultText);
             defaultItem->SetDisabled(true);
             _menuPanel->AddItem(std::move(defaultItem));
-            _AddPanelToCanvas();
         }
     public:
-        ~DropdownSelection()
-        {
-            _RemovePanelFromCanvas();
-        }
+        ~DropdownSelection() {}
         DropdownSelection(DropdownSelection&&) = delete;
         DropdownSelection& operator=(DropdownSelection&&) = delete;
         DropdownSelection(const DropdownSelection&) = delete;
@@ -102,9 +96,5 @@ namespace zcom
         {
             _menuBounds = bounds;
         }
-
-    private:
-        void _AddPanelToCanvas();
-        void _RemovePanelFromCanvas();
     };
 }

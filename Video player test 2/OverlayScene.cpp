@@ -34,6 +34,10 @@ void OverlayScene::_Init(const SceneOptionsBase* options)
 
         return true;
     };
+    auto testFuncClick = [&](const zcom::EventTargets* targets)
+    {
+
+    };
     _canvas->AddOnMouseMove(testFunc);
     _canvas->AddOnLeftPressed(testFunc);
     _canvas->AddOnLeftReleased(testFunc);
@@ -49,13 +53,19 @@ void OverlayScene::_Init(const SceneOptionsBase* options)
     _notificationPanel->SetHorizontalAlignment(zcom::Alignment::END);
     _notificationPanel->SetZIndex(NOTIF_PANEL_Z_INDEX);
     _notificationPanel->SetVisible(false);
+    _notificationPanel->SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
+
+    _occlusionPanel = Create<zcom::EmptyPanel>();
+    _occlusionPanel->SetParentSizePercent(1.0f, 1.0f);
+    _occlusionPanel->SetVisible(false);
 
     _canvas->AddComponent(_notificationPanel.get());
+    _canvas->AddComponent(_occlusionPanel.get());
 }
 
 void OverlayScene::_Uninit()
 {
-
+    _canvas->ClearComponents();
 }
 
 void OverlayScene::_Focus()
@@ -71,6 +81,13 @@ void OverlayScene::_Update()
 {
     _canvas->Update();
     _UpdateNotifications();
+
+    if (_menu && !_menu->GetVisible())
+    {
+        _menu->RemoveOnDestruct({ this, "" });
+        _menu = nullptr;
+        _occlusionPanel->SetVisible(false);
+    }
 }
 
 void OverlayScene::ShowNotification(zcom::NotificationInfo info)
@@ -86,6 +103,29 @@ void OverlayScene::ShowNotification(zcom::NotificationInfo info)
     _notifications.push_back(std::move(notification));
     _notificationPanel->SetVisible(true);
     _RearrangeNotifications();
+}
+
+void OverlayScene::ShowMenu(zcom::MenuPanel* menu, RECT parentRect)
+{
+    if (_menu)
+    {
+        _menu->RemoveOnDestruct({ this, "" });
+        _menu->Hide();
+        _menu = nullptr;
+        _occlusionPanel->SetVisible(false);
+    }
+    if (!menu)
+        return;
+
+    _menu = menu;
+    _menu->SetZIndex(1);
+    _menu->AddOnDestruct([&]()
+    {
+        _menu->Hide();
+        _menu = nullptr;
+    }, { this, "" });
+    _menu->Show(_canvas, parentRect);
+    _occlusionPanel->SetVisible(true);
 }
 
 void OverlayScene::_UpdateNotifications()

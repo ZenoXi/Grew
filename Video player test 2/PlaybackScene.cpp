@@ -1,5 +1,6 @@
 #include "App.h" // App.h must be included first
 #include "PlaybackScene.h"
+#include "OverlayScene.h"
 #include "PlaybackOverlayScene.h"
 #include "HostPlaybackController.h"
 #include "ReceiverPlaybackController.h"
@@ -221,27 +222,19 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _settingsButton->SetSelectable(false);
     _settingsButton->SetOnActivated([&]()
     {
-        if (!_streamMenuPanel->GetVisible())
-        {
-            RECT screenRect = { 0, 0, _canvas->GetWidth(), _canvas->GetHeight() };
-            RECT buttonRect = {
-                _settingsButton->GetScreenX(),
-                _settingsButton->GetScreenY(),
-                _settingsButton->GetScreenX(),// + _streamButton->GetWidth(),
-                _settingsButton->GetScreenY()// + _streamButton->GetHeight()
-            };
-            _streamMenuPanel->Show(screenRect, buttonRect);
-        }
-        else
-        {
-            _streamMenuPanel->Hide();
-        }
+        RECT buttonRect = {
+            _settingsButton->GetScreenX(),
+            _settingsButton->GetScreenY(),
+            _settingsButton->GetScreenX(),// + _streamButton->GetWidth(),
+            _settingsButton->GetScreenY()// + _streamButton->GetHeight()
+        };
+        GetApp()->Overlay()->ShowMenu(_streamMenuPanel.get(), buttonRect);
     });
 
-    _streamMenuPanel = Create<zcom::MenuPanel>(_canvas);
-    _videoStreamMenuPanel = Create<zcom::MenuPanel>(_canvas);
-    _audioStreamMenuPanel = Create<zcom::MenuPanel>(_canvas);
-    _subtitleStreamMenuPanel = Create<zcom::MenuPanel>(_canvas);
+    _streamMenuPanel = Create<zcom::MenuPanel>();
+    _videoStreamMenuPanel = Create<zcom::MenuPanel>();
+    _audioStreamMenuPanel = Create<zcom::MenuPanel>();
+    _subtitleStreamMenuPanel = Create<zcom::MenuPanel>();
 
     _streamMenuPanel->SetBaseWidth(150);
     _streamMenuPanel->SetZIndex(255);
@@ -342,10 +335,10 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _canvas->AddComponent(_volumeIcon.get());
     _canvas->AddComponent(_playbackControllerPanel.get());
     _canvas->AddComponent(_timeHoverPanel.get());
-    _canvas->AddComponent(_streamMenuPanel.get());
-    _canvas->AddComponent(_videoStreamMenuPanel.get());
-    _canvas->AddComponent(_audioStreamMenuPanel.get());
-    _canvas->AddComponent(_subtitleStreamMenuPanel.get());
+    //_canvas->AddComponent(_streamMenuPanel.get());
+    //_canvas->AddComponent(_videoStreamMenuPanel.get());
+    //_canvas->AddComponent(_audioStreamMenuPanel.get());
+    //_canvas->AddComponent(_subtitleStreamMenuPanel.get());
     //componentCanvas.AddComponent(controlBar);
 }
 

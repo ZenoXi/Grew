@@ -35,7 +35,7 @@ namespace zcom
                     _openChildPanel = nullptr;
                 }
                 _openChildPanel = _childToShow;
-                _openChildPanel->Show(_bounds, _parentRect, this);
+                _openChildPanel->Show(_sceneCanvas, _parentRect, this);
                 _childToShow = nullptr;
             }
         }
@@ -175,16 +175,16 @@ namespace zcom
         TimePoint _showTime = 0;
         Duration _hoverToShowDuration = Duration(250, MILLISECONDS);
 
+        Event<void> _onDestructEvent;
+        Event<void> _onHideEvent;
+
     protected:
         friend class Scene;
         friend class Base;
         MenuPanel(Scene* scene) : Panel(scene) {}
-        void Init(Canvas* sceneCanvas)
+        void Init()
         {
             Panel::Init();
-
-            _sceneCanvas = sceneCanvas;
-            _AddHandlerToCanvas();
 
             SetBackgroundColor(D2D1::ColorF(0.05f, 0.05f, 0.05f));
             SetBorderVisibility(true);
@@ -197,7 +197,11 @@ namespace zcom
             SetVisible(false);
         }
     public:
-        ~MenuPanel() { ClearItems(); }
+        ~MenuPanel()
+        {
+            _onDestructEvent.InvokeAll();
+            ClearItems();
+        }
         MenuPanel(MenuPanel&&) = delete;
         MenuPanel& operator=(MenuPanel&&) = delete;
         MenuPanel(const MenuPanel&) = delete;
@@ -233,31 +237,9 @@ namespace zcom
             _RearrangeMenuItems();
         }
 
-        void Show(RECT bounds, RECT parentRect, MenuPanel* parentPanel = nullptr)
-        {
-            _bounds = bounds;
-            _parentRect = parentRect;
-            _parentPanel = parentPanel;
+        void Show(Canvas* sceneCanvas, RECT parentRect, MenuPanel* parentPanel = nullptr);
 
-            _CalculatePlacement();
-            // Place this panel above parent
-            if (_parentPanel)
-                SetZIndex(_parentPanel->GetZIndex() + 1);
-            SetVisible(true);
-            _showTime = ztime::Main();
-        }
-
-        void Hide()
-        {
-            if (_openChildPanel)
-            {
-                _openChildPanel->Hide();
-                _openChildPanel = nullptr;
-            }
-            if (_hoveredItem)
-                _hoveredItem->SetBackgroundColor(D2D1::ColorF(0, 0.0f));
-            SetVisible(false);
-        }
+        void Hide();
 
         // Called by child MenuPanel when it closes itself
         void OnChildClosed(const EventTargets* targets)
@@ -280,8 +262,30 @@ namespace zcom
                 Hide();
         }
 
+        void AddOnDestruct(std::function<void()> handler, EventInfo info = { nullptr, "" })
+        {
+            _onDestructEvent.Add(handler, info);
+        }
+
+        void AddOnHide(std::function<void()> handler, EventInfo info = { nullptr, "" })
+        {
+            _onHideEvent.Add(handler, info);
+        }
+
+        void RemoveOnDestruct(EventInfo info)
+        {
+            _onDestructEvent.Remove(info);
+        }
+
+        void RemoveOnHide(EventInfo info)
+        {
+            _onHideEvent.Remove(info);
+        }
+
     private:
         void _AddHandlerToCanvas();
+
+        void _RemoveHandlerFromCanvas();
 
         void _RearrangeMenuItems()
         {

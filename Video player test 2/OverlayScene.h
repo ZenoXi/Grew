@@ -3,7 +3,9 @@
 #include "Scene.h"
 #include "MouseEventHandler.h"
 
-#include "Panel.h"
+#include "Notification.h"
+#include "MenuPanel.h"
+#include "EmptyPanel.h"
 
 class OverlayShortcutHandler : public KeyboardEventHandler
 {
@@ -21,6 +23,7 @@ class OverlayScene : public Scene
 {
 public:
     void ShowNotification(zcom::NotificationInfo info);
+    void ShowMenu(zcom::MenuPanel* menu, RECT parentRect = {});
 
 public:
     OverlayScene(App* app);
@@ -33,6 +36,10 @@ private: // Notifications
     std::vector<std::unique_ptr<zcom::Notification>> _notifications;
     void _UpdateNotifications();
     void _RearrangeNotifications();
+
+private: // Menus
+    zcom::MenuPanel* _menu = nullptr;
+    std::unique_ptr<zcom::EmptyPanel> _occlusionPanel = nullptr;
 
 private:
     std::unique_ptr<OverlayShortcutHandler> _shortcutHandler = nullptr;
