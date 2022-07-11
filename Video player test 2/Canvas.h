@@ -301,39 +301,74 @@ namespace zcom
         }
 
 
-        void AddOnMouseMove(std::function<bool(const EventTargets*)> func)
+        void AddOnMouseMove(std::function<bool(const EventTargets*)> func, EventInfo info = { nullptr, "" })
         {
-            _mouseMoveHandlers.Add(func);
+            _mouseMoveHandlers.Add(func, info);
         }
 
-        void AddOnLeftPressed(std::function<bool(const EventTargets*)> func)
+        void AddOnLeftPressed(std::function<bool(const EventTargets*)> func, EventInfo info = { nullptr, "" })
         {
-            _leftPressedHandlers.Add(func);
+            _leftPressedHandlers.Add(func, info);
         }
 
-        void AddOnLeftReleased(std::function<bool(const EventTargets*)> func)
+        void AddOnLeftReleased(std::function<bool(const EventTargets*)> func, EventInfo info = { nullptr, "" })
         {
-            _leftReleasedHandlers.Add(func);
+            _leftReleasedHandlers.Add(func, info);
         }
 
-        void AddOnRightPressed(std::function<bool(const EventTargets*)> func)
+        void AddOnRightPressed(std::function<bool(const EventTargets*)> func, EventInfo info = { nullptr, "" })
         {
-            _rightPressedHandlers.Add(func);
+            _rightPressedHandlers.Add(func, info);
         }
 
-        void AddOnRightReleased(std::function<bool(const EventTargets*)> func)
+        void AddOnRightReleased(std::function<bool(const EventTargets*)> func, EventInfo info = { nullptr, "" })
         {
-            _rightReleasedHandlers.Add(func);
+            _rightReleasedHandlers.Add(func, info);
         }
 
-        void AddOnWheelUp(std::function<bool(const EventTargets*)> func)
+        void AddOnWheelUp(std::function<bool(const EventTargets*)> func, EventInfo info = { nullptr, "" })
         {
-            _wheelUpHandlers.Add(func);
+            _wheelUpHandlers.Add(func, info);
         }
 
-        void AddOnWheelDown(std::function<bool(const EventTargets*)> func)
+        void AddOnWheelDown(std::function<bool(const EventTargets*)> func, EventInfo info = { nullptr, "" })
         {
-            _wheelDownHandlers.Add(func);
+            _wheelDownHandlers.Add(func, info);
+        }
+
+        void RemoveOnMouseMove(EventInfo info)
+        {
+            _mouseMoveHandlers.Remove(info);
+        }
+
+        void RemoveOnLeftPressed(EventInfo info)
+        {
+            _leftPressedHandlers.Remove(info);
+        }
+
+        void RemoveOnLeftReleased(EventInfo info)
+        {
+            _leftReleasedHandlers.Remove(info);
+        }
+
+        void RemoveOnRightPressed(EventInfo info)
+        {
+            _rightPressedHandlers.Remove(info);
+        }
+
+        void RemoveOnRightReleased(EventInfo info)
+        {
+            _rightReleasedHandlers.Remove(info);
+        }
+
+        void RemoveOnWheelUp(EventInfo info)
+        {
+            _wheelUpHandlers.Remove(info);
+        }
+
+        void RemoveOnWheelDown(EventInfo info)
+        {
+            _wheelDownHandlers.Remove(info);
         }
 
     private:
