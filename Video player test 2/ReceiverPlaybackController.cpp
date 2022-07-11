@@ -1,7 +1,7 @@
 #include "ReceiverPlaybackController.h"
 
 #include "App.h"
-#include "PlaybackScene.h"
+#include "OverlayScene.h"
 
 ReceiverPlaybackController::ReceiverPlaybackController(IMediaDataProvider* dataProvider, int64_t hostId)
     : BasePlaybackController(dataProvider)
@@ -106,14 +106,13 @@ void ReceiverPlaybackController::_CheckForPlay()
 
         // Show notification
         int64_t userId = packetPair.first.Cast<int64_t>();
-        Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
-        if (scene && userId != APP_NETWORK->ThisUser().id)
+        if (userId != APP_NETWORK->ThisUser().id)
         {
             zcom::NotificationInfo ninfo;
             ninfo.duration = Duration(1, SECONDS);
             ninfo.title = L"Playback resumed";
             ninfo.text = _UsernameFromId(userId);
-            scene->ShowNotification(ninfo);
+            App::Instance()->Overlay()->ShowNotification(ninfo);
         }
     }
 }
@@ -130,14 +129,13 @@ void ReceiverPlaybackController::_CheckForPause()
 
         // Show notification
         int64_t userId = packetPair.first.Cast<int64_t>();
-        Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
-        if (scene && userId != APP_NETWORK->ThisUser().id)
+        if (userId != APP_NETWORK->ThisUser().id)
         {
             zcom::NotificationInfo ninfo;
             ninfo.duration = Duration(1, SECONDS);
             ninfo.title = L"Playback paused";
             ninfo.text = _UsernameFromId(userId);
-            scene->ShowNotification(ninfo);
+            App::Instance()->Overlay()->ShowNotification(ninfo);
         }
     }
 }
@@ -204,8 +202,7 @@ void ReceiverPlaybackController::_CheckForInitiateSeek()
         }
 
         // Show notifications
-        Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
-        if (scene && seekData.userId != APP_NETWORK->ThisUser().id)
+        if (seekData.userId != APP_NETWORK->ThisUser().id)
         {
             zcom::NotificationInfo ninfo;
             ninfo.duration = Duration(2, SECONDS);
@@ -222,22 +219,22 @@ void ReceiverPlaybackController::_CheckForInitiateSeek()
                 if (s < 10) timeStr << "0" << s;
                 else timeStr << s;
                 ninfo.title = L"Seek to " + timeStr.str();
-                scene->ShowNotification(ninfo);
+                App::Instance()->Overlay()->ShowNotification(ninfo);
             }
             if (seekData.videoStreamIndex != std::numeric_limits<int>::min())
             {
                 ninfo.title = L"Video stream changed";
-                scene->ShowNotification(ninfo);
+                App::Instance()->Overlay()->ShowNotification(ninfo);
             }
             if (seekData.audioStreamIndex != std::numeric_limits<int>::min())
             {
                 ninfo.title = L"Audio stream changed";
-                scene->ShowNotification(ninfo);
+                App::Instance()->Overlay()->ShowNotification(ninfo);
             }
             if (seekData.subtitleStreamIndex != std::numeric_limits<int>::min())
             {
                 ninfo.title = L"Subtitle stream changed";
-                scene->ShowNotification(ninfo);
+                App::Instance()->Overlay()->ShowNotification(ninfo);
             }
         }
     }

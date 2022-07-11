@@ -26,14 +26,16 @@ class App;
 
 class Scene
 {
+    friend class App;
 protected:
     App* _app;
     zcom::Canvas* _canvas;
     bool _focused = false;
 
-public:
     Scene(App* app);
+public:
     virtual ~Scene();
+protected:
     void Init(const SceneOptionsBase* options);
     void Uninit();
     void Focus();
@@ -62,6 +64,7 @@ public:
         return uptr;
     }
 
+public:
     App* GetApp() const { return _app; }
 
     zcom::Canvas* GetCanvas() const;
@@ -80,16 +83,4 @@ private:
 
 public:
     virtual const char* GetName() const = 0;
-
-
-private: // Notifications
-    NotificationPosition _notificationPosition = NotificationPosition::BOTTOM_RIGHT;
-    std::unique_ptr<zcom::Panel> _notificationPanel;
-    std::vector<std::unique_ptr<zcom::Notification>> _notifications;
-public:
-    void SetNotificationPosition(NotificationPosition position);
-    void ShowNotification(zcom::NotificationInfo info);
-private:
-    void _UpdateNotifications();
-    void _RearrangeNotifications();
 };

@@ -10,7 +10,6 @@
 PlaybackScene::PlaybackScene(App* app)
     : Scene(app)
 {
-    SetNotificationPosition(NotificationPosition::TOP_RIGHT);
 }
 
 void PlaybackScene::_Init(const SceneOptionsBase* options)

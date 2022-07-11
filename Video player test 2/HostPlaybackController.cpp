@@ -1,7 +1,7 @@
 #include "HostPlaybackController.h"
 
 #include "App.h"
-#include "PlaybackScene.h"
+#include "OverlayScene.h"
 
 HostPlaybackController::HostPlaybackController(IMediaDataProvider* dataProvider, std::vector<int64_t> participants)
     : BasePlaybackController(dataProvider)
@@ -90,15 +90,11 @@ void HostPlaybackController::_CheckForPlayRequest()
         APP_NETWORK->Send(znet::Packet((int)znet::PacketType::RESUME).From(packetPair.second), _GetUserIds(), 1);
 
         // Show notification
-        Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
-        if (scene)
-        {
-            zcom::NotificationInfo ninfo;
-            ninfo.duration = Duration(1, SECONDS);
-            ninfo.title = L"Playback resumed";
-            ninfo.text = _UsernameFromId(packetPair.second);
-            scene->ShowNotification(ninfo);
-        }
+        zcom::NotificationInfo ninfo;
+        ninfo.duration = Duration(1, SECONDS);
+        ninfo.title = L"Playback resumed";
+        ninfo.text = _UsernameFromId(packetPair.second);
+        App::Instance()->Overlay()->ShowNotification(ninfo);
     }
 }
 
@@ -114,15 +110,11 @@ void HostPlaybackController::_CheckForPauseRequest()
         APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PAUSE).From(packetPair.second), _GetUserIds(), 1);
 
         // Show notification
-        Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
-        if (scene)
-        {
-            zcom::NotificationInfo ninfo;
-            ninfo.duration = Duration(1, SECONDS);
-            ninfo.title = L"Playback paused";
-            ninfo.text = _UsernameFromId(packetPair.second);
-            scene->ShowNotification(ninfo);
-        }
+        zcom::NotificationInfo ninfo;
+        ninfo.duration = Duration(1, SECONDS);
+        ninfo.title = L"Playback paused";
+        ninfo.text = _UsernameFromId(packetPair.second);
+        App::Instance()->Overlay()->ShowNotification(ninfo);
     }
 }
 
@@ -166,41 +158,37 @@ void HostPlaybackController::_CheckForSeekRequest()
         _Seek(seekData);
 
         // Show notifications
-        Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
-        if (scene)
+        zcom::NotificationInfo ninfo;
+        ninfo.duration = Duration(2, SECONDS);
+        ninfo.text = _UsernameFromId(seekData.userId);
+        if (!seekData.defaultTime)
         {
-            zcom::NotificationInfo ninfo;
-            ninfo.duration = Duration(2, SECONDS);
-            ninfo.text = _UsernameFromId(seekData.userId);
-            if (!seekData.defaultTime)
-            {
-                std::wstringstream timeStr;
-                int h = seekData.time.GetTime(HOURS);
-                int m = seekData.time.GetTime(MINUTES) % 60;
-                int s = seekData.time.GetTime(SECONDS) % 60;
-                if (h > 0) timeStr << h << ":";
-                if (m < 10) timeStr << "0" << m << ":";
-                else timeStr << m << ":";
-                if (s < 10) timeStr << "0" << s;
-                else timeStr << s;
-                ninfo.title = L"Seek to " + timeStr.str();
-                scene->ShowNotification(ninfo);
-            }
-            if (seekData.videoStreamIndex != std::numeric_limits<int>::min())
-            {
-                ninfo.title = L"Video stream changed";
-                scene->ShowNotification(ninfo);
-            }
-            if (seekData.audioStreamIndex != std::numeric_limits<int>::min())
-            {
-                ninfo.title = L"Audio stream changed";
-                scene->ShowNotification(ninfo);
-            }
-            if (seekData.subtitleStreamIndex != std::numeric_limits<int>::min())
-            {
-                ninfo.title = L"Subtitle stream changed";
-                scene->ShowNotification(ninfo);
-            }
+            std::wstringstream timeStr;
+            int h = seekData.time.GetTime(HOURS);
+            int m = seekData.time.GetTime(MINUTES) % 60;
+            int s = seekData.time.GetTime(SECONDS) % 60;
+            if (h > 0) timeStr << h << ":";
+            if (m < 10) timeStr << "0" << m << ":";
+            else timeStr << m << ":";
+            if (s < 10) timeStr << "0" << s;
+            else timeStr << s;
+            ninfo.title = L"Seek to " + timeStr.str();
+            App::Instance()->Overlay()->ShowNotification(ninfo);
+        }
+        if (seekData.videoStreamIndex != std::numeric_limits<int>::min())
+        {
+            ninfo.title = L"Video stream changed";
+            App::Instance()->Overlay()->ShowNotification(ninfo);
+        }
+        if (seekData.audioStreamIndex != std::numeric_limits<int>::min())
+        {
+            ninfo.title = L"Audio stream changed";
+            App::Instance()->Overlay()->ShowNotification(ninfo);
+        }
+        if (seekData.subtitleStreamIndex != std::numeric_limits<int>::min())
+        {
+            ninfo.title = L"Subtitle stream changed";
+            App::Instance()->Overlay()->ShowNotification(ninfo);
         }
 
         //_StartSeeking();
