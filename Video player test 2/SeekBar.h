@@ -4,6 +4,7 @@
 #include "Dwrite.h"
 
 #include "ComponentBase.h"
+#include "Label.h"
 #include "GameTime.h"
 #include "Functions.h"
 #include "Event.h"
@@ -24,6 +25,11 @@ namespace zcom
             _timeBarHeightTransition.Apply(_timeBarHeight);
             if (_timeBarHeight != initialValue)
                 InvokeRedraw();
+        }
+
+        bool _Redraw()
+        {
+            return _currentTimeLabel->Redraw() || _durationLabel->Redraw();
         }
 
         void _OnDraw(Graphics g)
@@ -48,16 +54,6 @@ namespace zcom
             {
                 g.target->CreateSolidColorBrush(D2D1::ColorF(0.6f, 0.6f, 0.6f), &_remainingPartBrush);
                 g.refs->push_back((IUnknown**)&_remainingPartBrush);
-            }
-            if (!_textBrush)
-            {
-                g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::LightGray), &_textBrush);
-                g.refs->push_back((IUnknown**)&_textBrush);
-            }
-            if (!_textBackgroundBrush)
-            {
-                g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::ColorF(0, 0.5f)), &_textBackgroundBrush);
-                g.refs->push_back((IUnknown**)&_textBackgroundBrush);
             }
 
             // Draw the seek bar
@@ -163,58 +159,29 @@ namespace zcom
             }
 
             // Create time strings
-            std::wstringstream timeStr;
-            std::wstring currentTimeStr;
-            std::wstring durationStr;
-
-            int h = _currentTime.GetTime(HOURS);
-            int m = _currentTime.GetTime(MINUTES) % 60;
-            int s = _currentTime.GetTime(SECONDS) % 60;
-            if (h > 0) timeStr << h << ":";
-            if (m < 10) timeStr << "0" << m << ":";
-            else timeStr << m << ":";
-            if (s < 10) timeStr << "0" << s;
-            else timeStr << s;
-            currentTimeStr = timeStr.str();
-
-            h = _duration.GetDuration(HOURS);
-            m = _duration.GetDuration(MINUTES) % 60;
-            s = _duration.GetDuration(SECONDS) % 60;
-            timeStr.str(L"");
-            timeStr.clear();
-            if (h > 0) timeStr << h << ":";
-            if (m < 10) timeStr << "0" << m << ":";
-            else timeStr << m << ":";
-            if (s < 10) timeStr << "0" << s;
-            else timeStr << s;
-            durationStr = timeStr.str();
+            _currentTimeLabel->SetText(string_to_wstring(TimeToString(_currentTime)));
+            _durationLabel->SetText(string_to_wstring(TimeToString(_duration.GetTicks())));
 
             // Draw time strings
-            g.target->DrawText(
-                currentTimeStr.c_str(),
-                currentTimeStr.length(),
-                _dwriteTextFormat,
-                D2D1::RectF(
-                    0.0f,
-                    (GetHeight() - _textHeight) * 0.5f,
-                    timeTextWidth,
-                    (GetHeight() + _textHeight) * 0.5f
-                ),
-                _textBrush
+            auto currentTimeRect = D2D1::RectF(
+                _margins,
+                (GetHeight() - _textHeight) * 0.5f,
+                _margins + _maxTimeWidth,
+                (GetHeight() + _textHeight) * 0.5f
             );
+            if (_currentTimeLabel->Redraw())
+                _currentTimeLabel->Draw(g);
+            g.target->DrawBitmap(_currentTimeLabel->Image(), currentTimeRect);
 
-            g.target->DrawText(
-                durationStr.c_str(),
-                durationStr.length(),
-                _dwriteTextFormat,
-                D2D1::RectF(
-                    GetWidth() - timeTextWidth,
-                    (GetHeight() - _textHeight) * 0.5f,
-                    GetWidth(),
-                    (GetHeight() + _textHeight) * 0.5f
-                ),
-                _textBrush
+            auto durationRect = D2D1::RectF(
+                GetWidth() - _margins - _maxTimeWidth,
+                (GetHeight() - _textHeight) * 0.5f,
+                GetWidth() - _margins,
+                (GetHeight() + _textHeight) * 0.5f
             );
+            if (_durationLabel->Redraw())
+                _durationLabel->Draw(g);
+            g.target->DrawBitmap(_durationLabel->Image(), durationRect);
         }
 
         EventTargets _OnMouseMove(int x, int y, bool duplicate)
@@ -329,6 +296,9 @@ namespace zcom
         Duration _buffered = 0;
         TimePoint _currentTime = 0;
 
+        std::unique_ptr<Label> _currentTimeLabel = nullptr;
+        std::unique_ptr<Label> _durationLabel = nullptr;
+
         std::vector<MediaChapter> _chapters;
 
         bool _held = false;
@@ -351,8 +321,6 @@ namespace zcom
         ID2D1SolidColorBrush* _seekbarMarkerBrush = nullptr;
         ID2D1SolidColorBrush* _bufferedPartBrush = nullptr;
         ID2D1SolidColorBrush* _remainingPartBrush = nullptr;
-        ID2D1SolidColorBrush* _textBrush = nullptr;
-        ID2D1SolidColorBrush* _textBackgroundBrush = nullptr;
 
         IDWriteFactory* _dwriteFactory = nullptr;
         IDWriteTextFormat* _dwriteTextFormat = nullptr;
@@ -368,38 +336,22 @@ namespace zcom
         {
             _duration = duration;
 
-            // Create text rendering resources
-            DWriteCreateFactory(
-                DWRITE_FACTORY_TYPE_SHARED,
-                __uuidof(IDWriteFactory),
-                reinterpret_cast<IUnknown**>(&_dwriteFactory)
-            );
+            _maxTimeWidth = 62.0f;
+            _textHeight = 20.0f;
 
-            _dwriteFactory->CreateTextFormat(
-                L"Calibri",
-                NULL,
-                DWRITE_FONT_WEIGHT_NORMAL,
-                DWRITE_FONT_STYLE_NORMAL,
-                DWRITE_FONT_STRETCH_NORMAL,
-                15.0f,
-                L"en-us",
-                &_dwriteTextFormat
-            );
-            _dwriteTextFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+            _currentTimeLabel = Create<Label>(L"--:--");
+            _currentTimeLabel->SetSize(_maxTimeWidth, _textHeight);
+            _currentTimeLabel->SetHorizontalTextAlignment(TextAlignment::CENTER);
+            _currentTimeLabel->SetVerticalTextAlignment(Alignment::CENTER);
+            _currentTimeLabel->SetFontSize(15.0f);
+            _currentTimeLabel->SetFontColor(D2D1::ColorF(D2D1::ColorF::LightGray));
 
-            _dwriteFactory->CreateTextLayout(
-                L"000:00:00",
-                9,
-                _dwriteTextFormat,
-                1000,
-                0,
-                &_dwriteTextLayout
-            );
-
-            DWRITE_TEXT_METRICS metrics;
-            _dwriteTextLayout->GetMetrics(&metrics);
-            _textHeight = metrics.height;
-            _maxTimeWidth = metrics.width;
+            _durationLabel = Create<Label>(L"--:--");
+            _durationLabel->SetSize(_maxTimeWidth, _textHeight);
+            _durationLabel->SetHorizontalTextAlignment(TextAlignment::CENTER);
+            _durationLabel->SetVerticalTextAlignment(Alignment::CENTER);
+            _durationLabel->SetFontSize(15.0f);
+            _durationLabel->SetFontColor(D2D1::ColorF(D2D1::ColorF::LightGray));
         }
     public:
         ~SeekBar()
@@ -409,8 +361,6 @@ namespace zcom
             SafeFullRelease((IUnknown**)&_seekbarMarkerBrush);
             SafeFullRelease((IUnknown**)&_bufferedPartBrush);
             SafeFullRelease((IUnknown**)&_remainingPartBrush);
-            SafeFullRelease((IUnknown**)&_textBrush);
-            SafeFullRelease((IUnknown**)&_textBackgroundBrush);
             SafeRelease((IUnknown**)&_dwriteTextFormat);
             SafeRelease((IUnknown**)&_dwriteTextLayout);
             SafeRelease((IUnknown**)&_dwriteFactory);
@@ -443,6 +393,7 @@ namespace zcom
                 InvokeRedraw();
 
             _currentTime = time;
+            _currentTimeLabel->SetText(string_to_wstring(TimeToString(_currentTime)));
         }
 
         void SetBufferedDuration(Duration duration)
@@ -483,7 +434,7 @@ namespace zcom
                 return;
 
             _duration = duration;
-            InvokeRedraw();
+            _durationLabel->SetText(string_to_wstring(TimeToString(_duration.GetTicks())));
         }
 
         void AddOnTimeHovered(std::function<void(int, TimePoint, std::wstring)> func)
