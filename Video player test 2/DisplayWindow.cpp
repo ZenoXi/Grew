@@ -326,6 +326,13 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
             _m_msg.unlock();
             break;
         }
+        case WM_GETMINMAXINFO:
+        {
+            MINMAXINFO* info = (MINMAXINFO*)lParam;
+            info->ptMinTrackSize.x = 800;
+            info->ptMinTrackSize.y = 600;
+            break;
+        }
         case WM_SIZE:
         {
             int w = LOWORD(lParam);
