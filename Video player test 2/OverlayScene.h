@@ -24,6 +24,7 @@ class OverlayScene : public Scene
 public:
     void ShowNotification(zcom::NotificationInfo info);
     void ShowMenu(zcom::MenuPanel* menu, RECT parentRect = {});
+    bool MenuOpened() const { return _menu; }
 
 public:
     OverlayScene(App* app);
