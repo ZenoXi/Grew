@@ -288,7 +288,9 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
             if (LOWORD(lParam) != HTCLIENT)
                 return DefWindowProc(hWnd, msg, wParam, lParam);
 
+            _m_msg.lock();
             SetCursor(_cursor);
+            _m_msg.unlock();
             break;
         }
         case WM_LBUTTONDOWN:
