@@ -8,6 +8,9 @@ class MouseManager : public MouseEventHandler
 {
     std::vector<MouseEventHandler*> _handlers;
     MouseEventHandler* _overlayHandler = nullptr;
+    MouseEventHandler* _topMenuHandler = nullptr;
+    bool _topMenuVisible = false;
+    int _topMenuHeight = 1;
 
 public:
     MouseManager() {};
@@ -34,9 +37,31 @@ public:
         _overlayHandler = handler;
     }
 
+    void SetTopMenuHandler(MouseEventHandler* handler)
+    {
+        _topMenuHandler = handler;
+        _topMenuVisible = true;
+    }
+
+    void SetTopMenuVisibility(bool visible)
+    {
+        _topMenuVisible = visible;
+    }
+
+    void SetTopMenuHeight(int height)
+    {
+        _topMenuHeight = height;
+    }
+
 private: // Mouse event handling
     bool _OnMouseMove(int x, int y)
     {
+        if (_topMenuVisible)
+        {
+            y -= _topMenuHeight;
+            _topMenuHandler->OnMouseMove(x, y + _topMenuHeight);
+        }
+
         if (_overlayHandler)
         {
             bool clicked = false;
@@ -66,6 +91,11 @@ private: // Mouse event handling
 
     void _OnMouseLeave()
     {
+        if (_topMenuHandler)
+            _topMenuHandler->OnMouseLeave();
+        if (_overlayHandler)
+            _overlayHandler->OnMouseLeave();
+
         for (auto& handler : _handlers)
         {
             handler->OnMouseLeave();
@@ -74,6 +104,11 @@ private: // Mouse event handling
 
     void _OnMouseEnter()
     {
+        if (_topMenuHandler)
+            _topMenuHandler->OnMouseEnter();
+        if (_overlayHandler)
+            _overlayHandler->OnMouseEnter();
+
         for (auto& handler : _handlers)
         {
             handler->OnMouseEnter();
@@ -82,6 +117,12 @@ private: // Mouse event handling
 
     bool _OnLeftPressed(int x, int y)
     {
+        if (_topMenuVisible)
+        {
+            y -= _topMenuHeight;
+            _topMenuHandler->OnLeftPressed(x, y + _topMenuHeight);
+        }
+
         if (_overlayHandler)
         {
             if (_overlayHandler->OnLeftPressed(x, y))
@@ -100,6 +141,12 @@ private: // Mouse event handling
 
     bool _OnLeftReleased(int x, int y)
     {
+        if (_topMenuVisible)
+        {
+            y -= _topMenuHeight;
+            _topMenuHandler->OnLeftReleased(x, y + _topMenuHeight);
+        }
+
         if (_overlayHandler)
         {
             if (_overlayHandler->OnLeftReleased(x, y))
@@ -118,6 +165,12 @@ private: // Mouse event handling
 
     bool _OnRightPressed(int x, int y)
     {
+        if (_topMenuVisible)
+        {
+            y -= _topMenuHeight;
+            _topMenuHandler->OnRightPressed(x, y + _topMenuHeight);
+        }
+
         if (_overlayHandler)
         {
             if (_overlayHandler->OnRightPressed(x, y))
@@ -136,6 +189,12 @@ private: // Mouse event handling
 
     bool _OnRightReleased(int x, int y)
     {
+        if (_topMenuVisible)
+        {
+            y -= _topMenuHeight;
+            _topMenuHandler->OnRightReleased(x, y + _topMenuHeight);
+        }
+
         if (_overlayHandler)
         {
             if (_overlayHandler->OnRightReleased(x, y))
@@ -154,6 +213,12 @@ private: // Mouse event handling
 
     bool _OnWheelUp(int x, int y)
     {
+        if (_topMenuVisible)
+        {
+            y -= _topMenuHeight;
+            _topMenuHandler->OnWheelUp(x, y + _topMenuHeight);
+        }
+
         if (_overlayHandler)
         {
             if (_overlayHandler->OnWheelUp(x, y))
@@ -172,6 +237,12 @@ private: // Mouse event handling
 
     bool _OnWheelDown(int x, int y)
     {
+        if (_topMenuVisible)
+        {
+            y -= _topMenuHeight;
+            _topMenuHandler->OnWheelDown(x, y + _topMenuHeight);
+        }
+
         if (_overlayHandler)
         {
             if (_overlayHandler->OnWheelDown(x, y))

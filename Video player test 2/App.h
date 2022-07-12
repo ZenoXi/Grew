@@ -41,15 +41,22 @@ public:
 
 private: // Scene control
     Scene* _overlayScene = nullptr;
+    Scene* _topMenuScene = nullptr;
     std::vector<Scene*> _scenes;
     int _currentSceneIndex = -1;
     std::vector<Scene*> _activeScenes;
     std::queue<std::string> _scenesToUninitialize;
+    bool _fullscreen = false;
 public:
     bool SetScene(std::string name, SceneOptionsBase* options);
     Scene* CurrentScene();
-
-    OverlayScene* Overlay() { return (OverlayScene*)_overlayScene; }
+    bool Fullscreen() const { return _fullscreen; }
+    void Fullscreen(bool fullscreen);
+    int ClientWidth() const { return window.width; }
+    int ClientHeight() const { return _fullscreen ? window.height : window.height - MenuHeight(); }
+    int MenuWidth() const { return window.width; }
+    int MenuHeight() const { return 25; }
+    OverlayScene* Overlay() const { return (OverlayScene*)_overlayScene; }
     // Initializes the scene and places it behind all scenes, unfocused (unless no scenes are initialized)
     bool InitScene(std::string name, SceneOptionsBase* options);
     // Uninitializes and immediatelly initializes the scene with new options, keeping focus/z-order the same
@@ -79,7 +86,7 @@ private: // Main app thread
     ThreadController _mainThreadController;
     std::thread _mainThread;
     std::mutex _m_main;
-    bool sceneChanged = false;
+    bool _sceneChanged = false;
 public:
     void LoopThread();
 

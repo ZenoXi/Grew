@@ -257,16 +257,16 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _fullscreenButton->SetSelectable(false);
     _fullscreenButton->SetOnActivated([&]()
     {
-        if (App::Instance()->window.GetFullscreen())
+        if (_app->Fullscreen())
         {
-            App::Instance()->window.SetFullscreen(false);
+            _app->Fullscreen(false);
             _fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_on_dim"));
             _fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_on"));
             _fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_on"));
         }
         else
         {
-            App::Instance()->window.SetFullscreen(true);
+            _app->Fullscreen(true);
             _fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_off_dim"));
             _fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_off"));
             _fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_off"));
@@ -344,7 +344,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
 
 void PlaybackScene::_Uninit()
 {
-    App::Instance()->window.SetFullscreen(false);
+    _app->Fullscreen(false);
 
     zcom::SafeFullRelease((IUnknown**)&_ccanvas);
 
@@ -792,16 +792,16 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
     {
     case 'F': // Fullscreen toggle
     {
-        if (App::Instance()->window.GetFullscreen())
+        if (_app->Fullscreen())
         {
-            App::Instance()->window.SetFullscreen(false);
+            _app->Fullscreen(false);
             _fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_on_dim"));
             _fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_on"));
             _fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_on"));
         }
         else
         {
-            App::Instance()->window.SetFullscreen(true);
+            _app->Fullscreen(true);
             _fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_off_dim"));
             _fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_off"));
             _fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_off"));
@@ -810,9 +810,9 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
     }
     case VK_ESCAPE: // Fullscreen exit
     {
-        if (App::Instance()->window.GetFullscreen())
+        if (_app->Fullscreen())
         {
-            App::Instance()->window.SetFullscreen(false);
+            _app->Fullscreen(false);
             _fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_on_dim"));
             _fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_on"));
             _fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_on"));

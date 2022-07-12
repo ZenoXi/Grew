@@ -14,9 +14,9 @@ Scene::~Scene()
 
 void Scene::Init(const SceneOptionsBase* options)
 {
-    _canvas = new zcom::Canvas(Create<zcom::Panel>(), App::Instance()->window.width, App::Instance()->window.height);
+    _canvas = new zcom::Canvas(Create<zcom::Panel>(), _app->ClientWidth(), _app->ClientHeight());
     _Init(options);
-    _canvas->Resize(App::Instance()->window.width, App::Instance()->window.height);
+    _canvas->Resize(_app->ClientWidth(), _app->ClientHeight());
 }
 
 void Scene::Uninit()

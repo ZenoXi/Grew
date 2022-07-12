@@ -166,7 +166,7 @@ public:
     //unsigned width = 640;
     //unsigned height = 360;
     unsigned width = 1280;
-    unsigned height = 750;
+    unsigned height = 775;
     //unsigned width = 1920;
     //unsigned height = 1080;
     WindowGraphics gfx;

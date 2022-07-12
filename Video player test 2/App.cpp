@@ -1,5 +1,6 @@
 #include "App.h"
 
+#include "TopMenuScene.h"
 #include "OverlayScene.h"
 #include "EntryScene.h";
 #include "ConnectScene.h"
@@ -75,6 +76,13 @@ void App::Init(DisplayWindow& dw, std::string startScene)
         _instance = new App(dw, startScene);
     }
 
+    // Top menu scene is always initialized
+    Instance()->_topMenuScene = new TopMenuScene(_instance);
+    Instance()->_topMenuScene->Init(nullptr);
+    Instance()->_topMenuScene->Focus();
+    Instance()->_topMenuScene->Resize(Instance()->MenuWidth(), Instance()->MenuHeight());
+    Instance()->mouseManager.SetTopMenuHeight(Instance()->MenuHeight());
+
     // Overlay scene is always initialized and on top
     Instance()->_overlayScene = new OverlayScene(_instance);
     Instance()->_overlayScene->Init(nullptr);
@@ -127,6 +135,27 @@ Scene* App::CurrentScene()
     return _scenes.at(_currentSceneIndex);
 }
 
+void App::Fullscreen(bool fullscreen)
+{
+    if (fullscreen == _fullscreen)
+        return;
+
+    _fullscreen = fullscreen;
+    if (_fullscreen)
+    {
+        mouseManager.SetTopMenuVisibility(false);
+        window.SetFullscreen(true);
+        _sceneChanged = true;
+    }
+    else
+    {
+        mouseManager.SetTopMenuVisibility(true);
+        window.SetFullscreen(false);
+        _sceneChanged = true;
+    }
+
+}
+
 bool App::InitScene(std::string name, SceneOptionsBase* options)
 {
     Scene* scene = FindScene(name);
@@ -139,7 +168,7 @@ bool App::InitScene(std::string name, SceneOptionsBase* options)
     {
         _activeScenes.back()->Focus();
     }
-    sceneChanged = true;
+    _sceneChanged = true;
     return true;
 }
 
@@ -153,7 +182,7 @@ bool App::ReinitScene(std::string name, SceneOptionsBase* options)
         scene->Init(options);
         if (focused)
             scene->Focus();
-        sceneChanged = true;
+        _sceneChanged = true;
         return true;
     }
     else
@@ -181,7 +210,7 @@ void App::_UninitScene(std::string name)
     _activeScenes.erase(std::find(_activeScenes.begin(), _activeScenes.end(), scene));
     if (newFocus && !_activeScenes.empty())
         _activeScenes.back()->Focus();
-    sceneChanged = true;
+    _sceneChanged = true;
 }
 
 bool App::MoveSceneToFront(std::string name)
@@ -194,7 +223,7 @@ bool App::MoveSceneToFront(std::string name)
     _activeScenes.push_back(_activeScenes[index]);
     _activeScenes.erase(_activeScenes.begin() + index);
     _activeScenes.back()->Focus();
-    sceneChanged = true;
+    _sceneChanged = true;
     return true;
 }
 
@@ -212,7 +241,7 @@ bool App::MoveSceneToBack(std::string name)
         scene->Unfocus();
         _activeScenes.back()->Focus();
     }
-    sceneChanged = true;
+    _sceneChanged = true;
     return true;
 }
 
@@ -228,7 +257,7 @@ bool App::MoveSceneUp(std::string name)
         _activeScenes[index + 1]->Unfocus();
     }
     std::swap(_activeScenes[index], _activeScenes[index + 1]);
-    sceneChanged = true;
+    _sceneChanged = true;
     return true;
 }
 
@@ -244,7 +273,7 @@ bool App::MoveSceneDown(std::string name)
         _activeScenes[index + -1]->Focus();
     }
     std::swap(_activeScenes[index], _activeScenes[index - 1]);
-    sceneChanged = true;
+    _sceneChanged = true;
     return true;
 }
 
@@ -264,7 +293,7 @@ bool App::MoveSceneBehind(std::string name, std::string behind)
         scene->Unfocus();
         _activeScenes.back()->Focus();
     }
-    sceneChanged = true;
+    _sceneChanged = true;
     return true;
 }
 
@@ -283,7 +312,7 @@ bool App::MoveSceneInFront(std::string name, std::string inFront)
         _activeScenes[behindSceneIndex]->Unfocus();
         _activeScenes.back()->Focus();
     }
-    sceneChanged = true;
+    _sceneChanged = true;
     return true;
 }
 
@@ -380,10 +409,22 @@ void App::LoopThread()
             int w = LOWORD(wmSize.lParam);
             int h = HIWORD(wmSize.lParam);
 
-            _overlayScene->Resize(w, h);
-            auto activeScenes = ActiveScenes();
-            for (auto& scene : activeScenes)
-                scene->Resize(w, h);
+            if (_fullscreen)
+            {
+                _topMenuScene->Resize(w, MenuHeight());
+                _overlayScene->Resize(w, h);
+                auto activeScenes = ActiveScenes();
+                for (auto& scene : activeScenes)
+                    scene->Resize(w, h);
+            }
+            else
+            {
+                _topMenuScene->Resize(w, MenuHeight());
+                _overlayScene->Resize(w, h - MenuHeight());
+                auto activeScenes = ActiveScenes();
+                for (auto& scene : activeScenes)
+                    scene->Resize(w, h - MenuHeight());
+            }
         }
 
         //// Show video frame
@@ -418,12 +459,24 @@ void App::LoopThread()
         //Duration draw = 0;
 
         bool redraw = false;
-        if (sceneChanged)
+        if (_sceneChanged)
         {
-            sceneChanged = false;
+            _sceneChanged = false;
             redraw = true;
             window.gfx.GetGraphics().target->BeginDraw();
             window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+        }
+
+        { // Top menu scene
+            _topMenuScene->Update();
+            if (_topMenuScene->Redraw())
+            {
+                if (!redraw)
+                    window.gfx.GetGraphics().target->BeginDraw();
+
+                _topMenuScene->Draw(window.gfx.GetGraphics());
+                redraw = true;
+            }
         }
 
         { // Overlay scene
@@ -465,14 +518,34 @@ void App::LoopThread()
             std::cout << "Redrawn (" << framecounter++ << ")\n";
             //timer.Update();
             //start = timer.Now();
+
+
             window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0.3f, 0.3f, 0.3f));
-            for (auto& scene : activeScenes)
+            if (_fullscreen)
             {
-                window.gfx.GetGraphics().target->DrawBitmap(scene->Image());
+                for (auto& scene : activeScenes)
+                {
+                    window.gfx.GetGraphics().target->DrawBitmap(scene->Image());
+                }
+                // Draw overlay scene last
+                window.gfx.GetGraphics().target->DrawBitmap(_overlayScene->Image());
             }
-            // Draw overlay scene last
-            window.gfx.GetGraphics().target->DrawBitmap(_overlayScene->Image());
+            else
+            {
+                D2D1_RECT_F mainRect = { 0.0f, (float)MenuHeight(), (float)window.width, (float)window.height };
+                D2D1_RECT_F menuRect = { 0.0f, 0.0f, (float)window.width, (float)MenuHeight() };
+
+                for (auto& scene : activeScenes)
+                {
+                    window.gfx.GetGraphics().target->DrawBitmap(scene->Image(), mainRect);
+                }
+                // Draw overlay scene last
+                window.gfx.GetGraphics().target->DrawBitmap(_overlayScene->Image(), mainRect);
+                // Draw top menu
+                window.gfx.GetGraphics().target->DrawBitmap(_topMenuScene->Image(), menuRect);
+            }
             window.gfx.GetGraphics().target->EndDraw();
+
             //timer.Update();
             //draw += timer.Now() - start;
         }
