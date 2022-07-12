@@ -29,6 +29,7 @@ namespace zcom
         {
             _panel->SetSize(_width, _height);
             _panel->SetBackgroundColor(D2D1::ColorF(0, 0));
+            _panel->SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
         }
         ~Canvas() {}
         Canvas(Canvas&&) = delete;
