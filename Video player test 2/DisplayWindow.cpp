@@ -21,6 +21,7 @@ using Microsoft::WRL::ComPtr;
 
 DisplayWindow::DisplayWindow(HINSTANCE hInst, wchar_t* pArgs, LPCWSTR name) : _args(pArgs), _hInst(hInst), _wndClassName(name)
 {
+    _cursor = LoadCursor(NULL, IDC_ARROW);
     WNDCLASSEX wc = {
         sizeof(WNDCLASSEX),
         CS_CLASSDC,
@@ -29,7 +30,7 @@ DisplayWindow::DisplayWindow(HINSTANCE hInst, wchar_t* pArgs, LPCWSTR name) : _a
         0,
         hInst,
         nullptr,
-        LoadCursor(NULL, IDC_ARROW),
+        NULL,//_cursor,
         nullptr,
         nullptr,
         _wndClassName,
@@ -239,16 +240,21 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
             }
             //std::cout << x << "," << y << std::endl;
             _m_msg.lock();
-            if (GetCapture() != _hwnd)
-            {
-                _mouseInWindow = false;
-            }
+            //if (GetCapture() != _hwnd)
+            //{
+                //_mouseInWindow = false;
+            //}
 
             if (x >= 0 && x < width && y >= 0 && y < height)
             {
                 if (!_mouseInWindow)
                 {
-                    SetCapture(_hwnd);
+                    TRACKMOUSEEVENT ev;
+                    ev.cbSize = sizeof(TRACKMOUSEEVENT);
+                    ev.dwFlags = TME_LEAVE;
+                    ev.hwndTrack = _hwnd;
+                    TrackMouseEvent(&ev);
+                    _prevCursor = GetCursor();
                 }
             }
             else
@@ -262,15 +268,32 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
                 }
                 else
                 {
-                    ReleaseCapture();
+                    SetCursor(_prevCursor);
                 }
             }
             _msgQueue.push({ false, WM_MOUSEMOVE, wParam, lParam });
             _m_msg.unlock();
             break;
         }
+        case WM_MOUSELEAVE:
+        {
+            _mouseInWindow = false;
+            _m_msg.lock();
+            _msgQueue.push({ false, WM_MOUSEMOVE, wParam, MAKELPARAM(-1, -1) });
+            _m_msg.unlock();
+            break;
+        }
+        case WM_SETCURSOR:
+        {
+            if (LOWORD(lParam) != HTCLIENT)
+                return DefWindowProc(hWnd, msg, wParam, lParam);
+
+            SetCursor(_cursor);
+            break;
+        }
         case WM_LBUTTONDOWN:
         {
+            SetCapture(_hwnd);
             SetWindowPos(_hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 
             _m_msg.lock();
@@ -287,6 +310,7 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
         }
         case WM_LBUTTONUP:
         {
+            ReleaseCapture();
             _m_msg.lock();
             _msgQueue.push({ false, WM_LBUTTONUP, wParam, lParam });
             _m_msg.unlock();
@@ -603,6 +627,99 @@ void DisplayWindow::HandleFullscreenChange()
                 ShowWindow(_hwnd, SW_SHOW);
         }
         //UpdateWindow(_hwnd);
+    }
+}
+
+void DisplayWindow::SetCursorIcon(CursorIcon cursor)
+{
+    switch (cursor)
+    {
+    case CursorIcon::APP_STARTING:
+    {
+        _cursor = LoadCursor(NULL, IDC_APPSTARTING);
+        //SetCursor(_cursor);
+        break;
+    }
+    case CursorIcon::ARROW:
+    {
+        _cursor = LoadCursor(NULL, IDC_ARROW);
+        //SetCursor(_cursor);
+        break;
+    }
+    case CursorIcon::CROSS:
+    {
+        _cursor = LoadCursor(NULL, IDC_CROSS);
+        //SetCursor(_cursor);
+        break;
+    }
+    case CursorIcon::HAND:
+    {
+        _cursor = LoadCursor(NULL, IDC_HAND);
+        //SetCursor(_cursor);
+        break;
+    }
+    case CursorIcon::HELP:
+    {
+        _cursor = LoadCursor(NULL, IDC_HELP);
+        //SetCursor(_cursor);
+        break;
+    }
+    case CursorIcon::IBEAM:
+    {
+        _cursor = LoadCursor(NULL, IDC_IBEAM);
+        //SetCursor(_cursor);
+        break;
+    }
+    case CursorIcon::NO:
+    {
+        _cursor = LoadCursor(NULL, IDC_NO);
+        //SetCursor(_cursor);
+        break;
+    }
+    case CursorIcon::SIZE_ALL:
+    {
+        _cursor = LoadCursor(NULL, IDC_SIZEALL);
+        //SetCursor(_cursor);
+        break;
+    }
+    case CursorIcon::SIZE_NESW:
+    {
+        _cursor = LoadCursor(NULL, IDC_SIZENESW);
+        //SetCursor(_cursor);
+        break;
+    }
+    case CursorIcon::SIZE_NS:
+    {
+        _cursor = LoadCursor(NULL, IDC_SIZENS);
+        //SetCursor(_cursor);
+        break;
+    }
+    case CursorIcon::SIZE_NWSE:
+    {
+        _cursor = LoadCursor(NULL, IDC_SIZENWSE);
+        //SetCursor(_cursor);
+        break;
+    }
+    case CursorIcon::SIZE_WE:
+    {
+        _cursor = LoadCursor(NULL, IDC_SIZEWE);
+        //SetCursor(_cursor);
+        break;
+    }
+    case CursorIcon::UP_ARROW:
+    {
+        _cursor = LoadCursor(NULL, IDC_UPARROW);
+        //SetCursor(_cursor);
+        break;
+    }
+    case CursorIcon::WAIT:
+    {
+        _cursor = LoadCursor(NULL, IDC_WAIT);
+        //SetCursor(_cursor);
+        break;
+    }
+    default:
+        break;
     }
 }
 

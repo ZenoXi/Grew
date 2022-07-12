@@ -15,3 +15,8 @@ void zcom::SafeRelease(IUnknown** res)
         *res = nullptr;
     }
 }
+
+void zcom::Base::_ApplyCursor()
+{
+    _scene->GetApp()->window.SetCursorIcon(_cursor);
+}

@@ -127,6 +127,24 @@ struct WindowMessage
     LPARAM lParam = 0;
 };
 
+enum class CursorIcon
+{
+    APP_STARTING,
+    ARROW,
+    CROSS,
+    HAND,
+    HELP,
+    IBEAM,
+    NO,
+    SIZE_ALL,
+    SIZE_NESW,
+    SIZE_NS,
+    SIZE_NWSE,
+    SIZE_WE,
+    UP_ARROW,
+    WAIT
+};
+
 class DisplayWindow
 {
     HWND _hwnd = nullptr;
@@ -136,6 +154,8 @@ class DisplayWindow
     std::wstring _args;
 
     bool _mouseInWindow = false;
+    HCURSOR _prevCursor = 0;
+    HCURSOR _cursor = 0;
 
     // Handlers
     std::vector<MouseEventHandler*> _mouseHandlers;
@@ -174,6 +194,7 @@ public:
     bool GetFullscreen();
     void SetWindowDimensions(unsigned w, unsigned h);
     void HandleFullscreenChange();
+    void SetCursorIcon(CursorIcon cursor);
     // Shows/Hides the cursor until it is moved or this function is called
     void SetCursorVisibility(bool visible);
     void HandleCursorVisibility();

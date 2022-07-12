@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "DisplayWindow.h"
 #include "Graphics.h"
 #include "MouseEventHandler.h"
 #include "Event.h"
@@ -184,6 +185,9 @@ namespace zcom
         // Background
         D2D1_COLOR_F _backgroundColor = D2D1::ColorF(0, 0);
         ID2D1Bitmap* _background = nullptr;
+
+        // Cursor
+        CursorIcon _cursor = CursorIcon::ARROW;
 
         // Rounding
         float _cornerRounding = 0.0f;
@@ -531,6 +535,16 @@ namespace zcom
             _redraw = true;
         }
 
+        // Cursor
+        CursorIcon GetDefaultCursor() const { return _cursor; }
+
+        void SetDefaultCursor(CursorIcon cursor)
+        {
+            _cursor = cursor;
+        }
+
+        void _ApplyCursor();
+
         // Corner rounding
         float GetCornerRounding() const { return _cornerRounding; }
 
@@ -609,6 +623,12 @@ namespace zcom
             _onMouseMove.InvokeAll(this, x, y, duplicateMove);
             auto targets = _OnMouseMove(x, y, duplicateMove);
             _postMouseMove.InvokeAll(this, targets.GetTargets(), x, y, duplicateMove);
+
+            if (targets.Size() == 1 && targets.MainTarget() == this)
+            {
+                // Set cursor
+                _ApplyCursor();
+            }
             return targets;
         }
         void OnMouseEnter()

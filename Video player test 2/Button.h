@@ -171,6 +171,7 @@ namespace zcom
         Button(Scene* scene) : Base(scene) {}
         void Init(std::wstring text = L"")
         {
+            SetDefaultCursor(CursorIcon::HAND);
             SetSelectable(true);
             _text = Create<Label>(text);
             _text->SetSize(GetWidth(), GetHeight());

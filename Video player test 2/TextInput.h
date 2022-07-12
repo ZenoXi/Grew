@@ -351,6 +351,7 @@ namespace zcom
         TextInput(Scene* scene) : Base(scene) {}
         void Init()
         {
+            SetDefaultCursor(CursorIcon::IBEAM);
             SetSelectable(true);
             SetBorderVisibility(true);
             SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
