@@ -155,11 +155,13 @@ namespace zcom
             targets.Remove(_panel.get());
 
             bool handled = false;
+            _mouseMoveHandlers.Lock();
             for (auto& handler : _mouseMoveHandlers)
             {
-                if (handler(&targets))
+                if (handler && handler(&targets))
                     handled = true;
             }
+            _mouseMoveHandlers.Unlock();
             return handled;
         }
 
@@ -193,11 +195,13 @@ namespace zcom
             }
 
             bool handled = false;
+            _leftPressedHandlers.Lock();
             for (auto& handler : _leftPressedHandlers)
             {
-                if (handler(&targets))
+                if (handler && handler(&targets))
                     handled = true;
             }
+            _leftPressedHandlers.Unlock();
             return handled;
         }
 
@@ -207,11 +211,13 @@ namespace zcom
             targets.Remove(_panel.get());
 
             bool handled = false;
+            _leftReleasedHandlers.Lock();
             for (auto& handler : _leftReleasedHandlers)
             {
-                if (handler(&targets))
+                if (handler && handler(&targets))
                     handled = true;
             }
+            _leftReleasedHandlers.Unlock();
             return handled;
         }
 
@@ -221,11 +227,13 @@ namespace zcom
             targets.Remove(_panel.get());
 
             bool handled = false;
+            _rightPressedHandlers.Lock();
             for (auto& handler : _rightPressedHandlers)
             {
-                if (handler(&targets))
+                if (handler && handler(&targets))
                     handled = true;
             }
+            _rightPressedHandlers.Unlock();
             return handled;
         }
 
@@ -235,11 +243,13 @@ namespace zcom
             targets.Remove(_panel.get());
 
             bool handled = false;
+            _rightReleasedHandlers.Lock();
             for (auto& handler : _rightReleasedHandlers)
             {
-                if (handler(&targets))
+                if (handler && handler(&targets))
                     handled = true;
             }
+            _rightReleasedHandlers.Unlock();
             return handled;
         }
 
@@ -249,11 +259,13 @@ namespace zcom
             targets.Remove(_panel.get());
 
             bool handled = false;
+            _wheelUpHandlers.Lock();
             for (auto& handler : _wheelUpHandlers)
             {
-                if (handler(&targets))
+                if (handler && handler(&targets))
                     handled = true;
             }
+            _wheelUpHandlers.Unlock();
             return handled;
         }
 
@@ -263,11 +275,13 @@ namespace zcom
             targets.Remove(_panel.get());
 
             bool handled = false;
+            _wheelDownHandlers.Lock();
             for (auto& handler : _wheelDownHandlers)
             {
-                if (handler(&targets))
+                if (handler && handler(&targets))
                     handled = true;
             }
+            _wheelDownHandlers.Unlock();
             return handled;
         }
 
