@@ -18,6 +18,9 @@ public:
         int64_t timestamp;
         int64_t sampleDuration;
         int64_t correction;
+        int32_t channels;
+        int32_t sampleRate;
+        size_t dataSize;
         void* data;
     };
 
@@ -28,6 +31,7 @@ public:
         Clock& _playbackTimer;
         int64_t& _playbackOffset;
         int64_t& _offsetCorrection;
+        FixedQueue<IAudioOutputAdapter::SampleData>& _playedSampleQueue;
     };
 
 private:
@@ -52,6 +56,18 @@ public:
     void OnBufferEnd(void* pBufferContext)
     {
         auto ctx = (BufferContext*)pBufferContext;
+        for (size_t byte = 0; byte < ctx->dataSize;)
+        {
+            IAudioOutputAdapter::SampleData data;
+            data.channels = ctx->channels;
+            data.sampleRate = ctx->sampleRate;
+            for (int i = 0; i < data.channels; i++)
+            {
+                data.data[i] = *(int16_t*)((char*)ctx->data + byte);
+                byte += 2;
+            }
+            _refs._playedSampleQueue.Push(data);
+        }
         delete ctx->data;
         _refs._audioBufferLength -= ctx->sampleDuration;
         delete ctx;
@@ -91,6 +107,8 @@ class XAudio2_AudioOutputAdapter : public IAudioOutputAdapter
     int64_t _audioBufferEnd = 0;
     int _audioFramesBuffered = 0;
 
+    FixedQueue<IAudioOutputAdapter::SampleData> _playedSampleQueue;
+
     Clock _playbackTimer;
     // Time from timer to audio timestamp
     // Positive - audio ahead
@@ -120,10 +138,12 @@ public:
             _currentSampleTimestamp,
             _playbackTimer,
             _playbackOffset,
-            _offsetCorrection
+            _offsetCorrection,
+            _playedSampleQueue
         }),
         _channelCount(channelCount),
-        _sampleRate(sampleRate)
+        _sampleRate(sampleRate),
+        _playedSampleQueue(1000)
     {
         // Init XAudio
         HRESULT hr;
@@ -213,6 +233,9 @@ public:
             VoiceCallback::BufferContext* bCtx = new VoiceCallback::BufferContext();
             bCtx->timestamp = frame.GetTimestamp();
             bCtx->sampleDuration = chunkDuration;
+            bCtx->channels = frame.GetChannelCount();
+            bCtx->sampleRate = frame.GetSampleRate();
+            bCtx->dataSize = chunkSize;
             bCtx->data = dataBytes; // Callback will delete this pointer after finishing playback
             int64_t correction = -chunkDuration;
             bCtx->correction = correction;
@@ -251,6 +274,9 @@ public:
         VoiceCallback::BufferContext* bCtx = new VoiceCallback::BufferContext();
         bCtx->timestamp = frame.GetTimestamp();
         bCtx->sampleDuration = sampleDuration;
+        bCtx->channels = frame.GetChannelCount();
+        bCtx->sampleRate = frame.GetSampleRate();
+        bCtx->dataSize = header.subChunk2Size - cutBytes;
         bCtx->data = dataBytes; // Callback will delete this pointer after finishing playback
         int64_t correction = (samplesToCut * (int64_t)1000000) / frame.GetSampleRate();
         bCtx->correction = correction;
@@ -268,6 +294,15 @@ public:
 
         _audioBufferEnd = frame.GetTimestamp() + sampleDuration;
         _audioFramesBuffered++;
+    }
+
+    std::vector<SampleData> GetRecentSampleData()
+    {
+        std::vector<SampleData> sdata;
+        sdata.resize(_playedSampleQueue.Size());
+        for (int i = 0; i < _playedSampleQueue.Size(); i++)
+            sdata[i] = _playedSampleQueue[i];
+        return sdata;
     }
 
     void Play()
