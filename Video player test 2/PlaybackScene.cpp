@@ -327,6 +327,17 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _volumeIcon->SetVerticalOffsetPixels(60);
     _volumeIcon->SetProperty(shadow);
 
+    _waveform = Create<zcom::Waveform>();
+    _waveform->SetBaseSize(1000, 200);
+    _waveform->SetHorizontalAlignment(zcom::Alignment::CENTER);
+    zcom::PROP_Shadow waveShadow;
+    waveShadow.offsetX = 0;
+    waveShadow.offsetY = 0;
+    waveShadow.blurStandardDeviation = 2.0f;
+    waveShadow.color = D2D1::ColorF(0);
+    _waveform->SetProperty(waveShadow);
+    _waveform->SetVisible(false);
+
     _canvas->AddComponent(_skipBackwardsIcon.get());
     _canvas->AddComponent(_skipForwardsIcon.get());
     _canvas->AddComponent(_loadingCircle.get());
@@ -335,6 +346,7 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _canvas->AddComponent(_volumeIcon.get());
     _canvas->AddComponent(_playbackControllerPanel.get());
     _canvas->AddComponent(_timeHoverPanel.get());
+    _canvas->AddComponent(_waveform.get());
     //_canvas->AddComponent(_streamMenuPanel.get());
     //_canvas->AddComponent(_videoStreamMenuPanel.get());
     //_canvas->AddComponent(_audioStreamMenuPanel.get());
@@ -883,6 +895,11 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
         _volumeSlider->SetValue(_volumeSlider->GetValue() - volumeChange);
         _playback->Controller()->SetVolume(_volumeSlider->GetVolume());
         _volumeIcon->Show(roundf(_volumeSlider->GetValue() * 100.0f));
+        break;
+    }
+    case 'V':
+    {
+        _waveform->SetVisible(!_waveform->GetVisible());
         break;
     }
     case VK_NUMPAD1: // Video stream 1

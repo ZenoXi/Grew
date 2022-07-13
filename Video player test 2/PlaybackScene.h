@@ -25,6 +25,7 @@
 #include "ResumeIcon.h"
 #include "VolumeIcon.h"
 #include "MenuPanel.h"
+#include "Waveform.h"
 
 class PlaybackShortcutHandler : public KeyboardEventHandler
 {
@@ -68,6 +69,8 @@ class PlaybackScene : public Scene
     std::unique_ptr<zcom::MenuPanel> _videoStreamMenuPanel = nullptr;
     std::unique_ptr<zcom::MenuPanel> _audioStreamMenuPanel = nullptr;
     std::unique_ptr<zcom::MenuPanel> _subtitleStreamMenuPanel = nullptr;
+
+    std::unique_ptr<zcom::Waveform> _waveform = nullptr;
 
     std::unique_ptr<PlaybackShortcutHandler> _shortcutHandler = nullptr;
 
