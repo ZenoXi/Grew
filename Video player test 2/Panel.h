@@ -67,12 +67,12 @@ namespace zcom
                             float fadeProgress = timeElapsed.GetDuration() / (float)_verticalScrollBar.fadeDuration.GetDuration();
                             _verticalScrollBar.opacity = 1.0f - powf(fadeProgress, 0.5f);
                         }
+                        InvokeRedraw();
                     }
                     else
                     {
                         _verticalScrollBar.opacity = 1.0f;
                     }
-                    InvokeRedraw();
                 }
             }
             // Fade horizontal scrollbar
@@ -98,12 +98,12 @@ namespace zcom
                             float fadeProgress = timeElapsed.GetDuration() / (float)_horizontalScrollBar.fadeDuration.GetDuration();
                             _horizontalScrollBar.opacity = 1.0f - powf(fadeProgress, 0.5f);
                         }
+                        InvokeRedraw();
                     }
                     else
                     {
                         _horizontalScrollBar.opacity = 1.0f;
                     }
-                    InvokeRedraw();
                 }
             }
 
@@ -349,6 +349,11 @@ namespace zcom
         void _OnResize(int width, int height)
         {
             _RecalculateLayout(width, height);
+        }
+
+        void _OnScreenPosChange(int x, int y)
+        {
+            _SetScreenPositions();
         }
 
         EventTargets _OnMouseMove(int x, int y, bool duplicate)
@@ -802,7 +807,6 @@ namespace zcom
                 newPosY += _margins.top;
 
                 item->SetPosition(newPosX, newPosY);
-                item->SetScreenPosition(GetScreenX() + newPosX, GetScreenY() + newPosY);
                 item->Resize(newWidth, newHeight);
 
                 if (newPosX + newWidth > maxRightEdge)
@@ -818,7 +822,17 @@ namespace zcom
             if (_horizontalScroll > MaxHorizontalScroll())
                 _horizontalScroll = MaxHorizontalScroll();
 
+            _SetScreenPositions();
             InvokeRedraw();
+        }
+
+        void _SetScreenPositions()
+        {
+            for (auto& _item : _items)
+            {
+                Base* item = _item.item;
+                item->SetScreenPosition(GetScreenX() + item->GetX() - _horizontalScroll, GetScreenY() + item->GetY() - _verticalScroll);
+            }
         }
 
         struct Item
@@ -1122,6 +1136,7 @@ namespace zcom
                 _verticalScroll = maxScroll;
             else if (_verticalScroll < 0)
                 _verticalScroll = 0;
+            _SetScreenPositions();
             InvokeRedraw();
         }
 
