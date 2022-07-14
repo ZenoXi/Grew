@@ -3,6 +3,9 @@
 
 void zcom::Waveform::_OnUpdate()
 {
+    if (!GetVisible())
+        return;
+
     if (ztime::Main() - _lastUpdate < _updateInterval)
         return;
     _lastUpdate = ztime::Main();
