@@ -153,7 +153,8 @@ namespace zcom
         }
 
     public:
-        const char* GetName() const { return "menu_panel"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "menu_panel"; }
 #pragma endregion
 
     private:

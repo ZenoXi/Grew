@@ -35,7 +35,8 @@ namespace zcom
         EventTargets _OnLeftPressed(int x, int y);
 
     public:
-        const char* GetName() const { return "dropdown_selection"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "dropdown_selection"; }
 #pragma endregion
 
     private:

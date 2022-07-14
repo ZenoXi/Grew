@@ -46,7 +46,8 @@ namespace zcom
         void _OnResize(int width, int height) {}
 
     public:
-        const char* GetName() const { return "waveform"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "waveform"; }
 #pragma endregion
 
     private:

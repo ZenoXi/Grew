@@ -162,7 +162,8 @@ namespace zcom
         }
 
     public:
-        const char* GetName() const { return "fast_forward_icon"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "fast_forward_icon"; }
 #pragma endregion
 
     private:

@@ -70,7 +70,8 @@ namespace zcom
         }
 
     public:
-        const char* GetName() const { return "loading_circle"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "loading_circle"; }
 #pragma endregion
 
     private:

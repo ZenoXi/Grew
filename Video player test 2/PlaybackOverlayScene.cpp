@@ -1141,7 +1141,7 @@ void PlaybackOverlayScene::_HandlePlaylistLeftClick(zcom::Base* item, std::vecto
         return;
 
     // If a button was clicked, don't handle
-    if (targets.front().target->GetName() == Create<zcom::Button>()->GetName())
+    if (targets.front().target->GetName() == zcom::Button::Name())
         return;
 
     // If click was outside ready item range, don't handle (ignores pending/loading items)
@@ -1152,7 +1152,7 @@ void PlaybackOverlayScene::_HandlePlaylistLeftClick(zcom::Base* item, std::vecto
     // Check if item was clicked
     for (auto& target : targets)
     {
-        if (target.target->GetName() == Create<zcom::OverlayPlaylistItem>(0)->GetName())
+        if (target.target->GetName() == zcom::OverlayPlaylistItem::Name())
         {
             _heldItemId = ((zcom::OverlayPlaylistItem*)target.target)->GetItemId();
             _clickYPos = y + _readyItemPanel->VisualVerticalScroll();

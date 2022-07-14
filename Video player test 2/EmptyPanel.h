@@ -14,7 +14,8 @@ namespace zcom
         void _OnResize(int width, int height) {}
 
     public:
-        const char* GetName() const { return "empty_panel"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "empty_panel"; }
 #pragma endregion
 
     protected:

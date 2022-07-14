@@ -101,7 +101,8 @@ namespace zcom
         }
 
     public:
-        const char* GetName() const { return "resume_icon"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "resume_icon"; }
 #pragma endregion
 
     private:

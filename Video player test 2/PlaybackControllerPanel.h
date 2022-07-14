@@ -92,7 +92,8 @@ namespace zcom
         }
 
     public:
-        const char* GetName() const { return "bottom_control_panel"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "playback_controller_panel"; }
 #pragma endregion
 
     private:

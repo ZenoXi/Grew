@@ -110,7 +110,8 @@ namespace zcom
         //}
 
     public:
-        const char* GetName() const { return "menu_item"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "menu_item"; }
 #pragma endregion
 
     private:

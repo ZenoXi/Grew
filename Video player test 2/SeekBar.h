@@ -288,7 +288,8 @@ namespace zcom
         }
 
     public:
-        const char* GetName() const { return "seek_bar"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "seek_bar"; }
 #pragma endregion
 
     private:

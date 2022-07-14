@@ -321,7 +321,8 @@ namespace zcom
         }
 
     public:
-        const char* GetName() const { return "text_input"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "text_input"; }
 #pragma endregion
 
     private:

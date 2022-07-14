@@ -47,7 +47,8 @@ namespace zcom
         }
 
     public:
-        const char* GetName() const { return "top_menu_button"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "top_menu_button"; }
 #pragma endregion
     };
 }

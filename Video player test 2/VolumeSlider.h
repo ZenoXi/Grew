@@ -221,7 +221,8 @@ namespace zcom
         }
 
     public:
-        const char* GetName() const { return "volume_slider"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "volume_slider"; }
 #pragma endregion
 
     private:

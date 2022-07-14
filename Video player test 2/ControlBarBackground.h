@@ -60,6 +60,10 @@ namespace zcom
             brush->Release();
             gradientStopCollection->Release();
         }
+
+    public:
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "control_bar_background"; }
 #pragma endregion
 
     protected:

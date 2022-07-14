@@ -27,7 +27,8 @@ namespace zcom
         }
 
     public:
-        const char* GetName() const { return "play_button"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "play_button"; }
 #pragma endregion
 
     private:

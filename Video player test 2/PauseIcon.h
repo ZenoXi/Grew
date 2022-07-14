@@ -88,7 +88,8 @@ namespace zcom
         }
 
     public:
-        const char* GetName() const { return "pause_icon"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "pause_icon"; }
 #pragma endregion
 
     private:

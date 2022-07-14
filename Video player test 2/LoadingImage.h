@@ -74,7 +74,8 @@ namespace zcom
         }
 
     public:
-        const char* GetName() const { return "loading_image"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "loading_image"; }
 #pragma endregion
 
     private:

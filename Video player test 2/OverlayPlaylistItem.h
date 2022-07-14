@@ -258,7 +258,8 @@ namespace zcom
     protected:
 
     public:
-        const char* GetName() const { return "overlay_playlist_item"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "overlay_playlist_item"; }
 #pragma endregion
     };
 }

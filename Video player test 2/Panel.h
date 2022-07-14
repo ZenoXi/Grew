@@ -742,7 +742,8 @@ namespace zcom
             return _selectableItems[0];
         }
 
-        const char* GetName() const { return "panel"; }
+        const char* GetName() const { return Name(); }
+        static const char* Name() { return "panel"; }
 #pragma endregion
 
     protected:
