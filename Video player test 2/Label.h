@@ -163,6 +163,12 @@ namespace zcom
                 }
             }
 
+            // Set hover text if contents are cut off
+            if (charactersCut > 0)
+                SetHoverText(_text);
+            else
+                SetHoverText(L"");
+
             // Alignment
             if (_hTextAlignment == TextAlignment::LEADING)
             {
