@@ -34,10 +34,12 @@ void OverlayScene::_Init(const SceneOptionsBase* options)
 
         return true;
     };
-    auto testFuncClick = [&](const zcom::EventTargets* targets)
+    auto hideHoverText = [&](const zcom::EventTargets* targets)
     {
-
+        _hoverTextLabel->SetVisible(false);
+        return false;
     };
+    _canvas->AddOnMouseMove(hideHoverText);
     _canvas->AddOnMouseMove(testFunc);
     _canvas->AddOnLeftPressed(testFunc);
     _canvas->AddOnLeftReleased(testFunc);
@@ -59,8 +61,22 @@ void OverlayScene::_Init(const SceneOptionsBase* options)
     _occlusionPanel->SetParentSizePercent(1.0f, 1.0f);
     _occlusionPanel->SetVisible(false);
 
+    _hoverTextLabel = Create<zcom::Label>();
+    _hoverTextLabel->SetMargins({ 5.0f, 3.0f, 5.0f, 3.0f });
+    _hoverTextLabel->SetWordWrap(true);
+    _hoverTextLabel->SetBackgroundColor(D2D1::ColorF(0.05f, 0.05f, 0.05f));
+    _hoverTextLabel->SetBorderVisibility(true);
+    _hoverTextLabel->SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+    zcom::PROP_Shadow shadow;
+    shadow.color = D2D1::ColorF(0);
+    shadow.offsetX = 2.0f;
+    shadow.offsetY = 2.0f;
+    _hoverTextLabel->SetProperty(shadow);
+    _hoverTextLabel->SetVisible(false);
+
     _canvas->AddComponent(_notificationPanel.get());
     _canvas->AddComponent(_occlusionPanel.get());
+    _canvas->AddComponent(_hoverTextLabel.get());
 }
 
 void OverlayScene::_Uninit()
@@ -126,6 +142,55 @@ void OverlayScene::ShowMenu(zcom::MenuPanel* menu, RECT parentRect)
     }, { this, "" });
     _menu->Show(_canvas, parentRect);
     _occlusionPanel->SetVisible(true);
+}
+
+void OverlayScene::ShowHoverText(std::wstring text, int x, int y, int maxWidth)
+{
+    if (text.empty())
+    {
+        _hoverTextLabel->SetVisible(false);
+        return;
+    }
+
+    // Size the label
+    _hoverTextLabel->SetWordWrap(false);
+    _hoverTextLabel->SetText(text);
+    float textWidth = _hoverTextLabel->GetTextWidth();
+    int labelWidth = ceilf(textWidth);
+    if (labelWidth > maxWidth)
+        labelWidth = maxWidth;
+    _hoverTextLabel->Resize(labelWidth, 1);
+    _hoverTextLabel->SetWordWrap(true);
+    textWidth = _hoverTextLabel->GetTextWidth();
+    labelWidth = ceilf(textWidth);
+    float textHeight = _hoverTextLabel->GetTextHeight();
+    int labelHeight = ceilf(textHeight);
+    _hoverTextLabel->SetBaseSize(0, 0); // Invoke layout change
+    _hoverTextLabel->SetBaseSize(labelWidth, labelHeight);
+
+    // Position the label
+    int xPos = x;
+    if (xPos + labelWidth > _canvas->GetWidth() - 10)
+        xPos = _canvas->GetWidth() - 10 - labelWidth;
+    int yPos = y + 20;
+    int topSize = y - 20;
+    int botSize = _canvas->GetWidth() - y - 30;
+    if (labelHeight > botSize)
+    {
+        if (labelHeight <= topSize)
+        {
+            yPos = y - 10 - labelHeight;
+        }
+        else
+        {
+            yPos = _canvas->GetWidth() - 10 - labelHeight;
+        }
+    }
+    _hoverTextLabel->SetOffsetPixels(xPos, yPos);
+
+    // Show label
+    _hoverTextLabel->SetVisible(true);
+    _hoverTextLabel->InvokeRedraw();
 }
 
 void OverlayScene::_UpdateNotifications()

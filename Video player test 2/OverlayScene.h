@@ -25,6 +25,7 @@ public:
     void ShowNotification(zcom::NotificationInfo info);
     void ShowMenu(zcom::MenuPanel* menu, RECT parentRect = {});
     bool MenuOpened() const { return _menu; }
+    void ShowHoverText(std::wstring text, int x, int y, int maxWidth = 600);
 
 public:
     OverlayScene(App* app);
@@ -41,6 +42,9 @@ private: // Notifications
 private: // Menus
     zcom::MenuPanel* _menu = nullptr;
     std::unique_ptr<zcom::EmptyPanel> _occlusionPanel = nullptr;
+
+private: // Hover text
+    std::unique_ptr<zcom::Label> _hoverTextLabel = nullptr;
 
 private:
     std::unique_ptr<OverlayShortcutHandler> _shortcutHandler = nullptr;

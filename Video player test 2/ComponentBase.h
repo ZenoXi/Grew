@@ -189,6 +189,12 @@ namespace zcom
         // Cursor
         CursorIcon _cursor = CursorIcon::ARROW;
 
+        // Hover text
+        std::wstring _hoverText = L"";
+        Duration _hoverTextDelay = Duration(500, MILLISECONDS);
+        TimePoint _hoverStart = ztime::Main();
+        bool _hoverWaiting = false;
+
         // Rounding
         float _cornerRounding = 0.0f;
 
@@ -389,6 +395,7 @@ namespace zcom
         {
             _screenX = x;
             _screenY = y;
+            _OnScreenPosChange(_screenX, _screenY);
         }
         void SetWidth(int width)
         {
@@ -543,7 +550,26 @@ namespace zcom
             _cursor = cursor;
         }
 
+    private:
         void _ApplyCursor();
+    public:
+
+        // Hover text
+        std::wstring GetHoverText() const { return _hoverText; }
+        Duration GetHoverTextDelay() const { return _hoverTextDelay; }
+
+        void SetHoverText(std::wstring text)
+        {
+            _hoverText = text;
+        }
+        void SetHoverTextDelay(Duration delay)
+        {
+            _hoverTextDelay = delay;
+        }
+
+    private:
+        void _ShowHoverText();
+    public:
 
         // Corner rounding
         float GetCornerRounding() const { return _cornerRounding; }
@@ -628,6 +654,13 @@ namespace zcom
             {
                 // Set cursor
                 _ApplyCursor();
+
+                // Show hover text
+                if (!_hoverText.empty())
+                {
+                    _hoverStart = ztime::Main();
+                    _hoverWaiting = true;
+                }
             }
             return targets;
         }
@@ -648,6 +681,7 @@ namespace zcom
             _mouseInside = false;
             _onMouseLeave.InvokeAll(this);
             _OnMouseLeave();
+            _hoverWaiting = false;
         }
         void OnMouseEnterArea()
         {
@@ -933,6 +967,13 @@ namespace zcom
         {
             if (!_active) return;
 
+            // Show hover text
+            if (_hoverWaiting && (ztime::Main() - _hoverStart) >= _hoverTextDelay)
+            {
+                _hoverWaiting = false;
+                _ShowHoverText();
+            }
+
             _OnUpdate();
         }
 
@@ -1199,6 +1240,7 @@ namespace zcom
         virtual bool _Redraw() { return false; }
         virtual void _OnDraw(Graphics g) {}
         virtual void _OnResize(int width, int height) {}
+        virtual void _OnScreenPosChange(int x, int y) {}
 
     public:
         virtual const char* GetName() const { return "base"; }
