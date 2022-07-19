@@ -3,6 +3,7 @@
 
 #include "ConnectScene.h"
 #include "StartServerScene.h"
+#include "OverlayScene.h"
 
 #include "Network.h"
 #include "MediaReceiverDataProvider.h"
@@ -37,6 +38,13 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         return _HandleKeyDown(keyCode);
     });
 
+    // Set up file drop handler
+    _playlistFileDropHandler = std::make_unique<DragDropHandler>(RECT{ 0, 0, 0, 0 });
+    _playlistFileDropHandler->SetAllowedExtensions(ExtractPureExtensions(L"" EXTENSIONS_VIDEO ";" EXTENSIONS_AUDIO));
+    _playlistFileDropHandler->SetAllowFolders(true);
+    _playlistFileDropHandler->SetAllowMultipleFiles(true);
+    _playlistFileDropHandler->SetMatchAllExtensions(false);
+
     zcom::PROP_Shadow shadowProps;
     shadowProps.offsetX = 0.0f;
     shadowProps.offsetY = 0.0f;
@@ -53,7 +61,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
 
     _playlistPanel = Create<zcom::Panel>();
     _playlistPanel->SetParentSizePercent(1.0f, 1.0f);
-    _playlistPanel->SetBaseWidth(-200 + -400);
+    _playlistPanel->SetBaseWidth(-200 /* Side panel */ + -400 /* Right side */);
     _playlistPanel->SetHorizontalOffsetPixels(200);
     _playlistPanel->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     _playlistPanel->SetProperty(shadowProps);
@@ -68,6 +76,24 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _readyItemPanel->AddOnLeftReleased([=](zcom::Base* item, int x, int y) { _HandlePlaylistLeftRelease(item, x, y); }, { this });
     _readyItemPanel->AddOnMouseMove([=](zcom::Base* item, int x, int y, bool duplicate) { _HandlePlaylistMouseMove(item, x, y, duplicate); }, { this });
     _readyItemPanel->SetTabIndex(-1);
+
+    _fileDropLabel = Create<zcom::Label>(L"Drop files..");
+    _fileDropLabel->SetBaseSize(200, 50);
+    _fileDropLabel->SetAlignment(zcom::Alignment::CENTER, zcom::Alignment::CENTER);
+    _fileDropLabel->SetFontSize(32.0f);
+    _fileDropLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
+    _fileDropLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+    _fileDropLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+
+    // Copy ready item panel layout
+    _fileDropOverlay = Create<zcom::Panel>();
+    _fileDropOverlay->SetParentSizePercent(1.0f, 1.0f);
+    _fileDropOverlay->SetBaseHeight(-40);
+    _fileDropOverlay->SetVerticalOffsetPixels(40);
+    _fileDropOverlay->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.5f));
+    _fileDropOverlay->SetZIndex(2);
+    _fileDropOverlay->SetVisible(false);
+    _fileDropOverlay->AddItem(_fileDropLabel.get());
 
     _playlistLabel = Create<zcom::Label>(L"Playlist");
     _playlistLabel->SetBaseSize(100, 40);
@@ -427,6 +453,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
 
     _playlistPanel->AddItem(_playlistLabel.get());
     _playlistPanel->AddItem(_readyItemPanel.get());
+    _playlistPanel->AddItem(_fileDropOverlay.get());
 
     _networkBannerPanel->AddItem(_networkStatusLabel.get());
     _networkBannerPanel->AddItem(_closeNetworkButton.get());
@@ -464,11 +491,13 @@ void PlaybackOverlayScene::_Focus()
 {
     App::Instance()->keyboardManager.AddHandler(_shortcutHandler.get());
     GetKeyboardState(_shortcutHandler->KeyStates());
+    _app->window.AddDragDropHandler(_playlistFileDropHandler.get());
 }
 
 void PlaybackOverlayScene::_Unfocus()
 {
     App::Instance()->keyboardManager.RemoveHandler(_shortcutHandler.get());
+    _app->window.RemoveDragDropHandler(_playlistFileDropHandler.get());
 }
 
 void PlaybackOverlayScene::_Update()
@@ -517,7 +546,8 @@ void PlaybackOverlayScene::_Update()
     _InvokeNetworkPanelChange();
     _UpdateNetworkStats();
 
-    // File dialog
+    // Files
+    _UpdateFileDropHandler();
     _CheckFileDialogCompletion();
 
     // Update UI items
@@ -526,6 +556,68 @@ void PlaybackOverlayScene::_Update()
     _ManageReadyItems();
     _RearrangePlaylistPanel();
     _RearrangeNetworkPanel();
+}
+
+void PlaybackOverlayScene::_UpdateFileDropHandler()
+{
+    namespace fs = std::filesystem;
+
+    // Update drop rect
+    _playlistFileDropHandler->SetDropRect({
+        _readyItemPanel->GetScreenX(),
+        _readyItemPanel->GetScreenY() + _app->MenuHeight(),
+        _readyItemPanel->GetScreenX() + _readyItemPanel->GetWidth(),
+        _readyItemPanel->GetScreenY() + _app->MenuHeight() + _readyItemPanel->GetHeight()
+    });
+
+    // Set overlay visibility 
+    _fileDropOverlay->SetVisible(_playlistFileDropHandler->Dragging());
+
+    // Get drop result
+    auto result = _playlistFileDropHandler->GetDropResult();
+    if (result)
+    {
+        auto allowedExtensions = ExtractPureExtensions(L"" EXTENSIONS_VIDEO ";" EXTENSIONS_AUDIO);
+        bool someSkipped = false;
+        for (auto& path : result->paths)
+        {
+            if (fs::is_regular_file(path))
+            {
+                auto ext = fs::path(path).extension().wstring().substr(1);
+                ext.erase(ext.end() - 1);
+                if (std::find(allowedExtensions.begin(), allowedExtensions.end(), ext) == allowedExtensions.end())
+                {
+                    someSkipped = true;
+                    continue;
+                }
+
+                auto item = std::make_unique<PlaylistItem>(path);
+                _app->playlist.Request_AddItem(std::move(item));
+            }
+            else if (fs::is_directory(path))
+            {
+                if (!_OpenAllFilesInFolder(path))
+                {
+                    someSkipped = true;
+                }
+            }
+            else
+            {
+                someSkipped = true;
+            }
+        }
+
+        // Show notification
+        if (someSkipped)
+        {
+            zcom::NotificationInfo ninfo;
+            ninfo.duration = Duration(3, SECONDS);
+            ninfo.title = L"File drop:";
+            ninfo.text = L"Some files were not opened";
+            ninfo.borderColor = D2D1::ColorF(0.8f, 0.8f, 0.0f);
+            _app->Overlay()->ShowNotification(ninfo);
+        }
+    }
 }
 
 void PlaybackOverlayScene::_CheckFileDialogCompletion()
@@ -563,22 +655,32 @@ void PlaybackOverlayScene::_CheckFileDialogCompletion()
     }
 }
 
-void PlaybackOverlayScene::_OpenAllFilesInFolder(std::wstring path)
+bool PlaybackOverlayScene::_OpenAllFilesInFolder(std::wstring path)
 {
     namespace fs = std::filesystem;
 
     auto allowedExtensions = ExtractPureExtensions(L"" EXTENSIONS_VIDEO ";" EXTENSIONS_AUDIO);
-    for (const auto& entry : fs::directory_iterator(path))
+    bool someSkipped = false;
+    for (const auto& entry : fs::recursive_directory_iterator(path))
     {
-        if (!entry.is_regular_file())
-            continue;
-        if (std::find(allowedExtensions.begin(), allowedExtensions.end(), entry.path().extension().wstring().substr(1)) == allowedExtensions.end())
-            continue;
+        if (entry.is_regular_file())
+        {
+            auto path = entry.path();
+            std::wstring ext = L"";
+            if (path.has_extension())
+                ext = path.extension().wstring().substr(1);
+            if (std::find(allowedExtensions.begin(), allowedExtensions.end(), ext) == allowedExtensions.end())
+            {
+                someSkipped = true;
+                continue;
+            }
 
-        // Add file to playlist
-        auto item = std::make_unique<PlaylistItem>(entry.path());
-        App::Instance()->playlist.Request_AddItem(std::move(item));
+            // Add file to playlist
+            auto item = std::make_unique<PlaylistItem>(entry.path());
+            App::Instance()->playlist.Request_AddItem(std::move(item));
+        }
     }
+    return !someSkipped;
 }
 
 void PlaybackOverlayScene::_ManageLoadingItems()

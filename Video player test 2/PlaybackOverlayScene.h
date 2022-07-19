@@ -72,6 +72,9 @@ class PlaybackOverlayScene : public Scene
     bool _startServerPanelOpen = false;
 
     std::unique_ptr<PlaybackOverlayShortcutHandler> _shortcutHandler = nullptr;
+    std::unique_ptr<DragDropHandler> _playlistFileDropHandler = nullptr;
+    std::unique_ptr<zcom::Panel> _fileDropOverlay = nullptr;
+    std::unique_ptr<zcom::Label> _fileDropLabel = nullptr;
 
 public:
     PlaybackOverlayScene(App* app);
@@ -82,8 +85,10 @@ public:
     void _Unfocus();
     void _Update();
 private:
+    void _UpdateFileDropHandler();
     void _CheckFileDialogCompletion();
-    void _OpenAllFilesInFolder(std::wstring path);
+    // Returns true if no files were skipped
+    bool _OpenAllFilesInFolder(std::wstring path);
     void _ManageLoadingItems();
     void _ManageFailedItems();
     void _ManageReadyItems();

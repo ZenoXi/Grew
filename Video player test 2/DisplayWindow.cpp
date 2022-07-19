@@ -21,6 +21,8 @@ using Microsoft::WRL::ComPtr;
 
 DisplayWindow::DisplayWindow(HINSTANCE hInst, wchar_t* pArgs, LPCWSTR name) : _args(pArgs), _hInst(hInst), _wndClassName(name)
 {
+    OleInitialize(NULL);
+
     _cursor = LoadCursor(NULL, IDC_ARROW);
     WNDCLASSEX wc = {
         sizeof(WNDCLASSEX),
@@ -60,7 +62,7 @@ DisplayWindow::DisplayWindow(HINSTANCE hInst, wchar_t* pArgs, LPCWSTR name) : _a
 
     // Create and show window
     _hwnd = CreateWindowEx(
-        WS_EX_ACCEPTFILES,
+        /*WS_EX_ACCEPTFILES*/NULL,
         _wndClassName,
         WINDOW_NAME.c_str(),
         WS_OVERLAPPEDWINDOW,
@@ -72,6 +74,9 @@ DisplayWindow::DisplayWindow(HINSTANCE hInst, wchar_t* pArgs, LPCWSTR name) : _a
         hInst,
         this
     );
+
+    _fileDropHandler = std::make_unique<FileDropHandler>(_hwnd);
+    HRESULT hr = RegisterDragDrop(_hwnd, _fileDropHandler.get());
 
     gfx.Initialize(&_hwnd);
 
@@ -104,6 +109,7 @@ DisplayWindow::~DisplayWindow()
 {
     gfx.Close();
 
+    RevokeDragDrop(_hwnd);
     // unregister window class
     UnregisterClass(_wndClassName, _hInst);
 }
@@ -214,17 +220,17 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
         {
             break;
         }
-        case WM_DROPFILES:
-        {
-            HDROP hDropInfo = (HDROP)wParam;
-            wchar_t sItem[MAX_PATH];
-            for (int i = 0; DragQueryFile(hDropInfo, i, sItem, sizeof(sItem)); i++)
-            {
-                std::wcout << sItem << std::endl;
-            }
-            DragFinish(hDropInfo);
-            break;
-        }
+        //case WM_DROPFILES:
+        //{
+        //    HDROP hDropInfo = (HDROP)wParam;
+        //    wchar_t sItem[MAX_PATH];
+        //    for (int i = 0; DragQueryFile(hDropInfo, i, sItem, sizeof(sItem)); i++)
+        //    {
+        //        std::wcout << sItem << std::endl;
+        //    }
+        //    DragFinish(hDropInfo);
+        //    break;
+        //}
         case WM_MOUSEMOVE:
         {
             int x = (short)LOWORD(lParam);
@@ -794,6 +800,16 @@ bool DisplayWindow::RemoveKeyboardHandler(KeyboardEventHandler* handler)
         }
     }
     return false;
+}
+
+void DisplayWindow::AddDragDropHandler(IDragDropEventHandler* handler)
+{
+    _fileDropHandler->AddDragDropEventHandler(handler);
+}
+
+bool DisplayWindow::RemoveDragDropHandler(IDragDropEventHandler* handler)
+{
+    return _fileDropHandler->RemoveDragDropEventHandler(handler);
 }
 
 void DisplayWindow::SetFullscreen(bool fullscreen)
