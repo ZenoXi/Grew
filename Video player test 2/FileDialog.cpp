@@ -21,7 +21,8 @@ std::vector<std::wstring> OpenFiles(FileDialogOptions options)
             // Allow multiple file open
             FILEOPENDIALOGOPTIONS opt;
             pFileOpen->GetOptions(&opt);
-            opt |= FOS_ALLOWMULTISELECT;
+            if (options.allowMultipleFiles)
+                opt |= FOS_ALLOWMULTISELECT;
             if (options.openFolders)
                 opt |= FOS_PICKFOLDERS;
             hr = pFileOpen->SetOptions(opt);

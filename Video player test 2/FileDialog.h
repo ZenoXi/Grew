@@ -13,6 +13,8 @@ struct FileDialogOptions
     std::vector<std::pair<std::wstring, std::wstring>> allowedExtensions;
     // File dialog will be used to select a folder
     bool openFolders = false;
+    // Allow opening multiple files
+    bool allowMultipleFiles = true;
 };
 
 std::vector<std::wstring> OpenFiles(FileDialogOptions);
