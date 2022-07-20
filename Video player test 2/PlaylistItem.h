@@ -36,6 +36,7 @@ public:
     void SetCustomStatus(std::wstring statusString) { _statusStr = statusString; }
     std::wstring GetFilename() const { return _filename; }
     void SetFilename(std::wstring filename) { _filename = filename; }
+    std::wstring GetFilePath() const { return _filepath; }
     Duration GetDuration() // TODO: Add const
     {
         if (!_dataProvider)
