@@ -38,14 +38,19 @@ class PlaybackOverlayScene : public Scene
 
     std::unique_ptr<zcom::Button> _addFileButton = nullptr;
     std::unique_ptr<zcom::Button> _addFolderButton = nullptr;
-    std::unique_ptr<zcom::Button> _openPlaylistButton = nullptr;
-    std::unique_ptr<zcom::Button> _savePlaylistButton = nullptr;
-    std::unique_ptr<zcom::Button> _manageSavedPlaylistsButton = nullptr;
-    std::unique_ptr<zcom::Button> _closeOverlayButton = nullptr;
-
     bool _addingFile = false;
     bool _addingFolder = false;
     std::unique_ptr<AsyncFileDialog> _fileDialog = nullptr;
+
+    std::unique_ptr<zcom::Button> _openPlaylistButton = nullptr;
+    std::unique_ptr<zcom::Button> _savePlaylistButton = nullptr;
+    std::unique_ptr<zcom::Button> _manageSavedPlaylistsButton = nullptr;
+    bool _openingPlaylist = false;
+    bool _openPlaylistSceneOpen = false;
+    bool _savePlaylistSceneOpen = false;
+    std::wstring _currentPlaylistName = L"";
+
+    std::unique_ptr<zcom::Button> _closeOverlayButton = nullptr;
 
     std::unique_ptr<zcom::Panel> _networkBannerPanel = nullptr;
     std::unique_ptr<zcom::Label> _networkStatusLabel = nullptr;
@@ -89,6 +94,7 @@ private:
     void _CheckFileDialogCompletion();
     // Returns true if no files were skipped
     bool _OpenAllFilesInFolder(std::wstring path);
+    void _OpenPlaylist(std::wstring path);
     void _ManageLoadingItems();
     void _ManageFailedItems();
     void _ManageReadyItems();

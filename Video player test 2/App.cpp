@@ -7,6 +7,8 @@
 #include "StartServerScene.h"
 #include "PlaybackScene.h"
 #include "PlaybackOverlayScene.h"
+#include "OpenPlaylistScene.h"
+#include "SavePlaylistScene.h"
 
 #include "PlaylistEventHandler_None.h"
 #include "PlaylistEventHandler_Offline.h"
@@ -94,6 +96,8 @@ void App::Init(DisplayWindow& dw, std::string startScene)
     Instance()->_scenes.push_back(new StartServerScene(_instance));
     Instance()->_scenes.push_back(new PlaybackScene(_instance));
     Instance()->_scenes.push_back(new PlaybackOverlayScene(_instance)); // Must be after PlaybackScene()
+    Instance()->_scenes.push_back(new OpenPlaylistScene(_instance));
+    Instance()->_scenes.push_back(new SavePlaylistScene(_instance));
     Instance()->InitScene(startScene, nullptr);
     Instance()->InitScene(PlaybackOverlayScene::StaticName(), nullptr);
 

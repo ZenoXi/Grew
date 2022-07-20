@@ -1,9 +1,11 @@
 #include "App.h" // App.h must be included first
 #include "PlaybackOverlayScene.h"
 
+#include "OverlayScene.h"
 #include "ConnectScene.h"
 #include "StartServerScene.h"
-#include "OverlayScene.h"
+#include "OpenPlaylistScene.h"
+#include "SavePlaylistScene.h"
 
 #include "Network.h"
 #include "MediaReceiverDataProvider.h"
@@ -112,7 +114,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _addFileButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _addFileButton->SetOnActivated([&]()
     {
-        if (_addingFile || _addingFolder)
+        if (_fileDialog)
             return;
 
         _addingFile = true;
@@ -133,7 +135,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _addFolderButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _addFolderButton->SetOnActivated([&]()
     {
-        if (_addingFile || _addingFolder)
+        if (_fileDialog)
             return;
 
         _addingFolder = true;
@@ -154,9 +156,10 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _openPlaylistButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _openPlaylistButton->SetOnActivated([&]()
     {
-
+        _openPlaylistSceneOpen = true;
+        App::Instance()->InitScene(OpenPlaylistScene::StaticName(), nullptr);
+        App::Instance()->MoveSceneToFront(OpenPlaylistScene::StaticName());
     });
-    _openPlaylistButton->SetActive(false);
 
     _savePlaylistButton = Create<zcom::Button>(L"Save playlist");
     _savePlaylistButton->SetParentWidthPercent(1.0f);
@@ -169,9 +172,12 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _savePlaylistButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _savePlaylistButton->SetOnActivated([&]()
     {
-
+        _savePlaylistSceneOpen = true;
+        SavePlaylistSceneOptions opt;
+        opt.openedPlaylistName = _currentPlaylistName;
+        App::Instance()->InitScene(SavePlaylistScene::StaticName(), &opt);
+        App::Instance()->MoveSceneToFront(SavePlaylistScene::StaticName());
     });
-    _savePlaylistButton->SetActive(false);
 
     _manageSavedPlaylistsButton = Create<zcom::Button>(L"Manage saved playlists");
     _manageSavedPlaylistsButton->SetParentWidthPercent(1.0f);
@@ -535,6 +541,38 @@ void PlaybackOverlayScene::_Update()
             _startServerPanelOpen = false;
         }
     }
+    else if (_openPlaylistSceneOpen)
+    {
+        OpenPlaylistScene* scene = (OpenPlaylistScene*)App::Instance()->FindScene(OpenPlaylistScene::StaticName());
+        if (!scene)
+        {
+            std::cout << "[WARN] Open playlist scene incorrectly marked as open" << std::endl;
+            _openPlaylistSceneOpen = false;
+        }
+        else if (scene->CloseScene())
+        {
+            if (!scene->PlaylistName().empty())
+                _currentPlaylistName = scene->PlaylistName();
+            App::Instance()->UninitScene(OpenPlaylistScene::StaticName());
+            _openPlaylistSceneOpen = false;
+        }
+    }
+    else if (_savePlaylistSceneOpen)
+    {
+        SavePlaylistScene* scene = (SavePlaylistScene*)App::Instance()->FindScene(SavePlaylistScene::StaticName());
+        if (!scene)
+        {
+            std::cout << "[WARN] Open playlist scene incorrectly marked as open" << std::endl;
+            _savePlaylistSceneOpen = false;
+        }
+        else if (scene->CloseScene())
+        {
+            if (!scene->PlaylistName().empty())
+                _currentPlaylistName = scene->PlaylistName();
+            App::Instance()->UninitScene(SavePlaylistScene::StaticName());
+            _savePlaylistSceneOpen = false;
+        }
+    }
 
     if (_selectUsernameInput)
     {
@@ -584,7 +622,6 @@ void PlaybackOverlayScene::_UpdateFileDropHandler()
             if (fs::is_regular_file(path))
             {
                 auto ext = fs::path(path).extension().wstring().substr(1);
-                ext.erase(ext.end() - 1);
                 if (std::find(allowedExtensions.begin(), allowedExtensions.end(), ext) == allowedExtensions.end())
                 {
                     someSkipped = true;
@@ -614,7 +651,7 @@ void PlaybackOverlayScene::_UpdateFileDropHandler()
             ninfo.duration = Duration(3, SECONDS);
             ninfo.title = L"File drop:";
             ninfo.text = L"Some files were not opened";
-            ninfo.borderColor = D2D1::ColorF(0.8f, 0.8f, 0.0f);
+            ninfo.borderColor = D2D1::ColorF(0.65f, 0.4f, 0.0f);
             _app->Overlay()->ShowNotification(ninfo);
         }
     }
@@ -622,36 +659,45 @@ void PlaybackOverlayScene::_UpdateFileDropHandler()
 
 void PlaybackOverlayScene::_CheckFileDialogCompletion()
 {
-    if (_addingFile || _addingFolder)
+    if (!_fileDialog)
+        return;
+    if (!_fileDialog->Done())
+        return;
+
+    if (_addingFile)
     {
-        if (_fileDialog->Done())
+        auto paths = _fileDialog->ParsedResult();
+        if (!paths.empty())
         {
-            if (_addingFile)
+            // Open all selected files
+            for (int i = 0; i < paths.size(); i++)
             {
-                auto paths = _fileDialog->ParsedResult();
-                if (!paths.empty())
-                {
-                    // Open all selected files
-                    for (int i = 0; i < paths.size(); i++)
-                    {
-                        auto item = std::make_unique<PlaylistItem>(paths[i]);
-                        App::Instance()->playlist.Request_AddItem(std::move(item));
-                    }
-                }
-                _addingFile = false;
-                _fileDialog.reset();
-            }
-            else if (_addingFolder)
-            {
-                auto path = _fileDialog->Result();
-                if (!path.empty())
-                {
-                    _OpenAllFilesInFolder(path);
-                }
-                _addingFolder = false;
-                _fileDialog.reset();
+                auto item = std::make_unique<PlaylistItem>(paths[i]);
+                App::Instance()->playlist.Request_AddItem(std::move(item));
             }
         }
+        _addingFile = false;
+        _fileDialog.reset();
+    }
+    else if (_addingFolder)
+    {
+        auto path = _fileDialog->Result();
+        if (!path.empty())
+        {
+            _OpenAllFilesInFolder(path);
+        }
+        _addingFolder = false;
+        _fileDialog.reset();
+    }
+    else if (_openingPlaylist)
+    {
+        auto path = _fileDialog->Result();
+        if (!path.empty())
+        {
+            _OpenPlaylist(path);
+        }
+        _openingPlaylist = false;
+        _fileDialog.reset();
     }
 }
 
@@ -681,6 +727,21 @@ bool PlaybackOverlayScene::_OpenAllFilesInFolder(std::wstring path)
         }
     }
     return !someSkipped;
+}
+
+void PlaybackOverlayScene::_OpenPlaylist(std::wstring path)
+{
+    std::ifstream fin(wstring_to_string(path));
+    if (!fin)
+    {
+        zcom::NotificationInfo ninfo;
+        ninfo.duration = Duration(3, SECONDS);
+        ninfo.title = L"Open playlist:";
+        ninfo.text = L"The playlist file could not be opened";
+        ninfo.borderColor = D2D1::ColorF(0.65f, 0.0f, 0.0f);
+        _app->Overlay()->ShowNotification(ninfo);
+        return;
+    }
 }
 
 void PlaybackOverlayScene::_ManageLoadingItems()
