@@ -2,7 +2,9 @@
 
 #include "Functions.h"
 
+#include <ShlObj.h>
 #include <fstream>
+#include <filesystem>
 
 Options* Options::_instance = nullptr;
 
@@ -30,7 +32,18 @@ void Options::_LoadFromFile()
 {
     _options.clear();
 
-    std::ifstream fin("options");
+    // Get %appdata% folder
+    wchar_t* path_c;
+    if (SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &path_c) != S_OK) {
+        CoTaskMemFree(path_c);
+        return;
+    }
+    std::filesystem::path path(path_c);
+    CoTaskMemFree(path_c);
+
+    path /= L"Grew";
+    path /= L"options";
+    std::ifstream fin(path.string());
     if (!fin)
         return;
 
@@ -51,7 +64,18 @@ void Options::_LoadFromFile()
 
 void Options::_SaveToFile()
 {
-    std::ofstream fout("options");
+    // Get %appdata% folder
+    wchar_t* path_c;
+    if (SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &path_c) != S_OK) {
+        CoTaskMemFree(path_c);
+        return;
+    }
+    std::filesystem::path path(path_c);
+    CoTaskMemFree(path_c);
+
+    path /= L"Grew";
+    path /= L"options";
+    std::ofstream fout(path.string());
     if (!fout)
         return;
 
