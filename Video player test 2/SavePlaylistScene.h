@@ -15,6 +15,8 @@
 struct SavePlaylistSceneOptions : public SceneOptionsBase
 {
     std::wstring openedPlaylistName;
+    // If path is not empty, the playlist file will be renamed
+    std::wstring openedPlaylistPath;
 };
 
 class SavePlaylistScene : public Scene
@@ -44,6 +46,8 @@ private:
 
     bool _closeScene = false;
     std::wstring _playlistName = L"";
+    bool _renaming = false;
+    std::wstring _playlistPath = L"";
 
 private:
     void _Init(const SceneOptionsBase* options);

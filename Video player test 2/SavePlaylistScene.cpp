@@ -21,6 +21,13 @@ void SavePlaylistScene::_Init(const SceneOptionsBase* options)
         opt = *reinterpret_cast<const SavePlaylistSceneOptions*>(options);
     }
 
+    _renaming = false;
+    if (!opt.openedPlaylistPath.empty())
+    {
+        _renaming = true;
+        _playlistPath = opt.openedPlaylistPath;
+    }
+
     zcom::PROP_Shadow shadowProps;
     shadowProps.blurStandardDeviation = 5.0f;
     shadowProps.color = D2D1::ColorF(0, 0.75f);
@@ -36,7 +43,10 @@ void SavePlaylistScene::_Init(const SceneOptionsBase* options)
     mainPanelShadow.color = D2D1::ColorF(0, 0.75f);
     _mainPanel->SetProperty(mainPanelShadow);
 
-    _titleLabel = Create<zcom::Label>(L"Save playlist");
+    if (_renaming)
+        _titleLabel = Create<zcom::Label>(L"Rename playlist");
+    else
+        _titleLabel = Create<zcom::Label>(L"Save playlist");
     _titleLabel->SetBaseSize(400, 30);
     _titleLabel->SetOffsetPixels(30, 30);
     _titleLabel->SetFontSize(30.0f);
@@ -131,6 +141,7 @@ void SavePlaylistScene::_Init(const SceneOptionsBase* options)
     _mainPanel->AddItem(_overwriteExistingCheckbox.get());
     _mainPanel->AddItem(_overwriteExistingLabel.get());
     _mainPanel->AddItem(_bottomSeparator.get());
+    _mainPanel->AddItem(_saveErrorLabel.get());
     _mainPanel->AddItem(_saveButton.get());
 
     _canvas->AddComponent(_mainPanel.get());
@@ -241,7 +252,12 @@ void SavePlaylistScene::_SaveClicked()
         files.push_back(entry.path().filename());
     }
 
+    //////////////////
+    // Create filename
+    //////////////////
+
     std::wstring filename = _playlistNameInput->GetText();
+    std::wstring playlistName;
     if (filename.empty())
     {
         // Find first available unused filename
@@ -250,49 +266,37 @@ void SavePlaylistScene::_SaveClicked()
         {
             counter++;
             std::wostringstream filenamess(L"");
-            filenamess << L"Playlist " << counter << L".grpl";
+            filenamess << L"Playlist " << counter;
+            playlistName = filenamess.str();
+            filenamess << L".grpl";
 
             if (std::find(files.begin(), files.end(), filenamess.str()) != files.end())
                 continue;
 
-            // Create and write to file
-            path /= filenamess.str();
-            std::wofstream fout(path.wstring());
-            if (!fout)
-            {
-                std::string errstr;
-                errstr.resize(256);
-                strerror_s(errstr.data(), 255, errno);
-                while (errstr.back() == '\0')
-                    errstr.erase(errstr.end() - 1);
-                _saveErrorLabel->SetText(string_to_wstring(errstr));
-                _saveErrorLabel->SetVisible(true);
-                return;
-            }
-
-            fout << L"Playlist " << counter << std::endl;
-            auto readyItems = _app->playlist.ReadyItems();
-            auto loadingItems = _app->playlist.LoadingItems();
-            for (int i = 0; i < readyItems.size(); i++)
-                fout << readyItems[i]->GetFilePath() << std::endl;
-            for (int i = 0; i < loadingItems.size(); i++)
-                fout << loadingItems[i]->GetFilePath() << std::endl;
-            fout.close();
-
-            _closeScene = true;
-            zcom::NotificationInfo ninfo;
-            ninfo.duration = Duration(3, SECONDS);
-            ninfo.title = L"Playlist saved as:";
-            filenamess.clear();
-            filenamess << L"Playlist " << counter;
-            ninfo.text = filenamess.str();
-            ninfo.borderColor = D2D1::ColorF(0.2f, 0.65f, 0.1f);
-            _app->Overlay()->ShowNotification(ninfo);
-            return;
+            filename = filenamess.str();
         }
     }
     else
     {
+        playlistName = filename;
+
+        // Sanitize input
+        for (int i = 0; i < filename.length(); i++)
+        {
+            if (filename[i] == L'/' ||
+                filename[i] == L'\\' ||
+                filename[i] == L':' ||
+                filename[i] == L'*' ||
+                filename[i] == L'?' ||
+                filename[i] == L'"' ||
+                filename[i] == L'<' ||
+                filename[i] == L'>' ||
+                filename[i] == L'|')
+            {
+                filename.erase(filename.begin() + i);
+                i--;
+            }
+        }
         filename = filename + L".grpl";
 
         // Check for name collision
@@ -305,41 +309,98 @@ void SavePlaylistScene::_SaveClicked()
                 return;
             }
         }
+    }
+    path /= filename;
 
-        // Create and write to file
-        path /= filename;
-        std::wofstream fout(path.wstring());
-        if (!fout)
+    ///////////////////////
+    // Write data to buffer
+    ///////////////////////
+
+    std::wostringstream outbuf;
+    outbuf << playlistName << std::endl;
+    if (_renaming)
+    {
+        std::wifstream fin(_playlistPath);
+        if (!fin)
         {
             std::string errstr;
-            errstr.resize(256);
-            strerror_s(errstr.data(), 255, errno);
-            while (errstr.back() == '\0')
+            errstr.resize(1024);
+            strerror_s(errstr.data(), 1023, errno);
+            while (!errstr.empty() && errstr.back() == '\0')
                 errstr.erase(errstr.end() - 1);
+            errstr.resize(errstr.length() + 1);
             _saveErrorLabel->SetText(string_to_wstring(errstr));
             _saveErrorLabel->SetVisible(true);
             return;
         }
 
-        fout << _playlistNameInput->GetText() << std::endl;
+        std::wstring line;
+        std::getline(fin, line);
+
+        while (!fin.eof())
+        {
+            std::getline(fin, line);
+            if (!line.empty())
+                outbuf << line << std::endl;
+        }
+        fin.close();
+    }
+    else
+    {
         auto readyItems = _app->playlist.ReadyItems();
         auto loadingItems = _app->playlist.LoadingItems();
         for (int i = 0; i < readyItems.size(); i++)
-            fout << readyItems[i]->GetFilePath() << std::endl;
+            outbuf << readyItems[i]->GetFilePath() << std::endl;
         for (int i = 0; i < loadingItems.size(); i++)
-            fout << loadingItems[i]->GetFilePath() << std::endl;
-        fout.close();
+            outbuf << loadingItems[i]->GetFilePath() << std::endl;
+    }
 
-        _closeScene = true;
-        _playlistName = _playlistNameInput->GetText();
-        zcom::NotificationInfo ninfo;
-        ninfo.duration = Duration(3, SECONDS);
-        ninfo.title = L"Playlist saved as:";
-        ninfo.text = _playlistNameInput->GetText();
-        ninfo.borderColor = D2D1::ColorF(0.2f, 0.65f, 0.1f);
-        _app->Overlay()->ShowNotification(ninfo);
+    /////////////////////////////
+    // Write new playlist to file
+    /////////////////////////////
+
+    std::wofstream fout(path);
+    if (!fout)
+    {
+        std::string errstr;
+        errstr.resize(1024);
+        strerror_s(errstr.data(), 1023, errno);
+        while (!errstr.empty() && errstr.back() == '\0')
+            errstr.erase(errstr.end() - 1);
+        errstr.resize(errstr.length() + 1);
+        _saveErrorLabel->SetText(string_to_wstring(errstr));
+        _saveErrorLabel->SetVisible(true);
         return;
     }
+    fout << outbuf.str();
+    fout.close();
+
+    // Attempt to delete old file
+    if (_renaming && _playlistPath != path)
+    {
+        std::error_code ec;
+        bool result = std::filesystem::remove(_playlistPath, ec);
+        if (!result)
+        {
+            // Show notification if failed
+            zcom::NotificationInfo ninfo;
+            ninfo.borderColor = D2D1::ColorF(0.8f, 0.2f, 0.2f);
+            ninfo.duration = Duration(5, SECONDS);
+            ninfo.title = L"Failed to delete old file";
+            ninfo.text = string_to_wstring(ec.message());
+            _app->Overlay()->ShowNotification(ninfo);
+        }
+    }
+
+    // Show success notification
+    _closeScene = true;
+    _playlistName = playlistName;
+    zcom::NotificationInfo ninfo;
+    ninfo.duration = Duration(3, SECONDS);
+    ninfo.title = L"Playlist saved as:";
+    ninfo.text = playlistName;
+    ninfo.borderColor = D2D1::ColorF(0.2f, 0.65f, 0.1f);
+    _app->Overlay()->ShowNotification(ninfo);
 }
 
 void SavePlaylistScene::_CancelClicked()
