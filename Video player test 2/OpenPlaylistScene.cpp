@@ -275,7 +275,7 @@ void OpenPlaylistScene::_BrowseClicked()
     FileDialogOptions opt;
     opt.openFolders = false;
     opt.allowMultipleFiles = false;
-    opt.allowedExtensions.push_back({ L"Playlist files", L".grpl" });
+    opt.allowedExtensions.push_back({ L"Grew playlist files", L"*.grpl" });
     _fileDialog->Open(opt);
 }
 
