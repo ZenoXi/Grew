@@ -65,7 +65,7 @@ namespace zcom
             _deleteButton->SetHorizontalAlignment(Alignment::END);
             _deleteButton->SetActivation(ButtonActivation::RELEASE);
             _deleteButton->SetOnActivated([&]() { _delete = true; });
-            _deleteButton->SetBackgroundImage(ResourceManager::GetImage("item_delete"));
+            _deleteButton->SetBackgroundImage(ResourceManager::GetImage("delete"));
             _deleteButton->SetVisible(false);
 
             _stopButton = Create<Button>();
