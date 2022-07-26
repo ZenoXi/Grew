@@ -48,6 +48,7 @@ class PlaybackOverlayScene : public Scene
     bool _openingPlaylist = false;
     bool _openPlaylistSceneOpen = false;
     bool _savePlaylistSceneOpen = false;
+    bool _managePlaylistsSceneOpen = false;
     std::wstring _currentPlaylistName = L"";
 
     std::unique_ptr<zcom::Button> _closeOverlayButton = nullptr;

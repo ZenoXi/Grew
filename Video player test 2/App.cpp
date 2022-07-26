@@ -9,6 +9,7 @@
 #include "PlaybackOverlayScene.h"
 #include "OpenPlaylistScene.h"
 #include "SavePlaylistScene.h"
+#include "ManagePlaylistsScene.h"
 
 #include "PlaylistEventHandler_None.h"
 #include "PlaylistEventHandler_Offline.h"
@@ -98,6 +99,7 @@ void App::Init(DisplayWindow& dw, std::string startScene)
     Instance()->_scenes.push_back(new PlaybackOverlayScene(_instance)); // Must be after PlaybackScene()
     Instance()->_scenes.push_back(new OpenPlaylistScene(_instance));
     Instance()->_scenes.push_back(new SavePlaylistScene(_instance));
+    Instance()->_scenes.push_back(new ManagePlaylistsScene(_instance));
     Instance()->InitScene(startScene, nullptr);
     Instance()->InitScene(PlaybackOverlayScene::StaticName(), nullptr);
 
@@ -468,7 +470,7 @@ void App::LoopThread()
             _sceneChanged = false;
             redraw = true;
             window.gfx.GetGraphics().target->BeginDraw();
-            window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+            window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0));
         }
 
         { // Top menu scene
@@ -524,7 +526,8 @@ void App::LoopThread()
             //start = timer.Now();
 
 
-            window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+            //window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+            window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0));
             if (_fullscreen)
             {
                 for (auto& scene : activeScenes)

@@ -6,6 +6,7 @@
 #include "StartServerScene.h"
 #include "OpenPlaylistScene.h"
 #include "SavePlaylistScene.h"
+#include "ManagePlaylistsScene.h"
 
 #include "Network.h"
 #include "MediaReceiverDataProvider.h"
@@ -190,9 +191,10 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _manageSavedPlaylistsButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _manageSavedPlaylistsButton->SetOnActivated([&]()
     {
-
+        _managePlaylistsSceneOpen = true;
+        App::Instance()->InitScene(ManagePlaylistsScene::StaticName(), nullptr);
+        App::Instance()->MoveSceneToFront(ManagePlaylistsScene::StaticName());
     });
-    _manageSavedPlaylistsButton->SetActive(false);
 
     _closeOverlayButton = Create<zcom::Button>(L"Close overlay (Esc)");
     _closeOverlayButton->SetParentWidthPercent(1.0f);
@@ -562,7 +564,7 @@ void PlaybackOverlayScene::_Update()
         SavePlaylistScene* scene = (SavePlaylistScene*)App::Instance()->FindScene(SavePlaylistScene::StaticName());
         if (!scene)
         {
-            std::cout << "[WARN] Open playlist scene incorrectly marked as open" << std::endl;
+            std::cout << "[WARN] Save playlist scene incorrectly marked as open" << std::endl;
             _savePlaylistSceneOpen = false;
         }
         else if (scene->CloseScene())
@@ -571,6 +573,20 @@ void PlaybackOverlayScene::_Update()
                 _currentPlaylistName = scene->PlaylistName();
             App::Instance()->UninitScene(SavePlaylistScene::StaticName());
             _savePlaylistSceneOpen = false;
+        }
+    }
+    else if (_managePlaylistsSceneOpen)
+    {
+        ManagePlaylistsScene* scene = (ManagePlaylistsScene*)App::Instance()->FindScene(ManagePlaylistsScene::StaticName());
+        if (!scene)
+        {
+            std::cout << "[WARN] Manage playlists scene incorrectly marked as open" << std::endl;
+            _managePlaylistsSceneOpen = false;
+        }
+        else if (scene->CloseScene())
+        {
+            App::Instance()->UninitScene(ManagePlaylistsScene::StaticName());
+            _managePlaylistsSceneOpen = false;
         }
     }
 
