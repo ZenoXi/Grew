@@ -553,7 +553,8 @@ ID2D1Bitmap* PlaybackScene::_Draw(Graphics g)
     g.target->GetTarget(&stash);
     g.target->SetTarget(_ccanvas);
 
-    g.target->Clear(D2D1::ColorF(0.05f, 0.05f, 0.05f));
+    //g.target->Clear(D2D1::ColorF(0.05f, 0.05f, 0.05f));
+    g.target->Clear(D2D1::ColorF(0));
 
     if (!_playback->Initializing())
     {
