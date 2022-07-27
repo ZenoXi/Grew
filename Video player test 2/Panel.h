@@ -752,7 +752,7 @@ namespace zcom
 #pragma endregion
 
     protected:
-        void _RecalculateLayout(int width, int height)
+        virtual void _RecalculateLayout(int width, int height)
         {
             // Calculate item sizes and positions
             int maxRightEdge = 0;
@@ -1017,17 +1017,17 @@ namespace zcom
             _updatesDeferred = false;
         }
 
-        // Enables reactive layout updates. Any deferred updates are executed.
-        void ResumeLayoutUpdates()
+        // Enables reactive layout updates. Any deferred updates are executed, unless 'executePending' is false.
+        void ResumeLayoutUpdates(bool executePending = true)
         {
             _deferUpdates = false;
-            if (_updatesDeferred)
+            if (_updatesDeferred && executePending)
             {
                 _RecalculateLayout(GetWidth(), GetHeight());
                 if (GetMouseInside())
                     OnMouseMove(GetMousePosX(), GetMousePosY());
-                _updatesDeferred = false;
             }
+            _updatesDeferred = false;
         }
 
         void ReindexTabOrder()
@@ -1072,6 +1072,16 @@ namespace zcom
                 }
                 _RecalculateLayout(GetWidth(), GetHeight());
             }
+        }
+
+        int GetContentWidth() const
+        {
+            return _contentWidth;
+        }
+
+        int GetContentHeight() const
+        {
+            return _contentHeight;
         }
 
         // Scrolling
