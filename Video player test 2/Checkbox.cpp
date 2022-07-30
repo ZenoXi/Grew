@@ -30,6 +30,7 @@ void zcom::Checkbox::Init(bool checked)
     _checked = checked;
     _checkColor = D2D1::ColorF(0.6f, 0.6f, 0.6f);
 
+    _customInactiveDraw = true;
     SetDefaultCursor(CursorIcon::HAND);
     SetSelectable(true);
     SetCornerRounding(5.0f);
@@ -43,6 +44,14 @@ void zcom::Checkbox::_OnDraw(Graphics g)
     if (!Checked())
         return;
 
+    D2D1_COLOR_F finalCheckColor = _checkColor;
+    if (!GetActive())
+    {
+        finalCheckColor.r *= 0.5f;
+        finalCheckColor.g *= 0.5f;
+        finalCheckColor.b *= 0.5f;
+    }
+
     if (GetCornerRounding() > 0.0f)
     {
         auto size = g.target->GetSize();
@@ -51,7 +60,7 @@ void zcom::Checkbox::_OnDraw(Graphics g)
         rrect.radiusY = GetCornerRounding() - 5.0f;
         rrect.rect = { 5.0f, 5.0f, size.width - 5.0f, size.height - 5.0f };
         ID2D1SolidColorBrush* brush = nullptr;
-        g.target->CreateSolidColorBrush(_checkColor, &brush);
+        g.target->CreateSolidColorBrush(finalCheckColor, &brush);
         g.target->FillRoundedRectangle(rrect, brush);
         brush->Release();
     }
@@ -60,7 +69,7 @@ void zcom::Checkbox::_OnDraw(Graphics g)
         auto size = g.target->GetSize();
         D2D1_RECT_F rect = { 3.0f, 3.0f, size.width - 3.0f, size.height - 3.0f };
         ID2D1SolidColorBrush* brush = nullptr;
-        g.target->CreateSolidColorBrush(_checkColor, &brush);
+        g.target->CreateSolidColorBrush(finalCheckColor, &brush);
         g.target->FillRectangle(rect, brush);
         brush->Release();
     }

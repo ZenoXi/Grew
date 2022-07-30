@@ -352,6 +352,7 @@ namespace zcom
         TextInput(Scene* scene) : Base(scene) {}
         void Init()
         {
+            _customInactiveDraw = true;
             SetDefaultCursor(CursorIcon::IBEAM);
             SetSelectable(true);
             SetBorderVisibility(true);
