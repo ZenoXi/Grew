@@ -168,6 +168,11 @@ namespace zcom
         int _height = 100;
         float _opacity = 1.0f;
         bool _active = true;
+    protected:
+        // Child components set this to true, if they
+        // want to do custom rendering when inactive
+        bool _customInactiveDraw = false;
+    private:
         bool _visible = true;
 
         // Selection
@@ -1152,7 +1157,7 @@ namespace zcom
                 }
 
                 // If inactive, gray out the canvas
-                if (!_active)
+                if (!_active && !_customInactiveDraw)
                 {
                     ID2D1Bitmap1* grayscaleBitmap = nullptr;
                     g.target->CreateBitmap(
