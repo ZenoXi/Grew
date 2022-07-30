@@ -44,12 +44,43 @@ namespace zcom
     protected:
         void _OnUpdate()
         {
+            if (_verticalScrollBar.hangDuration == 0)
+            {
+                if (MaxVerticalScroll() != 0 && !_verticalScrollBar.visible)
+                {
+                    _verticalScrollBar.visible = true;
+                    InvokeRedraw();
+                }
+                else if (MaxVerticalScroll() == 0 && _verticalScrollBar.visible)
+                {
+                    _verticalScrollBar.visible = false;
+                    InvokeRedraw();
+                }
+            }
+            if (_horizontalScrollBar.hangDuration == 0)
+            {
+                if (MaxHorizontalScroll() != 0 && !_horizontalScrollBar.visible)
+                {
+                    _horizontalScrollBar.visible = true;
+                    InvokeRedraw();
+                }
+                else if (MaxHorizontalScroll() == 0 && _horizontalScrollBar.visible)
+                {
+                    _horizontalScrollBar.visible = false;
+                    InvokeRedraw();
+                }
+            }
+
             // Fade vertical scrollbar
             if (_verticalScrollBar.visible)
             {
                 if (_verticalScrollBar.hangDuration == 0)
                 {
-                    _verticalScrollBar.opacity = 1.0f;
+                    if (_verticalScrollBar.opacity != 1.0f)
+                    {
+                        _verticalScrollBar.opacity = 1.0f;
+                        InvokeRedraw();
+                    }
                 }
                 else
                 {
@@ -80,7 +111,11 @@ namespace zcom
             {
                 if (_horizontalScrollBar.hangDuration == 0)
                 {
-                    _horizontalScrollBar.opacity = 1.0f;
+                    if (_horizontalScrollBar.opacity != 1.0f)
+                    {
+                        _horizontalScrollBar.opacity = 1.0f;
+                        InvokeRedraw();
+                    }
                 }
                 else
                 {
@@ -1175,6 +1210,26 @@ namespace zcom
             else if (_horizontalScroll < 0)
                 _horizontalScroll = 0;
             InvokeRedraw();
+        }
+
+        Duration VerticalScrollbarHangDuration() const
+        {
+            return _verticalScrollBar.hangDuration;
+        }
+
+        void VerticalScrollbarHangDuration(Duration duration)
+        {
+            _verticalScrollBar.hangDuration = duration;
+        }
+
+        Duration HorizontalScrollbarHangDuration() const
+        {
+            return _horizontalScrollBar.hangDuration;
+        }
+
+        void HorizontalScrollbarHangDuration(Duration duration)
+        {
+            _horizontalScrollBar.hangDuration = duration;
         }
 
         int ScrollStepSize() const
