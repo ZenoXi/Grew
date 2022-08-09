@@ -5,17 +5,32 @@
 
 #include <vector>
 
-struct ServerOptions
+struct PlaylistPermissions
 {
-    int maxClients;
-    bool clientCanAddItem;
-    bool clientCanDeleteItem;
-    bool clientCanPlayItem;
-    bool clientCanStopItem;
-    bool clientCanMoveItem;
+    bool addItems = true;
+    bool manageItems = true;
+    bool startStopItems = true;
+
+    inline bool operator==(const PlaylistPermissions& other)
+    {
+        return addItems == other.addItems
+            && manageItems == other.manageItems
+            && startStopItems == other.startStopItems;
+    }
+
+    inline bool operator!=(const PlaylistPermissions& other)
+    {
+        return !(*this == other);
+    }
 
     // std::string ToString() const { return ""; }
     // void FromString(std::string optString) {}
+};
+
+struct PlaylistOptions
+{
+    bool autoplay = true;
+    PlaylistPermissions defaultPermissions;
 };
 
 class Playlist_Internal
@@ -35,7 +50,9 @@ public:
     int64_t currentlyStarting = -1;
     int64_t startRequestIssuer = -1; // TODO: move to server handler
 
-    ServerOptions options;
+    PlaylistOptions options;
+    std::vector<std::pair<int64_t, PlaylistPermissions>> customUserPermissions;
+    PlaylistPermissions GetUserPermissions(int64_t userId) const;
 
     void Reset();
 };
@@ -64,8 +81,10 @@ public:
     int64_t CurrentlyPlaying() const;
     int64_t CurrentlyStarting() const;
 
-    void SetOptions(ServerOptions opt);
-    ServerOptions GetOptions() const;
+    void SetOptions(PlaylistOptions opt) { _playlist->options = opt; }
+    PlaylistOptions GetOptions() const { return _playlist->options; }
+    void SetUserPermissions(int64_t userId, PlaylistPermissions perm = {});
+    PlaylistPermissions GetUserPermissions(int64_t userId) const;
 
     void Update();
 

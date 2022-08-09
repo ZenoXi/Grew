@@ -4,6 +4,7 @@
 #include "PlaybackScene.h"
 #include "PacketSubscriber.h"
 #include "PlaylistEvents.h"
+#include "UserEvents.h"
 
 #include "Label.h"
 #include "Image.h"
@@ -68,6 +69,7 @@ class PlaybackOverlayScene : public Scene
     std::unique_ptr<zcom::Image> _uploadSpeedImage = nullptr;
     std::unique_ptr<zcom::Label> _uploadSpeedLabel = nullptr;
     std::unique_ptr<zcom::Panel> _connectedUsersPanel = nullptr;
+    std::unique_ptr<zcom::MenuPanel> _userContextMenu = nullptr;
 
     std::unique_ptr<zcom::Panel> _chatPanel = nullptr;
 
@@ -115,6 +117,7 @@ private:
     void _RearrangeNetworkPanel();
     void _RearrangeNetworkPanel_Offline();
     void _RearrangeNetworkPanel_Online();
+    void _UpdatePermissions();
 
     // Playlist change tracking
 
@@ -147,9 +150,12 @@ private:
         std::unique_ptr<EventHandler<DisconnectEvent>> _disconnectEvent;
         std::unique_ptr<EventHandler<ConnectionLostEvent>> _connectionLostEvent;
         std::unique_ptr<EventHandler<ConnectionClosedEvent>> _connectionClosedEvent;
-        std::unique_ptr<EventHandler<UserConnectedEvent>> _userConnectedEvent;
         std::unique_ptr<EventHandler<NetworkStateChangedEvent>> _networkStateChangedEvent;
-        std::unique_ptr<EventHandler<UserDisconnectedEvent>> _userDisconnectedEvent;
+        //std::unique_ptr<EventHandler<UserConnectedEvent>> _userConnectedEvent;
+        //std::unique_ptr<EventHandler<UserDisconnectedEvent>> _userDisconnectedEvent;
+        //std::unique_ptr<EventHandler<UserNameChangedEvent>> _userNameChangedEvent;
+        std::unique_ptr<EventHandler<UserAddedEvent>> _userAddedEvent;
+        std::unique_ptr<EventHandler<UserRemovedEvent>> _userRemovedEvent;
         std::unique_ptr<EventHandler<UserNameChangedEvent>> _userNameChangedEvent;
 
         std::mutex _m_event;
@@ -166,9 +172,11 @@ private:
             _disconnectEvent = std::make_unique<EventHandler<DisconnectEvent>>(&App::Instance()->events, [&](DisconnectEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
             _connectionLostEvent = std::make_unique<EventHandler<ConnectionLostEvent>>(&App::Instance()->events, [&](ConnectionLostEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
             _connectionClosedEvent = std::make_unique<EventHandler<ConnectionClosedEvent>>(&App::Instance()->events, [&](ConnectionClosedEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
-            _userConnectedEvent = std::make_unique<EventHandler<UserConnectedEvent>>(&App::Instance()->events, [&](UserConnectedEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
             _networkStateChangedEvent = std::make_unique<EventHandler<NetworkStateChangedEvent>>(&App::Instance()->events, [&](NetworkStateChangedEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
-            _userDisconnectedEvent = std::make_unique<EventHandler<UserDisconnectedEvent>>(&App::Instance()->events, [&](UserDisconnectedEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
+            //_userConnectedEvent = std::make_unique<EventHandler<UserConnectedEvent>>(&App::Instance()->events, [&](UserConnectedEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
+            //_userDisconnectedEvent = std::make_unique<EventHandler<UserDisconnectedEvent>>(&App::Instance()->events, [&](UserDisconnectedEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
+            _userAddedEvent = std::make_unique<EventHandler<UserAddedEvent>>(&App::Instance()->events, [&](UserAddedEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
+            _userRemovedEvent = std::make_unique<EventHandler<UserRemovedEvent>>(&App::Instance()->events, [&](UserRemovedEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
             _userNameChangedEvent = std::make_unique<EventHandler<UserNameChangedEvent>>(&App::Instance()->events, [&](UserNameChangedEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
         }
 
@@ -188,6 +196,11 @@ private:
 
     std::unique_ptr<EventReceiver<NetworkStatsEvent>> _networkStatsEventReceiver = nullptr;
     void _UpdateNetworkStats();
+
+    // Permissions change handling
+
+    std::unique_ptr<EventReceiver<UserPermissionChangedEvent>> _permissionsChangedReceiver = nullptr;
+    void _HandlePermissionChange();
 
     // Shorcut handling
 

@@ -13,6 +13,7 @@
 #include "MediaHostDataProvider.h"
 
 #include "FileTypes.h"
+#include "Permissions.h"
 
 #include <filesystem>
 
@@ -28,11 +29,10 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         opt = *reinterpret_cast<const PlaybackOverlaySceneOptions*>(options);
     }
 
-    // Init playlist changed receiver
+    // Init event receivers
     _playlistChangedReceiver = std::make_unique<EventReceiver<PlaylistChangedEvent>>(&App::Instance()->events);
-
-    // Init network stat receiver
     _networkStatsEventReceiver = std::make_unique<EventReceiver<NetworkStatsEvent>>(&App::Instance()->events);
+    _permissionsChangedReceiver = std::make_unique<EventReceiver<UserPermissionChangedEvent>>(&App::Instance()->events);
 
     // Set up shortcut handler
     _shortcutHandler = std::make_unique<PlaybackOverlayShortcutHandler>();
@@ -321,7 +321,8 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     {
         _usernameButton->SetVisible(false);
         _usernameInput->SetVisible(true);
-        _usernameInput->SetText(APP_NETWORK->ThisUser().name);
+        auto user = _app->users.GetThisUser();
+        _usernameInput->SetText(user ? user->name : L"");
         _selectUsernameInput = true;
     });
     _usernameButton->SetZIndex(1);
@@ -343,7 +344,8 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         }
         else if (key == VK_RETURN)
         {
-            APP_NETWORK->SetUsername(_usernameInput->GetText());
+            App::Instance()->users.SetSelfUsername(_usernameInput->GetText());
+            //APP_NETWORK->SetUsername(_usernameInput->GetText());
             _networkPanelChanged = true;
             quit = true;
         }
@@ -401,6 +403,8 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _connectedUsersPanel->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     _connectedUsersPanel->SetProperty(shadowProps);
     _connectedUsersPanel->SetVisible(false);
+
+    _userContextMenu = Create<zcom::MenuPanel>();
 
     _chatPanel = Create<zcom::Panel>();
     _chatPanel->SetVisible(false);
@@ -599,6 +603,7 @@ void PlaybackOverlayScene::_Update()
     _InvokePlaylistChange();
     _InvokeNetworkPanelChange();
     _UpdateNetworkStats();
+    _HandlePermissionChange();
 
     // Files
     _UpdateFileDropHandler();
@@ -610,6 +615,7 @@ void PlaybackOverlayScene::_Update()
     _ManageReadyItems();
     _RearrangePlaylistPanel();
     _RearrangeNetworkPanel();
+    _UpdatePermissions();
 }
 
 void PlaybackOverlayScene::_UpdateFileDropHandler()
@@ -617,15 +623,25 @@ void PlaybackOverlayScene::_UpdateFileDropHandler()
     namespace fs = std::filesystem;
 
     // Update drop rect
-    _playlistFileDropHandler->SetDropRect({
-        _readyItemPanel->GetScreenX(),
-        _readyItemPanel->GetScreenY() + _app->MenuHeight(),
-        _readyItemPanel->GetScreenX() + _readyItemPanel->GetWidth(),
-        _readyItemPanel->GetScreenY() + _app->MenuHeight() + _readyItemPanel->GetHeight()
-    });
+    auto user = _app->users.GetThisUser();
+    bool canDrop = user && user->GetPermission(PERMISSION_ADD_ITEMS);
+    if (canDrop)
+    {
+        _playlistFileDropHandler->SetDropRect(
+        {
+            _readyItemPanel->GetScreenX(),
+            _readyItemPanel->GetScreenY() + _app->MenuHeight(),
+            _readyItemPanel->GetScreenX() + _readyItemPanel->GetWidth(),
+            _readyItemPanel->GetScreenY() + _app->MenuHeight() + _readyItemPanel->GetHeight()
+        });
+    }
+    else
+    {
+        _playlistFileDropHandler->SetDropRect({ 0, 0, -1, -1 });
+    }
 
     // Set overlay visibility 
-    _fileDropOverlay->SetVisible(_playlistFileDropHandler->Dragging());
+    _fileDropOverlay->SetVisible(canDrop && _playlistFileDropHandler->Dragging());
 
     // Get drop result
     auto result = _playlistFileDropHandler->GetDropResult();
@@ -968,6 +984,18 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
             status = L"Host missing..";
         }
 
+        // Permissions
+        auto user = _app->users.GetThisUser();
+        if (user && !user->GetPermission(PERMISSION_START_STOP_PLAYBACK))
+        {
+            playVisible = false;
+            stopVisible = false;
+        }
+        if (user && !user->GetPermission(PERMISSION_MANAGE_ITEMS))
+        {
+            deleteVisible = false;
+        }
+
         int buttons = 0;
         buttons |= playVisible ? zcom::OverlayPlaylistItem::BTN_PLAY : 0;
         buttons |= deleteVisible ? zcom::OverlayPlaylistItem::BTN_DELETE : 0;
@@ -1251,18 +1279,18 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel_Online()
     _networkStatusLabel->SetText(APP_NETWORK->ManagerStatusString());
 
     // Update username label
-    auto user = APP_NETWORK->ThisUser();
-    if (user.name.empty())
+    auto thisUser = App::Instance()->users.GetThisUser();// APP_NETWORK->ThisUser();
+    if (thisUser->name.empty())
         _usernameButton->Text()->SetText(L"No username set");
     else
-        _usernameButton->Text()->SetText(user.name);
+        _usernameButton->Text()->SetText(thisUser->name);
 
     // Add all users
     _connectedUsersPanel->DeferLayoutUpdates();
     _connectedUsersPanel->ClearItems();
 
     { // This client
-        std::wstring name = L"[User " + string_to_wstring(int_to_str(user.id)) + L"] " + user.name;
+        std::wstring name = L"[User " + string_to_wstring(int_to_str(thisUser->id)) + L"] " + thisUser->name;
         auto usernameLabel = Create<zcom::Label>(name);
         usernameLabel->SetBaseHeight(25);
         usernameLabel->SetParentWidthPercent(1.0f);
@@ -1273,10 +1301,10 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel_Online()
     }
 
     // Others
-    auto users = APP_NETWORK->Users();
+    auto users = App::Instance()->users.GetUsers(false);//APP_NETWORK->Users();
     for (int i = 0; i < users.size(); i++)
     {
-        std::wstring name = L"[User " + string_to_wstring(int_to_str(users[i].id)) + L"] " + users[i].name;
+        std::wstring name = L"[User " + string_to_wstring(int_to_str(users[i]->id)) + L"] " + users[i]->name;
 
         auto usernameLabel = Create<zcom::Label>(name);
         usernameLabel->SetBaseHeight(25);
@@ -1285,6 +1313,41 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel_Online()
         usernameLabel->SetBackgroundColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.05f * (i % 2)));
         usernameLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         usernameLabel->SetMargins({ 5.0f, 0.0f, 5.0f, 0.0f });
+
+        if (thisUser->GetPermission(PERMISSION_EDIT_PERMISSIONS))
+        {
+            int64_t userId = users[i]->id;
+            usernameLabel->AddOnRightReleased([&, userId](zcom::Base* item, int x, int y)
+            {
+                auto user = App::Instance()->users.GetUser(userId);
+                if (!user)
+                    return;
+
+                _userContextMenu->ClearItems();
+                auto permissions = user->GetPermissionNames();
+                for (auto& perm : permissions)
+                {
+                    std::wstring permName = perm.first;
+                    std::string permKey = perm.second;
+                    auto permissionItem = Create<zcom::MenuItem>(permName, [&, userId, permKey](bool checked)
+                    {
+                        App::Instance()->users.SetPermission(userId, permKey, checked);
+                    });
+                    permissionItem->SetCheckable(true);
+                    permissionItem->SetChecked(user->GetPermission(permKey));
+                    permissionItem->SetCloseOnClick(false);
+                    _userContextMenu->AddItem(std::move(permissionItem));
+                }
+
+                RECT clickPoint;
+                clickPoint.left = item->GetScreenX() + x;
+                clickPoint.right = item->GetScreenX() + x;
+                clickPoint.top = item->GetScreenY() + y;
+                clickPoint.bottom = item->GetScreenY() + y;
+                App::Instance()->Overlay()->ShowMenu(_userContextMenu.get(), clickPoint);
+            });
+        }
+
         _connectedUsersPanel->AddItem(usernameLabel.release(), true);
     }
     _connectedUsersPanel->ResumeLayoutUpdates();
@@ -1295,6 +1358,18 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel_Online()
     //if (!users.empty())
     //    ss << L's';
     _connectedUserCountLabel->SetText(ss.str());
+}
+
+void PlaybackOverlayScene::_UpdatePermissions()
+{
+    auto user = _app->users.GetThisUser();
+    if (!user)
+        return;
+
+    bool allowItemAdd = user->GetPermission(PERMISSION_ADD_ITEMS);
+    _addFileButton->SetActive(allowItemAdd);
+    _addFolderButton->SetActive(allowItemAdd);
+    _openPlaylistButton->SetActive(allowItemAdd);
 }
 
 void PlaybackOverlayScene::_InvokePlaylistChange()
@@ -1469,6 +1544,18 @@ void PlaybackOverlayScene::_UpdateNetworkStats()
         _downloadSpeedLabel->SetText(BytesToString(ev.bytesReceived * 1000 / ev.timeInterval.GetDuration(MILLISECONDS)) + L"/s");
         // Upload
         _uploadSpeedLabel->SetText(BytesToString(ev.bytesSent * 1000 / ev.timeInterval.GetDuration(MILLISECONDS)) + L"/s");
+    }
+}
+
+void PlaybackOverlayScene::_HandlePermissionChange()
+{
+    while (_permissionsChangedReceiver->EventCount() > 0)
+    {
+        _permissionsChangedReceiver->GetEvent();
+        _playlistChanged = true;
+        _networkPanelChanged = true;
+        _lastPlaylistUpdate = ztime::Main();
+        _lastNetworkPanelUpdate = ztime::Main();
     }
 }
 

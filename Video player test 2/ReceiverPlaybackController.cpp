@@ -394,14 +394,8 @@ std::wstring ReceiverPlaybackController::_UsernameFromId(int64_t id)
         username << L"[Owner] ";
     else
         username << L"[User " << id << "] ";
-    auto users = APP_NETWORK->Users();
-    for (auto& user : users)
-    {
-        if (user.id == id)
-        {
-            username << user.name;
-            break;
-        }
-    }
+    auto user = App::Instance()->users.GetUser(id);
+    if (user)
+        username << user->name;
     return username.str();
 }

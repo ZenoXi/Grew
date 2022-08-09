@@ -49,16 +49,16 @@ struct ConnectionClosedEvent
     static const char* _NAME_() { return "connection_closed"; }
 };
 
-struct UserConnectedEvent
-{
-    static const char* _NAME_() { return "user_connected"; }
-    int64_t userId;
-};
-
 struct NetworkStateChangedEvent
 {
     static const char* _NAME_() { return "network_state_changed"; }
     std::string newStateName;
+};
+
+struct UserConnectedEvent
+{
+    static const char* _NAME_() { return "user_connected"; }
+    int64_t userId;
 };
 
 struct UserDisconnectedEvent
@@ -67,12 +67,12 @@ struct UserDisconnectedEvent
     int64_t userId;
 };
 
-struct UserNameChangedEvent
-{
-    static const char* _NAME_() { return "user_name_changed"; }
-    int64_t userId;
-    std::wstring newName;
-};
+//struct UserNameChangedEvent
+//{
+//    static const char* _NAME_() { return "user_name_changed"; }
+//    int64_t userId;
+//    std::wstring newName;
+//};
 
 struct NetworkStatsEvent
 {

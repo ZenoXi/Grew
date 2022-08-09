@@ -21,6 +21,7 @@ public:
     ~PlaylistEventHandler_Server();
 
 private:
+    std::unique_ptr<EventReceiver<UserConnectedEvent>> _userConnectedReceiver = nullptr;
     std::unique_ptr<EventReceiver<UserDisconnectedEvent>> _userDisconnectedReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _playlistRequestReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _itemAddRequestReceiver = nullptr;
@@ -30,6 +31,7 @@ private:
     std::unique_ptr<znet::PacketReceiver> _playbackStopRequestReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _itemMoveRequestReceiver = nullptr;
 
+    void _CheckForUserConnect();
     void _CheckForUserDisconnect();
     void _CheckForPlaylistRequest();
     void _CheckForItemAddRequest();

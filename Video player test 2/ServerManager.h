@@ -13,12 +13,12 @@ namespace znet
     public:
         ServerManager(uint16_t port);
         ~ServerManager();
+        void Start();
 
         std::vector<User> Users(bool includeSelf);
         std::vector<int64_t> UserIds(bool includeSelf);
         User ThisUser();
         int64_t ThisUserId();
-        void SetUsername(std::wstring username);
 
         void Send(Packet&& packet, std::vector<int64_t> userIds, int priority = 0);
         void AddToQueue(Packet&& packet);
@@ -64,6 +64,7 @@ namespace znet
 
         TCPServer _server;
         bool _startFailed;
+        bool _allowConnections;
         std::vector<User> _users;
         std::vector<_UserData> _usersData;
         User _thisUser;

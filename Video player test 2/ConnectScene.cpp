@@ -229,13 +229,15 @@ void ConnectScene::_Update()
         auto status = APP_NETWORK->ManagerStatus();
         if (status == znet::NetworkStatus::ONLINE)
         {
+            APP_NETWORK->StartManager();
             _connectionSuccessful = true;
             _connecting = false;
             _closeScene = true;
-            APP_NETWORK->SetUsername(_usernameInput->GetText());
+            _app->users.SetSelfUsername(_usernameInput->GetText());
         }
         else if (status != znet::NetworkStatus::INITIALIZING)
         {
+            APP_NETWORK->CloseManager();
             _connectionSuccessful = false;
             _connecting = false;
             _connectButton->SetBackgroundColor(D2D1::ColorF(0.25f, 0.25f, 0.3f));

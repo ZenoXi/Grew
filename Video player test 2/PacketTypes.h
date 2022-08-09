@@ -32,6 +32,7 @@ namespace znet
         // Contains:
         //  int64_t - user id
         //  remaining bytes - wchar_t string
+        // DEPRECATED
         USER_DATA,
 
         // Sent by the server to all clients when a new user connects
@@ -230,7 +231,7 @@ namespace znet
 
         // // // // // // // // // // // // // // // // // // //
         // // // // // // // // // // // // // // // // // // //
-        // PLAYBACK QUEUE // // // // // // // // // // // // //
+        // PLAYLIST // // // // // // // // // // // // // // //
         // // // // // // // // // // // // // // // // // // //
         // // // // // // // // // // // // // // // // // // //
 
@@ -330,5 +331,69 @@ namespace znet
 
         // A request from client to server to send all playlist items
         FULL_PLAYLIST_REQUEST,
+
+        // // // // // // // // // // // // // // // // // // //
+        // // // // // // // // // // // // // // // // // // //
+        // USERS // // // // // // // // // // // // // // // //
+        // // // // // // // // // // // // // // // // // // //
+        // // // // // // // // // // // // // // // // // // //
+
+        // Sent by the server to all clients when a user connects
+        // Contains:
+        //  int64_t - user id
+        USER_CONNECTED = 300,
+
+        // Sent by the server to all clients when a user disconnects
+        // Contains:
+        //  int64_t - user id
+        USER_DISCONNECTED,
+
+        // Sent by the client to the server when it wants to receive
+        // the permission display names.
+        PERMISSION_NAME_REQUEST,
+
+        // Sent by the client to the server when it wants to receive
+        // all of the user data, usually after connecting, but also
+        // to re-sync, if necessary
+        ALL_USER_DATA_REQUEST,
+
+        // Sent by the client to server when it wants to change its username
+        // Contains:
+        //  wstring of the new name
+        USERNAME_CHANGE_REQUEST,
+
+        // Sent by the server to client when the server denies the username change request
+        USERNAME_CHANGE_DENIED,
+
+        // Sent by the server to all clients when a users name is changed
+        // Contains:
+        //  int64_t - user id
+        //  remaining bytes - wstring of the new username
+        USERNAME_CHANGED,
+
+        // Sent by the server to a client.
+        // Contains:
+        //  size_t - display name string length ('N')
+        //  N * 2 bytes - wstring of the permission display name
+        //  remaining bytes - string of the permission key
+        PERMISSION_NAME,
+
+        // Sent by the client to server when it wants to change a users permission
+        // Contains:
+        //  int64_t - user id
+        //  int8_t - new value (0 - deny, 1 - allow)
+        //  remaining bytes - string containing the name of the permission
+        PERMISSION_CHANGE_REQUEST,
+
+        // Sent by the server to client when the server denies the permission change request
+        PERMISSION_CHANGE_DENIED,
+
+        // Sent by the server to the client whose permissions are changed and all
+        // clients which have the permission to change permissions
+        // Contains:
+        //  int64_t - user id
+        //  int8_t - new value (0 - deny, 1 - allow)
+        //  remaining bytes - string containing the name of the permission
+        PERMISSION_CHANGED,
     };
 }

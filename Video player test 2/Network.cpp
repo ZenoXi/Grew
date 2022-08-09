@@ -26,6 +26,12 @@ void znet::Network::SetManager(std::unique_ptr<INetworkManager> networkManager)
     _networkManager->SetOnPacketReceived([&](Packet pack, int64_t userId) { _DistributePacket(std::move(pack), userId); });
 }
 
+void znet::Network::StartManager()
+{
+    if (_networkManager)
+        _networkManager->Start();
+}
+
 void znet::Network::CloseManager()
 {
     _networkManager.reset();
@@ -77,7 +83,7 @@ znet::INetworkManager::User znet::Network::ThisUser()
 {
     if (_networkManager)
         return _networkManager->ThisUser();
-    return { L"", -1 };
+    return { -1 };
 }
 
 int64_t znet::Network::ThisUserId()
@@ -85,12 +91,6 @@ int64_t znet::Network::ThisUserId()
     if (_networkManager)
         return _networkManager->ThisUserId();
     return -1;
-}
-
-void znet::Network::SetUsername(std::wstring username)
-{
-    if (_networkManager)
-        _networkManager->SetUsername(username);
 }
 
 void znet::Network::Send(Packet&& packet, std::vector<int64_t> userIds, int priority)

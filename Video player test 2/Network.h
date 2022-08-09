@@ -23,6 +23,7 @@ namespace znet
 
         // Network functions
         void SetManager(std::unique_ptr<INetworkManager> networkManager);
+        void StartManager();
         void CloseManager();
         // Returns the text which the close button should have (ex: "Disconnect" or "Close server")
         std::wstring CloseLabel() const;
@@ -39,7 +40,6 @@ namespace znet
 
         // Operation functions
 
-        void SetUsername(std::wstring username);
         void Send(Packet&& packet, std::vector<int64_t> userIds, int priority = 0);
         void AddToQueue(Packet&& packet);
         void SendQueue(std::vector<int64_t> userIds, int priority = 0);

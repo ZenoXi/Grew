@@ -6,14 +6,13 @@
 
 znet::ServerManager::ServerManager(uint16_t port)
 {
-    _thisUser = { L"", 0 };
+    _thisUser = { 0 };
     _generator = std::make_unique<_ServerIDGenerator>();
     _server.SetGenerator(_generator.get());
     _server.StartServer(port);
     _startFailed = !_server.AllowNewConnections();
     if (_startFailed)
         return;
-    _managementThread = std::thread(&ServerManager::_ManageConnections, this);
 
     App::Instance()->events.RaiseEvent(ServerStartEvent{ port });
     App::Instance()->events.RaiseEvent(NetworkStateChangedEvent{ Name() });
@@ -29,6 +28,11 @@ znet::ServerManager::~ServerManager()
 
     App::Instance()->events.RaiseEvent(ServerStopEvent{});
     App::Instance()->events.RaiseEvent(NetworkStateChangedEvent{ "offline" });
+}
+
+void znet::ServerManager::Start()
+{
+    _managementThread = std::thread(&ServerManager::_ManageConnections, this);
 }
 
 std::vector<znet::ServerManager::User> znet::ServerManager::Users(bool includeSelf)
@@ -62,17 +66,6 @@ znet::ServerManager::User znet::ServerManager::ThisUser()
 int64_t znet::ServerManager::ThisUserId()
 {
     return _thisUser.id;
-}
-
-void znet::ServerManager::SetUsername(std::wstring username)
-{
-    _thisUser.name = username;
-
-    // Send new username
-    PacketBuilder builder = PacketBuilder(sizeof(int64_t) + sizeof(wchar_t) * _thisUser.name.length());
-    builder.Add(int64_t(0));
-    builder.Add(_thisUser.name.data(), _thisUser.name.length());
-    Send(Packet(builder.Release(), builder.UsedBytes(), (int)PacketType::USER_DATA), UserIds(false), 2);
 }
 
 void znet::ServerManager::Send(Packet&& packet, std::vector<int64_t> userIds, int priority)
@@ -399,30 +392,7 @@ void znet::ServerManager::_ProcessNewConnections(_ManagerThreadData& data)
             connection->Send(Packet(std::move(userIdsBytes), byteCount, (int)PacketType::USER_LIST), 2);
         }
 
-        // Send existing usernames to new user
-        { // Server username
-            size_t byteCount = sizeof(int64_t) + sizeof(wchar_t) * _thisUser.name.length();
-            auto usernameBytes = std::make_unique<int8_t[]>(byteCount);
-            ((int64_t*)usernameBytes.get())[0] = 0;
-            for (int j = 0; j < _thisUser.name.length(); j++)
-            {
-                ((wchar_t*)(usernameBytes.get() + sizeof(int64_t)))[j] = _thisUser.name[j];
-            }
-            connection->Send(Packet(std::move(usernameBytes), byteCount, (int)PacketType::USER_DATA), 2);
-        }
-        for (int i = 0; i < _users.size(); i++)
-        { // Other users
-            size_t byteCount = sizeof(int64_t) + sizeof(wchar_t) * _users[i].name.length();
-            auto usernameBytes = std::make_unique<int8_t[]>(byteCount);
-            ((int64_t*)usernameBytes.get())[0] = _users[i].id;
-            for (int j = 0; j < _users[i].name.length(); j++)
-            {
-                ((wchar_t*)(usernameBytes.get() + sizeof(int64_t)))[j] = _users[i].name[j];
-            }
-            connection->Send(Packet(std::move(usernameBytes), byteCount, (int)PacketType::USER_DATA), 2);
-        }
-
-        _users.push_back({ L"", newUser });
+        _users.push_back({ newUser });
     }
 }
 
@@ -477,37 +447,6 @@ void znet::ServerManager::_ProcessIncomingPackets(_ManagerThreadData& data)
         {
             // Send packet back
             client->Send(znet::Packet((int)znet::PacketType::LATENCY_PROBE).From(0), 1024 /* Arbitrarily large priority */);
-        }
-        // USER DATA
-        else if (pack1.id == (int32_t)PacketType::USER_DATA)
-        {
-            size_t nameLength = (pack1.size - sizeof(int64_t)) / sizeof(wchar_t);
-            std::wstring username;
-            username.resize(nameLength);
-            for (int j = 0; j < nameLength; j++)
-            {
-                username[j] = ((wchar_t*)(pack1.Bytes() + sizeof(int64_t)))[j];
-            }
-
-            _users[i].name = username;
-            App::Instance()->events.RaiseEvent(UserNameChangedEvent{ _users[i].id, _users[i].name });
-
-            // Send username change to other users
-            std::vector<int64_t> destinationUsers;
-            for (int j = 0; j < _users.size(); j++)
-            {
-                if (j != i)
-                {
-                    destinationUsers.push_back(_users[j].id);
-                }
-            }
-            if (!destinationUsers.empty())
-            {
-                *(int64_t*)pack1.Bytes() = _users[i].id;
-                _PacketData data = { std::move(pack1), destinationUsers };
-                std::unique_lock<std::mutex> lock(_m_outPackets);
-                _outPackets.push_back({ std::move(data), 2 });
-            }
         }
         // DISCONNECT REQUEST
         else if (pack1.id == (int32_t)PacketType::DISCONNECT_REQUEST)

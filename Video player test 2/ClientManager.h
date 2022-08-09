@@ -13,12 +13,12 @@ namespace znet
     public:
         ClientManager(std::string ip, uint16_t port);
         ~ClientManager();
+        void Start();
 
         std::vector<User> Users(bool includeSelf);
         std::vector<int64_t> UserIds(bool includeSelf);
         User ThisUser();
         int64_t ThisUserId();
-        void SetUsername(std::wstring username);
 
         void Send(Packet&& packet, std::vector<int64_t> userIds, int priority = 0);
         void AddToQueue(Packet&& packet);

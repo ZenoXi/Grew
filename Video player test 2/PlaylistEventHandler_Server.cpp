@@ -5,9 +5,12 @@
 #include "Network.h"
 #include "PacketBuilder.h"
 
+#include "Permissions.h"
+
 PlaylistEventHandler_Server::PlaylistEventHandler_Server(Playlist_Internal* playlist)
     : IPlaylistEventHandler(playlist)
 {
+    _userConnectedReceiver = std::make_unique<EventReceiver<UserConnectedEvent>>(&App::Instance()->events);
     _userDisconnectedReceiver = std::make_unique<EventReceiver<UserDisconnectedEvent>>(&App::Instance()->events);
     _playlistRequestReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::FULL_PLAYLIST_REQUEST);
     _itemAddRequestReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_ADD_REQUEST);
@@ -49,6 +52,16 @@ void PlaylistEventHandler_Server::Update()
     _UpdateStartOrderTimeout();
 }
 
+void PlaylistEventHandler_Server::_CheckForUserConnect()
+{
+    while (_userConnectedReceiver->EventCount() > 0)
+    {
+        auto ev = _userConnectedReceiver->GetEvent();
+
+        // Send options
+    }
+}
+
 void PlaylistEventHandler_Server::_CheckForUserDisconnect()
 {
     while (_userDisconnectedReceiver->EventCount() > 0)
@@ -84,6 +97,16 @@ void PlaylistEventHandler_Server::_CheckForUserDisconnect()
 
                 // Remove from playlist
                 _playlist->readyItems.erase(_playlist->readyItems.begin() + i);
+                i--;
+            }
+        }
+
+        // Remove custom user permissions
+        for (int i = 0; i < _playlist->customUserPermissions.size(); i++)
+        {
+            if (_playlist->customUserPermissions[i].first == ev.userId)
+            {
+                _playlist->customUserPermissions.erase(_playlist->customUserPermissions.begin() + 1);
                 i--;
             }
         }
@@ -136,6 +159,14 @@ void PlaylistEventHandler_Server::_CheckForItemAddRequest()
         filename.resize(filenameLength);
         reader.Get((wchar_t*)filename.data(), filename.length());
 
+        // Check permissions
+        auto user = App::Instance()->users.GetUser(userId);
+        if (!user || !user->GetPermission(PERMISSION_ADD_ITEMS))
+        {
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_ADD_DENIED).From(callbackId), { userId }, 1);
+            continue;
+        }
+
         // Create item
         auto item = std::make_unique<PlaylistItem>();
         item->SetFilename(filename);
@@ -171,6 +202,14 @@ void PlaylistEventHandler_Server::_CheckForItemRemoveRequest()
 
         PacketReader reader = PacketReader(packet.Bytes(), packet.size);
         int64_t mediaId = reader.Get<int64_t>();
+
+        // Check permissions
+        auto user = App::Instance()->users.GetUser(userId);
+        if (!user || !user->GetPermission(PERMISSION_MANAGE_ITEMS))
+        {
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_REMOVE_DENIED), { userId }, 1);
+            continue;
+        }
 
         // Find item
         bool itemFound = false;
@@ -215,10 +254,18 @@ void PlaylistEventHandler_Server::_CheckForStartRequest()
         PacketReader reader = PacketReader(packet.Bytes(), packet.size);
         int64_t mediaId = reader.Get<int64_t>();
 
+        // Check permissions
+        auto user = App::Instance()->users.GetUser(userId);
+        if (!user || !user->GetPermission(PERMISSION_START_STOP_PLAYBACK))
+        {
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), { userId }, 1);
+            continue;
+        }
+
         if (_playlist->currentlyStarting != -1)
         {
             // Send deny response to issuer
-            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), { userId });
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), { userId }, 1);
             continue;
         }
 
@@ -316,9 +363,17 @@ void PlaylistEventHandler_Server::_CheckForStopRequest()
         znet::Packet packet = std::move(packetPair.first);
         int64_t userId = packetPair.second;
 
+        // Check permissions
+        auto user = App::Instance()->users.GetUser(userId);
+        if (!user || !user->GetPermission(PERMISSION_START_STOP_PLAYBACK))
+        {
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_DENIED), { userId }, 1);
+            continue;
+        }
+
         if (_playlist->currentlyPlaying == -1)
         {
-            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_DENIED), { userId });
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_DENIED), { userId }, 1);
             continue;
         }
 
@@ -350,9 +405,17 @@ void PlaylistEventHandler_Server::_CheckForItemMoveRequest()
         int64_t mediaId = reader.Get<int64_t>();
         int32_t slot = reader.Get<int32_t>();
 
+        // Check permissions
+        auto user = App::Instance()->users.GetUser(userId);
+        if (!user || !user->GetPermission(PERMISSION_MANAGE_ITEMS))
+        {
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED).From(mediaId), { userId }, 1);
+            continue;
+        }
+
         if (slot >= _playlist->readyItems.size() || slot < 0)
         {
-            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED).From(mediaId), { userId });
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED).From(mediaId), { userId }, 1);
             continue;
         }
 

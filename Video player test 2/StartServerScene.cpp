@@ -1,6 +1,7 @@
 #include "App.h" // App.h must be included first
 #include "StartServerScene.h"
 
+#include "Permissions.h"
 #include "Options.h"
 #include "LastIpOptionAdapter.h"
 #include "Network.h"
@@ -276,7 +277,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _allowItemAddingCheckbox->SetBaseSize(20, 20);
         _allowItemAddingCheckbox->SetOffsetPixels(15, 75);
         _allowItemAddingCheckbox->Checked(true);
-        _allowItemAddingCheckbox->SetActive(false);
+        //_allowItemAddingCheckbox->SetActive(false);
 
         _allowItemAddingLabel = Create<zcom::Label>(L"Add media");
         _allowItemAddingLabel->SetBaseSize(100, 30);
@@ -284,13 +285,13 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _allowItemAddingLabel->SetFontSize(16.0f);
         _allowItemAddingLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _allowItemAddingLabel->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
-        _allowItemAddingLabel->SetActive(false);
+        //_allowItemAddingLabel->SetActive(false);
 
         _allowItemManagingCheckbox = Create<zcom::Checkbox>();
         _allowItemManagingCheckbox->SetBaseSize(20, 20);
         _allowItemManagingCheckbox->SetOffsetPixels(15, 105);
         _allowItemManagingCheckbox->Checked(true);
-        _allowItemManagingCheckbox->SetActive(false);
+        //_allowItemManagingCheckbox->SetActive(false);
 
         _allowItemManagingLabel = Create<zcom::Label>(L"Manage (remove/reorder) media");
         _allowItemManagingLabel->SetBaseSize(250, 30);
@@ -298,13 +299,13 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _allowItemManagingLabel->SetFontSize(16.0f);
         _allowItemManagingLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _allowItemManagingLabel->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
-        _allowItemManagingLabel->SetActive(false);
+        //_allowItemManagingLabel->SetActive(false);
 
         _allowPlaybackStartStopCheckbox = Create<zcom::Checkbox>();
         _allowPlaybackStartStopCheckbox->SetBaseSize(20, 20);
         _allowPlaybackStartStopCheckbox->SetOffsetPixels(15, 135);
         _allowPlaybackStartStopCheckbox->Checked(true);
-        _allowPlaybackStartStopCheckbox->SetActive(false);
+        //_allowPlaybackStartStopCheckbox->SetActive(false);
 
         _allowPlaybackStartStopLabel = Create<zcom::Label>(L"Start/stop playback");
         _allowPlaybackStartStopLabel->SetBaseSize(200, 30);
@@ -312,7 +313,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _allowPlaybackStartStopLabel->SetFontSize(16.0f);
         _allowPlaybackStartStopLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _allowPlaybackStartStopLabel->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
-        _allowPlaybackStartStopLabel->SetActive(false);
+        //_allowPlaybackStartStopLabel->SetActive(false);
 
         _playlistOptionsPanel->AddItem(_playlistUserPermissionsLabel.get());
         _playlistOptionsPanel->AddItem(_allowItemAddingCheckbox.get());
@@ -388,7 +389,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _allowPlaybackManipulationCheckbox->SetBaseSize(20, 20);
         _allowPlaybackManipulationCheckbox->SetOffsetPixels(15, 75);
         _allowPlaybackManipulationCheckbox->Checked(true);
-        _allowPlaybackManipulationCheckbox->SetActive(false);
+        //_allowPlaybackManipulationCheckbox->SetActive(false);
 
         _allowPlaybackManipulationLabel = Create<zcom::Label>(L"Manipulate playback (pause/resume/seek)");
         _allowPlaybackManipulationLabel->SetBaseSize(300, 30);
@@ -396,13 +397,13 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _allowPlaybackManipulationLabel->SetFontSize(16.0f);
         _allowPlaybackManipulationLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _allowPlaybackManipulationLabel->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
-        _allowPlaybackManipulationLabel->SetActive(false);
+        //_allowPlaybackManipulationLabel->SetActive(false);
 
         _allowStreamChangingCheckbox = Create<zcom::Checkbox>();
         _allowStreamChangingCheckbox->SetBaseSize(20, 20);
         _allowStreamChangingCheckbox->SetOffsetPixels(15, 105);
         _allowStreamChangingCheckbox->Checked(true);
-        _allowStreamChangingCheckbox->SetActive(false);
+        //_allowStreamChangingCheckbox->SetActive(false);
 
         _allowStreamChangingLabel = Create<zcom::Label>(L"Change tracks");
         _allowStreamChangingLabel->SetBaseSize(250, 30);
@@ -410,13 +411,13 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _allowStreamChangingLabel->SetFontSize(16.0f);
         _allowStreamChangingLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _allowStreamChangingLabel->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
-        _allowStreamChangingLabel->SetActive(false);
+        //_allowStreamChangingLabel->SetActive(false);
 
         _allowDrawingCheckbox = Create<zcom::Checkbox>();
         _allowDrawingCheckbox->SetBaseSize(20, 20);
         _allowDrawingCheckbox->SetOffsetPixels(15, 135);
         _allowDrawingCheckbox->Checked(true);
-        _allowDrawingCheckbox->SetActive(false);
+        //_allowDrawingCheckbox->SetActive(false);
 
         _allowDrawingLabel = Create<zcom::Label>(L"Draw");
         _allowDrawingLabel->SetBaseSize(200, 30);
@@ -424,7 +425,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _allowDrawingLabel->SetFontSize(16.0f);
         _allowDrawingLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _allowDrawingLabel->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
-        _allowDrawingLabel->SetActive(false);
+        //_allowDrawingLabel->SetActive(false);
 
         _playbackOptionsPanel->AddItem(_playbackUserPermissionsLabel.get());
         _playbackOptionsPanel->AddItem(_allowPlaybackManipulationCheckbox.get());
@@ -575,29 +576,36 @@ void StartServerScene::_Unfocus()
 void StartServerScene::_Update()
 {
     _canvas->Update();
-}
 
-void StartServerScene::_Resize(int width, int height)
-{
-
-}
-
-bool StartServerScene::StartSuccessful() const
-{
-    return _startSuccessful;
-}
-
-bool StartServerScene::CloseScene() const
-{
-    return _closeScene;
-}
-
-void StartServerScene::_StartClicked()
-{
-    if (!_starting)
+    if (_starting)
     {
-        _portInput->SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+        _starting = false;
 
+        // Set default permissions
+        App::Instance()->usersServer.DefaultUser()->AddPermission(L"Add items", PERMISSION_ADD_ITEMS);
+        App::Instance()->usersServer.DefaultUser()->AddPermission(L"Manage items", PERMISSION_MANAGE_ITEMS);
+        App::Instance()->usersServer.DefaultUser()->AddPermission(L"Start/stop playback", PERMISSION_START_STOP_PLAYBACK);
+        App::Instance()->usersServer.DefaultUser()->AddPermission(L"Manipulate playback", PERMISSION_MANIPULATE_PLAYBACK);
+        App::Instance()->usersServer.DefaultUser()->AddPermission(L"Change tracks", PERMISSION_CHANGE_STREAMS);
+        App::Instance()->usersServer.DefaultUser()->AddPermission(L"Draw", PERMISSION_DRAW);
+
+        App::Instance()->usersServer.DefaultUser()->SetPermission(PERMISSION_ADD_ITEMS, _allowItemAddingCheckbox->Checked());
+        App::Instance()->usersServer.DefaultUser()->SetPermission(PERMISSION_MANAGE_ITEMS, _allowItemManagingCheckbox->Checked());
+        App::Instance()->usersServer.DefaultUser()->SetPermission(PERMISSION_START_STOP_PLAYBACK, _allowPlaybackStartStopCheckbox->Checked());
+        App::Instance()->usersServer.DefaultUser()->SetPermission(PERMISSION_MANIPULATE_PLAYBACK, _allowPlaybackManipulationCheckbox->Checked());
+        App::Instance()->usersServer.DefaultUser()->SetPermission(PERMISSION_CHANGE_STREAMS, _allowStreamChangingCheckbox->Checked());
+        App::Instance()->usersServer.DefaultUser()->SetPermission(PERMISSION_DRAW, _allowDrawingCheckbox->Checked());
+
+        APP_NETWORK->StartManager();
+        _startSuccessful = true;
+        _closeScene = true;
+    }
+
+    if (_startClicked)
+    {
+        _startClicked = false;
+
+        _portInput->SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
         // Check if port is valid
         std::string port = wstring_to_string(_portInput->GetText());
         bool addressValid = true;
@@ -620,10 +628,9 @@ void StartServerScene::_StartClicked()
             if (serverManager->Status() == znet::NetworkStatus::ONLINE)
             {
                 APP_NETWORK->SetManager(std::move(serverManager));
-                APP_NETWORK->SetUsername(_usernameInput->GetText());
+                //APP_NETWORK->SetUsername(_usernameInput->GetText());
+                // Delay manager start by 1 frame, to allow all event handlers to prepare
                 _starting = true;
-                _startSuccessful = true;
-                _closeScene = true;
             }
             else
             {
@@ -632,6 +639,27 @@ void StartServerScene::_StartClicked()
             }
         }
     }
+}
+
+void StartServerScene::_Resize(int width, int height)
+{
+
+}
+
+bool StartServerScene::StartSuccessful() const
+{
+    return _startSuccessful;
+}
+
+bool StartServerScene::CloseScene() const
+{
+    return _closeScene;
+}
+
+void StartServerScene::_StartClicked()
+{
+    if (!_starting)
+        _startClicked = true;
 }
 
 void StartServerScene::_CancelClicked()

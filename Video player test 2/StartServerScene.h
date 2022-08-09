@@ -78,6 +78,7 @@ class StartServerScene : public Scene
 
     std::unique_ptr<zcom::EmptyPanel> _separatorBottom = nullptr;
     std::unique_ptr<zcom::Button> _startButton = nullptr;
+    bool _startClicked = false;
     std::unique_ptr<zcom::Button> _cancelButton = nullptr;
     std::unique_ptr<zcom::Label> _startLoadingInfoLabel = nullptr;
     bool _starting = false;

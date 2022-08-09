@@ -22,6 +22,11 @@ znet::ClientManager::~ClientManager()
         _managementThread.join();
 }
 
+void znet::ClientManager::Start()
+{
+    _managementThread = std::thread(&ClientManager::_ManageConnections, this);
+}
+
 void znet::ClientManager::_Connect(std::string ip, uint16_t port)
 {
     App::Instance()->events.RaiseEvent(ConnectionStartEvent{ ip, port });
@@ -66,22 +71,6 @@ void znet::ClientManager::_Connect(std::string ip, uint16_t port)
         }
         _thisUser.id = idPacket.Cast<int64_t>();
 
-        // Send self username
-        if (!_thisUser.name.empty())
-        {
-            size_t byteCount = sizeof(int64_t) + sizeof(wchar_t) * _thisUser.name.length();
-            auto usernameBytes = std::make_unique<int8_t[]>(byteCount);
-            ((int64_t*)usernameBytes.get())[0] = 0;
-            for (int j = 0; j < _thisUser.name.length(); j++)
-            {
-                ((wchar_t*)(usernameBytes.get() + sizeof(int64_t)))[j] = _thisUser.name[j];
-            }
-            connection->Send(Packet(std::move(usernameBytes), byteCount, (int)PacketType::USER_DATA), 2);
-        }
-
-        // Start management thread
-        _managementThread = std::thread(&ClientManager::_ManageConnections, this);
-
         App::Instance()->events.RaiseEvent(ConnectionSuccessEvent{});
         App::Instance()->events.RaiseEvent(NetworkStateChangedEvent{ Name() });
     }
@@ -124,17 +113,6 @@ znet::ClientManager::User znet::ClientManager::ThisUser()
 int64_t znet::ClientManager::ThisUserId()
 {
     return _thisUser.id;
-}
-
-void znet::ClientManager::SetUsername(std::wstring username)
-{
-    _thisUser.name = username;
-
-    // Send new username
-    PacketBuilder builder = PacketBuilder(sizeof(int64_t) + sizeof(wchar_t) * _thisUser.name.length());
-    builder.Add(int64_t(0));
-    builder.Add(_thisUser.name.data(), _thisUser.name.length());
-    Send(Packet(builder.Release(), builder.UsedBytes(), (int)PacketType::USER_DATA), { 0 }, 2);
 }
 
 void znet::ClientManager::Send(Packet&& packet, std::vector<int64_t> userIds, int priority)
@@ -499,28 +477,7 @@ bool znet::ClientManager::_ProcessIncomingPackets(_ManagerThreadData& data)
             App::Instance()->events.RaiseEvent(UserConnectedEvent{ newUserId });
 
             std::lock_guard<std::mutex> lock(_m_users);
-            _users.push_back({ L"", newUserId });
-        }
-        else if (pack1.id == (int32_t)PacketType::USER_DATA)
-        {
-            PacketReader reader = PacketReader(pack1.Bytes(), pack1.size);
-            int64_t userId = reader.Get<int64_t>();
-            size_t nameLength = reader.RemainingBytes() / sizeof(wchar_t);
-            std::wstring username;
-            username.resize(nameLength);
-            reader.Get((wchar_t*)username.data(), nameLength);
-
-            App::Instance()->events.RaiseEvent(UserNameChangedEvent{ userId, username });
-
-            std::lock_guard<std::mutex> lock(_m_users);
-            for (int i = 0; i < _users.size(); i++)
-            {
-                if (_users[i].id == userId)
-                {
-                    _users[i].name = username;
-                    break;
-                }
-            }
+            _users.push_back({ newUserId });
         }
         else if (pack1.id == (int32_t)PacketType::DISCONNECTED_USER)
         {
@@ -544,7 +501,7 @@ bool znet::ClientManager::_ProcessIncomingPackets(_ManagerThreadData& data)
             _users.clear();
             _users.reserve(reader.RemainingBytes() / sizeof(int64_t));
             while (reader.RemainingBytes() > 0)
-                _users.push_back({ L"", reader.Get<int64_t>() });
+                _users.push_back({ reader.Get<int64_t>() });
         }
         else if (pack1.id == (int32_t)PacketType::USER_ID)
         {

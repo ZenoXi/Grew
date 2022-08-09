@@ -16,6 +16,10 @@
 #include "PlaylistEventHandler_Client.h"
 #include "PlaylistEventHandler_Server.h"
 
+#include "UsersEventHandler_Offline.h"
+#include "UsersEventHandler_Client.h"
+#include "UsersEventHandler_Server.h"
+
 #include "ClientManager.h"
 #include "ServerManager.h"
 
@@ -401,6 +405,8 @@ void App::LoopThread()
         // Update objects
         playlist.Update();
         _serverPlaylist.Update();
+        users.Update();
+        usersServer.Update();
         playback.Update();
 
         // Render frame
@@ -526,8 +532,8 @@ void App::LoopThread()
             //start = timer.Now();
 
 
-            //window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0.3f, 0.3f, 0.3f));
-            window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0));
+            window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+            //window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0));
             if (_fullscreen)
             {
                 for (auto& scene : activeScenes)
@@ -594,11 +600,17 @@ void App::_HandleNetworkStateChanges()
         {
             _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
             playlist.SetEventHandler<PlaylistEventHandler_Offline>();
+
+            usersServer.SetEventHandler<UsersEventHandler_Offline>();
+            users.SetEventHandler<UsersEventHandler_Offline>();
         }
         else if (ev.newStateName == znet::ClientManager::StaticName())
         {
             _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
             playlist.SetEventHandler<PlaylistEventHandler_Client>();
+
+            usersServer.SetEventHandler<UsersEventHandler_Offline>();
+            users.SetEventHandler<UsersEventHandler_Client>();
         }
         else if (ev.newStateName == znet::ServerManager::StaticName())
         {
@@ -606,11 +618,17 @@ void App::_HandleNetworkStateChanges()
             // constructor synchronously sends packets to the server playlist
             _serverPlaylist.SetEventHandler<PlaylistEventHandler_Server>();
             playlist.SetEventHandler<PlaylistEventHandler_Client>();
+
+            usersServer.SetEventHandler<UsersEventHandler_Server>();
+            users.SetEventHandler<UsersEventHandler_Client>();
         }
         else
         {
             _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
             playlist.SetEventHandler<PlaylistEventHandler_None>();
+
+            usersServer.SetEventHandler<UsersEventHandler_Offline>();
+            users.SetEventHandler<UsersEventHandler_Offline>();
         }
     }
 }

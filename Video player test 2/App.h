@@ -10,6 +10,7 @@
 #include "AppEvents.h"
 #include "NetworkEvents.h"
 #include "Playlist.h"
+#include "Users.h"
 #include "Playback.h"
 
 #include <thread>
@@ -26,6 +27,8 @@ public:
 private:
     Playlist _serverPlaylist;
 public:
+    Users users;
+    Users usersServer;
     Playback playback;
     Mouse mouse;
     MouseManager mouseManager;

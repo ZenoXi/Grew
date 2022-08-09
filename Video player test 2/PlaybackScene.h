@@ -65,6 +65,7 @@ class PlaybackScene : public Scene
     std::unique_ptr<zcom::Label> _chapterLabel = nullptr;
 
     std::unique_ptr<zcom::Button> _settingsButton = nullptr;
+    bool _streamChangingAllowed = true;
     std::unique_ptr<zcom::MenuPanel> _streamMenuPanel = nullptr;
     std::unique_ptr<zcom::MenuPanel> _videoStreamMenuPanel = nullptr;
     std::unique_ptr<zcom::MenuPanel> _audioStreamMenuPanel = nullptr;
@@ -108,6 +109,7 @@ public:
     bool Finished() const;
 
 private:
+    void _UpdatePermissions();
     void _SetupStreamMenu();
     bool _HandleKeyDown(BYTE keyCode);
 };

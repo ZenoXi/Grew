@@ -3,6 +3,8 @@
 #include "App.h"
 #include "OverlayScene.h"
 
+#include "Permissions.h"
+
 HostPlaybackController::HostPlaybackController(IMediaDataProvider* dataProvider, std::vector<int64_t> participants)
     : BasePlaybackController(dataProvider)
 {
@@ -85,15 +87,24 @@ void HostPlaybackController::_CheckForPlayRequest()
 
     while (_playRequestReceiver->PacketCount() > 0)
     {
+        // Process packet
         auto packetPair = _playRequestReceiver->GetPacket();
+        znet::Packet packet = std::move(packetPair.first);
+        int64_t senderId = packetPair.second;
+
+        // Check permissions
+        auto user = App::Instance()->users.GetUser(senderId);
+        if (!user || !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
+            continue;
+
         _Play();
-        APP_NETWORK->Send(znet::Packet((int)znet::PacketType::RESUME).From(packetPair.second), _GetUserIds(), 1);
+        APP_NETWORK->Send(znet::Packet((int)znet::PacketType::RESUME).From(senderId), _GetUserIds(), 1);
 
         // Show notification
         zcom::NotificationInfo ninfo;
         ninfo.duration = Duration(1, SECONDS);
         ninfo.title = L"Playback resumed";
-        ninfo.text = _UsernameFromId(packetPair.second);
+        ninfo.text = _UsernameFromId(senderId);
         App::Instance()->Overlay()->ShowNotification(ninfo);
     }
 }
@@ -105,15 +116,24 @@ void HostPlaybackController::_CheckForPauseRequest()
 
     while (_pauseRequestReceiver->PacketCount() > 0)
     {
+        // Process packet
         auto packetPair = _pauseRequestReceiver->GetPacket();
+        znet::Packet packet = std::move(packetPair.first);
+        int64_t senderId = packetPair.second;
+
+        // Check permissions
+        auto user = App::Instance()->users.GetUser(senderId);
+        if (!user || !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
+            continue;
+
         _Pause();
-        APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PAUSE).From(packetPair.second), _GetUserIds(), 1);
+        APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PAUSE).From(senderId), _GetUserIds(), 1);
 
         // Show notification
         zcom::NotificationInfo ninfo;
         ninfo.duration = Duration(1, SECONDS);
         ninfo.title = L"Playback paused";
-        ninfo.text = _UsernameFromId(packetPair.second);
+        ninfo.text = _UsernameFromId(senderId);
         App::Instance()->Overlay()->ShowNotification(ninfo);
     }
 }
@@ -125,11 +145,30 @@ void HostPlaybackController::_CheckForSeekRequest()
 
     while (_seekRequestReceiver->PacketCount() > 0)
     {
+        // Process packet
         auto packetPair = _seekRequestReceiver->GetPacket();
-        auto seekData = packetPair.first.Cast<IMediaDataProvider::SeekData>();
+        znet::Packet packet = std::move(packetPair.first);
+        int64_t senderId = packetPair.second;
+
+        auto seekData = packet.Cast<IMediaDataProvider::SeekData>();
+
+        // Apply permissions
+        auto user = App::Instance()->users.GetUser(senderId);
+        if (!user)
+            continue;
+        if (!user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
+        {
+            seekData.time = -1;
+        }
+        if (!user->GetPermission(PERMISSION_CHANGE_STREAMS))
+        {
+            seekData.videoStreamIndex = std::numeric_limits<int>::min();
+            seekData.videoStreamIndex = std::numeric_limits<int>::min();
+            seekData.videoStreamIndex = std::numeric_limits<int>::min();
+        }
         if (seekData.Default())
             continue;
-        seekData.userId = packetPair.second;
+        seekData.userId = senderId;
 
         // Buffer the seek data
         if (_seeking)
@@ -330,6 +369,8 @@ void HostPlaybackController::_CheckForPlaybackPosition()
 
 void HostPlaybackController::_CheckForSyncPause()
 {
+    // TODO: check if this function should be here
+    return;
     if (!_syncPauseReceiver)
         return;
 
@@ -624,14 +665,17 @@ std::wstring HostPlaybackController::_UsernameFromId(int64_t id)
         username << L"[Owner] ";
     else
         username << L"[User " << id << "] ";
-    auto users = APP_NETWORK->Users();
-    for (auto& user : users)
-    {
-        if (user.id == id)
-        {
-            username << user.name;
-            break;
-        }
-    }
+    auto user = App::Instance()->users.GetUser(id);
+    if (user)
+        username << user->name;
+    //auto users = APP_NETWORK->Users();
+    //for (auto& user : users)
+    //{
+    //    if (user.id == id)
+    //    {
+    //        username << user.name;
+    //        break;
+    //    }
+    //}
     return username.str();
 }

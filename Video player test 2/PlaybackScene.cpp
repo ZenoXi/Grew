@@ -5,6 +5,7 @@
 #include "HostPlaybackController.h"
 #include "ReceiverPlaybackController.h"
 #include "Options.h"
+#include "Permissions.h"
 
 #include <iomanip>
 
@@ -508,6 +509,8 @@ void PlaybackScene::_Update()
     // Update UI
     _canvas->Update();
 
+    _UpdatePermissions();
+
     // Check for redraw
     if (!_playback->Initializing())
     {
@@ -734,6 +737,32 @@ void PlaybackScene::_Resize(int width, int height)
     _redraw = true;
 }
 
+void PlaybackScene::_UpdatePermissions()
+{
+    return;
+    auto user = _app->users.GetThisUser();
+    if (!user)
+        return;
+
+    bool allowPlaybackManipulation = user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK);
+    _playButton->SetActive(allowPlaybackManipulation);
+    bool allowPlaybackStartStop = user->GetPermission(PERMISSION_START_STOP_PLAYBACK);
+    _playNextButton->SetVisible(allowPlaybackStartStop);
+    _playPreviousButton->SetVisible(allowPlaybackStartStop);
+    bool allowStreamChanging = user->GetPermission(PERMISSION_CHANGE_STREAMS);
+    for (int i = 0; i < _streamMenuPanel->ItemCount(); i++)
+    {
+        // Slightly janky way to disable the correct menu items
+        zcom::MenuItem* item = _streamMenuPanel->GetItem(i);
+        if (item->GetMenuPanel() == _videoStreamMenuPanel.get() ||
+            item->GetMenuPanel() == _audioStreamMenuPanel.get() ||
+            item->GetMenuPanel() == _subtitleStreamMenuPanel.get())
+        {
+            item->SetDisabled(!allowStreamChanging);
+        }
+    }
+}
+
 void PlaybackScene::_SetupStreamMenu()
 {
     // Add video streams to menu
@@ -834,7 +863,12 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
     }
     case VK_SPACE: // Pause toggle
     {
-        if (_playback->Initializing()) break;
+        if (_playback->Initializing())
+            break;
+        auto user = _app->users.GetThisUser();
+        if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
+            break;
+
 
         if (_playback->Controller()->Paused())
         {
@@ -854,7 +888,11 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
     }
     case VK_LEFT: // Seek back
     {
-        if (_playback->Initializing()) break;
+        if (_playback->Initializing())
+            break;
+        auto user = _app->users.GetThisUser();
+        if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
+            break;
 
         int seekAmount = 15;
         if (_shortcutHandler->KeyState(VK_CONTROL)) seekAmount = 60;
@@ -865,7 +903,11 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
     }
     case VK_RIGHT: // Seek forward
     {
-        if (_playback->Initializing()) break;
+        if (_playback->Initializing())
+            break;
+        auto user = _app->users.GetThisUser();
+        if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
+            break;
 
         int seekAmount = 15;
         if (_shortcutHandler->KeyState(VK_CONTROL)) seekAmount = 60;
@@ -905,63 +947,99 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
     }
     case VK_NUMPAD1: // Video stream 1
     {
-        if (_playback->Initializing()) break;
+        if (_playback->Initializing())
+            break;
+        auto user = _app->users.GetThisUser();
+        if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
+            break;
 
         _playback->Controller()->SetVideoStream(0);
         break;
     }
     case VK_NUMPAD2: // Video stream 2
     {
-        if (_playback->Initializing()) break;
+        if (_playback->Initializing())
+            break;
+        auto user = _app->users.GetThisUser();
+        if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
+            break;
 
         _playback->Controller()->SetVideoStream(1);
         break;
     }
     case VK_NUMPAD3: // Video stream 3
     {
-        if (_playback->Initializing()) break;
+        if (_playback->Initializing())
+            break;
+        auto user = _app->users.GetThisUser();
+        if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
+            break;
 
         _playback->Controller()->SetVideoStream(2);
         break;
     }
     case VK_NUMPAD4: // Audio stream 1
     {
-        if (_playback->Initializing()) break;
+        if (_playback->Initializing())
+            break;
+        auto user = _app->users.GetThisUser();
+        if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
+            break;
 
         _playback->Controller()->SetAudioStream(0);
         break;
     }
     case VK_NUMPAD5: // Audio stream 2
     {
-        if (_playback->Initializing()) break;
+        if (_playback->Initializing())
+            break;
+        auto user = _app->users.GetThisUser();
+        if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
+            break;
 
         _playback->Controller()->SetAudioStream(1);
         break;
     }
     case VK_NUMPAD6: // Audio stream 3
     {
-        if (_playback->Initializing()) break;
+        if (_playback->Initializing())
+            break;
+        auto user = _app->users.GetThisUser();
+        if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
+            break;
 
         _playback->Controller()->SetAudioStream(2);
         break;
     }
     case VK_NUMPAD7: // Subtitle stream 1
     {
-        if (_playback->Initializing()) break;
+        if (_playback->Initializing())
+            break;
+        auto user = _app->users.GetThisUser();
+        if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
+            break;
 
         _playback->Controller()->SetSubtitleStream(0);
         break;
     }
     case VK_NUMPAD8: // Subtitle stream 2
     {
-        if (_playback->Initializing()) break;
+        if (_playback->Initializing())
+            break;
+        auto user = _app->users.GetThisUser();
+        if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
+            break;
 
         _playback->Controller()->SetSubtitleStream(1);
         break;
     }
     case VK_NUMPAD9: // Subtitle stream 3
     {
-        if (_playback->Initializing()) break;
+        if (_playback->Initializing())
+            break;
+        auto user = _app->users.GetThisUser();
+        if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
+            break;
 
         _playback->Controller()->SetSubtitleStream(2);
         break;
