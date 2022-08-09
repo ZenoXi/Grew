@@ -78,7 +78,7 @@ namespace zcom
                 }
 
                 // Prime panel to open
-                if (item->GetMenuPanel() && item->GetMenuPanel() != _openChildPanel)
+                if (!item->Disabled() && item->GetMenuPanel() && item->GetMenuPanel() != _openChildPanel)
                 {
                     if (!_childToShow)
                     {
@@ -233,6 +233,16 @@ namespace zcom
         {
             Panel::AddItem(item.release(), true);
             _RearrangeMenuItems();
+        }
+
+        MenuItem* GetItem(int index)
+        {
+            return (MenuItem*)Panel::GetItem(index);
+        }
+
+        size_t ItemCount() const
+        {
+            return Panel::ItemCount();
         }
 
         void ClearItems()
