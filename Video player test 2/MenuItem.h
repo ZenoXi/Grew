@@ -119,6 +119,7 @@ namespace zcom
         MenuPanel* _menuPanel = nullptr;
         ID2D1Bitmap* _menuExpandArrow = nullptr;
         std::function<void(bool)> _onClick;
+        bool _closeOnClick = true;
         bool _separator = false;
         ID2D1Bitmap* _icon = nullptr;
         ID2D1Bitmap1* _iconGrayscale = nullptr;
@@ -211,6 +212,16 @@ namespace zcom
                 _icon = icon;
                 InvokeRedraw();
             }
+        }
+
+        void SetCloseOnClick(bool close)
+        {
+            _closeOnClick = close;
+        }
+
+        bool CloseOnClick() const
+        {
+            return _closeOnClick;
         }
 
         void SetCheckGroup(int group)

@@ -145,7 +145,10 @@ namespace zcom
                     }
                 }
 
-                if (!item->GetMenuPanel() && !item->IsSeparator() && !item->Disabled())
+                if (!item->GetMenuPanel() &&
+                    !item->IsSeparator() &&
+                    !item->Disabled() &&
+                    item->CloseOnClick())
                     FullClose();
             }
 
