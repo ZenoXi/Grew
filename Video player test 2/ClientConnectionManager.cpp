@@ -450,7 +450,7 @@ void znet::ClientConnectionManager::_ManageConnections()
                     username[i] = *((wchar_t*)(pack1.Bytes() + sizeof(int64_t)) + i);
                 }
 
-                App::Instance()->events.RaiseEvent(UserNameChangedEvent{ userId, username });
+                //App::Instance()->events.RaiseEvent(UserNameChangedEvent{ userId, username });
 
                 std::lock_guard<std::mutex> lock(_m_users);
                 for (int i = 0; i < _users.size(); i++)

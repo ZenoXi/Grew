@@ -396,7 +396,7 @@ void znet::ServerConnectionManager::_ManageConnections()
                         }
 
                         _users[i].name = username;
-                        App::Instance()->events.RaiseEvent(UserNameChangedEvent{ _users[i].id, _users[i].name });
+                        //App::Instance()->events.RaiseEvent(UserNameChangedEvent{ _users[i].id, _users[i].name });
 
                         // Send username change to other users
                         std::vector<int64_t> destinationUsers;
