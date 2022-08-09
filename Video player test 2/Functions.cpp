@@ -152,7 +152,7 @@ Pos2D<float> point_rotated_by(Pos2D<float> rotationAxis, Pos2D<float> p, float a
 // Strings
 
 // Use converter (.to_bytes: wstr->str, .from_bytes: str->wstr)
-std::string wstring_to_string(std::wstring ws)
+std::string wstring_to_string(const std::wstring& ws)
 {
     // Setup converter
     using convert_type = std::codecvt_utf8<wchar_t>;
@@ -161,7 +161,7 @@ std::string wstring_to_string(std::wstring ws)
     return converter.to_bytes(ws);
 }
 
-std::wstring string_to_wstring(std::string s)
+std::wstring string_to_wstring(const std::string& s)
 {
     // Setup converter
     using convert_type = std::codecvt_utf8<wchar_t>;
@@ -170,7 +170,7 @@ std::wstring string_to_wstring(std::string s)
     return converter.from_bytes(s);
 }
 
-void split_str(std::string str, std::vector<std::string>& output, char split, bool ignoreEmpty)
+void split_str(const std::string& str, std::vector<std::string>& output, char split, bool ignoreEmpty)
 {
     int beginIndex = 0;
     while (beginIndex < str.length())
@@ -202,7 +202,7 @@ void split_str(std::string str, std::vector<std::string>& output, char split, bo
     }
 }
 
-void split_wstr(std::wstring str, std::vector<std::wstring>& output, wchar_t split, bool ignoreEmpty)
+void split_wstr(const std::wstring& str, std::vector<std::wstring>& output, wchar_t split, bool ignoreEmpty)
 {
     int beginIndex = 0;
     while (beginIndex < str.length())
@@ -234,7 +234,7 @@ void split_wstr(std::wstring str, std::vector<std::wstring>& output, wchar_t spl
     }
 }
 
-int64_t str_to_int(std::string str, int base)
+int64_t str_to_int(const std::string& str, int base)
 {
     bool negative = false;
     
@@ -273,12 +273,12 @@ int64_t str_to_int(std::string str, int base)
     return fnum;
 }
 
-float str_to_float(std::string str)
+float str_to_float(const std::string& str)
 {
     return std::stof(str);
 }
 
-double str_to_double(std::string str)
+double str_to_double(const std::string& str)
 {
     return std::stod(str);
 }
@@ -304,7 +304,7 @@ std::string double_to_str(double num)
     return ss.str();
 }
 
-std::string to_uppercase(std::string str)
+std::string to_uppercase(const std::string& str)
 {
     std::string newStr = str;
     for (int i = 0; i < newStr.size(); i++)
@@ -314,7 +314,7 @@ std::string to_uppercase(std::string str)
     return newStr;
 }
 
-std::string to_lowercase(std::string str)
+std::string to_lowercase(const std::string& str)
 {
     std::string newStr = str;
     for (int i = 0; i < newStr.size(); i++)
@@ -324,7 +324,7 @@ std::string to_lowercase(std::string str)
     return newStr;
 }
 
-int find_text_in_vec(std::string str, std::vector<std::string> vec)
+int find_text_in_vec(const std::string& str, std::vector<std::string> vec)
 {
     for (int i = 0; i < vec.size(); i++)
         if (vec[i] == str)
@@ -333,7 +333,7 @@ int find_text_in_vec(std::string str, std::vector<std::string> vec)
     return -1;
 }
 
-int find_text_in_arr(std::string str, std::string arr[], int size)
+int find_text_in_arr(const std::string& str, std::string arr[], int size)
 {
     for (int i = 0; i < size; i++)
         if (arr[i] == str)
@@ -342,7 +342,7 @@ int find_text_in_arr(std::string str, std::string arr[], int size)
     return -1;
 }
 
-std::string extract_str_until(std::string str, char tc)
+std::string extract_str_until(const std::string& str, char tc)
 {
     std::string s;
     s.reserve(10);
