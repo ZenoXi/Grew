@@ -32,6 +32,7 @@ EventSubscriber<_Event>::~EventSubscriber()
 
 #include <queue>
 #include <mutex>
+#include <functional>
 
 // Thread safe helper receiver class
 template<class _Event>
