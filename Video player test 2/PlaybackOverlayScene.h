@@ -13,6 +13,8 @@
 
 #include "FileDialog.h"
 
+#include <set>
+
 class PlaybackOverlayShortcutHandler : public KeyboardEventHandler
 {
     bool _OnKeyDown(BYTE vkCode) { return false; }
@@ -119,6 +121,17 @@ private:
     void _RearrangeNetworkPanel_Online();
     void _UpdatePermissions();
 
+    int _ITEM_HEIGHT = 25;
+
+    // Colors
+
+    // Dodger blue at 40% brightness
+    D2D1_COLOR_F _SELECTION_COLOR = D2D1::ColorF(0.1176f * 0.4f, 0.5647f * 0.4f, 1.0f * 0.4f);
+    // Orange at 30% brightness
+    D2D1_COLOR_F _PLAY_COLOR = D2D1::ColorF(1.0f * 0.3f, 0.6471f * 0.3f, 0.0f * 0.3f);
+    bool _itemAppearanceChanged = false;
+    void _UpdateItemAppearance();
+
     // Playlist change tracking
 
     std::unique_ptr<EventReceiver<PlaylistChangedEvent>> _playlistChangedReceiver = nullptr;
@@ -127,16 +140,33 @@ private:
     Duration _playlistUpdateInterval = Duration(5, SECONDS);
     void _InvokePlaylistChange();
 
+    // Playlist item selection
+
+    std::set<int64_t> _selectedItemIds;
+    bool _selectingItems = false;
+    int _selectionStartPos = -1;
+
     // Playlist item reordering
 
+    bool _movingItems = false;
     int64_t _heldItemId = -1;
-    int _clickYPos = 0;
+    int _heldItemClickYPos = 0;
     int _currentMouseYPos = 0;
+    // When reordering, all of the selected items are bunched together.
+    // This variable holds holds the mouse click position relative to
+    // the top of the first selected item (after bunching them together).
+    int _selectionClickYPos = 0;
+
+    //int64_t _heldItemId = -1;
+    int _clickYPos = 0;
+    //int _currentMouseYPos = 0;
     bool _movedFar = false;
+
+    // Playlist mouse events
 
     void _HandlePlaylistLeftClick(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y);
     void _HandlePlaylistLeftRelease(zcom::Base* item, int x, int y);
-    void _HandlePlaylistMouseMove(zcom::Base* item, int x, int y, bool duplicate);
+    void _HandlePlaylistMouseMove(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y, bool duplicate);
 
     // Network panel change tracking
 

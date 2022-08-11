@@ -13,7 +13,7 @@ public:
     void OnDeleteItemRequest(int64_t itemId) {}
     void OnPlayItemRequest(int64_t itemId) {}
     void OnStopItemRequest(int64_t itemId) {}
-    void OnMoveItemRequest(int64_t itemId, int slot) {}
+    void OnMoveItemRequest(std::vector<int64_t> itemIds, int slot) {}
 
     void Update();
 

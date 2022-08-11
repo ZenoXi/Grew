@@ -314,19 +314,21 @@ namespace znet
 
         // Sent when a client wants to change the position of an item in the playlist
         // Contains:
-        //  int64_t - mediaId
         //  int32_t - new slot (0-index)
+        //  int64_t - callback id
+        //  reamining bytes - an int64_t array of media ids in placement order
         PLAYLIST_ITEM_MOVE_REQUEST,
 
         // Sent by the server to all clients when the position of an item in the playlist changes
         // Contains:
-        //  int64_t - mediaId
         //  int32_t - new slot (0-index)
+        //  int64_t - callback id
+        //  reamining bytes - an int64_t array of media ids in placement order
         PLAYLIST_ITEM_MOVE,
 
         // Sent by the server to client when its item move request is denied
         // Contains:
-        //  int64_t - media id
+        //  int64_t - callback id
         PLAYLIST_ITEM_MOVE_DENIED,
 
         // A request from client to server to send all playlist items

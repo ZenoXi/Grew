@@ -71,9 +71,9 @@ void Playlist::Request_StopItem(int64_t itemId)
     _eventHandler->OnStopItemRequest(itemId);
 }
 
-void Playlist::Request_MoveItem(int64_t itemId, int slot)
+void Playlist::Request_MoveItems(std::vector<int64_t> itemIds, int slot)
 {
-    _eventHandler->OnMoveItemRequest(itemId, slot);
+    _eventHandler->OnMoveItemRequest(itemIds, slot);
 }
 
 std::vector<PlaylistItem*> Playlist::ReadyItems() const
@@ -137,9 +137,17 @@ std::vector<int64_t> Playlist::PendingItemDeletes() const
     return _playlist->pendingItemDeletes;
 }
 
-std::vector<std::pair<int64_t, int>> Playlist::PendingItemMoves() const
+std::vector<std::pair<std::vector<int64_t>, int>> Playlist::PendingItemMoves() const
 {
-    return _playlist->pendingItemMoves;
+    std::vector<std::pair<std::vector<int64_t>, int>> itemMoves;
+    itemMoves.reserve(_playlist->pendingItemMoves.size());
+    for (auto& move : _playlist->pendingItemMoves)
+    {
+        std::vector<int64_t> ids = move._Myfirst._Val;
+        int slot = move._Get_rest()._Myfirst._Val;
+        itemMoves.push_back({ ids, slot });
+    }
+    return itemMoves;
 }
 
 int64_t Playlist::CurrentlyPlaying() const

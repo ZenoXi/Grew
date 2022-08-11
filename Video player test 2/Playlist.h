@@ -44,7 +44,12 @@ public:
     int64_t pendingItemPlay = -1;
     int64_t pendingItemStop = -1;
     std::vector<int64_t> pendingItemDeletes;
-    std::vector<std::pair<int64_t, int>> pendingItemMoves;
+    // A list of item move requests
+    // 1 request contains:
+    //  Moved item ids
+    //  Destination slot
+    //  Move id (used for callbacks)
+    std::vector<std::tuple<std::vector<int64_t>, int, int64_t>> pendingItemMoves;
 
     int64_t currentlyPlaying = -1;
     int64_t currentlyStarting = -1;
@@ -67,7 +72,7 @@ public:
     void Request_DeleteItem(int64_t itemId);
     void Request_PlayItem(int64_t itemId);
     void Request_StopItem(int64_t itemId);
-    void Request_MoveItem(int64_t itemId, int slot);
+    void Request_MoveItems(std::vector<int64_t> itemIds, int slot);
 
     std::vector<PlaylistItem*> ReadyItems() const;
     std::vector<PlaylistItem*> PendingItems() const;
@@ -77,7 +82,7 @@ public:
     int64_t PendingItemPlay() const;
     int64_t PendingItemStop() const;
     std::vector<int64_t> PendingItemDeletes() const;
-    std::vector<std::pair<int64_t, int>> PendingItemMoves() const;
+    std::vector<std::pair<std::vector<int64_t>, int>> PendingItemMoves() const;
     int64_t CurrentlyPlaying() const;
     int64_t CurrentlyStarting() const;
 

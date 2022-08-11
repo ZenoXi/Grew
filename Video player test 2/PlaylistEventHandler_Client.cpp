@@ -39,7 +39,7 @@ PlaylistEventHandler_Client::PlaylistEventHandler_Client(Playlist_Internal* play
     _playlist->readyItems.erase(it, _playlist->readyItems.end());
 
     // Request full playlist
-    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::FULL_PLAYLIST_REQUEST), { 0 });
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::FULL_PLAYLIST_REQUEST), { 0 }, 1);
 
     // Move ready items to pending list
     for (int i = 0; i < _playlist->readyItems.size(); i++)
@@ -55,7 +55,7 @@ PlaylistEventHandler_Client::PlaylistEventHandler_Client(Playlist_Internal* play
 
         // Send add request
         APP_NETWORK->
-            Send(znet::Packet(builder.Release(), builder.UsedBytes(), (int)znet::PacketType::PLAYLIST_ITEM_ADD_REQUEST), { 0 });
+            Send(znet::Packet(builder.Release(), builder.UsedBytes(), (int)znet::PacketType::PLAYLIST_ITEM_ADD_REQUEST), { 0 }, 1);
 
         // Move item to pending list
         _playlist->pendingItems.push_back(std::move(_playlist->readyItems[i]));
@@ -111,7 +111,7 @@ void PlaylistEventHandler_Client::OnDeleteItemRequest(int64_t itemId)
         {
             // Send delete request
             APP_NETWORK->
-                Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_REMOVE_REQUEST).From(_playlist->readyItems[i]->GetMediaId()), { 0 });
+                Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_REMOVE_REQUEST).From(_playlist->readyItems[i]->GetMediaId()), { 0 }, 1);
 
             _playlist->pendingItemDeletes.push_back(_playlist->readyItems[i]->GetItemId());
             App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
@@ -153,7 +153,7 @@ void PlaylistEventHandler_Client::OnPlayItemRequest(int64_t itemId)
         {
             // Send play request
             APP_NETWORK->
-                Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_REQUEST).From(_playlist->readyItems[i]->GetMediaId()), { 0 });
+                Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_REQUEST).From(_playlist->readyItems[i]->GetMediaId()), { 0 }, 1);
 
             _playlist->currentlyStarting = itemId;
             App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
@@ -177,7 +177,7 @@ void PlaylistEventHandler_Client::OnStopItemRequest(int64_t itemId)
             }
 
             // Send stop request
-            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_REQUEST), { 0 });
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_REQUEST), { 0 }, 1);
 
             _playlist->pendingItemStop = itemId;
             App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
@@ -186,39 +186,62 @@ void PlaylistEventHandler_Client::OnStopItemRequest(int64_t itemId)
     }
 }
 
-void PlaylistEventHandler_Client::OnMoveItemRequest(int64_t itemId, int slot)
+void PlaylistEventHandler_Client::OnMoveItemRequest(std::vector<int64_t> itemIds, int slot)
 {
-    if (slot >= _playlist->readyItems.size() || slot < 0)
+    if (slot + itemIds.size() > _playlist->readyItems.size() || slot < 0)
         return;
 
-    for (int i = 0; i < _playlist->readyItems.size(); i++)
+    int64_t callbackId = _callbackCounter++;
+
+    // Build and send move request
+    PacketBuilder builder;
+    builder.Add((int32_t)slot);
+    builder.Add(callbackId);
+    for (auto& id : itemIds)
     {
-        if (_playlist->readyItems[i]->GetItemId() == itemId)
+        // Get item media id
+        for (auto& item : _playlist->readyItems)
         {
-            // Moving to current slot is allowed only when a different move is already pending
-            bool movePending = false;
-            for (auto& move : _playlist->pendingItemMoves)
+            if (item->GetItemId() == id)
             {
-                if (move.first == itemId)
-                {
-                    movePending = true;
-                    break;
-                }
+                builder.Add(item->GetMediaId());
+                break;
             }
-            if (slot == i && !movePending)
-                return;
-
-            // Send move request
-            PacketBuilder builder = PacketBuilder(12);
-            builder.Add(_playlist->readyItems[i]->GetMediaId()).Add(slot);
-            APP_NETWORK->
-                Send(znet::Packet(builder.Release(), builder.UsedBytes(), (int)znet::PacketType::PLAYLIST_ITEM_MOVE_REQUEST), { 0 });
-
-            _playlist->pendingItemMoves.push_back({ itemId, slot });
-            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
-            return;
         }
     }
+    APP_NETWORK->Send(znet::Packet(builder.Release(), builder.UsedBytes(), (int)znet::PacketType::PLAYLIST_ITEM_MOVE_REQUEST), { 0 }, 1);
+
+    _playlist->pendingItemMoves.push_back({ itemIds, slot, callbackId });
+    App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
+
+    //for (int i = 0; i < _playlist->readyItems.size(); i++)
+    //{
+    //    if (_playlist->readyItems[i]->GetItemId() == itemId)
+    //    {
+    //        // Moving to current slot is allowed only when a different move is already pending
+    //        bool movePending = false;
+    //        for (auto& move : _playlist->pendingItemMoves)
+    //        {
+    //            if (move.first == itemId)
+    //            {
+    //                movePending = true;
+    //                break;
+    //            }
+    //        }
+    //        if (slot == i && !movePending)
+    //            return;
+
+    //        // Send move request
+    //        PacketBuilder builder = PacketBuilder(12);
+    //        builder.Add(_playlist->readyItems[i]->GetMediaId()).Add(slot);
+    //        APP_NETWORK->
+    //            Send(znet::Packet(builder.Release(), builder.UsedBytes(), (int)znet::PacketType::PLAYLIST_ITEM_MOVE_REQUEST), { 0 });
+
+    //        _playlist->pendingItemMoves.push_back({ itemId, slot });
+    //        App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
+    //        return;
+    //    }
+    //}
 }
 
 void PlaylistEventHandler_Client::_CheckForUserDisconnect()
@@ -571,43 +594,133 @@ void PlaylistEventHandler_Client::_CheckForItemMove()
             continue;
 
         PacketReader reader = PacketReader(packet.Bytes(), packet.size);
-        int64_t mediaId = reader.Get<int64_t>();
         int32_t slot = reader.Get<int32_t>();
+        int64_t callbackId = reader.Get<int64_t>();
+        std::vector<int64_t> mediaIds;
+        size_t itemCount = reader.RemainingBytes() / sizeof(int64_t);
+        mediaIds.resize(itemCount);
+        reader.Get(mediaIds.data(), itemCount);
 
-        if (slot >= _playlist->readyItems.size() || slot < 0)
-            continue; // Realistically should not be hit
-
-        // Find item
-        for (int i = 0; i < _playlist->readyItems.size(); i++)
+        // Remove from pending
+        if (callbackId != -1)
         {
-            if (_playlist->readyItems[i]->GetMediaId() == mediaId)
+            for (int i = 0; i < _playlist->pendingItemMoves.size(); i++)
             {
-                if (slot == i)
-                    break; // Realistically should not be hit
-
-                // Remove from pending
-                for (int j = 0; j < _playlist->pendingItemMoves.size(); j++)
+                if (_playlist->pendingItemMoves[i]._Get_rest()._Get_rest()._Myfirst._Val == callbackId)
                 {
-                    if (_playlist->pendingItemMoves[j].first == _playlist->readyItems[i]->GetItemId() &&
-                        _playlist->pendingItemMoves[j].second == slot)
-                    {
-                        _playlist->pendingItemMoves.erase(_playlist->pendingItemMoves.begin() + j);
-                        break;
-                    }
+                    _playlist->pendingItemMoves.erase(_playlist->pendingItemMoves.begin() + i);
+                    break;
                 }
-
-                int oldIndex = i;
-                int newIndex = slot;
-                auto& v = _playlist->readyItems;
-                if (oldIndex > newIndex)
-                    std::rotate(v.rend() - oldIndex - 1, v.rend() - oldIndex, v.rend() - newIndex);
-                else
-                    std::rotate(v.begin() + oldIndex, v.begin() + oldIndex + 1, v.begin() + newIndex + 1);
-
-                App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
-                break;
             }
         }
+
+        // Convert media ids to item ids
+        for (int i = 0; i < mediaIds.size(); i++)
+        {
+            int64_t newId = -1;
+            for (auto& item : _playlist->readyItems)
+            {
+                if (item->GetMediaId() == mediaIds[i])
+                {
+                    newId = item->GetItemId();
+                    break;
+                }
+            }
+            if (newId == -1) // Should not realistically happen
+            {
+                mediaIds.erase(mediaIds.begin() + i);
+                i--;
+                continue;
+            }
+
+            mediaIds[i] = newId;
+        }
+
+        if (slot + mediaIds.size() > _playlist->readyItems.size() || slot < 0)
+            continue; // Realistically should not be hit
+
+        // Reorder items
+
+        // Calculate item count before (N) and after (M) insertion slot
+        // Move N non-moved items to front
+        // Move M non-moved items to back
+
+        int beforeCount = slot;
+        int afterCount = _playlist->readyItems.size() - beforeCount - mediaIds.size();
+
+        // Repeat until all necessary items have been moved to front (preserving order)
+        for (int i = 0; i < beforeCount; i++)
+        {
+            // Find next item to bring to front
+            int index = -1;
+            for (int j = i; j < _playlist->readyItems.size(); j++)
+            {
+                if (std::find(mediaIds.begin(), mediaIds.end(), _playlist->readyItems[j]->GetItemId()) == mediaIds.end())
+                {
+                    index = j;
+                    break;
+                }
+            }
+            for (int j = index; j > i; j--)
+            {
+                // Bring to front
+                std::swap(_playlist->readyItems[j], _playlist->readyItems[j - 1]);
+            }
+        }
+
+        // Repeat until all necessary items have been moved to back (preserving order)
+        for (int i = 0; i < afterCount; i++)
+        {
+            // Find next item to bring to front
+            int index = -1;
+            for (int j = _playlist->readyItems.size() - 1 - i; j >= 0; j--)
+            {
+                if (std::find(mediaIds.begin(), mediaIds.end(), _playlist->readyItems[j]->GetItemId()) == mediaIds.end())
+                {
+                    index = j;
+                    break;
+                }
+            }
+            for (int j = index; j < _playlist->readyItems.size() - 1 - i; j++)
+            {
+                // Bring to back
+                std::swap(_playlist->readyItems[j], _playlist->readyItems[j + 1]);
+            }
+        }
+
+        App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
+
+        // Find item
+        //for (int i = 0; i < _playlist->readyItems.size(); i++)
+        //{
+        //    if (_playlist->readyItems[i]->GetMediaId() == mediaId)
+        //    {
+        //        if (slot == i)
+        //            break; // Realistically should not be hit
+
+        //        // Remove from pending
+        //        for (int j = 0; j < _playlist->pendingItemMoves.size(); j++)
+        //        {
+        //            if (_playlist->pendingItemMoves[j].first == _playlist->readyItems[i]->GetItemId() &&
+        //                _playlist->pendingItemMoves[j].second == slot)
+        //            {
+        //                _playlist->pendingItemMoves.erase(_playlist->pendingItemMoves.begin() + j);
+        //                break;
+        //            }
+        //        }
+
+        //        int oldIndex = i;
+        //        int newIndex = slot;
+        //        auto& v = _playlist->readyItems;
+        //        if (oldIndex > newIndex)
+        //            std::rotate(v.rend() - oldIndex - 1, v.rend() - oldIndex, v.rend() - newIndex);
+        //        else
+        //            std::rotate(v.begin() + oldIndex, v.begin() + oldIndex + 1, v.begin() + newIndex + 1);
+
+        //        App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
+        //        break;
+        //    }
+        //}
     }
 }
 
@@ -622,26 +735,40 @@ void PlaylistEventHandler_Client::_CheckForItemMoveDeny()
         if (userId != 0)
             continue;
 
-        int64_t mediaId = packet.Cast<int64_t>();
+        int64_t callbackId = packet.Cast<int64_t>();
 
-        // Find item
-        for (int i = 0; i < _playlist->readyItems.size(); i++)
+        // Remove from pending
+        if (callbackId != -1)
         {
-            if (_playlist->readyItems[i]->GetMediaId() == mediaId)
+            for (int i = 0; i < _playlist->pendingItemMoves.size(); i++)
             {
-                // Remove from pending
-                for (int j = 0; j < _playlist->pendingItemMoves.size(); j++)
+                if (_playlist->pendingItemMoves[i]._Get_rest()._Get_rest()._Myfirst._Val == callbackId)
                 {
-                    if (_playlist->pendingItemMoves[j].first == _playlist->readyItems[i]->GetItemId())
-                    {
-                        _playlist->pendingItemMoves.erase(_playlist->pendingItemMoves.begin() + j);
-                        break;
-                    }
+                    _playlist->pendingItemMoves.erase(_playlist->pendingItemMoves.begin() + i);
+                    break;
                 }
-                App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
-                break;
             }
+            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
         }
+
+        //// Find item
+        //for (int i = 0; i < _playlist->readyItems.size(); i++)
+        //{
+        //    if (_playlist->readyItems[i]->GetMediaId() == mediaId)
+        //    {
+        //        // Remove from pending
+        //        for (int j = 0; j < _playlist->pendingItemMoves.size(); j++)
+        //        {
+        //            if (_playlist->pendingItemMoves[j].first == _playlist->readyItems[i]->GetItemId())
+        //            {
+        //                _playlist->pendingItemMoves.erase(_playlist->pendingItemMoves.begin() + j);
+        //                break;
+        //            }
+        //        }
+        //        App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
+        //        break;
+        //    }
+        //}
     }
 }
 

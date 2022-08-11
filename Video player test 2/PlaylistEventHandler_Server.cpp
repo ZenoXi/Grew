@@ -402,51 +402,156 @@ void PlaylistEventHandler_Server::_CheckForItemMoveRequest()
         int64_t userId = packetPair.second;
 
         PacketReader reader = PacketReader(packet.Bytes(), packet.size);
-        int64_t mediaId = reader.Get<int64_t>();
         int32_t slot = reader.Get<int32_t>();
+        int64_t callbackId = reader.Get<int64_t>();
+        std::vector<int64_t> mediaIds;
+        size_t itemCount = reader.RemainingBytes() / sizeof(int64_t);
+        mediaIds.resize(itemCount);
+        reader.Get(mediaIds.data(), itemCount);
 
         // Check permissions
         auto user = App::Instance()->users.GetUser(userId);
         if (!user || !user->GetPermission(PERMISSION_MANAGE_ITEMS))
         {
-            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED).From(mediaId), { userId }, 1);
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED).From(callbackId), { userId }, 1);
             continue;
         }
 
-        if (slot >= _playlist->readyItems.size() || slot < 0)
+        if (slot + mediaIds.size() > _playlist->readyItems.size() || slot < 0)
         {
-            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED).From(mediaId), { userId }, 1);
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED).From(callbackId), { userId }, 1);
             continue;
         }
 
-        // Find item
-        for (int i = 0; i < _playlist->readyItems.size(); i++)
+        // Convert media ids to item ids
+        std::vector<int64_t> itemIds;
+        bool notAllPresent = false;
+        for (int i = 0; i < mediaIds.size(); i++)
         {
-            if (_playlist->readyItems[i]->GetMediaId() == mediaId)
+            int64_t newId = -1;
+            for (auto& item : _playlist->readyItems)
             {
-                if (slot == i)
+                if (item->GetMediaId() == mediaIds[i])
                 {
-                    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED).From(mediaId), { userId });
+                    newId = item->GetItemId();
                     break;
                 }
+            }
+            if (newId == -1)
+            {
+                notAllPresent = true;
+                break;
+            }
+            itemIds.push_back(newId);
+        }
+        // If not all items are present, deny the request
+        if (notAllPresent)
+        {
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED).From(callbackId), { userId }, 1);
+            continue;
+        }
 
-                int oldIndex = i;
-                int newIndex = slot;
-                auto& v = _playlist->readyItems;
-                if (oldIndex > newIndex)
-                    std::rotate(v.rend() - oldIndex - 1, v.rend() - oldIndex, v.rend() - newIndex);
-                else
-                    std::rotate(v.begin() + oldIndex, v.begin() + oldIndex + 1, v.begin() + newIndex + 1);
+        // Reorder items
 
-                // Sent item move order to all clients
-                struct MoveData { int64_t mediaId; int32_t slot; } moveData{ mediaId, slot };
-                APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE).From(moveData), APP_NETWORK->UserIds(true));
-                // Not that useful (though interesting), but moveData could be replaced by:
-                // struct { int64_t mediaId; int32_t slot; } { mediaId, slot }
+        // Calculate item count before (N) and after (M) insertion slot
+        // Move N non-moved items to front
+        // Move M non-moved items to back
 
+        int beforeCount = slot;
+        int afterCount = _playlist->readyItems.size() - beforeCount - itemIds.size();
+
+        // Repeat until all necessary items have been moved to front (preserving order)
+        for (int i = 0; i < beforeCount; i++)
+        {
+            // Find next item to bring to front
+            int index = -1;
+            for (int j = i; j < _playlist->readyItems.size(); j++)
+            {
+                if (std::find(itemIds.begin(), itemIds.end(), _playlist->readyItems[j]->GetItemId()) == itemIds.end())
+                {
+                    index = j;
+                    break;
+                }
+            }
+            for (int j = index; j > i; j--)
+            {
+                // Bring to front
+                std::swap(_playlist->readyItems[j], _playlist->readyItems[j - 1]);
+            }
+        }
+
+        // Repeat until all necessary items have been moved to back (preserving order)
+        for (int i = 0; i < afterCount; i++)
+        {
+            // Find next item to bring to front
+            int index = -1;
+            for (int j = _playlist->readyItems.size() - 1 - i; j >= 0; j--)
+            {
+                if (std::find(itemIds.begin(), itemIds.end(), _playlist->readyItems[j]->GetItemId()) == itemIds.end())
+                {
+                    index = j;
+                    break;
+                }
+            }
+            for (int j = index; j < _playlist->readyItems.size() - 1 - i; j++)
+            {
+                // Bring to back
+                std::swap(_playlist->readyItems[j], _playlist->readyItems[j + 1]);
+            }
+        }
+
+        // Create move order packet (with callback id)
+        PacketBuilder builderWIC;
+        builderWIC.Add(slot);
+        builderWIC.Add(callbackId);
+        builderWIC.Add(mediaIds.data(), mediaIds.size());
+        // Create move order packet (without callback id)
+        PacketBuilder builderWOC;
+        builderWOC.Add(slot);
+        builderWOC.Add(int64_t(-1));
+        builderWOC.Add(mediaIds.data(), mediaIds.size());
+
+        // Send move order to all clients (sender also receives its callback id)
+        std::vector<int64_t> userIds = APP_NETWORK->UserIds(true);
+        for (int i = 0; i < userIds.size(); i++)
+        {
+            if (userIds[i] == userId)
+            {
+                userIds.erase(userIds.begin() + i);
                 break;
             }
         }
+        APP_NETWORK->Send(znet::Packet(builderWIC.Release(), builderWIC.UsedBytes(), (int)znet::PacketType::PLAYLIST_ITEM_MOVE), { userId }, 1);
+        APP_NETWORK->Send(znet::Packet(builderWOC.Release(), builderWOC.UsedBytes(), (int)znet::PacketType::PLAYLIST_ITEM_MOVE), userIds, 1);
+
+        //// Find item
+        //for (int i = 0; i < _playlist->readyItems.size(); i++)
+        //{
+        //    if (_playlist->readyItems[i]->GetMediaId() == mediaId)
+        //    {
+        //        if (slot == i)
+        //        {
+        //            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED).From(mediaId), { userId });
+        //            break;
+        //        }
+
+        //        int oldIndex = i;
+        //        int newIndex = slot;
+        //        auto& v = _playlist->readyItems;
+        //        if (oldIndex > newIndex)
+        //            std::rotate(v.rend() - oldIndex - 1, v.rend() - oldIndex, v.rend() - newIndex);
+        //        else
+        //            std::rotate(v.begin() + oldIndex, v.begin() + oldIndex + 1, v.begin() + newIndex + 1);
+
+        //        // Sent item move order to all clients
+        //        struct MoveData { int64_t mediaId; int32_t slot; } moveData{ mediaId, slot };
+        //        APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE).From(moveData), APP_NETWORK->UserIds(true));
+        //        // Not that useful (though interesting), but moveData could be replaced by:
+        //        // struct { int64_t mediaId; int32_t slot; } { mediaId, slot }
+
+        //        break;
+        //    }
+        //}
     }
 }
 

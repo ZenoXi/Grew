@@ -137,30 +137,81 @@ void PlaylistEventHandler_Offline::OnStopItemRequest(int64_t itemId)
     }
 }
 
-void PlaylistEventHandler_Offline::OnMoveItemRequest(int64_t itemId, int slot)
+void PlaylistEventHandler_Offline::OnMoveItemRequest(std::vector<int64_t> itemIds, int slot)
 {
-    if (slot >= _playlist->readyItems.size() || slot < 0)
+    if (slot + itemIds.size() > _playlist->readyItems.size() || slot < 0)
         return;
 
-    for (int i = 0; i < _playlist->readyItems.size(); i++)
+    // Reorder items
+
+    // Calculate item count before (N) and after (M) insertion slot
+    // Move N non-moved items to front
+    // Move M non-moved items to back
+
+    int beforeCount = slot;
+    int afterCount = _playlist->readyItems.size() - beforeCount - itemIds.size();
+
+    // Repeat until all necessary items have been moved to front (preserving order)
+    for (int i = 0; i < beforeCount; i++)
     {
-        if (_playlist->readyItems[i]->GetItemId() == itemId)
+        // Find next item to bring to front
+        int index = -1;
+        for (int j = i; j < _playlist->readyItems.size(); j++)
         {
-            if (slot == i)
-                return;
-
-            int oldIndex = i;
-            int newIndex = slot;
-            auto& v = _playlist->readyItems;
-            if (oldIndex > newIndex)
-                std::rotate(v.rend() - oldIndex - 1, v.rend() - oldIndex, v.rend() - newIndex);
-            else
-                std::rotate(v.begin() + oldIndex, v.begin() + oldIndex + 1, v.begin() + newIndex + 1);
-
-            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
-            return;
+            if (std::find(itemIds.begin(), itemIds.end(), _playlist->readyItems[j]->GetItemId()) == itemIds.end())
+            {
+                index = j;
+                break;
+            }
+        }
+        for (int j = index; j > i; j--)
+        {
+            // Bring to front
+            std::swap(_playlist->readyItems[j], _playlist->readyItems[j - 1]);
         }
     }
+
+    // Repeat until all necessary items have been moved to back (preserving order)
+    for (int i = 0; i < afterCount; i++)
+    {
+        // Find next item to bring to front
+        int index = -1;
+        for (int j = _playlist->readyItems.size() - 1 - i; j >= 0; j--)
+        {
+            if (std::find(itemIds.begin(), itemIds.end(), _playlist->readyItems[j]->GetItemId()) == itemIds.end())
+            {
+                index = j;
+                break;
+            }
+        }
+        for (int j = index; j < _playlist->readyItems.size() - 1 - i; j++)
+        {
+            // Bring to back
+            std::swap(_playlist->readyItems[j], _playlist->readyItems[j + 1]);
+        }
+    }
+
+    App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
+
+    //for (int i = 0; i < _playlist->readyItems.size(); i++)
+    //{
+    //    if (_playlist->readyItems[i]->GetItemId() == itemId)
+    //    {
+    //        if (slot == i)
+    //            return;
+
+    //        int oldIndex = i;
+    //        int newIndex = slot;
+    //        auto& v = _playlist->readyItems;
+    //        if (oldIndex > newIndex)
+    //            std::rotate(v.rend() - oldIndex - 1, v.rend() - oldIndex, v.rend() - newIndex);
+    //        else
+    //            std::rotate(v.begin() + oldIndex, v.begin() + oldIndex + 1, v.begin() + newIndex + 1);
+
+    //        App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
+    //        return;
+    //    }
+    //}
 }
 
 void PlaylistEventHandler_Offline::_ManageLoadingItems()
