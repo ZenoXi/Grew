@@ -569,16 +569,21 @@ namespace zcom
             int adjX = x + _horizontalScroll;
             int adjY = y + _verticalScroll;
 
+            EventTargets targets;
             for (auto& item : _items)
             {
                 if (!item.item->GetVisible()) continue;
 
                 if (item.item->GetMouseInside())
                 {
-                    return item.item->OnLeftReleased(adjX - item.item->GetX(), adjY - item.item->GetY()).Add(this, x, y);
+                    targets = item.item->OnLeftReleased(adjX - item.item->GetX(), adjY - item.item->GetY()).Add(this, x, y);
+                    break;
                 }
             }
-            return EventTargets().Add(this, x, y);
+            OnMouseMove(GetMousePosX(), GetMousePosY());
+            if (targets.Empty())
+                targets.Add(this, x, y);
+            return targets;
         }
 
         EventTargets _OnRightPressed(int x, int y)
@@ -605,16 +610,21 @@ namespace zcom
             int adjX = x + _horizontalScroll;
             int adjY = y + _verticalScroll;
 
+            EventTargets targets;
             for (auto& item : _items)
             {
                 if (!item.item->GetVisible()) continue;
 
                 if (item.item->GetMouseInside())
                 {
-                    return item.item->OnRightReleased(adjX - item.item->GetX(), adjY - item.item->GetY()).Add(this, x, y);
+                    targets = item.item->OnRightReleased(adjX - item.item->GetX(), adjY - item.item->GetY()).Add(this, x, y);
+                    break;
                 }
             }
-            return EventTargets().Add(this, x, y);
+            OnMouseMove(GetMousePosX(), GetMousePosY());
+            if (targets.Empty())
+                targets.Add(this, x, y);
+            return targets;
         }
 
         EventTargets _OnWheelUp(int x, int y)
