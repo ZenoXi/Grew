@@ -4,6 +4,7 @@
 #include "Panel.h"
 #include "Label.h"
 #include "Button.h"
+#include "DotGrid.h"
 
 #include "ResourceManager.h"
 
@@ -31,10 +32,17 @@ namespace zcom
 
             _itemId = itemId;
 
+            _moveHandle = Create<DotGrid>();
+            _moveHandle->SetBaseSize(13, 25);
+            _moveHandle->SetDotColor(D2D1::ColorF(0.4f, 0.4f, 0.4f));
+            _moveHandle->SetDefaultCursor(CursorIcon::SIZE_ALL);
+            _moveHandle->SetVisible(false);
+
             _filenameLabel = Create<Label>(L"");
             _filenameLabel->SetParentWidthPercent(1.0f);
             _filenameLabel->SetBaseSize(-150, 25);
-            _filenameLabel->SetMargins({ 5.f, 0.f, 5.f, 0.f });
+            _filenameLabel->SetHorizontalOffsetPixels(13);
+            _filenameLabel->SetMargins({ 2.f, 0.f, 5.f, 0.f });
             _filenameLabel->SetFont(L"Segoe UI");
             _filenameLabel->SetFontSize(14.0f);
             _filenameLabel->SetVerticalTextAlignment(Alignment::CENTER);
@@ -44,13 +52,18 @@ namespace zcom
             _statusLabel->SetBaseSize(150, 25);
             _statusLabel->SetHorizontalOffsetPixels(-25);
             _statusLabel->SetHorizontalAlignment(Alignment::END);
-            _statusLabel->SetMargins({ 0.f, 0.f, 5.f, 0.f });
+            _statusLabel->SetMargins({ 5.f, 0.f, 5.f, 0.f });
             _statusLabel->SetFont(L"Segoe UI");
             _statusLabel->SetFontSize(12.0f);
             _statusLabel->SetFontColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
-            _statusLabel->SetHorizontalTextAlignment(TextAlignment::TRAILING);
+            _statusLabel->SetHorizontalTextAlignment(TextAlignment::LEADING);
             _statusLabel->SetVerticalTextAlignment(Alignment::CENTER);
             _statusLabel->SetCutoff(L"...");
+
+            _buttonPanel = Create<Panel>();
+            _buttonPanel->SetParentHeightPercent(1.0f);
+            _buttonPanel->SetBaseWidth(25);
+            _buttonPanel->SetHorizontalAlignment(zcom::Alignment::END);
 
             _playButton = Create<Button>();
             _playButton->SetBaseSize(25, 25);
@@ -76,11 +89,14 @@ namespace zcom
             _stopButton->SetBackgroundImage(ResourceManager::GetImage("item_stop"));
             _stopButton->SetVisible(false);
 
+            _buttonPanel->AddItem(_playButton.get());
+            _buttonPanel->AddItem(_deleteButton.get());
+            _buttonPanel->AddItem(_stopButton.get());
+
+            AddItem(_moveHandle.get());
             AddItem(_filenameLabel.get());
             AddItem(_statusLabel.get());
-            AddItem(_playButton.get());
-            AddItem(_deleteButton.get());
-            AddItem(_stopButton.get());
+            AddItem(_buttonPanel.get());
             SetButtonVisibility(BTN_DELETE);
         }
     public:
@@ -117,6 +133,7 @@ namespace zcom
                     _statusLabel->SetText(_durationStr);
                 else
                     _statusLabel->SetText(_customStatus);
+                _RearrangeLayout();
             }
         }
 
@@ -227,17 +244,36 @@ namespace zcom
                 _playButton->SetVisible(false);
             }
 
-            // Status label
-            _statusLabel->SetHorizontalOffsetPixels(offset);
-            offset -= 150;
+            // Set panel width
+            _buttonPanel->SetBaseWidth(-offset);
 
-            // Filename label
-            _filenameLabel->SetBaseWidth(offset);
+            _RearrangeLayout();
+
+            //// Status label
+            //_statusLabel->SetHorizontalOffsetPixels(offset);
+            //offset -= 150;
+
+            //// Filename label
+            //_filenameLabel->SetBaseWidth(offset);
+        }
+
+        void SetMoveHandleVisibility(bool visible)
+        {
+            _mouseHandleVisible = visible;
+            _moveHandle->SetVisible(_mouseHandleVisible || GetMouseInsideArea());
+        }
+
+        bool MoveHandleVisible() const
+        {
+            return _mouseHandleVisible;
         }
 
     private:
+        std::unique_ptr<DotGrid> _moveHandle = nullptr;
+        bool _mouseHandleVisible = false;
         std::unique_ptr<Label> _filenameLabel = nullptr;
         std::unique_ptr<Label> _statusLabel = nullptr;
+        std::unique_ptr<Panel> _buttonPanel = nullptr;
         std::unique_ptr<Button> _playButton = nullptr;
         std::unique_ptr<Button> _deleteButton = nullptr;
         std::unique_ptr<Button> _stopButton = nullptr;
@@ -254,8 +290,52 @@ namespace zcom
         int64_t _itemId = -1;
         bool _hostMissing = false;
 
+        void _RearrangeLayout()
+        {
+            DeferLayoutUpdates();
+
+            int rightOffset = 0;
+
+            // Button Panel
+            if (GetMouseInsideArea())
+            {
+                _buttonPanel->SetVisible(true);
+                rightOffset -= _buttonPanel->GetBaseWidth();
+            }
+            else
+            {
+                _buttonPanel->SetVisible(false);
+            }
+
+            // Status string
+            _statusLabel->SetCutoff(L"");
+            int stringWidth = std::ceil(_statusLabel->GetTextWidth());
+            _statusLabel->SetCutoff(L"...");
+            if (stringWidth > 200)
+                stringWidth = 200;
+            _statusLabel->SetBaseWidth(stringWidth);
+            _statusLabel->SetHorizontalOffsetPixels(rightOffset);
+            rightOffset -= stringWidth;
+
+            // Filename
+            _filenameLabel->SetBaseWidth(rightOffset - 13);
+
+            ResumeLayoutUpdates();
+        }
+
 #pragma region base_class
     protected:
+        void _OnMouseEnterArea()
+        {
+            _RearrangeLayout();
+            SetMoveHandleVisibility(_mouseHandleVisible);
+        }
+
+        void _OnMouseLeaveArea()
+        {
+            _RearrangeLayout();
+            SetMoveHandleVisibility(_mouseHandleVisible);
+        }
 
     public:
         const char* GetName() const { return Name(); }
