@@ -89,7 +89,7 @@ void ConnectScene::_Init(const SceneOptionsBase* options)
     _recentConnectionsPanel->SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
     _recentConnectionsPanel->SetBackgroundColor(D2D1::ColorF(0.15f, 0.15f, 0.15f));
     _recentConnectionsPanel->SetCornerRounding(5.0f);
-    _recentConnectionsPanel->VerticalScrollable(true);
+    _recentConnectionsPanel->Scrollable(zcom::Scrollbar::VERTICAL, true);
     _recentConnectionsPanel->SetTabIndex(-1);
     _RearrangeRecentConnectionsPanel();
 

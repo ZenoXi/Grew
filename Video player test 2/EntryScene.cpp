@@ -36,8 +36,8 @@ void EntryScene::_Init(const SceneOptionsBase* options)
     _mainPanel->SetBaseHeight(180);
     _mainPanel->SetBackgroundColor(D2D1::ColorF(0.2f, 0.2f, 0.2f, 1.0f));
     //_mainPanel->SetBackgroundColor(D2D1::ColorF(0.5f, 0.5f, 0.5f, 0.25f));
-    _mainPanel->VerticalScrollable(true);
-    _mainPanel->HorizontalScrollable(true);
+    _mainPanel->Scrollable(zcom::Scrollbar::VERTICAL, true);
+    _mainPanel->Scrollable(zcom::Scrollbar::HORIZONTAL, true);
     _mainPanel->SetCornerRounding(5.0f);
     _mainPanel->SetProperty(shadowProps);
 

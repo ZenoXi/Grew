@@ -61,7 +61,7 @@ void OpenPlaylistScene::_Init(const SceneOptionsBase* options)
     _savedPlaylistPanel = Create<zcom::Panel>();
     _savedPlaylistPanel->SetBaseSize(440, 340);
     _savedPlaylistPanel->SetOffsetPixels(30, 80);
-    _savedPlaylistPanel->VerticalScrollable(true);
+    _savedPlaylistPanel->Scrollable(zcom::Scrollbar::VERTICAL, true);
 
     for (int i = 0; i < _savedPlaylists.size(); i++)
     {

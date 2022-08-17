@@ -166,7 +166,7 @@ private:
 
     void _HandlePlaylistLeftClick(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y);
     void _HandlePlaylistLeftRelease(zcom::Base* item, int x, int y);
-    void _HandlePlaylistMouseMove(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y, bool duplicate);
+    void _HandlePlaylistMouseMove(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int deltaX, int deltaY);
 
     // Network panel change tracking
 

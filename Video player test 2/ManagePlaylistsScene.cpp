@@ -66,7 +66,7 @@ void ManagePlaylistsScene::_Init(const SceneOptionsBase* options)
     _savedPlaylistPanel->SetBaseSize(-60, 340);
     _savedPlaylistPanel->SetParentWidthPercent(1.0f);
     _savedPlaylistPanel->SetOffsetPixels(30, 80);
-    _savedPlaylistPanel->VerticalScrollable(true);
+    _savedPlaylistPanel->Scrollable(zcom::Scrollbar::VERTICAL, true);
 
     _LoadSavedPlaylists();
     _RearrangeSavedPlaylists();

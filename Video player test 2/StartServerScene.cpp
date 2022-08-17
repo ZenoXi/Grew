@@ -96,8 +96,8 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     _advancedOptionsPanel->SetBaseSize(-60, -210);
     _advancedOptionsPanel->SetParentSizePercent(1.0f, 1.0f);
     _advancedOptionsPanel->SetOffsetPixels(30, 130);
-    _advancedOptionsPanel->VerticalScrollable(true);
-    _advancedOptionsPanel->VerticalScrollbarHangDuration(0);
+    _advancedOptionsPanel->Scrollable(zcom::Scrollbar::VERTICAL, true);
+    _advancedOptionsPanel->ScrollbarHangDuration(zcom::Scrollbar::VERTICAL, 0);
 
     _advancedOptionsLabel = Create<zcom::Label>(L"Advanced options:");
     _advancedOptionsLabel->SetBaseSize(200, 30);

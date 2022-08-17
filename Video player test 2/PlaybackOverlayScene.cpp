@@ -74,10 +74,11 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _readyItemPanel->SetParentSizePercent(1.0f, 1.0f);
     _readyItemPanel->SetBaseHeight(-40);
     _readyItemPanel->SetVerticalOffsetPixels(40);
-    _readyItemPanel->VerticalScrollable(true);
+    _readyItemPanel->Scrollable(zcom::Scrollbar::VERTICAL, true);
+    _readyItemPanel->ScrollBackgroundVisible(zcom::Scrollbar::VERTICAL, true);
     _readyItemPanel->AddPostLeftPressed([=](zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y) { _HandlePlaylistLeftClick(item, targets, x, y); }, { this });
     _readyItemPanel->AddOnLeftReleased([=](zcom::Base* item, int x, int y) { _HandlePlaylistLeftRelease(item, x, y); }, { this });
-    _readyItemPanel->AddPostMouseMove([=](zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y, bool duplicate) { _HandlePlaylistMouseMove(item, targets, x, y, duplicate); }, { this });
+    _readyItemPanel->AddPostMouseMove([=](zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int deltaX, int deltaY) { _HandlePlaylistMouseMove(item, targets, deltaX, deltaY); }, { this });
     _readyItemPanel->SetTabIndex(-1);
 
     _fileDropLabel = Create<zcom::Label>(L"Drop files..");
@@ -741,24 +742,32 @@ bool PlaybackOverlayScene::_OpenAllFilesInFolder(std::wstring path)
 
     auto allowedExtensions = ExtractPureExtensions(L"" EXTENSIONS_VIDEO ";" EXTENSIONS_AUDIO);
     bool someSkipped = false;
-    for (const auto& entry : fs::recursive_directory_iterator(path))
+    try
     {
-        if (entry.is_regular_file())
+        for (const auto& entry : fs::recursive_directory_iterator(path))
         {
-            auto path = entry.path();
-            std::wstring ext = L"";
-            if (path.has_extension())
-                ext = path.extension().wstring().substr(1);
-            if (std::find(allowedExtensions.begin(), allowedExtensions.end(), ext) == allowedExtensions.end())
+            if (entry.is_regular_file())
             {
-                someSkipped = true;
-                continue;
-            }
+                auto path = entry.path();
+                std::wstring ext = L"";
+                if (path.has_extension())
+                    ext = path.extension().wstring().substr(1);
+                if (std::find(allowedExtensions.begin(), allowedExtensions.end(), ext) == allowedExtensions.end())
+                {
+                    someSkipped = true;
+                    continue;
+                }
 
-            // Add file to playlist
-            auto item = std::make_unique<PlaylistItem>(entry.path());
-            App::Instance()->playlist.Request_AddItem(std::move(item));
+                // Add file to playlist
+                auto item = std::make_unique<PlaylistItem>(entry.path());
+                App::Instance()->playlist.Request_AddItem(std::move(item));
+            }
         }
+    }
+    catch (std::exception ex)
+    {
+        std::cout << ex.what();
+        someSkipped = true;
     }
     return !someSkipped;
 }
@@ -1472,7 +1481,7 @@ void PlaybackOverlayScene::_HandlePlaylistLeftClick(zcom::Base* item, std::vecto
         return;
 
     // If click was outside ready item range, don't handle (ignores pending/loading items)
-    int slot = (y + _readyItemPanel->VisualVerticalScroll()) / 25;
+    int slot = (y + _readyItemPanel->VisualScrollPosition(zcom::Scrollbar::VERTICAL)) / 25;
     if (slot >= _readyItems.size())
         return;
 
@@ -1531,7 +1540,7 @@ void PlaybackOverlayScene::_HandlePlaylistLeftClick(zcom::Base* item, std::vecto
             if (!_app->keyboardManager.KeyState(VK_CONTROL))
             {
                 _selectingItems = true;
-                _selectionStartPos = y + _readyItemPanel->VisualVerticalScroll();
+                _selectionStartPos = y + _readyItemPanel->VisualScrollPosition(zcom::Scrollbar::VERTICAL);
             }
 
             _itemAppearanceChanged = true;
@@ -1586,9 +1595,9 @@ void PlaybackOverlayScene::_HandlePlaylistLeftRelease(zcom::Base* item, int x, i
     }
 }
 
-void PlaybackOverlayScene::_HandlePlaylistMouseMove(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y, bool duplicate)
+void PlaybackOverlayScene::_HandlePlaylistMouseMove(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int deltaX, int deltaY)
 {
-    int trueY = y + _readyItemPanel->VisualVerticalScroll();
+    int trueY = item->GetMousePosY() + _readyItemPanel->VisualScrollPosition(zcom::Scrollbar::VERTICAL);
 
     // Drag-select items
     if (_selectingItems)
@@ -1630,11 +1639,12 @@ void PlaybackOverlayScene::_HandlePlaylistMouseMove(zcom::Base* item, std::vecto
         //    }
         //}
 
+        int y = item->GetMousePosY();
         // Auto-scroll
         if (y < 0)
-            _readyItemPanel->ScrollVertically(_readyItemPanel->VerticalScroll() - (-y / 10 + 1));
+            _readyItemPanel->Scroll(zcom::Scrollbar::VERTICAL, _readyItemPanel->ScrollPosition(zcom::Scrollbar::VERTICAL) - (-y / 10 + 1));
         else if (y >= _readyItemPanel->GetHeight())
-            _readyItemPanel->ScrollVertically(_readyItemPanel->VerticalScroll() + ((y - _readyItemPanel->GetHeight()) / 10 + 1));
+            _readyItemPanel->Scroll(zcom::Scrollbar::VERTICAL, _readyItemPanel->ScrollPosition(zcom::Scrollbar::VERTICAL) + ((y - _readyItemPanel->GetHeight()) / 10 + 1));
 
         return;
     }
@@ -1651,17 +1661,18 @@ void PlaybackOverlayScene::_HandlePlaylistMouseMove(zcom::Base* item, std::vecto
     {
         _playlistChanged = true;
 
-        _currentMouseYPos = y + _readyItemPanel->VisualVerticalScroll();
+        _currentMouseYPos = item->GetMousePosY() + _readyItemPanel->VisualScrollPosition(zcom::Scrollbar::VERTICAL);
         //if (abs(_clickYPos - _currentMouseYPos) > 3)
         //{
         //    _movedFar = true;
         //}
 
+        int y = item->GetMousePosY();
         // Auto-scroll
         if (y < 0)
-            _readyItemPanel->ScrollVertically(_readyItemPanel->VerticalScroll() - (-y / 10 + 1));
+            _readyItemPanel->Scroll(zcom::Scrollbar::VERTICAL, _readyItemPanel->ScrollPosition(zcom::Scrollbar::VERTICAL) - (-y / 10 + 1));
         else if (y >= _readyItemPanel->GetHeight())
-            _readyItemPanel->ScrollVertically(_readyItemPanel->VerticalScroll() + ((y - _readyItemPanel->GetHeight()) / 10 + 1));
+            _readyItemPanel->Scroll(zcom::Scrollbar::VERTICAL, _readyItemPanel->ScrollPosition(zcom::Scrollbar::VERTICAL) + ((y - _readyItemPanel->GetHeight()) / 10 + 1));
     }
 }
 

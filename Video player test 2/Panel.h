@@ -38,165 +38,113 @@ namespace zcom
         D2D1_COLOR_F color = D2D1::ColorF(0, 0.75f);
     };
 
+    enum class Scrollbar
+    {
+        VERTICAL,
+        HORIZONTAL
+    };
+
     class Panel : public Base
     {
+    private:
+        void _UpdateScrollbar(Scrollbar direction)
+        {
+            _Scrollbar& scrollbar = _GetScrollbar(direction);
+
+            if (scrollbar.hangDuration == 0)
+            {
+                if (MaxScroll(direction) != 0 && !scrollbar.visible)
+                {
+                    scrollbar.visible = true;
+                    InvokeRedraw();
+                }
+                else if (MaxScroll(direction) == 0 && scrollbar.visible)
+                {
+                    scrollbar.visible = false;
+                    InvokeRedraw();
+                }
+            }
+
+            // Fade scrollbar
+            if (scrollbar.visible)
+            {
+                if (scrollbar.hangDuration == 0)
+                {
+                    if (scrollbar.opacity != 1.0f)
+                    {
+                        scrollbar.opacity = 1.0f;
+                        InvokeRedraw();
+                    }
+                }
+                else
+                {
+                    Duration timeElapsed = ztime::Main() - scrollbar.showTime;
+                    if (timeElapsed > scrollbar.hangDuration)
+                    {
+                        timeElapsed -= scrollbar.hangDuration;
+                        if (timeElapsed > scrollbar.fadeDuration)
+                        {
+                            scrollbar.visible = false;
+                            scrollbar.opacity = 0.0f;
+                        }
+                        else
+                        {
+                            float fadeProgress = timeElapsed.GetDuration() / (float)scrollbar.fadeDuration.GetDuration();
+                            scrollbar.opacity = 1.0f - powf(fadeProgress, 0.5f);
+                        }
+                        InvokeRedraw();
+                    }
+                    else
+                    {
+                        scrollbar.opacity = 1.0f;
+                    }
+                }
+            }
+
+            // Animate scroll
+            if (scrollbar.scrollAnimation.inProgress)
+            {
+                float timeProgress = (ztime::Main() - scrollbar.scrollAnimation.startTime).GetDuration() / (float)scrollbar.scrollAnimation.duration.GetDuration();
+                if (timeProgress >= 1.0f)
+                {
+                    scrollbar.scrollAnimation.inProgress = false;
+                    scrollbar.scrollAmount = scrollbar.scrollAnimation.endPos;
+                }
+                else
+                {
+                    float moveProgress;
+                    if (scrollbar.scrollAnimation.progressFunction)
+                        moveProgress = scrollbar.scrollAnimation.progressFunction(timeProgress);
+                    else
+                        moveProgress = 1.0f - powf(timeProgress - 1.0f, 2.0f);
+
+                    int startPos = scrollbar.scrollAnimation.startPos;
+                    int endPos = scrollbar.scrollAnimation.endPos;
+                    scrollbar.scrollAmount = startPos + (endPos - startPos) * moveProgress;
+                }
+                _RecalculateLayout(GetWidth(), GetHeight());
+                OnMouseMove(GetMousePosX(), GetMousePosY());
+            }
+        }
+
 #pragma region base_class
     protected:
         void _OnUpdate()
         {
-            if (_verticalScrollBar.hangDuration == 0)
-            {
-                if (MaxVerticalScroll() != 0 && !_verticalScrollBar.visible)
-                {
-                    _verticalScrollBar.visible = true;
-                    InvokeRedraw();
-                }
-                else if (MaxVerticalScroll() == 0 && _verticalScrollBar.visible)
-                {
-                    _verticalScrollBar.visible = false;
-                    InvokeRedraw();
-                }
-            }
-            if (_horizontalScrollBar.hangDuration == 0)
-            {
-                if (MaxHorizontalScroll() != 0 && !_horizontalScrollBar.visible)
-                {
-                    _horizontalScrollBar.visible = true;
-                    InvokeRedraw();
-                }
-                else if (MaxHorizontalScroll() == 0 && _horizontalScrollBar.visible)
-                {
-                    _horizontalScrollBar.visible = false;
-                    InvokeRedraw();
-                }
-            }
+            _UpdateScrollbar(Scrollbar::VERTICAL);
+            _UpdateScrollbar(Scrollbar::HORIZONTAL);
 
-            // Fade vertical scrollbar
-            if (_verticalScrollBar.visible)
+            bool vHovered = ScrollbarHovered(Scrollbar::VERTICAL) && _verticalScrollbar.interactable;
+            if (vHovered != _verticalScrollbar.hovered)
             {
-                if (_verticalScrollBar.hangDuration == 0)
-                {
-                    if (_verticalScrollBar.opacity != 1.0f)
-                    {
-                        _verticalScrollBar.opacity = 1.0f;
-                        InvokeRedraw();
-                    }
-                }
-                else
-                {
-                    Duration timeElapsed = ztime::Main() - _verticalScrollBar.showTime;
-                    if (timeElapsed > _verticalScrollBar.hangDuration)
-                    {
-                        timeElapsed -= _verticalScrollBar.hangDuration;
-                        if (timeElapsed > _verticalScrollBar.fadeDuration)
-                        {
-                            _verticalScrollBar.visible = false;
-                            _verticalScrollBar.opacity = 0.0f;
-                        }
-                        else
-                        {
-                            float fadeProgress = timeElapsed.GetDuration() / (float)_verticalScrollBar.fadeDuration.GetDuration();
-                            _verticalScrollBar.opacity = 1.0f - powf(fadeProgress, 0.5f);
-                        }
-                        InvokeRedraw();
-                    }
-                    else
-                    {
-                        _verticalScrollBar.opacity = 1.0f;
-                    }
-                }
+                _verticalScrollbar.hovered = vHovered;
+                InvokeRedraw();
             }
-            // Fade horizontal scrollbar
-            if (_horizontalScrollBar.visible)
+            bool hHovered = ScrollbarHovered(Scrollbar::HORIZONTAL) && _horizontalScrollbar.interactable;
+            if (hHovered != _horizontalScrollbar.hovered)
             {
-                if (_horizontalScrollBar.hangDuration == 0)
-                {
-                    if (_horizontalScrollBar.opacity != 1.0f)
-                    {
-                        _horizontalScrollBar.opacity = 1.0f;
-                        InvokeRedraw();
-                    }
-                }
-                else
-                {
-                    Duration timeElapsed = ztime::Main() - _horizontalScrollBar.showTime;
-                    if (timeElapsed > _horizontalScrollBar.hangDuration)
-                    {
-                        timeElapsed -= _horizontalScrollBar.hangDuration;
-                        if (timeElapsed > _horizontalScrollBar.fadeDuration)
-                        {
-                            _horizontalScrollBar.visible = false;
-                            _horizontalScrollBar.opacity = 0.0f;
-                        }
-                        else
-                        {
-                            float fadeProgress = timeElapsed.GetDuration() / (float)_horizontalScrollBar.fadeDuration.GetDuration();
-                            _horizontalScrollBar.opacity = 1.0f - powf(fadeProgress, 0.5f);
-                        }
-                        InvokeRedraw();
-                    }
-                    else
-                    {
-                        _horizontalScrollBar.opacity = 1.0f;
-                    }
-                }
-            }
-
-            // Animate vertical scroll
-            if (_verticalScrollAnimation.inProgress)
-            {
-                float timeProgress = (ztime::Main() - _verticalScrollAnimation.startTime).GetDuration() / (float)_verticalScrollAnimation.duration.GetDuration();
-                if (timeProgress >= 1.0f)
-                {
-                    _verticalScrollAnimation.inProgress = false;
-                    _verticalScroll = _verticalScrollAnimation.endPos;
-                }
-                else
-                {
-                    float moveProgress;
-                    if (_verticalScrollAnimation.progressFunction)
-                    {
-                        moveProgress = _verticalScrollAnimation.progressFunction(timeProgress);
-                    }
-                    else
-                    {
-                        moveProgress = 1.0f - powf(timeProgress - 1.0f, 2.0f);
-                    }
-
-                    int startPos = _verticalScrollAnimation.startPos;
-                    int endPos = _verticalScrollAnimation.endPos;
-                    _verticalScroll = startPos + (endPos - startPos) * moveProgress;
-                }
-                _RecalculateLayout(GetWidth(), GetHeight());
-                OnMouseMove(GetMousePosX(), GetMousePosY());
-            }
-            // Animate horizontal scroll
-            if (_horizontalScrollAnimation.inProgress)
-            {
-                float timeProgress = (ztime::Main() - _horizontalScrollAnimation.startTime).GetDuration() / (float)_horizontalScrollAnimation.duration.GetDuration();
-                if (timeProgress >= 1.0f)
-                {
-                    _horizontalScrollAnimation.inProgress = false;
-                    _horizontalScroll = _horizontalScrollAnimation.endPos;
-                }
-                else
-                {
-                    float moveProgress;
-                    if (_horizontalScrollAnimation.progressFunction)
-                    {
-                        moveProgress = _horizontalScrollAnimation.progressFunction(timeProgress);
-                    }
-                    else
-                    {
-                        moveProgress = 1.0f - powf(timeProgress - 1.0f, 2.0f);
-                    }
-
-                    int startPos = _horizontalScrollAnimation.startPos;
-                    int endPos = _horizontalScrollAnimation.endPos;
-                    _horizontalScroll = startPos + (endPos - startPos) * moveProgress;
-                }
-                _RecalculateLayout(GetWidth(), GetHeight());
-                OnMouseMove(GetMousePosX(), GetMousePosY());
+                _horizontalScrollbar.hovered = hHovered;
+                InvokeRedraw();
             }
 
             for (auto item : _items)
@@ -312,71 +260,109 @@ namespace zcom
                 g.target->DrawBitmap(
                     it.first,
                     D2D1::RectF(
-                        it.second.item->GetX() - _horizontalScroll,
-                        it.second.item->GetY() - _verticalScroll,
-                        it.second.item->GetX() - _horizontalScroll + it.second.item->GetWidth(),
-                        it.second.item->GetY() - _verticalScroll + it.second.item->GetHeight()
+                        it.second.item->GetX() - _horizontalScrollbar.scrollAmount,
+                        it.second.item->GetY() - _verticalScrollbar.scrollAmount,
+                        it.second.item->GetX() - _horizontalScrollbar.scrollAmount + it.second.item->GetWidth(),
+                        it.second.item->GetY() - _verticalScrollbar.scrollAmount + it.second.item->GetHeight()
                     ),
                     it.second.item->GetOpacity()
                 );
             }
 
             // Draw vertical scrollbar
-            if (MaxVerticalScroll() > 0 && _verticalScrollBar.visible)
+            if ((MaxScroll(Scrollbar::VERTICAL) > 0 && _verticalScrollbar.visible) || _verticalScrollbar.backgroundVisible)
             {
-                float lengthOffset = 10.0f;
-                float widthOffset = 5.0f;
-                float barWidth = 5.0f;
-                float heightToContentRatio = GetHeight() / (float)_contentHeight;
-                float scrollBarMaxLength = GetHeight() - lengthOffset * 2;
-                float scrollBarLength = scrollBarMaxLength * heightToContentRatio;
-                float scrollBarPosition = (scrollBarMaxLength - scrollBarLength) * (_verticalScroll / (float)MaxVerticalScroll());
+                D2D1_RECT_F hitbox = ScrollbarHitbox(Scrollbar::VERTICAL);
 
-                D2D1_POINT_2F top = { GetWidth() - widthOffset, lengthOffset + scrollBarPosition };
-                D2D1_POINT_2F bottom = { top.x, top.y + scrollBarLength };
+                // Draw scroll background
+                if (_verticalScrollbar.backgroundVisible)
+                {
+                    D2D1_RECT_F backgroundRect;
+                    backgroundRect.left = (float)GetWidth() - ScrollbarWidth(Scrollbar::VERTICAL);
+                    backgroundRect.right = (float)GetWidth();
+                    backgroundRect.top = 0.0f;
+                    backgroundRect.bottom = (float)GetHeight();
 
-                float opacity = 0.5f * _verticalScrollBar.opacity;
+                    ID2D1SolidColorBrush* brush = nullptr;
+                    g.target->CreateSolidColorBrush(_scrollbarBackgroundColor, &brush);
+                    g.target->FillRectangle(backgroundRect, brush);
+                    brush->Release();
+                }
+
+                // Draw scrollbar
+                D2D1_COLOR_F color = _scrollbarColor;
+                if (MaxScroll(Scrollbar::VERTICAL) == 0)
+                {
+                    color = _scrollbarDisabledColor;
+                }
+                else
+                {
+                    if (_verticalScrollbar.hovered || _verticalScrollbar.held)
+                        color.a = 1.0f;
+                    else
+                        color.a = 0.5f;
+                    if (!_verticalScrollbar.backgroundVisible)
+                        color.a *= _verticalScrollbar.opacity;
+                }
                 ID2D1SolidColorBrush* brush = nullptr;
-                g.target->CreateSolidColorBrush(D2D1::ColorF(0.7f, 0.7f, 0.7f, opacity), &brush);
-                ID2D1StrokeStyle1* style = nullptr;
-                g.factory->CreateStrokeStyle
-                (
-                    D2D1::StrokeStyleProperties1(D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND),
-                    nullptr,
-                    0,
-                    &style
-                );
-                g.target->DrawLine(top, bottom, brush, barWidth, style);
-                style->Release();
+                g.target->CreateSolidColorBrush(color, &brush);
+                D2D1_ROUNDED_RECT scrollbarRect;
+                scrollbarRect.radiusX = 2.0f;
+                scrollbarRect.radiusY = 2.0f;
+                scrollbarRect.rect = hitbox;
+                scrollbarRect.rect.left += 2.0f;
+                scrollbarRect.rect.top += 2.0f;
+                scrollbarRect.rect.right -= 2.0f;
+                scrollbarRect.rect.bottom -= 2.0f;
+                g.target->FillRoundedRectangle(scrollbarRect, brush);
                 brush->Release();
             }
             // Draw horizontal scrollbar
-            if (MaxHorizontalScroll() > 0 && _horizontalScrollBar.visible)
+            if ((MaxScroll(Scrollbar::HORIZONTAL) > 0 && _horizontalScrollbar.visible) || _horizontalScrollbar.backgroundVisible)
             {
-                float lengthOffset = 10.0f;
-                float widthOffset = 5.0f;
-                float barWidth = 5.0f;
-                float widthToContentRatio = GetWidth() / (float)_contentWidth;
-                float scrollBarMaxLength = GetWidth() - lengthOffset * 2;
-                float scrollBarLength = scrollBarMaxLength * widthToContentRatio;
-                float scrollBarPosition = (scrollBarMaxLength - scrollBarLength) * (_horizontalScroll / (float)MaxHorizontalScroll());
+                D2D1_RECT_F hitbox = ScrollbarHitbox(Scrollbar::HORIZONTAL);
 
-                D2D1_POINT_2F left = { lengthOffset + scrollBarPosition, GetHeight() - widthOffset };
-                D2D1_POINT_2F right = { left.x + scrollBarLength, left.y };
+                // Draw scroll background
+                if (_horizontalScrollbar.backgroundVisible)
+                {
+                    D2D1_RECT_F backgroundRect;
+                    backgroundRect.left = 0.0f;
+                    backgroundRect.right = (float)GetWidth();
+                    backgroundRect.top = (float)GetHeight() - ScrollbarWidth(Scrollbar::HORIZONTAL);
+                    backgroundRect.bottom = (float)GetHeight();
 
-                float opacity = 0.5f * _horizontalScrollBar.opacity;
+                    ID2D1SolidColorBrush* brush = nullptr;
+                    g.target->CreateSolidColorBrush(_scrollbarBackgroundColor, &brush);
+                    g.target->FillRectangle(backgroundRect, brush);
+                    brush->Release();
+                }
+
+                // Draw scrollbar
+                D2D1_COLOR_F color = _scrollbarColor;
+                if (MaxScroll(Scrollbar::HORIZONTAL) == 0)
+                {
+                    color = _scrollbarDisabledColor;
+                }
+                else
+                {
+                    if (_horizontalScrollbar.hovered || _horizontalScrollbar.held)
+                        color.a = 1.0f;
+                    else
+                        color.a = 0.5f;
+                    if (!_horizontalScrollbar.backgroundVisible)
+                        color.a *= _horizontalScrollbar.opacity;
+                }
                 ID2D1SolidColorBrush* brush = nullptr;
-                g.target->CreateSolidColorBrush(D2D1::ColorF(0.7f, 0.7f, 0.7f, opacity), &brush);
-                ID2D1StrokeStyle1* style = nullptr;
-                g.factory->CreateStrokeStyle
-                (
-                    D2D1::StrokeStyleProperties1(D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND),
-                    nullptr,
-                    0,
-                    &style
-                );
-                g.target->DrawLine(left, right, brush, barWidth, style);
-                style->Release();
+                g.target->CreateSolidColorBrush(color, &brush);
+                D2D1_ROUNDED_RECT scrollbarRect;
+                scrollbarRect.radiusX = 2.0f;
+                scrollbarRect.radiusY = 2.0f;
+                scrollbarRect.rect = hitbox;
+                scrollbarRect.rect.left += 2.0f;
+                scrollbarRect.rect.top += 2.0f;
+                scrollbarRect.rect.right -= 2.0f;
+                scrollbarRect.rect.bottom -= 2.0f;
+                g.target->FillRoundedRectangle(scrollbarRect, brush);
                 brush->Release();
             }
         }
@@ -391,13 +377,41 @@ namespace zcom
             _SetScreenPositions();
         }
 
-        EventTargets _OnMouseMove(int x, int y, bool duplicate)
+        EventTargets _OnMouseMove(int deltaX, int deltaY)
         {
+            // Scroll
+            if (_verticalScrollbar.held)
+            {
+                if (deltaY != 0)
+                {
+                    auto workArea = ScrollbarWorkArea(Scrollbar::VERTICAL);
+                    auto hitbox = ScrollbarHitbox(Scrollbar::VERTICAL);
+                    float scrollableLength = (workArea.second - workArea.first) - (hitbox.bottom - hitbox.top);
+                    float scrolledLength = GetMousePosY() - workArea.first - _verticalScrollbar.holdPos;
+                    float scrollRatio = scrolledLength / scrollableLength;
+                    ScrollPosition(Scrollbar::VERTICAL, std::roundf(MaxScroll(Scrollbar::VERTICAL) * scrollRatio));
+                }
+                return EventTargets().Add(this, GetMousePosX(), GetMousePosY());
+            }
+            if (_horizontalScrollbar.held)
+            {
+                if (deltaX != 0)
+                {
+                    auto workArea = ScrollbarWorkArea(Scrollbar::HORIZONTAL);
+                    auto hitbox = ScrollbarHitbox(Scrollbar::HORIZONTAL);
+                    float scrollableLength = (workArea.second - workArea.first) - (hitbox.right - hitbox.left);
+                    float scrolledLength = GetMousePosX() - workArea.first - _horizontalScrollbar.holdPos;
+                    float scrollRatio = scrolledLength / scrollableLength;
+                    ScrollPosition(Scrollbar::HORIZONTAL, std::roundf(MaxScroll(Scrollbar::HORIZONTAL) * scrollRatio));
+                }
+                return EventTargets().Add(this, GetMousePosX(), GetMousePosY());
+            }
+
             std::vector<Base*> hoveredComponents;
 
             // Adjust coordinates for scroll
-            int adjX = x + _horizontalScroll;
-            int adjY = y + _verticalScroll;
+            int adjX = GetMousePosX() + _horizontalScrollbar.scrollAmount;
+            int adjY = GetMousePosY() + _verticalScrollbar.scrollAmount;
 
             //Base* handledItem = nullptr;
             bool itemHandled = false;
@@ -450,7 +464,7 @@ namespace zcom
                 }
             }
             if (itemHandled)
-                return std::move(targets.Add(this, x, y));
+                return std::move(targets.Add(this, GetMousePosX(), GetMousePosY()));
 
             //std::cout << hoveredComponents.size() << std::endl;
 
@@ -477,10 +491,10 @@ namespace zcom
                 {
                     topmost->OnMouseEnter();
                 }
-                return topmost->OnMouseMove(adjX - topmost->GetX(), adjY - topmost->GetY()).Add(this, x, y);
+                return topmost->OnMouseMove(adjX - topmost->GetX(), adjY - topmost->GetY()).Add(this, GetMousePosX(), GetMousePosY());
             }
 
-            return std::move(targets.Add(this, x, y));
+            return std::move(targets.Add(this, GetMousePosX(), GetMousePosY()));
 
             //for (auto& _item : _items)
             //{
@@ -547,9 +561,25 @@ namespace zcom
 
         EventTargets _OnLeftPressed(int x, int y)
         {
+            // Grab scrollbar
+            if (ScrollbarHovered(Scrollbar::VERTICAL) && _verticalScrollbar.backgroundVisible && _verticalScrollbar.interactable)
+            {
+                _verticalScrollbar.held = true;
+                _verticalScrollbar.holdPos = y - ScrollbarHitbox(Scrollbar::VERTICAL).top;
+                // Stop scroll animation
+                _verticalScrollbar.scrollAnimation.inProgress = false;
+            }
+            else if (ScrollbarHovered(Scrollbar::HORIZONTAL) && _horizontalScrollbar.backgroundVisible && _horizontalScrollbar.interactable)
+            {
+                _horizontalScrollbar.held = true;
+                _horizontalScrollbar.holdPos = x - ScrollbarHitbox(Scrollbar::HORIZONTAL).left;
+                // Stop scroll animation
+                _horizontalScrollbar.scrollAnimation.inProgress = false;
+            }
+
             // Adjust coordinates for scroll
-            int adjX = x + _horizontalScroll;
-            int adjY = y + _verticalScroll;
+            int adjX = x + _horizontalScrollbar.scrollAmount;
+            int adjY = y + _verticalScrollbar.scrollAmount;
 
             for (auto& item : _items)
             {
@@ -565,9 +595,21 @@ namespace zcom
 
         EventTargets _OnLeftReleased(int x, int y)
         {
+            // Release scrollbars
+            if (_verticalScrollbar.held)
+            {
+                _verticalScrollbar.held = false;
+                InvokeRedraw();
+            }
+            if (_horizontalScrollbar.held)
+            {
+                _horizontalScrollbar.held = false;
+                InvokeRedraw();
+            }
+
             // Adjust coordinates for scroll
-            int adjX = x + _horizontalScroll;
-            int adjY = y + _verticalScroll;
+            int adjX = x + _horizontalScrollbar.scrollAmount;
+            int adjY = y + _verticalScrollbar.scrollAmount;
 
             EventTargets targets;
             for (auto& item : _items)
@@ -589,8 +631,8 @@ namespace zcom
         EventTargets _OnRightPressed(int x, int y)
         {
             // Adjust coordinates for scroll
-            int adjX = x + _horizontalScroll;
-            int adjY = y + _verticalScroll;
+            int adjX = x + _horizontalScrollbar.scrollAmount;
+            int adjY = y + _verticalScrollbar.scrollAmount;
 
             for (auto& item : _items)
             {
@@ -607,8 +649,8 @@ namespace zcom
         EventTargets _OnRightReleased(int x, int y)
         {
             // Adjust coordinates for scroll
-            int adjX = x + _horizontalScroll;
-            int adjY = y + _verticalScroll;
+            int adjX = x + _horizontalScrollbar.scrollAmount;
+            int adjY = y + _verticalScrollbar.scrollAmount;
 
             EventTargets targets;
             for (auto& item : _items)
@@ -630,8 +672,8 @@ namespace zcom
         EventTargets _OnWheelUp(int x, int y)
         {
             // Adjust coordinates for scroll
-            int adjX = x + _horizontalScroll;
-            int adjY = y + _verticalScroll;
+            int adjX = x + _horizontalScrollbar.scrollAmount;
+            int adjY = y + _verticalScrollbar.scrollAmount;
 
             EventTargets targets;
             for (auto& item : _items)
@@ -649,17 +691,19 @@ namespace zcom
             {
                 if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
                 {
-                    if (_horizontalScrollable)
+                    if (_horizontalScrollbar.scrollable)
                     {
-                        ScrollHorizontally(HorizontalScroll() - _scrollStepSize);
+                        Scrollbar dir = Scrollbar::HORIZONTAL;
+                        Scroll(dir, ScrollPosition(dir) - ScrollStepSize(dir));
                         return EventTargets().Add(this, x, y);
                     }
                 }
                 else
                 {
-                    if (_verticalScrollable)
+                    if (_verticalScrollbar.scrollable)
                     {
-                        ScrollVertically(VerticalScroll() - _scrollStepSize);
+                        Scrollbar dir = Scrollbar::VERTICAL;
+                        Scroll(dir, ScrollPosition(dir) - ScrollStepSize(dir));
                         return EventTargets().Add(this, x, y);
                     }
                 }
@@ -670,8 +714,8 @@ namespace zcom
         EventTargets _OnWheelDown(int x, int y)
         {
             // Adjust coordinates for scroll
-            int adjX = x + _horizontalScroll;
-            int adjY = y + _verticalScroll;
+            int adjX = x + _horizontalScrollbar.scrollAmount;
+            int adjY = y + _verticalScrollbar.scrollAmount;
 
             EventTargets targets;
             for (auto& item : _items)
@@ -689,17 +733,19 @@ namespace zcom
             {
                 if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
                 {
-                    if (_horizontalScrollable)
+                    if (_horizontalScrollbar.scrollable)
                     {
-                        ScrollHorizontally(HorizontalScroll() + _scrollStepSize);
+                        Scrollbar dir = Scrollbar::HORIZONTAL;
+                        Scroll(dir, ScrollPosition(dir) + ScrollStepSize(dir));
                         return EventTargets().Add(this, x, y);
                     }
                 }
                 else
                 {
-                    if (_verticalScrollable)
+                    if (_verticalScrollbar.scrollable)
                     {
-                        ScrollVertically(VerticalScroll() + _scrollStepSize);
+                        Scrollbar dir = Scrollbar::VERTICAL;
+                        Scroll(dir, ScrollPosition(dir) + ScrollStepSize(dir));
                         return EventTargets().Add(this, x, y);
                     }
                 }
@@ -799,6 +845,10 @@ namespace zcom
     protected:
         virtual void _RecalculateLayout(int width, int height)
         {
+            // When scrollbars are visible, whey might intrude into draw area
+            int widthWithPadding = GetWidth() - (_verticalScrollbar.backgroundVisible ? 10 : 0);
+            int heightWithPadding = GetHeight() - (_horizontalScrollbar.backgroundVisible ? 10 : 0);
+
             // Calculate item sizes and positions
             int maxRightEdge = 0;
             int maxBottomEdge = 0;
@@ -806,8 +856,8 @@ namespace zcom
             {
                 Base* item = _item.item;
 
-                int newWidth = (int)std::round(GetWidth() * item->GetParentWidthPercent()) + item->GetBaseWidth();
-                int newHeight = (int)std::round(GetHeight() * item->GetParentHeightPercent()) + item->GetBaseHeight();
+                int newWidth = (int)std::round(widthWithPadding * item->GetParentWidthPercent()) + item->GetBaseWidth();
+                int newHeight = (int)std::round(heightWithPadding * item->GetParentHeightPercent()) + item->GetBaseHeight();
                 if (newWidth < 1)
                     newWidth = 1;
                 if (newHeight < 1)
@@ -816,16 +866,16 @@ namespace zcom
                 int newPosX = 0;
                 if (item->GetHorizontalAlignment() == Alignment::START)
                 {
-                    newPosX += std::round((GetWidth() - newWidth) * item->GetHorizontalOffsetPercent());
+                    newPosX += std::round((widthWithPadding - newWidth) * item->GetHorizontalOffsetPercent());
                 }
                 else if (item->GetHorizontalAlignment() == Alignment::CENTER)
                 {
-                    newPosX = (GetWidth() - newWidth) / 2;
+                    newPosX = (widthWithPadding - newWidth) / 2;
                 }
                 else if (item->GetHorizontalAlignment() == Alignment::END)
                 {
-                    newPosX = GetWidth() - newWidth;
-                    newPosX -= std::round((GetWidth() - newWidth) * item->GetHorizontalOffsetPercent());
+                    newPosX = widthWithPadding - newWidth;
+                    newPosX -= std::round((widthWithPadding - newWidth) * item->GetHorizontalOffsetPercent());
                 }
                 newPosX += item->GetHorizontalOffsetPixels();
                 newPosX += _margins.left;
@@ -837,16 +887,16 @@ namespace zcom
                 int newPosY = 0;
                 if (item->GetVerticalAlignment() == Alignment::START)
                 {
-                    newPosY += std::round((GetHeight() - newHeight) * item->GetVerticalOffsetPercent());
+                    newPosY += std::round((heightWithPadding - newHeight) * item->GetVerticalOffsetPercent());
                 }
                 else if (item->GetVerticalAlignment() == Alignment::CENTER)
                 {
-                    newPosY = (GetHeight() - newHeight) / 2;
+                    newPosY = (heightWithPadding - newHeight) / 2;
                 }
                 else if (item->GetVerticalAlignment() == Alignment::END)
                 {
-                    newPosY = GetHeight() - newHeight;
-                    newPosY -= std::round((GetHeight() - newHeight) * item->GetVerticalOffsetPercent());
+                    newPosY = heightWithPadding - newHeight;
+                    newPosY -= std::round((heightWithPadding - newHeight) * item->GetVerticalOffsetPercent());
                 }
                 newPosY += item->GetVerticalOffsetPixels();
                 newPosY += _margins.top;
@@ -862,10 +912,10 @@ namespace zcom
             _contentWidth = maxRightEdge + _margins.right;
             _contentHeight = maxBottomEdge + _margins.bottom;
 
-            if (_verticalScroll > MaxVerticalScroll())
-                _verticalScroll = MaxVerticalScroll();
-            if (_horizontalScroll > MaxHorizontalScroll())
-                _horizontalScroll = MaxHorizontalScroll();
+            if (_verticalScrollbar.scrollAmount > MaxScroll(Scrollbar::VERTICAL))
+                _verticalScrollbar.scrollAmount = MaxScroll(Scrollbar::VERTICAL);
+            if (_horizontalScrollbar.scrollAmount > MaxScroll(Scrollbar::HORIZONTAL))
+                _horizontalScrollbar.scrollAmount = MaxScroll(Scrollbar::HORIZONTAL);
 
             _SetScreenPositions();
             InvokeRedraw();
@@ -876,7 +926,10 @@ namespace zcom
             for (auto& _item : _items)
             {
                 Base* item = _item.item;
-                item->SetScreenPosition(GetScreenX() + item->GetX() - _horizontalScroll, GetScreenY() + item->GetY() - _verticalScroll);
+                item->SetScreenPosition(
+                    GetScreenX() + item->GetX() - _horizontalScrollbar.scrollAmount,
+                    GetScreenY() + item->GetY() - _verticalScrollbar.scrollAmount
+                );
             }
         }
 
@@ -885,20 +938,15 @@ namespace zcom
             Base* item;
             bool owned;
             bool hasShadow;
-            //bool layoutChanged;
         };
         std::vector<Item> _items;
     private:
-        //std::vector<Base*> _items;
-        //std::vector<bool> _owned;
-        //std::vector<bool> _hasShadow;
         std::vector<Base*> _selectableItems;
 
         // Margins
         RECT _margins = { 0, 0, 0, 0 };
 
         // Auto child resize
-        //bool _layoutChanged = false;
         bool _deferUpdates = false;
         bool _updatesDeferred = false;
 
@@ -912,28 +960,33 @@ namespace zcom
             int endPos = 0;
             std::function<float(float)> progressFunction;
         };
-        struct _ScrollBar
+        struct _Scrollbar
         {
+            bool scrollable = false;
+            int scrollAmount = 0;
+            int stepSize = 100;
+            int width = 10;
             bool alwaysVisible = false;
+            bool backgroundVisible = false;
             bool visibleOnScroll = true;
-            bool interactable = false;
+            bool interactable = true;
+            bool hovered = false;
+            bool held = false;
+            int holdPos = 0;
             bool visible = false;
             TimePoint showTime = 0;
             Duration hangDuration = Duration(1, SECONDS);
             Duration fadeDuration = Duration(150, MILLISECONDS);
             float opacity = 1.0f;
+            _ScrollAnimation scrollAnimation = {};
         };
         int _contentWidth = 0;
         int _contentHeight = 0;
-        int _horizontalScroll = 0;
-        int _verticalScroll = 0;
-        int _scrollStepSize = 100;
-        _ScrollAnimation _horizontalScrollAnimation = {};
-        _ScrollAnimation _verticalScrollAnimation = {};
-        _ScrollBar _horizontalScrollBar = {};
-        _ScrollBar _verticalScrollBar = {};
-        bool _horizontalScrollable = false;
-        bool _verticalScrollable = false;
+        _Scrollbar _horizontalScrollbar;
+        _Scrollbar _verticalScrollbar;
+        D2D1_COLOR_F _scrollbarBackgroundColor = D2D1::ColorF(0.07f, 0.07f, 0.07f);
+        D2D1_COLOR_F _scrollbarDisabledColor = D2D1::ColorF(0.2f, 0.2f, 0.2f);
+        D2D1_COLOR_F _scrollbarColor = D2D1::ColorF(0.7f, 0.7f, 0.7f);
 
     protected:
         friend class Scene;
@@ -1131,167 +1184,342 @@ namespace zcom
 
         // Scrolling
 
-        bool VerticalScrollable() const
+    private:
+        const _Scrollbar& _GetConstScrollbar(Scrollbar direction) const
         {
-            return _verticalScrollable;
-        }
-
-        void VerticalScrollable(bool scrollable)
-        {
-            _verticalScrollable = scrollable;
-        }
-
-        bool HorizontalScrollable() const
-        {
-            return _horizontalScrollable;
-        }
-
-        void HorizontalScrollable(bool scrollable)
-        {
-            _horizontalScrollable = scrollable;
-        }
-
-        int MaxVerticalScroll() const
-        {
-            int maxScroll = _contentHeight - GetHeight();
-            if (maxScroll < 0)
-                maxScroll = 0;
-            return maxScroll;
-        }
-
-        int MaxHorizontalScroll() const
-        {
-            int maxScroll = _contentWidth - GetWidth();
-            if (maxScroll < 0)
-                maxScroll = 0;
-            return maxScroll;
-        }
-
-        int VerticalScroll() const
-        {
-            if (_verticalScrollAnimation.inProgress)
-                return _verticalScrollAnimation.endPos;
+            if (direction == Scrollbar::VERTICAL)
+                return _verticalScrollbar;
             else
-                return _verticalScroll;
+                return _horizontalScrollbar;
         }
 
-        int VisualVerticalScroll() const
+        _Scrollbar& _GetScrollbar(Scrollbar direction)
         {
-            return _verticalScroll;
-        }
-
-        void VerticalScroll(int position)
-        {
-            if (!_verticalScrollable)
-                return;
-
-            _verticalScroll = position;
-            int maxScroll = MaxVerticalScroll();
-            if (_verticalScroll > maxScroll)
-                _verticalScroll = maxScroll;
-            else if (_verticalScroll < 0)
-                _verticalScroll = 0;
-            _SetScreenPositions();
-            InvokeRedraw();
-        }
-
-        int HorizontalScroll() const
-        {
-            if (_horizontalScrollAnimation.inProgress)
-                return _horizontalScrollAnimation.endPos;
+            if (direction == Scrollbar::VERTICAL)
+                return _verticalScrollbar;
             else
-                return _horizontalScroll;
+                return _horizontalScrollbar;
+        }
+    public:
+
+        bool Scrollable(Scrollbar direction) const
+        {
+            return _Scrollable(_GetConstScrollbar(direction));
         }
 
-        int VisualHorizontalScroll() const
+        void Scrollable(Scrollbar direction, bool scrollable)
         {
-            return _horizontalScroll;
+            _Scrollable(_GetScrollbar(direction), scrollable);
         }
 
-        void HorizontalScroll(int position)
+        int MaxScroll(Scrollbar direction) const
         {
-            if (!_horizontalScrollable)
-                return;
-
-            _horizontalScroll = position;
-            int maxScroll = MaxHorizontalScroll();
-            if (_horizontalScroll > maxScroll)
-                _horizontalScroll = maxScroll;
-            else if (_horizontalScroll < 0)
-                _horizontalScroll = 0;
-            InvokeRedraw();
-        }
-
-        Duration VerticalScrollbarHangDuration() const
-        {
-            return _verticalScrollBar.hangDuration;
-        }
-
-        void VerticalScrollbarHangDuration(Duration duration)
-        {
-            _verticalScrollBar.hangDuration = duration;
-        }
-
-        Duration HorizontalScrollbarHangDuration() const
-        {
-            return _horizontalScrollBar.hangDuration;
-        }
-
-        void HorizontalScrollbarHangDuration(Duration duration)
-        {
-            _horizontalScrollBar.hangDuration = duration;
-        }
-
-        int ScrollStepSize() const
-        {
-            return _scrollStepSize;
-        }
-
-        void ScrollStepSize(int pixels)
-        {
-            _scrollStepSize = pixels;
-        }
-
-        void ScrollVertically(int to, Duration scrollDuration = Duration(150, MILLISECONDS), std::function<float(float)> progressFunction = std::function<float(float)>())
-        {
-            if (to < 0)
-                to = 0;
-            else if (to > MaxVerticalScroll())
-                to = MaxVerticalScroll();
-
-            _verticalScrollAnimation.inProgress = true;
-            _verticalScrollAnimation.startTime = ztime::Main();
-            _verticalScrollAnimation.duration = scrollDuration;
-            _verticalScrollAnimation.startPos = _verticalScroll;
-            _verticalScrollAnimation.endPos = to;
-            _verticalScrollAnimation.progressFunction = progressFunction;
-
-            if (_verticalScrollBar.visibleOnScroll)
+            if (direction == Scrollbar::VERTICAL)
             {
-                _verticalScrollBar.visible = true;
-                _verticalScrollBar.showTime = ztime::Main();
+                int maxScroll = _contentHeight - GetHeight() + (_horizontalScrollbar.backgroundVisible ? 10 : 0);
+                if (maxScroll < 0)
+                    maxScroll = 0;
+                return maxScroll;
+            }
+            else
+            {
+                int maxScroll = _contentWidth - GetWidth() + (_verticalScrollbar.backgroundVisible ? 10 : 0);
+                if (maxScroll < 0)
+                    maxScroll = 0;
+                return maxScroll;
             }
         }
 
-        void ScrollHorizontally(int to, Duration scrollDuration = Duration(150, MILLISECONDS), std::function<float(float)> progressFunction = std::function<float(float)>())
+        int ScrollPosition(Scrollbar direction) const
         {
-            if (to < 0)
-                to = 0;
-            else if (to > MaxHorizontalScroll())
-                to = MaxHorizontalScroll();
+            return _ScrollPosition(_GetConstScrollbar(direction));
+        }
 
-            _horizontalScrollAnimation.inProgress = true;
-            _horizontalScrollAnimation.startTime = ztime::Main();
-            _horizontalScrollAnimation.duration = scrollDuration;
-            _horizontalScrollAnimation.startPos = _horizontalScroll;
-            _horizontalScrollAnimation.endPos = to;
-            _horizontalScrollAnimation.progressFunction = progressFunction;
+        int VisualScrollPosition(Scrollbar direction) const
+        {
+            return _VisualScrollPosition(_GetConstScrollbar(direction));
+        }
 
-            if (_horizontalScrollBar.visibleOnScroll)
+        void ScrollPosition(Scrollbar direction, int position)
+        {
+            if (direction == Scrollbar::VERTICAL)
             {
-                _horizontalScrollBar.visible = true;
-                _horizontalScrollBar.showTime = ztime::Main();
+                if (!_verticalScrollbar.scrollable)
+                    return;
+
+                _verticalScrollbar.scrollAmount = position;
+                int maxScroll = MaxScroll(direction);
+                if (_verticalScrollbar.scrollAmount > maxScroll)
+                    _verticalScrollbar.scrollAmount = maxScroll;
+                else if (_verticalScrollbar.scrollAmount < 0)
+                    _verticalScrollbar.scrollAmount = 0;
+                _SetScreenPositions();
+                InvokeRedraw();
             }
+            else
+            {
+                if (!_horizontalScrollbar.scrollable)
+                    return;
+
+                _horizontalScrollbar.scrollAmount = position;
+                int maxScroll = MaxScroll(direction);
+                if (_horizontalScrollbar.scrollAmount > maxScroll)
+                    _horizontalScrollbar.scrollAmount = maxScroll;
+                else if (_horizontalScrollbar.scrollAmount < 0)
+                    _horizontalScrollbar.scrollAmount = 0;
+                _SetScreenPositions();
+                InvokeRedraw();
+            }
+        }
+
+        Duration ScrollbarHangDuration(Scrollbar direction) const
+        {
+            return _ScrollbarHangDuration(_GetConstScrollbar(direction));
+        }
+
+        void ScrollbarHangDuration(Scrollbar direction, Duration duration)
+        {
+            _ScrollbarHangDuration(_GetScrollbar(direction), duration);
+        }
+
+        bool ScrollBackgroundVisible(Scrollbar direction) const
+        {
+            return _ScrollBackgroundVisible(_GetConstScrollbar(direction));
+        }
+
+        void ScrollBackgroundVisible(Scrollbar direction, bool visible)
+        {
+            _ScrollBackgroundVisible(_GetScrollbar(direction), visible);
+        }
+
+        int ScrollStepSize(Scrollbar direction) const
+        {
+            return _ScrollStepSize(_GetConstScrollbar(direction));
+        }
+
+        void ScrollStepSize(Scrollbar direction, int stepSize)
+        {
+            _ScrollStepSize(_GetScrollbar(direction), stepSize);
+        }
+
+        int ScrollbarWidth(Scrollbar direction) const
+        {
+            return _ScrollbarWidth(_GetConstScrollbar(direction));
+        }
+
+        void ScrollbarWidth(Scrollbar direction, int width)
+        {
+            _ScrollbarWidth(_GetScrollbar(direction), width);
+        }
+
+        std::pair<float, float> ScrollbarWorkArea(Scrollbar direction) const
+        {
+            if (direction == Scrollbar::VERTICAL)
+            {
+                float topOffset = 10.0f;
+                float bottomOffset = ScrollbarWidth(Scrollbar::HORIZONTAL);
+                if (_verticalScrollbar.backgroundVisible)
+                {
+                    topOffset = 0.0f;
+                    if (!_horizontalScrollbar.backgroundVisible)
+                        bottomOffset = 0.0f;
+                }
+                return { topOffset, GetHeight() - bottomOffset };
+            }
+            else
+            {
+                float leftOffset = 10.0f;
+                float rightOffset = ScrollbarWidth(Scrollbar::VERTICAL);
+                if (_horizontalScrollbar.backgroundVisible)
+                {
+                    leftOffset = 0.0f;
+                    if (!_verticalScrollbar.backgroundVisible)
+                        rightOffset = 0.0f;
+                }
+                return { leftOffset, GetWidth() - rightOffset };
+            }
+        }
+
+        D2D1_RECT_F ScrollbarHitbox(Scrollbar direction) const
+        {
+            if (direction == Scrollbar::VERTICAL)
+            {
+                auto workArea = ScrollbarWorkArea(direction);
+                float startPos = workArea.first;
+                float endPos = workArea.second;
+                float hitboxWidth = ScrollbarWidth(Scrollbar::VERTICAL);
+
+                // Calculate scrollbar layout
+                float heightToContentRatio = GetHeight() / (float)_contentHeight;
+                if (heightToContentRatio > 1.0f)
+                    heightToContentRatio = 1.0f;
+                float scrollBarMaxLength = endPos - startPos;
+                float scrollBarLength = scrollBarMaxLength * heightToContentRatio;
+                float scrollBarPosition = 0.0f;
+                if (MaxScroll(Scrollbar::VERTICAL) != 0)
+                    scrollBarPosition = (scrollBarMaxLength - scrollBarLength) * (_verticalScrollbar.scrollAmount / (float)MaxScroll(Scrollbar::VERTICAL));
+
+                D2D1_RECT_F hitbox;
+                hitbox.left = GetWidth() - hitboxWidth;
+                hitbox.right = GetWidth();
+                hitbox.top = startPos + scrollBarPosition;
+                hitbox.bottom = hitbox.top + scrollBarLength;
+                return hitbox;
+            }
+            else
+            {
+                auto workArea = ScrollbarWorkArea(direction);
+                float startPos = workArea.first;
+                float endPos = workArea.second;
+                float hitboxWidth = ScrollbarWidth(Scrollbar::HORIZONTAL);
+
+                // Calculate scrollbar layout
+                float widthToContentRatio = GetWidth() / (float)_contentWidth;
+                if (widthToContentRatio > 1.0f)
+                    widthToContentRatio = 1.0f;
+                float scrollBarMaxLength = endPos - startPos;
+                float scrollBarLength = scrollBarMaxLength * widthToContentRatio;
+                float scrollBarPosition = 0.0f;
+                if (MaxScroll(Scrollbar::HORIZONTAL) != 0)
+                    scrollBarPosition = (scrollBarMaxLength - scrollBarLength) * (_horizontalScrollbar.scrollAmount / (float)MaxScroll(Scrollbar::HORIZONTAL));
+
+                D2D1_RECT_F hitbox;
+                hitbox.left = startPos + scrollBarPosition;
+                hitbox.right = hitbox.left + scrollBarLength;
+                hitbox.top = GetHeight() - hitboxWidth;
+                hitbox.bottom = GetHeight();
+                return hitbox;
+            }
+        }
+
+        bool ScrollbarHovered(Scrollbar direction) const
+        {
+            auto hitbox = ScrollbarHitbox(direction);
+            return GetMouseInside() &&
+                GetMousePosX() >= hitbox.left &&
+                GetMousePosX() < hitbox.right &&
+                GetMousePosY() >= hitbox.top &&
+                GetMousePosY() < hitbox.bottom;
+        }
+
+        void Scroll(
+            Scrollbar direction,
+            int to,
+            Duration scrollDuration = Duration(150, MILLISECONDS),
+            std::function<float(float)> progressFunction = std::function<float(float)>())
+        {
+            if (direction == Scrollbar::VERTICAL)
+            {
+                if (to < 0)
+                    to = 0;
+                else if (to > MaxScroll(direction))
+                    to = MaxScroll(direction);
+
+                _verticalScrollbar.scrollAnimation.inProgress = true;
+                _verticalScrollbar.scrollAnimation.startTime = ztime::Main();
+                _verticalScrollbar.scrollAnimation.duration = scrollDuration;
+                _verticalScrollbar.scrollAnimation.startPos = _verticalScrollbar.scrollAmount;
+                _verticalScrollbar.scrollAnimation.endPos = to;
+                _verticalScrollbar.scrollAnimation.progressFunction = progressFunction;
+
+                if (_verticalScrollbar.visibleOnScroll)
+                {
+                    _verticalScrollbar.visible = true;
+                    _verticalScrollbar.showTime = ztime::Main();
+                }
+            }
+            else
+            {
+                if (to < 0)
+                    to = 0;
+                else if (to > MaxScroll(direction))
+                    to = MaxScroll(direction);
+
+                _horizontalScrollbar.scrollAnimation.inProgress = true;
+                _horizontalScrollbar.scrollAnimation.startTime = ztime::Main();
+                _horizontalScrollbar.scrollAnimation.duration = scrollDuration;
+                _horizontalScrollbar.scrollAnimation.startPos = _horizontalScrollbar.scrollAmount;
+                _horizontalScrollbar.scrollAnimation.endPos = to;
+                _horizontalScrollbar.scrollAnimation.progressFunction = progressFunction;
+
+                if (_horizontalScrollbar.visibleOnScroll)
+                {
+                    _horizontalScrollbar.visible = true;
+                    _horizontalScrollbar.showTime = ztime::Main();
+                }
+            }
+        }
+
+    private:
+        bool _Scrollable(const _Scrollbar& scrollbar) const
+        {
+            return scrollbar.scrollable;
+        }
+
+        void _Scrollable(_Scrollbar& scrollbar, bool scrollable)
+        {
+            scrollbar.scrollable = scrollable;
+        }
+
+        int _ScrollPosition(const _Scrollbar& scrollbar) const
+        {
+            if (scrollbar.scrollAnimation.inProgress)
+                return scrollbar.scrollAnimation.endPos;
+            else
+                return scrollbar.scrollAmount;
+        }
+
+        int _VisualScrollPosition(const _Scrollbar& scrollbar) const
+        {
+            return scrollbar.scrollAmount;
+        }
+
+        Duration _ScrollbarHangDuration(const _Scrollbar& scrollbar) const
+        {
+            return scrollbar.hangDuration;
+        }
+
+        void _ScrollbarHangDuration(_Scrollbar& scrollbar, Duration duration)
+        {
+            scrollbar.hangDuration = duration;
+        }
+
+        bool _ScrollBackgroundVisible(const _Scrollbar& scrollbar) const
+        {
+            return scrollbar.backgroundVisible;
+        }
+
+        void _ScrollBackgroundVisible(_Scrollbar& scrollbar, bool visible)
+        {
+            if (scrollbar.backgroundVisible == visible)
+                return;
+            scrollbar.backgroundVisible = visible;
+            _RecalculateLayout(GetWidth(), GetHeight());
+            InvokeRedraw();
+        }
+
+        int _ScrollStepSize(const _Scrollbar& scrollbar) const
+        {
+            return scrollbar.stepSize;
+        }
+
+        void _ScrollStepSize(_Scrollbar& scrollbar, int stepSize)
+        {
+            scrollbar.stepSize = stepSize;
+        }
+
+        int _ScrollbarWidth(const _Scrollbar& scrollbar) const
+        {
+            return scrollbar.width;
+        }
+
+        void _ScrollbarWidth(_Scrollbar& scrollbar, int width)
+        {
+            if (scrollbar.width == width)
+                return;
+            scrollbar.width = width;
+            _RecalculateLayout(GetWidth(), GetHeight());
+            InvokeRedraw();
         }
     };
 }
