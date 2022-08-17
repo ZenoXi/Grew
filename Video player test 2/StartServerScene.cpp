@@ -93,11 +93,12 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     _usernameInput->SetTabIndex(1);
 
     _advancedOptionsPanel = Create<zcom::DirectionalPanel>(zcom::PanelDirection::DOWN);
-    _advancedOptionsPanel->SetBaseSize(-60, -210);
+    _advancedOptionsPanel->SetBaseSize(-60, -212);
     _advancedOptionsPanel->SetParentSizePercent(1.0f, 1.0f);
-    _advancedOptionsPanel->SetOffsetPixels(30, 130);
+    _advancedOptionsPanel->SetOffsetPixels(30, 131);
     _advancedOptionsPanel->Scrollable(zcom::Scrollbar::VERTICAL, true);
-    _advancedOptionsPanel->ScrollbarHangDuration(zcom::Scrollbar::VERTICAL, 0);
+    _advancedOptionsPanel->ScrollBackgroundColor(D2D1::ColorF(0, 0.25f));
+    //_advancedOptionsPanel->ScrollbarHangDuration(zcom::Scrollbar::VERTICAL, 0);
 
     _advancedOptionsLabel = Create<zcom::Label>(L"Advanced options:");
     _advancedOptionsLabel->SetBaseSize(200, 30);
@@ -576,6 +577,11 @@ void StartServerScene::_Unfocus()
 void StartServerScene::_Update()
 {
     _canvas->Update();
+
+    if (_advancedOptionsPanel->MaxScroll(zcom::Scrollbar::VERTICAL) > 0)
+        _advancedOptionsPanel->ScrollBackgroundVisible(zcom::Scrollbar::VERTICAL, true);
+    else
+        _advancedOptionsPanel->ScrollBackgroundVisible(zcom::Scrollbar::VERTICAL, false);
 
     if (_starting)
     {

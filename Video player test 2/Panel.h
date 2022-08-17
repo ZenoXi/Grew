@@ -1292,6 +1292,19 @@ namespace zcom
             _ScrollBackgroundVisible(_GetScrollbar(direction), visible);
         }
 
+        D2D1_COLOR_F ScrollBackgroundColor() const
+        {
+            return _scrollbarBackgroundColor;
+        }
+
+        void ScrollBackgroundColor(D2D1_COLOR_F color)
+        {
+            if (_scrollbarBackgroundColor == color)
+                return;
+            _scrollbarBackgroundColor = color;
+            InvokeRedraw();
+        }
+
         int ScrollStepSize(Scrollbar direction) const
         {
             return _ScrollStepSize(_GetConstScrollbar(direction));
