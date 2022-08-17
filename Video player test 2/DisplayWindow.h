@@ -391,7 +391,7 @@ public:
 
     HWND& GetHWNDRef() { return _hwnd; };
 
-    void ProcessMessages();
+    bool ProcessMessages();
     void ProcessQueueMessages();
     WindowMessage GetSizeResult();
     WindowMessage GetMoveResult();

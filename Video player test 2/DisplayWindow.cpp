@@ -114,11 +114,13 @@ DisplayWindow::~DisplayWindow()
     UnregisterClass(_wndClassName, _hInst);
 }
 
-void DisplayWindow::ProcessMessages()
+bool DisplayWindow::ProcessMessages()
 {
     MSG msg;
+    bool msgProcessed = false;
     while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
     {
+        msgProcessed = true;
         TranslateMessage(&msg);
         DispatchMessage(&msg);
         if (msg.message == WM_QUIT)
@@ -126,6 +128,7 @@ void DisplayWindow::ProcessMessages()
             exit(0);
         }
     }
+    return msgProcessed;
 }
 
 void DisplayWindow::ProcessQueueMessages()

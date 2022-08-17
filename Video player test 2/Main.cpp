@@ -61,11 +61,13 @@ int WINAPI main(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
     //Options::Instance()->SetValue("volume", "0.2");
     //Options::Instance()->SetValue("lastIp", "193.219.91.103:7099");
 
+    Clock msgTimer = Clock(0);
+
     // Main window loop
     while (true)
     {
         // Messages
-        window.ProcessMessages();
+        bool msgProcessed = window.ProcessMessages();
         WindowMessage wm = window.GetExitResult();
         if (!wm.handled) exit(0);
 
@@ -73,7 +75,23 @@ int WINAPI main(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
         window.HandleCursorVisibility();
 
         // Limit cpu usage
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        if (!msgProcessed)
+        {
+            // If no messages are received for 50ms or more, sleep to limit cpu usage.
+            // This way we allow for full* mouse poll rate utilization when necessary.
+            //
+            // * the very first mouse move after a break will have a very small delay
+            // which may be noticeable in certain situations (FPS games)
+            msgTimer.Update();
+            if (msgTimer.Now().GetTime(MILLISECONDS) >= 50)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+        }
+        else
+        {
+            msgTimer.Reset();
+        }
         continue;
 
 #if 0
