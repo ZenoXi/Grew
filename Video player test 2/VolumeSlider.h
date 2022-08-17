@@ -119,10 +119,10 @@ namespace zcom
             );
         }
 
-        EventTargets _OnMouseMove(int x, int y, bool duplicate)
+        EventTargets _OnMouseMove(int deltaX, int deltaY)
         {
-            if (duplicate)
-                return EventTargets().Add(this, x, y);
+            if (deltaX == 0 && deltaY == 0)
+                return EventTargets().Add(this, GetMousePosX(), GetMousePosY());
 
             int iconWidth = 30;
             int textWidth = _volumeLabel->GetWidth();
@@ -154,7 +154,7 @@ namespace zcom
             }
 
             InvokeRedraw();
-            return EventTargets().Add(this, x, y);
+            return EventTargets().Add(this, GetMousePosX(), GetMousePosY());
         }
 
         void _OnMouseEnter()

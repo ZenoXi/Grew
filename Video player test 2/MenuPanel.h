@@ -40,9 +40,9 @@ namespace zcom
             }
         }
 
-        EventTargets _OnMouseMove(int x, int y, bool duplicate)
+        EventTargets _OnMouseMove(int deltaX, int deltaY)
         {
-            auto targets = Panel::_OnMouseMove(x, y, duplicate);
+            auto targets = Panel::_OnMouseMove(deltaX, deltaY);
             Base* mainTarget = targets.MainTarget();
             auto it = std::find_if(_items.begin(), _items.end(), [mainTarget](Item& item) { return item.item == mainTarget; });
             if (it != _items.end())
@@ -95,7 +95,7 @@ namespace zcom
                 }
             }
 
-            return std::move(targets.Add(this, x, y));
+            return std::move(targets.Add(this, GetMousePosX(), GetMousePosY()));
         }
 
         EventTargets _OnLeftPressed(int x, int y)

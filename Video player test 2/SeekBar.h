@@ -184,10 +184,10 @@ namespace zcom
             g.target->DrawBitmap(_durationLabel->Image(), durationRect);
         }
 
-        EventTargets _OnMouseMove(int x, int y, bool duplicate)
+        EventTargets _OnMouseMove(int deltaX, int deltaY)
         {
-            if (duplicate)
-                return EventTargets().Add(this, x, y);
+            if (deltaX == 0 && deltaY == 0)
+                return EventTargets().Add(this, GetMousePosX(), GetMousePosY());
 
             int timeTextWidth = ceilf(_maxTimeWidth) + _margins * 2;
             int seekBarWidth = GetWidth() - timeTextWidth * 2;
@@ -217,7 +217,7 @@ namespace zcom
                     }
                 }
 
-                _onTimeHovered.InvokeAll(x, time, title);
+                _onTimeHovered.InvokeAll(GetMousePosX(), time, title);
                 if (!_timeHovered)
                 {
                     // Start height change transition
@@ -243,7 +243,7 @@ namespace zcom
                 _heldPosition = xPos;
             }
             InvokeRedraw();
-            return EventTargets().Add(this, x, y);
+            return EventTargets().Add(this, GetMousePosX(), GetMousePosY());
         }
 
         void _OnMouseLeave()
