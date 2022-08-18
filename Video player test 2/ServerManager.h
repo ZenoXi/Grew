@@ -28,6 +28,8 @@ namespace znet
         bool InitSuccessful() const { return !_startFailed; }
         std::wstring FailMessage() const { return _failMessage; }
         int FailCode() const { return _failCode; }
+        void MaxUsers(int count) { _maxUserCount = count; }
+        int MaxUsers() const { return _maxUserCount; }
 
     private:
         class _ServerIDGenerator : public TCPServer::IDGenerator
@@ -69,6 +71,7 @@ namespace znet
 
         TCPServer _server;
         bool _allowConnections;
+        int _maxUserCount = -1;
         std::vector<User> _users;
         std::vector<_UserData> _usersData;
         User _thisUser;

@@ -113,6 +113,16 @@ void znet::ClientManager::_Connect(std::string ip, uint16_t port)
             _connecting = false;
             return;
         }
+        else if (assignedId == -3)
+        {
+            connection->Disconnect();
+            _connectFailed = true;
+            _failMessage = L"Server is full";
+            _failCode = -1;
+            App::Instance()->events.RaiseEvent(ConnectionFailEvent{ "Server full" });
+            _connecting = false;
+            return;
+        }
         else
         {
             _thisUser.id = assignedId;

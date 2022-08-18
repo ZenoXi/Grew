@@ -384,6 +384,14 @@ void znet::ServerManager::_ProcessNewConnections(_ManagerThreadData& data)
     while ((newUser = _server.GetNewConnection()) != -1)
     {
         TCPClientRef connection = _server.Connection(newUser);
+
+        // Deny connection if server is full
+        if (_maxUserCount != -1 && _users.size() >= _maxUserCount)
+        {
+            connection->Send(Packet((int)PacketType::ASSIGNED_USER_ID).From(int64_t(-3)), std::numeric_limits<int>::max());
+            continue;
+        }
+
         // If password is set, place user in queue until password packet is received
         if (!_password.empty())
         {

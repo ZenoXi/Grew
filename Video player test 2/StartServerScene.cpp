@@ -182,14 +182,14 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _maxUsersLabel->SetFontSize(16.0f);
         _maxUsersLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _maxUsersLabel->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
-        _maxUsersLabel->SetActive(false);
+        //_maxUsersLabel->SetActive(false);
 
         _maxUsersInput = Create<zcom::TextInput>();
         _maxUsersInput->SetBaseSize(50, 26);
         _maxUsersInput->SetOffsetPixels(15, 128);
         _maxUsersInput->SetCornerRounding(5.0f);
         _maxUsersInput->SetTabIndex(2);
-        _maxUsersInput->SetActive(false);
+        //_maxUsersInput->SetActive(false);
 
         _chatEnabledCheckbox = Create<zcom::Checkbox>();
         _chatEnabledCheckbox->SetBaseSize(20, 20);
@@ -633,6 +633,17 @@ void StartServerScene::_Update()
             auto manager = std::make_unique<znet::ServerManager>(str_to_int(port), wstring_to_string(_passwordInput->GetText()));
             if (manager->InitSuccessful())
             {
+                int maxUsers = -1;
+                std::wstring maxUsersInput = _maxUsersInput->GetText();
+                if (!maxUsersInput.empty())
+                {
+                    try
+                    {
+                        maxUsers = std::stoi(wstring_to_string(maxUsersInput));
+                    }
+                    catch (std::exception ex) {}
+                }
+                manager->MaxUsers(maxUsers);
                 APP_NETWORK->SetManager(std::move(manager));
                 //APP_NETWORK->SetUsername(_usernameInput->GetText());
                 // Delay manager start by 1 frame, to allow all event handlers to prepare

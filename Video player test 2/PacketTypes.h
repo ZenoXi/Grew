@@ -27,6 +27,7 @@ namespace znet
         // 
         // value of -1 means the connection was denied
         // value of -2 means the password is incorrect
+        // value of -3 means the server is full
         ASSIGNED_USER_ID,
 
         // Contains:
