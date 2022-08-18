@@ -4,14 +4,6 @@
 
 namespace znet
 {
-    enum class NetworkStatus
-    {
-        OFFLINE,
-        ONLINE,
-        INITIALIZING,
-        UNINITIALIZING
-    };
-
     class INetworkManager
     {
     public:
@@ -36,15 +28,6 @@ namespace znet
         {
             _packetReceivedHandler = handler;
         }
-
-        virtual std::string Name() = 0;
-        virtual NetworkStatus Status() = 0;
-        virtual std::wstring StatusString() = 0;
-
-        // UI interface
-
-        // The label a button that closes the manager should have (ex. "Disconnect" or "Stop server")
-        virtual std::wstring CloseLabel() const = 0;
 
     protected:
         std::function<void(Packet, int64_t)> _packetReceivedHandler = [](Packet, int64_t){};

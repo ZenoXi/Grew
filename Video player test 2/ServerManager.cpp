@@ -302,34 +302,6 @@ void znet::ServerManager::AbortSend(int32_t packetId)
     }
 }
 
-znet::NetworkStatus znet::ServerManager::Status()
-{
-    if (!_startFailed)
-        return NetworkStatus::ONLINE;
-
-    return NetworkStatus::OFFLINE;
-}
-
-std::wstring znet::ServerManager::StatusString()
-{
-    switch (Status())
-    {
-    case NetworkStatus::INITIALIZING:
-        return L"Starting server..";
-    case NetworkStatus::ONLINE:
-        return L"Server running";
-    case NetworkStatus::UNINITIALIZING:
-        return L"Stopping server..";
-    case NetworkStatus::OFFLINE:
-        if (_startFailed)
-            return L"Start failed..";
-        else
-            return L"";
-    default:
-        return L"";
-    }
-}
-
 void znet::ServerManager::_ManageConnections()
 {
     _ManagerThreadData data;

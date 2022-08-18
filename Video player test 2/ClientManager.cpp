@@ -116,6 +116,7 @@ void znet::ClientManager::_Connect(std::string ip, uint16_t port)
         else
         {
             _thisUser.id = assignedId;
+            _online = true;
         }
 
         App::Instance()->events.RaiseEvent(ConnectionSuccessEvent{});
@@ -382,36 +383,6 @@ void znet::ClientManager::AbortSend(int32_t packetId)
     }
 }
 
-znet::NetworkStatus znet::ClientManager::Status()
-{
-    if (_connecting)
-        return NetworkStatus::INITIALIZING;
-    if (_connectionId != -1)
-        return NetworkStatus::ONLINE;
-
-    return NetworkStatus::OFFLINE;
-}
-
-std::wstring znet::ClientManager::StatusString()
-{
-    switch (Status())
-    {
-    case NetworkStatus::INITIALIZING:
-        return L"Connecting..";
-    case NetworkStatus::ONLINE:
-        return L"Connected";
-    case NetworkStatus::UNINITIALIZING:
-        return L"Disconnecting..";
-    case NetworkStatus::OFFLINE:
-        if (_connectionLost)
-            return L"Connection lost..";
-        else
-            return L"Disconnected";
-    default:
-        return L"";
-    }
-}
-
 void znet::ClientManager::_ManageConnections()
 {
     TCPClientRef connection = _client.Connection(_connectionId);
@@ -444,6 +415,7 @@ void znet::ClientManager::_ManageConnections()
     {
         connection->Disconnect();
     }
+    _online = false;
     App::Instance()->events.RaiseEvent(DisconnectEvent{});
     App::Instance()->events.RaiseEvent(NetworkModeChangedEvent{ NetworkMode::OFFLINE });
 }

@@ -25,17 +25,12 @@ namespace znet
         void SendQueue(std::vector<int64_t> userIds, int priority = 0);
         void AbortSend(int32_t packetId);
 
-        std::string Name() { return StaticName(); }
-        static std::string StaticName() { return "client"; }
-        NetworkStatus Status();
-        std::wstring StatusString();
-        std::wstring CloseLabel() const { return L"Disconnect"; }
-
         bool Connecting() const { return _connecting; }
         bool ConnectSuccessful() const { return !_connectFailed; }
         bool PasswordRequired() const { return _passwordRequired; }
         std::wstring FailMessage() const { return _failMessage; }
         int FailCode() const { return _failCode; }
+        bool Online() const { return _online; }
 
     private:
         struct _PacketData
@@ -66,6 +61,7 @@ namespace znet
         bool _disconnected = false;
         bool _disconnecting = false;
         bool _connectionLost = false;
+        bool _online = false;
 
         std::thread _managementThread;
         bool _MANAGEMENT_THR_STOP = false;

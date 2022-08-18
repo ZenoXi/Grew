@@ -1302,7 +1302,7 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel()
     
     bool online = false;
     auto clientMgr = APP_NETWORK->GetManager<znet::ClientManager>();
-    if (clientMgr && !clientMgr->Connecting() && clientMgr->ConnectSuccessful())
+    if (clientMgr && clientMgr->Online())
         online = true;
     auto serverMgr = APP_NETWORK->GetManager<znet::ServerManager>();
     if (serverMgr && serverMgr->InitSuccessful())
@@ -1353,11 +1353,14 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel_Online()
     else if (netMode == znet::NetworkMode::SERVER)
         _networkStatusLabel->SetText(L"Server running");
 
-    // Update username label
     auto thisUser = App::Instance()->users.GetThisUser();// APP_NETWORK->ThisUser();
+    if (!thisUser)
+        return;
+
+    // Update username label
     if (thisUser->name.empty())
         _usernameButton->Text()->SetText(L"No username set");
-    else
+    else 
         _usernameButton->Text()->SetText(thisUser->name);
 
     // Add all users

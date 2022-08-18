@@ -25,12 +25,6 @@ namespace znet
         void SendQueue(std::vector<int64_t> userIds, int priority = 0);
         void AbortSend(int32_t packetId);
 
-        std::string Name() { return StaticName(); }
-        static std::string StaticName() { return "server"; }
-        NetworkStatus Status();
-        std::wstring StatusString();
-        std::wstring CloseLabel() const { return L"Close server"; }
-
         bool InitSuccessful() const { return !_startFailed; }
         std::wstring FailMessage() const { return _failMessage; }
         int FailCode() const { return _failCode; }
