@@ -240,6 +240,8 @@ void ConnectScene::_Init(const SceneOptionsBase* options)
 void ConnectScene::_Uninit()
 {
     _canvas->ClearComponents();
+    _mainPanel->ClearItems();
+    _passwordPanel->ClearItems();
 
     _mainPanel = nullptr;
     _titleLabel = nullptr;
@@ -258,6 +260,13 @@ void ConnectScene::_Uninit()
     _cancelButton = nullptr;
     _connectLoadingImage = nullptr;
     _connectLoadingInfoLabel = nullptr;
+
+    _dimPanel = nullptr;
+    _passwordPanel = nullptr;
+    _passwordLabel = nullptr;
+    _passwordInput = nullptr;
+    _pwContinueButton = nullptr;
+    _pwCancelButton = nullptr;
 }
 
 void ConnectScene::_Focus()
