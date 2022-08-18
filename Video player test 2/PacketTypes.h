@@ -16,9 +16,17 @@ namespace znet
         //  int64_t - source user id
         USER_ID = 0,
 
-        // Sent when to the user when he connects
+        // Sent by the user upon connecting
+        // Contains:
+        //  std::string with the password (optional)
+        PASSWORD,
+
+        // Sent to the user upon connecting
         // Contains:
         //  int64_t - the assigned id
+        // 
+        // value of -1 means the connection was denied
+        // value of -2 means the password is incorrect
         ASSIGNED_USER_ID,
 
         // Contains:

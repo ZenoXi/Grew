@@ -37,33 +37,33 @@ void znet::Network::CloseManager()
     _networkManager.reset();
 }
 
-std::wstring znet::Network::CloseLabel() const
-{
-    if (_networkManager)
-        return _networkManager->CloseLabel();
-    return L"";
-}
-
-std::string znet::Network::ManagerName()
-{
-    if (_networkManager)
-        return _networkManager->Name();
-    return "";
-}
-
-znet::NetworkStatus znet::Network::ManagerStatus()
-{
-    if (_networkManager)
-        return _networkManager->Status();
-    return NetworkStatus::OFFLINE;
-}
-
-std::wstring znet::Network::ManagerStatusString()
-{
-    if (_networkManager)
-        return _networkManager->StatusString();
-    return L"";
-}
+//std::wstring znet::Network::CloseLabel() const
+//{
+//    if (_networkManager)
+//        return _networkManager->CloseLabel();
+//    return L"";
+//}
+//
+//std::string znet::Network::ManagerName()
+//{
+//    if (_networkManager)
+//        return _networkManager->Name();
+//    return "";
+//}
+//
+//znet::NetworkStatus znet::Network::ManagerStatus()
+//{
+//    if (_networkManager)
+//        return _networkManager->Status();
+//    return NetworkStatus::OFFLINE;
+//}
+//
+//std::wstring znet::Network::ManagerStatusString()
+//{
+//    if (_networkManager)
+//        return _networkManager->StatusString();
+//    return L"";
+//}
 
 std::vector<znet::INetworkManager::User> znet::Network::Users(bool includeSelf)
 {

@@ -180,7 +180,7 @@ private:
         std::unique_ptr<EventHandler<DisconnectEvent>> _disconnectEvent;
         std::unique_ptr<EventHandler<ConnectionLostEvent>> _connectionLostEvent;
         std::unique_ptr<EventHandler<ConnectionClosedEvent>> _connectionClosedEvent;
-        std::unique_ptr<EventHandler<NetworkStateChangedEvent>> _networkStateChangedEvent;
+        std::unique_ptr<EventHandler<NetworkModeChangedEvent>> _networkModeChangedEvent;
         //std::unique_ptr<EventHandler<UserConnectedEvent>> _userConnectedEvent;
         //std::unique_ptr<EventHandler<UserDisconnectedEvent>> _userDisconnectedEvent;
         //std::unique_ptr<EventHandler<UserNameChangedEvent>> _userNameChangedEvent;
@@ -202,7 +202,7 @@ private:
             _disconnectEvent = std::make_unique<EventHandler<DisconnectEvent>>(&App::Instance()->events, [&](DisconnectEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
             _connectionLostEvent = std::make_unique<EventHandler<ConnectionLostEvent>>(&App::Instance()->events, [&](ConnectionLostEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
             _connectionClosedEvent = std::make_unique<EventHandler<ConnectionClosedEvent>>(&App::Instance()->events, [&](ConnectionClosedEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
-            _networkStateChangedEvent = std::make_unique<EventHandler<NetworkStateChangedEvent>>(&App::Instance()->events, [&](NetworkStateChangedEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
+            _networkModeChangedEvent = std::make_unique<EventHandler<NetworkModeChangedEvent>>(&App::Instance()->events, [&](NetworkModeChangedEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
             //_userConnectedEvent = std::make_unique<EventHandler<UserConnectedEvent>>(&App::Instance()->events, [&](UserConnectedEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
             //_userDisconnectedEvent = std::make_unique<EventHandler<UserDisconnectedEvent>>(&App::Instance()->events, [&](UserDisconnectedEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });
             _userAddedEvent = std::make_unique<EventHandler<UserAddedEvent>>(&App::Instance()->events, [&](UserAddedEvent) { _m_event.lock(); _eventReceived = true; _m_event.unlock(); });

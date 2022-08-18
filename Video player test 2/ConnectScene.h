@@ -36,8 +36,19 @@ class ConnectScene : public Scene
     std::unique_ptr<zcom::Button> _cancelButton = nullptr;
     std::unique_ptr<zcom::LoadingImage> _connectLoadingImage = nullptr;
     std::unique_ptr<zcom::Label> _connectLoadingInfoLabel = nullptr;
-    bool _connecting = false;
 
+    // Password input
+    std::unique_ptr<zcom::EmptyPanel> _dimPanel = nullptr;
+    std::unique_ptr<zcom::Panel> _passwordPanel = nullptr;
+    std::unique_ptr<zcom::Label> _passwordLabel = nullptr;
+    std::unique_ptr<zcom::TextInput> _passwordInput = nullptr;
+    std::unique_ptr<zcom::Button> _pwContinueButton = nullptr;
+    std::unique_ptr<zcom::Button> _pwCancelButton = nullptr;
+
+    bool _connecting = false;
+    bool _fromPasswordPanel = false;
+    std::string _ip;
+    uint16_t _port;
     bool _connectionSuccessful = false;
     bool _closeScene = false;
 
@@ -63,6 +74,11 @@ public:
 private:
     void _ConnectClicked();
     void _CancelClicked();
+    void _PwContinueClicked();
+    void _PwCancelClicked();
+
+    void _OpenPasswordInput();
+    void _ClosePasswordInput();
 
 private:
     void _RearrangeRecentConnectionsPanel();

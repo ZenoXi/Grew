@@ -4,18 +4,32 @@
 #include "NetworkEvents.h"
 #include "PacketBuilder.h"
 
-znet::ServerManager::ServerManager(uint16_t port)
+znet::ServerManager::ServerManager(uint16_t port, std::string password)
+    : _password(password)
 {
     _thisUser = { 0 };
     _generator = std::make_unique<_ServerIDGenerator>();
     _server.SetGenerator(_generator.get());
     _server.StartServer(port);
-    _startFailed = !_server.AllowNewConnections();
-    if (_startFailed)
-        return;
-
-    App::Instance()->events.RaiseEvent(ServerStartEvent{ port });
-    App::Instance()->events.RaiseEvent(NetworkStateChangedEvent{ Name() });
+    NetResult result = _server.AllowNewConnections();
+    if (result.code != 0)
+    {
+        App::Instance()->events.RaiseEvent(ServerStartEvent{ port });
+        App::Instance()->events.RaiseEvent(NetworkModeChangedEvent{ NetworkMode::SERVER });
+    }
+    else
+    {
+        _startFailed = true;
+        _failMessage = result.message;
+        _failCode = result.code;
+        
+        // Modify certain messages to more clearly communicate the error to the user
+        if (_failCode == 10048)
+        {
+            _failMessage = L"The specified port is already in use";
+            _failCode = -1;
+        }
+    }
 }
 
 znet::ServerManager::~ServerManager()
@@ -27,7 +41,7 @@ znet::ServerManager::~ServerManager()
         _managementThread.join();
 
     App::Instance()->events.RaiseEvent(ServerStopEvent{});
-    App::Instance()->events.RaiseEvent(NetworkStateChangedEvent{ "offline" });
+    App::Instance()->events.RaiseEvent(NetworkModeChangedEvent{ NetworkMode::OFFLINE });
 }
 
 void znet::ServerManager::Start()
@@ -360,39 +374,52 @@ void znet::ServerManager::_ManageConnections()
     }
 }
 
+void znet::ServerManager::_AddNewUser(_ManagerThreadData& data, int64_t newUser)
+{
+    App::Instance()->events.RaiseEvent(UserConnectedEvent{ newUser });
+
+    _usersData.push_back({});
+    std::lock_guard<std::mutex> lock(_m_users);
+
+    // Send new user id to other users
+    for (int i = 0; i < _users.size(); i++)
+    {
+        TCPClientRef connection = _server.Connection(_users[i].id);
+        connection->Send(Packet((int)PacketType::NEW_USER).From(newUser), 2);
+    }
+
+    TCPClientRef connection = _server.Connection(newUser);
+    // Send the assigned id to the new user (maximum priority since this packet needs to go first)
+    connection->Send(Packet((int)PacketType::ASSIGNED_USER_ID).From(newUser), std::numeric_limits<int>::max());
+    // Send existing user ids to new user
+    {
+        size_t byteCount = sizeof(int64_t) * (_users.size() + 1);
+        auto userIdsBytes = std::make_unique<int8_t[]>(byteCount);
+        ((int64_t*)userIdsBytes.get())[0] = 0;
+        for (int i = 0; i < _users.size(); i++)
+        {
+            ((int64_t*)userIdsBytes.get())[i + 1] = _users[i].id;
+        }
+        connection->Send(Packet(std::move(userIdsBytes), byteCount, (int)PacketType::USER_LIST), 2);
+    }
+
+    _users.push_back({ newUser });
+}
+
 void znet::ServerManager::_ProcessNewConnections(_ManagerThreadData& data)
 {
     int64_t newUser;
     while ((newUser = _server.GetNewConnection()) != -1)
     {
-        App::Instance()->events.RaiseEvent(UserConnectedEvent{ newUser });
-
-        _usersData.push_back({});
-        std::lock_guard<std::mutex> lock(_m_users);
-
-        // Send new user id to other users
-        for (int i = 0; i < _users.size(); i++)
-        {
-            TCPClientRef connection = _server.Connection(_users[i].id);
-            connection->Send(Packet((int)PacketType::NEW_USER).From(newUser), 2);
-        }
-
         TCPClientRef connection = _server.Connection(newUser);
-        // Send the assigned id to the new user (maximum priority since this packet needs to go first)
-        connection->Send(Packet((int)PacketType::ASSIGNED_USER_ID).From(newUser), std::numeric_limits<int>::max());
-        // Send existing user ids to new user
+        // If password is set, place user in queue until password packet is received
+        if (!_password.empty())
         {
-            size_t byteCount = sizeof(int64_t) * (_users.size() + 1);
-            auto userIdsBytes = std::make_unique<int8_t[]>(byteCount);
-            ((int64_t*)userIdsBytes.get())[0] = 0;
-            for (int i = 0; i < _users.size(); i++)
-            {
-                ((int64_t*)userIdsBytes.get())[i + 1] = _users[i].id;
-            }
-            connection->Send(Packet(std::move(userIdsBytes), byteCount, (int)PacketType::USER_LIST), 2);
+            _pendingUsers.push_back({ newUser });
+            continue;
         }
 
-        _users.push_back({ newUser });
+        _AddNewUser(data, newUser);
     }
 }
 
@@ -425,6 +452,49 @@ void znet::ServerManager::_ProcessDisconnects(_ManagerThreadData& data)
 
 void znet::ServerManager::_ProcessIncomingPackets(_ManagerThreadData& data)
 {
+    // Password pending users
+    for (int i = 0; i < _pendingUsers.size(); i++)
+    {
+        TCPClientRef client = _server.Connection(_pendingUsers[i].id);
+        if (!client.Valid())
+        {
+            _pendingUsers.erase(_pendingUsers.begin() + i);
+            continue;
+        }
+        if (client->PacketCount() == 0)
+            continue;
+
+        Packet pack = client->GetPacket();
+        // If the first packet is not the password, disconnect
+        if (pack.id != (int32_t)PacketType::PASSWORD)
+        {
+            client->Send(Packet((int)PacketType::ASSIGNED_USER_ID).From(int64_t(-1)), std::numeric_limits<int>::max());
+            //client->Disconnect();
+            _pendingUsers.erase(_pendingUsers.begin() + i);
+            continue;
+        }
+
+        PacketReader reader = PacketReader(pack.Bytes(), pack.size);
+        std::string password;
+        password.resize(reader.RemainingBytes());
+        reader.Get(password.data(), password.length());
+
+        if (password != _password)
+        {
+            client->Send(Packet((int)PacketType::ASSIGNED_USER_ID).From(int64_t(-2)), std::numeric_limits<int>::max());
+            // TODO: Close connection (TCPClient needs to send all packets before closing socket, which is not implemented yet)
+            //client->Disconnect();
+            _pendingUsers.erase(_pendingUsers.begin() + i);
+        }
+        else
+        {
+            int64_t userId = _pendingUsers[i].id;
+            _pendingUsers.erase(_pendingUsers.begin() + i);
+            _AddNewUser(data, userId);
+        }
+    }
+
+    // Connected users
     std::lock_guard<std::mutex> lock(_m_users);
     for (int i = 0; i < _users.size(); i++)
     {

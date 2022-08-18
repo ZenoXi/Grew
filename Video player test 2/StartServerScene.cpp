@@ -167,14 +167,14 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _passwordLabel->SetFontSize(16.0f);
         _passwordLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _passwordLabel->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
-        _passwordLabel->SetActive(false);
+        //_passwordLabel->SetActive(false);
 
         _passwordInput = Create<zcom::TextInput>();
         _passwordInput->SetBaseSize(200, 26);
         _passwordInput->SetOffsetPixels(15, 68);
         _passwordInput->SetCornerRounding(5.0f);
         _passwordInput->SetTabIndex(1);
-        _passwordInput->SetActive(false);
+        //_passwordInput->SetActive(false);
 
         _maxUsersLabel = Create<zcom::Label>(L"Max users:");
         _maxUsersLabel->SetBaseSize(100, 30);
@@ -630,17 +630,22 @@ void StartServerScene::_Update()
         {
             _startLoadingInfoLabel->SetVisible(false);
 
-            auto serverManager = std::make_unique<znet::ServerManager>(str_to_int(port));
-            if (serverManager->Status() == znet::NetworkStatus::ONLINE)
+            auto manager = std::make_unique<znet::ServerManager>(str_to_int(port), wstring_to_string(_passwordInput->GetText()));
+            if (manager->InitSuccessful())
             {
-                APP_NETWORK->SetManager(std::move(serverManager));
+                APP_NETWORK->SetManager(std::move(manager));
                 //APP_NETWORK->SetUsername(_usernameInput->GetText());
                 // Delay manager start by 1 frame, to allow all event handlers to prepare
                 _starting = true;
             }
             else
             {
-                _startLoadingInfoLabel->SetText(L"Server start failed");
+                std::wostringstream ss;
+                ss << manager->FailMessage();
+                if (manager->FailCode() != -1)
+                    ss << L"(Code: " << manager->FailCode() << ')';
+
+                _startLoadingInfoLabel->SetText(ss.str());
                 _startLoadingInfoLabel->SetVisible(true);
             }
         }

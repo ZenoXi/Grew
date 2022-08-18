@@ -9,6 +9,8 @@
 #include "ManagePlaylistsScene.h"
 
 #include "Network.h"
+#include "ServerManager.h"
+#include "ClientManager.h"
 #include "MediaReceiverDataProvider.h"
 #include "MediaHostDataProvider.h"
 
@@ -1298,7 +1300,15 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel()
         return;
     _networkPanelChanged = false;
     
-    if (APP_NETWORK->ManagerStatus() == znet::NetworkStatus::ONLINE)
+    bool online = false;
+    auto clientMgr = APP_NETWORK->GetManager<znet::ClientManager>();
+    if (clientMgr && !clientMgr->Connecting() && clientMgr->ConnectSuccessful())
+        online = true;
+    auto serverMgr = APP_NETWORK->GetManager<znet::ServerManager>();
+    if (serverMgr && serverMgr->InitSuccessful())
+        online = true;
+
+    if (online)
         _RearrangeNetworkPanel_Online();
     else
         _RearrangeNetworkPanel_Offline();
@@ -1317,14 +1327,31 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel_Offline()
 
 void PlaybackOverlayScene::_RearrangeNetworkPanel_Online()
 {
+    znet::NetworkMode netMode = znet::NetworkMode::OFFLINE;
+    if (APP_NETWORK->GetManager<znet::ClientManager>())
+        netMode = znet::NetworkMode::CLIENT;
+    else if (APP_NETWORK->GetManager<znet::ServerManager>())
+        netMode = znet::NetworkMode::SERVER;
+    else
+    {
+        std::cout << "[ERROR] Unknown netMode\n";
+        return;
+    }
+
     _networkBannerPanel->SetVisible(true);
-    _closeNetworkButton->Text()->SetText(APP_NETWORK->CloseLabel());
+    if (netMode == znet::NetworkMode::CLIENT)
+        _closeNetworkButton->Text()->SetText(L"Disconnect");
+    else if (netMode == znet::NetworkMode::SERVER)
+        _closeNetworkButton->Text()->SetText(L"Close server");
     _offlineLabel->SetVisible(false);
     _connectButton->SetVisible(false);
     _startServerButton->SetVisible(false);
 
     // Update network status label
-    _networkStatusLabel->SetText(APP_NETWORK->ManagerStatusString());
+    if (netMode == znet::NetworkMode::CLIENT)
+        _networkStatusLabel->SetText(L"Connected");
+    else if (netMode == znet::NetworkMode::SERVER)
+        _networkStatusLabel->SetText(L"Server running");
 
     // Update username label
     auto thisUser = App::Instance()->users.GetThisUser();// APP_NETWORK->ThisUser();

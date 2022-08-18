@@ -23,16 +23,18 @@ namespace znet
 
         // Network functions
         void SetManager(std::unique_ptr<INetworkManager> networkManager);
+        template<class _Mgr>
+        _Mgr* GetManager();
         void StartManager();
         void CloseManager();
         // Returns the text which the close button should have (ex: "Disconnect" or "Close server")
-        std::wstring CloseLabel() const;
+        //std::wstring CloseLabel() const;
 
         // Network status
 
-        std::string ManagerName();
-        NetworkStatus ManagerStatus();
-        std::wstring ManagerStatusString();
+        //std::string ManagerName();
+        //NetworkStatus ManagerStatus();
+        //std::wstring ManagerStatusString();
         std::vector<INetworkManager::User> Users(bool includeSelf = false);
         std::vector<int64_t> UserIds(bool includeSelf = false);
         INetworkManager::User ThisUser();
@@ -65,4 +67,12 @@ namespace znet
         void _Unsubscribe(PacketSubscriber* sub);
         void _DistributePacket(Packet packet, int64_t userId);
     };
+
+    template<class _Mgr>
+    _Mgr* Network::GetManager()
+    {
+        if (!_networkManager)
+            return nullptr;
+        return dynamic_cast<_Mgr*>(_networkManager.get());
+    }
 }

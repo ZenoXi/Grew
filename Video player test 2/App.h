@@ -96,6 +96,6 @@ public:
 private:
     bool _serverInit = false;
     bool _clientInit = false;
-    EventReceiver<NetworkStateChangedEvent> _networkStateEventReceiver;
+    EventReceiver<NetworkModeChangedEvent> _networkModeEventReceiver;
     void _HandleNetworkStateChanges();
 };

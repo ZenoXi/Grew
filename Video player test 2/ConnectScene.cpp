@@ -1,5 +1,6 @@
 #include "App.h" // App.h must be included first
 #include "ConnectScene.h"
+#include "OverlayScene.h"
 
 #include "Options.h"
 #include "LastIpOptionAdapter.h"
@@ -20,14 +21,20 @@ void ConnectScene::_Init(const SceneOptionsBase* options)
         opt = *reinterpret_cast<const ConnectSceneOptions*>(options);
     }
 
+    zcom::PROP_Shadow mainPanelShadow;
+    mainPanelShadow.blurStandardDeviation = 5.0f;
+    mainPanelShadow.color = D2D1::ColorF(0, 0.75f);
+
+    zcom::PROP_Shadow buttonShadow;
+    buttonShadow.offsetX = 2.0f;
+    buttonShadow.offsetY = 2.0f;
+    buttonShadow.blurStandardDeviation = 2.0f;
+
     _mainPanel = Create<zcom::Panel>();
     _mainPanel->SetBaseSize(500, 500);
     _mainPanel->SetAlignment(zcom::Alignment::CENTER, zcom::Alignment::CENTER);
     _mainPanel->SetBackgroundColor(D2D1::ColorF(0.2f, 0.2f, 0.2f));
     _mainPanel->SetCornerRounding(5.0f);
-    zcom::PROP_Shadow mainPanelShadow;
-    mainPanelShadow.blurStandardDeviation = 5.0f;
-    mainPanelShadow.color = D2D1::ColorF(0, 0.75f);
     _mainPanel->SetProperty(mainPanelShadow);
 
     _titleLabel = Create<zcom::Label>(L"Connect");
@@ -123,10 +130,6 @@ void ConnectScene::_Init(const SceneOptionsBase* options)
     //_connectButton->SetSelectedBorderColor(D2D1::ColorF(0, 0));
     _connectButton->SetTabIndex(3);
     _connectButton->SetCornerRounding(5.0f);
-    zcom::PROP_Shadow buttonShadow;
-    buttonShadow.offsetX = 2.0f;
-    buttonShadow.offsetY = 2.0f;
-    buttonShadow.blurStandardDeviation = 2.0f;
     _connectButton->SetProperty(buttonShadow);
     _connectButton->SetOnActivated([&]() { _ConnectClicked(); });
 
@@ -173,8 +176,62 @@ void ConnectScene::_Init(const SceneOptionsBase* options)
     _mainPanel->AddItem(_connectLoadingImage.get());
     _mainPanel->AddItem(_connectLoadingInfoLabel.get());
 
+    _dimPanel = Create<zcom::EmptyPanel>();
+    _dimPanel->SetParentSizePercent(1.0f, 1.0f);
+    _dimPanel->SetBackgroundColor(D2D1::ColorF(0, 0.4f));
+    _dimPanel->SetZIndex(1);
+    _dimPanel->SetVisible(false);
+
+    _passwordPanel = Create<zcom::Panel>();
+    _passwordPanel->SetBaseSize(240, 140);
+    _passwordPanel->SetAlignment(zcom::Alignment::CENTER, zcom::Alignment::CENTER);
+    _passwordPanel->SetBackgroundColor(D2D1::ColorF(0.2f, 0.2f, 0.2f));
+    _passwordPanel->SetCornerRounding(5.0f);
+    _passwordPanel->SetProperty(mainPanelShadow);
+    _passwordPanel->SetZIndex(2);
+    _passwordPanel->SetVisible(false);
+
+    _passwordLabel = Create<zcom::Label>(L"Password required");
+    _passwordLabel->SetBaseSize(200, 30);
+    _passwordLabel->SetOffsetPixels(20, 10);
+    _passwordLabel->SetFontSize(24.0f);
+
+    _passwordInput = Create<zcom::TextInput>();
+    _passwordInput->SetBaseSize(200, 30);
+    _passwordInput->SetOffsetPixels(20, 50);
+    _passwordInput->SetCornerRounding(5.0f);
+
+    _pwContinueButton = Create<zcom::Button>(L"Continue");
+    _pwContinueButton->SetBaseSize(90, 30);
+    _pwContinueButton->SetOffsetPixels(20, -20);
+    _pwContinueButton->SetAlignment(zcom::Alignment::START, zcom::Alignment::END);
+    _pwContinueButton->Text()->SetFontSize(18.0f);
+    _pwContinueButton->SetBackgroundColor(D2D1::ColorF(0.25f, 0.25f, 0.3f));
+    _pwContinueButton->SetTabIndex(3);
+    _pwContinueButton->SetCornerRounding(5.0f);
+    _pwContinueButton->SetProperty(buttonShadow);
+    _pwContinueButton->SetOnActivated([&]() { _PwContinueClicked(); });
+
+    _pwCancelButton = Create<zcom::Button>(L"Cancel");
+    _pwCancelButton->SetBaseSize(90, 30);
+    _pwCancelButton->SetOffsetPixels(-20, -20);
+    _pwCancelButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
+    _pwCancelButton->Text()->SetFontSize(18.0f);
+    _pwCancelButton->SetBackgroundColor(D2D1::ColorF(0.25f, 0.25f, 0.25f));
+    _pwCancelButton->SetTabIndex(3);
+    _pwCancelButton->SetCornerRounding(5.0f);
+    _pwCancelButton->SetProperty(buttonShadow);
+    _pwCancelButton->SetOnActivated([&]() { _PwCancelClicked(); });
+
+    _passwordPanel->AddItem(_passwordLabel.get());
+    _passwordPanel->AddItem(_passwordInput.get());
+    _passwordPanel->AddItem(_pwContinueButton.get());
+    _passwordPanel->AddItem(_pwCancelButton.get());
+
     _canvas->AddComponent(_mainPanel.get());
-    _canvas->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.2f));
+    _canvas->AddComponent(_dimPanel.get());
+    _canvas->AddComponent(_passwordPanel.get());
+    _canvas->SetBackgroundColor(D2D1::ColorF(0, 0.2f));
 
     _connectionSuccessful = false;
     _closeScene = false;
@@ -226,25 +283,80 @@ void ConnectScene::_Update()
     // Check connection status
     if (_connecting)
     {
-        auto status = APP_NETWORK->ManagerStatus();
-        if (status == znet::NetworkStatus::ONLINE)
+        auto manager = APP_NETWORK->GetManager<znet::ClientManager>();
+        if (manager)
         {
-            APP_NETWORK->StartManager();
-            _connectionSuccessful = true;
-            _connecting = false;
-            _closeScene = true;
-            _app->users.SetSelfUsername(_usernameInput->GetText());
+            if (!manager->Connecting())
+            {
+                if (manager->ConnectSuccessful())
+                {
+                    APP_NETWORK->StartManager();
+                    _connectionSuccessful = true;
+                    _closeScene = true;
+                    _app->users.SetSelfUsername(_usernameInput->GetText());
+                }
+                else if (manager->PasswordRequired())
+                {
+                    APP_NETWORK->CloseManager();
+                    _connectionSuccessful = false;
+                    _connecting = false;
+
+                    _OpenPasswordInput();
+
+                    // Show incorrect password notification
+                    if (_fromPasswordPanel)
+                    {
+                        zcom::NotificationInfo ninfo;
+                        ninfo.title = L"Incorrect password";
+                        ninfo.text = L"";
+                        ninfo.borderColor = D2D1::ColorF(0.8f, 0.2f, 0.2f);
+                        ninfo.duration = Duration(3, SECONDS);
+                        _app->Overlay()->ShowNotification(ninfo);
+                    }
+                }
+                else
+                {
+                    std::wostringstream ss;
+                    ss << manager->FailMessage();
+                    if (manager->FailCode() != -1)
+                        ss << L"(Code: " << manager->FailCode() << ')';
+
+                    APP_NETWORK->CloseManager();
+                    _connectionSuccessful = false;
+                    _connecting = false;
+                    _connectButton->SetBackgroundColor(D2D1::ColorF(0.25f, 0.25f, 0.3f));
+                    _connectButton->Text()->SetText(L"Connect");
+                    _connectLoadingInfoLabel->SetText(ss.str());
+                    _connectLoadingInfoLabel->SetVisible(true);
+                }
+                _connecting = false;
+            }
         }
-        else if (status != znet::NetworkStatus::INITIALIZING)
+        else
         {
-            APP_NETWORK->CloseManager();
-            _connectionSuccessful = false;
-            _connecting = false;
-            _connectButton->SetBackgroundColor(D2D1::ColorF(0.25f, 0.25f, 0.3f));
-            _connectButton->Text()->SetText(L"Connect");
-            _connectLoadingInfoLabel->SetText(L"Connection unsuccessful..");
+            _connectLoadingInfoLabel->SetText(L"FATAL ERROR: network not in client mode");
             _connectLoadingInfoLabel->SetVisible(true);
         }
+
+        //auto status = APP_NETWORK->ManagerStatus();
+        //if (status == znet::NetworkStatus::ONLINE)
+        //{
+        //    APP_NETWORK->StartManager();
+        //    _connectionSuccessful = true;
+        //    _connecting = false;
+        //    _closeScene = true;
+        //    _app->users.SetSelfUsername(_usernameInput->GetText());
+        //}
+        //else if (status != znet::NetworkStatus::INITIALIZING)
+        //{
+        //    APP_NETWORK->CloseManager();
+        //    _connectionSuccessful = false;
+        //    _connecting = false;
+        //    _connectButton->SetBackgroundColor(D2D1::ColorF(0.25f, 0.25f, 0.3f));
+        //    _connectButton->Text()->SetText(L"Connect");
+        //    _connectLoadingInfoLabel->SetText(L"Connection unsuccessful..");
+        //    _connectLoadingInfoLabel->SetVisible(true);
+        //}
     }
 }
 
@@ -301,11 +413,14 @@ void ConnectScene::_ConnectClicked()
         else
         {
             _connecting = true;
+            _fromPasswordPanel = false;
             _connectButton->SetBackgroundColor(D2D1::ColorF(0.5f, 0.25f, 0.25f));
             _connectButton->Text()->SetText(L"Cancel");
             _connectLoadingImage->ResetAnimation();
             _connectLoadingInfoLabel->SetVisible(false);
-            APP_NETWORK->SetManager(std::make_unique<znet::ClientManager>(ip, str_to_int(port)));
+            _ip = ip;
+            _port = str_to_int(port);
+            APP_NETWORK->SetManager(std::make_unique<znet::ClientManager>(_ip, _port));
 
             LastIpOptionAdapter optAdapter(Options::Instance()->GetValue("lastIps"));
             bool ipValid = optAdapter.AddIp(ip, port);
@@ -330,6 +445,35 @@ void ConnectScene::_CancelClicked()
     }
     _connectionSuccessful = false;
     _closeScene = true;
+}
+
+void ConnectScene::_PwContinueClicked()
+{
+    _connecting = true;
+    _fromPasswordPanel = true;
+    _connectButton->SetBackgroundColor(D2D1::ColorF(0.5f, 0.25f, 0.25f));
+    _connectButton->Text()->SetText(L"Cancel");
+    _connectLoadingImage->ResetAnimation();
+    _connectLoadingInfoLabel->SetVisible(false);
+    APP_NETWORK->SetManager(std::make_unique<znet::ClientManager>(_ip, _port, wstring_to_string(_passwordInput->GetText())));
+    _ClosePasswordInput();
+}
+
+void ConnectScene::_PwCancelClicked()
+{
+    _ClosePasswordInput();
+}
+
+void ConnectScene::_OpenPasswordInput()
+{
+    _dimPanel->SetVisible(true);
+    _passwordPanel->SetVisible(true);
+}
+
+void ConnectScene::_ClosePasswordInput()
+{
+    _dimPanel->SetVisible(false);
+    _passwordPanel->SetVisible(false);
 }
 
 void ConnectScene::_RearrangeRecentConnectionsPanel()

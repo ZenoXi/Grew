@@ -871,6 +871,35 @@ namespace znet
         }
     };
 
+    struct NetResult
+    {
+        std::wstring message;
+        int code = 0;
+
+        NetResult() {};
+        NetResult(int code)
+            : code(code)
+        {
+            LPTSTR errorText = NULL;
+            FormatMessage(
+                FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
+                NULL,
+                10048,
+                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                (LPTSTR)&errorText,
+                0,
+                NULL
+            );
+            if (errorText)
+            {
+                message = errorText;
+                LocalFree(errorText);
+            }
+        }
+        NetResult(std::wstring msg, int code = -1)
+            : message(msg), code(code) {}
+    };
+
     //////////////////////
     // TCP SERVER CLASS //
     //////////////////////
@@ -977,13 +1006,14 @@ namespace znet
             }
         }
 
-        bool AllowNewConnections()
+        NetResult AllowNewConnections()
         {
-            if (!_running) return false;
+            if (!_running)
+                return NetResult(L"Socket already listening");
 
             _listeningSocket = socket(AF_INET, SOCK_STREAM, 0);
             if (_listeningSocket == INVALID_SOCKET)
-                return false;
+                return NetResult(WSAGetLastError());
 
             // Bind the ip address and port to a socket
             sockaddr_in hint;
@@ -991,11 +1021,11 @@ namespace znet
             hint.sin_port = htons(_port);
             hint.sin_addr.S_un.S_addr = INADDR_ANY;
             if (bind(_listeningSocket, (sockaddr*)&hint, sizeof(hint)) == SOCKET_ERROR)
-                return false;
+                return NetResult(WSAGetLastError());
 
             // Tell winsock the socket is for listening
             if (listen(_listeningSocket, SOMAXCONN) == SOCKET_ERROR)
-                return false;
+                return NetResult(WSAGetLastError());
 
             // Start thread
             _connectHandlerStop = false;

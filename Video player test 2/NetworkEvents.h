@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GameTime.h"
+#include "NetworkMode.h"
 
 #include <cstdint>
 #include <string>
@@ -49,10 +50,10 @@ struct ConnectionClosedEvent
     static const char* _NAME_() { return "connection_closed"; }
 };
 
-struct NetworkStateChangedEvent
+struct NetworkModeChangedEvent
 {
-    static const char* _NAME_() { return "network_state_changed"; }
-    std::string newStateName;
+    static const char* _NAME_() { return "network_mode_changed"; }
+    znet::NetworkMode newMode;
 };
 
 struct UserConnectedEvent

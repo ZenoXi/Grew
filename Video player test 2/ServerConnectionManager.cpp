@@ -13,7 +13,7 @@ znet::ServerConnectionManager::ServerConnectionManager(uint16_t port)
     _managementThread = std::thread(&ServerConnectionManager::_ManageConnections, this);
 
     App::Instance()->events.RaiseEvent(ServerStartEvent{ port });
-    App::Instance()->events.RaiseEvent(NetworkStateChangedEvent{ "server" });
+    App::Instance()->events.RaiseEvent(NetworkModeChangedEvent{ NetworkMode::SERVER });
 }
 
 znet::ServerConnectionManager::~ServerConnectionManager()
@@ -25,7 +25,7 @@ znet::ServerConnectionManager::~ServerConnectionManager()
         _managementThread.join();
 
     App::Instance()->events.RaiseEvent(ServerStopEvent{});
-    App::Instance()->events.RaiseEvent(NetworkStateChangedEvent{ "offline" });
+    App::Instance()->events.RaiseEvent(NetworkModeChangedEvent{ NetworkMode::OFFLINE });
 }
 
 // CONNECTION

@@ -11,7 +11,7 @@ namespace znet
     class ServerManager : public INetworkManager
     {
     public:
-        ServerManager(uint16_t port);
+        ServerManager(uint16_t port, std::string password = "");
         ~ServerManager();
         void Start();
 
@@ -30,6 +30,10 @@ namespace znet
         NetworkStatus Status();
         std::wstring StatusString();
         std::wstring CloseLabel() const { return L"Close server"; }
+
+        bool InitSuccessful() const { return !_startFailed; }
+        std::wstring FailMessage() const { return _failMessage; }
+        int FailCode() const { return _failCode; }
 
     private:
         class _ServerIDGenerator : public TCPServer::IDGenerator
@@ -62,8 +66,14 @@ namespace znet
             std::vector<_SplitPacket> splitPackets;
         };
 
+        bool _startFailed = false;
+        std::wstring _failMessage = L"";
+        int _failCode = 0;
+
+        std::string _password;
+        std::vector<User> _pendingUsers;
+
         TCPServer _server;
-        bool _startFailed;
         bool _allowConnections;
         std::vector<User> _users;
         std::vector<_UserData> _usersData;
@@ -99,6 +109,7 @@ namespace znet
         void _AddPacketToOutQueue(_PacketData packet, int priority);
 
         void _ManageConnections();
+        void _AddNewUser(_ManagerThreadData& data, int64_t newUser);
         void _ProcessNewConnections(_ManagerThreadData& data);
         void _ProcessDisconnects(_ManagerThreadData& data);
         void _ProcessIncomingPackets(_ManagerThreadData& data);

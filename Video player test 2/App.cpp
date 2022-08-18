@@ -27,7 +27,7 @@ App* App::_instance = nullptr;
 
 App::App(DisplayWindow& dw, std::string startScene)
   : window(dw),
-    _networkStateEventReceiver(&events)
+    _networkModeEventReceiver(&events)
 {
     dw.mouse = &mouse;
     dw.AddMouseHandler(&mouseManager);
@@ -465,10 +465,13 @@ void App::LoopThread()
         //        scene->Draw(window.gfx.GetGraphics());
         //}
 
-        //Clock timer = Clock(0);
-        //TimePoint start;
-        //Duration update = 0;
-        //Duration draw = 0;
+//#define PRINT_FRAME_TIMES
+#ifdef PRINT_FRAME_TIMES
+        Clock timer = Clock(0);
+        TimePoint start;
+        Duration update = 0;
+        Duration draw = 0;
+#endif
 
         bool redraw = false;
         if (_sceneChanged)
@@ -506,14 +509,18 @@ void App::LoopThread()
         auto activeScenes = ActiveScenes();
         for (auto& scene : activeScenes)
         {
-            //timer.Update();
-            //start = timer.Now();
+#ifdef PRINT_FRAME_TIMES
+            timer.Update();
+            start = timer.Now();
+#endif
             scene->Update();
-            //timer.Update();
-            //update += timer.Now() - start;
+#ifdef PRINT_FRAME_TIMES
+            timer.Update();
+            update += timer.Now() - start;
 
-            //timer.Update();
-            //start = timer.Now();
+            timer.Update();
+            start = timer.Now();
+#endif
             if (scene->Redraw())
             {
                 if (!redraw)
@@ -522,14 +529,18 @@ void App::LoopThread()
                 scene->Draw(window.gfx.GetGraphics());
                 redraw = true;
             }
-            //timer.Update();
-            //draw += timer.Now() - start;
+#ifdef PRINT_FRAME_TIMES
+            timer.Update();
+            draw += timer.Now() - start;
+#endif
         }
         if (redraw)
         {
             std::cout << "Redrawn (" << framecounter++ << ")\n";
-            //timer.Update();
-            //start = timer.Now();
+#ifdef PRINT_FRAME_TIMES
+            timer.Update();
+            start = timer.Now();
+#endif
 
 
             window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0.3f, 0.3f, 0.3f));
@@ -559,8 +570,10 @@ void App::LoopThread()
             }
             window.gfx.GetGraphics().target->EndDraw();
 
-            //timer.Update();
-            //draw += timer.Now() - start;
+#ifdef PRINT_FRAME_TIMES
+            timer.Update();
+            draw += timer.Now() - start;
+#endif
         }
 
         // Uninit scenes
@@ -570,8 +583,10 @@ void App::LoopThread()
             _scenesToUninitialize.pop();
         }
 
-        //std::cout << "Update: " << update.GetDuration(MICROSECONDS) << "us\n";
-        //std::cout << "Draw: " << draw.GetDuration(MICROSECONDS) << "us\n";
+#ifdef PRINT_FRAME_TIMES
+        std::cout << "Update: " << update.GetDuration(MICROSECONDS) << "us\n";
+        std::cout << "Draw: " << draw.GetDuration(MICROSECONDS) << "us\n";
+#endif
 
         //// Draw UI
         //layout.componentCanvas.Update();
@@ -592,11 +607,11 @@ void App::LoopThread()
 
 void App::_HandleNetworkStateChanges()
 {
-    while (_networkStateEventReceiver.EventCount() > 0)
+    while (_networkModeEventReceiver.EventCount() > 0)
     {
-        auto ev = _networkStateEventReceiver.GetEvent();
+        auto ev = _networkModeEventReceiver.GetEvent();
 
-        if (ev.newStateName == "offline")
+        if (ev.newMode == znet::NetworkMode::OFFLINE)
         {
             _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
             playlist.SetEventHandler<PlaylistEventHandler_Offline>();
@@ -604,7 +619,7 @@ void App::_HandleNetworkStateChanges()
             usersServer.SetEventHandler<UsersEventHandler_Offline>();
             users.SetEventHandler<UsersEventHandler_Offline>();
         }
-        else if (ev.newStateName == znet::ClientManager::StaticName())
+        else if (ev.newMode == znet::NetworkMode::CLIENT)
         {
             _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
             playlist.SetEventHandler<PlaylistEventHandler_Client>();
@@ -612,7 +627,7 @@ void App::_HandleNetworkStateChanges()
             usersServer.SetEventHandler<UsersEventHandler_Offline>();
             users.SetEventHandler<UsersEventHandler_Client>();
         }
-        else if (ev.newStateName == znet::ServerManager::StaticName())
+        else if (ev.newMode == znet::NetworkMode::SERVER)
         {
             // _serverPlaylist should be created first, because client handler
             // constructor synchronously sends packets to the server playlist
@@ -621,14 +636,6 @@ void App::_HandleNetworkStateChanges()
 
             usersServer.SetEventHandler<UsersEventHandler_Server>();
             users.SetEventHandler<UsersEventHandler_Client>();
-        }
-        else
-        {
-            _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
-            playlist.SetEventHandler<PlaylistEventHandler_None>();
-
-            usersServer.SetEventHandler<UsersEventHandler_Offline>();
-            users.SetEventHandler<UsersEventHandler_Offline>();
         }
     }
 }

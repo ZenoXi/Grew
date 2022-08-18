@@ -4,10 +4,11 @@
 #include "NetworkEvents.h"
 #include "PacketBuilder.h"
 
-znet::ClientManager::ClientManager(std::string ip, uint16_t port)
+znet::ClientManager::ClientManager(std::string ip, uint16_t port, std::string password)
 {
     _connecting = true;
     _connectionId = -1;
+    _password = password;
     _connectionThread = std::thread(&ClientManager::_Connect, this, ip, port);
 }
 
@@ -37,8 +38,11 @@ void znet::ClientManager::_Connect(std::string ip, uint16_t port)
     {
         if (_CONN_THR_STOP)
         {
-            _connecting = false;
+            _connectFailed = true;
+            _failMessage = L"Connect aborted";
+            _failCode = -1;
             App::Instance()->events.RaiseEvent(ConnectionFailEvent{ "Aborted" });
+            _connecting = false;
             return;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -47,14 +51,30 @@ void znet::ClientManager::_Connect(std::string ip, uint16_t port)
 
     if (_connectionId != -1)
     {
-        // Wait for assigned id to arrive
         TCPClientRef connection = _client.Connection(_connectionId);
+
+        // Send password with max priority because it must go first
+        if (!_password.empty())
+        {
+            PacketBuilder builder;
+            builder.Add(_password.data(), _password.length());
+            connection->Send(Packet(builder.Release(), builder.UsedBytes(), (int)PacketType::PASSWORD), std::numeric_limits<int>::max());
+        }
+        else
+        {
+            connection->Send(Packet((int)PacketType::PASSWORD), std::numeric_limits<int>::max());
+        }
+
+        // Wait for assigned id to arrive
         while (connection->PacketCount() == 0)
         {
             if (_CONN_THR_STOP)
             {
-                _connecting = false;
+                _connectFailed = true;
+                _failMessage = L"Connect aborted";
+                _failCode = -1;
                 App::Instance()->events.RaiseEvent(ConnectionFailEvent{ "Aborted" });
+                _connecting = false;
                 return;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -62,17 +82,44 @@ void znet::ClientManager::_Connect(std::string ip, uint16_t port)
         Packet idPacket = connection->GetPacket();
         if (idPacket.id != (int)PacketType::ASSIGNED_USER_ID)
         {
-            _connecting = false;
             // TODO: correctly disconnect
             connection->Disconnect();
             _connectionId = -1;
+            _connectFailed = true;
+            _failMessage = L"Connection protocol violated by the server";
+            _failCode = -1;
             App::Instance()->events.RaiseEvent(ConnectionFailEvent{ "Connection protocol violation" });
+            _connecting = false;
             return;
         }
-        _thisUser.id = idPacket.Cast<int64_t>();
+
+        int64_t assignedId = idPacket.Cast<int64_t>();
+        if (assignedId == -1)
+        {
+            connection->Disconnect();
+            _connectFailed = true;
+            _failMessage = L"Connection denied";
+            _failCode = -1;
+            App::Instance()->events.RaiseEvent(ConnectionFailEvent{ "Denied" });
+            _connecting = false;
+            return;
+        }
+        else if (assignedId == -2)
+        {
+            connection->Disconnect();
+            _connectFailed = true;
+            _passwordRequired = true;
+            App::Instance()->events.RaiseEvent(ConnectionFailEvent{ "Incorrect password" });
+            _connecting = false;
+            return;
+        }
+        else
+        {
+            _thisUser.id = assignedId;
+        }
 
         App::Instance()->events.RaiseEvent(ConnectionSuccessEvent{});
-        App::Instance()->events.RaiseEvent(NetworkStateChangedEvent{ Name() });
+        App::Instance()->events.RaiseEvent(NetworkModeChangedEvent{ NetworkMode::CLIENT });
     }
     else
     {
@@ -398,7 +445,7 @@ void znet::ClientManager::_ManageConnections()
         connection->Disconnect();
     }
     App::Instance()->events.RaiseEvent(DisconnectEvent{});
-    App::Instance()->events.RaiseEvent(NetworkStateChangedEvent{ "offline" });
+    App::Instance()->events.RaiseEvent(NetworkModeChangedEvent{ NetworkMode::OFFLINE });
 }
 
 bool znet::ClientManager::_SendLatencyProbePackets(_ManagerThreadData& data)

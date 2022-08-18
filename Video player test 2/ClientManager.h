@@ -11,7 +11,7 @@ namespace znet
     class ClientManager : public INetworkManager
     {
     public:
-        ClientManager(std::string ip, uint16_t port);
+        ClientManager(std::string ip, uint16_t port, std::string password = "");
         ~ClientManager();
         void Start();
 
@@ -31,6 +31,12 @@ namespace znet
         std::wstring StatusString();
         std::wstring CloseLabel() const { return L"Disconnect"; }
 
+        bool Connecting() const { return _connecting; }
+        bool ConnectSuccessful() const { return !_connectFailed; }
+        bool PasswordRequired() const { return _passwordRequired; }
+        std::wstring FailMessage() const { return _failMessage; }
+        int FailCode() const { return _failCode; }
+
     private:
         struct _PacketData
         {
@@ -40,6 +46,13 @@ namespace znet
         };
 
         void _Connect(std::string ip, uint16_t port);
+
+        bool _connectFailed = false;
+        std::wstring _failMessage = L"";
+        int _failCode = 0;
+
+        bool _passwordRequired;
+        std::string _password;
 
         TCPClient _client;
         std::vector<User> _users;
