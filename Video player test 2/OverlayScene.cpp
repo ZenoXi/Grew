@@ -64,6 +64,9 @@ void OverlayScene::_Init(const SceneOptionsBase* options)
     _hoverTextLabel = Create<zcom::Label>();
     _hoverTextLabel->SetMargins({ 5.0f, 3.0f, 5.0f, 3.0f });
     _hoverTextLabel->SetWordWrap(true);
+    _hoverTextLabel->SetFont(L"Segoe UI");
+    _hoverTextLabel->SetFontSize(13.0f);
+    _hoverTextLabel->SetFontColor(D2D1::ColorF(D2D1::ColorF::White));
     _hoverTextLabel->SetBackgroundColor(D2D1::ColorF(0.05f, 0.05f, 0.05f));
     _hoverTextLabel->SetBorderVisibility(true);
     _hoverTextLabel->SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));

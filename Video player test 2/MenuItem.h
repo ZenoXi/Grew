@@ -154,6 +154,9 @@ namespace zcom
             _label->SetVerticalTextAlignment(zcom::Alignment::CENTER);
             _label->SetMargins({ 5.0f });
             _label->SetCutoff(L"...");
+            _label->SetFont(L"Segoe UI");
+            _label->SetFontSize(13.0f);
+            _label->SetFontColor(D2D1::ColorF(D2D1::ColorF::White));
 
             _checkmarkIcon = ResourceManager::GetImage("checkmark");
 
