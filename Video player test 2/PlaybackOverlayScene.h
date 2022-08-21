@@ -38,6 +38,7 @@ class PlaybackOverlayScene : public Scene
     std::vector<zcom::OverlayPlaylistItem*> _pendingItems;
     std::vector<zcom::OverlayPlaylistItem*> _loadingItems;
     std::vector<zcom::OverlayPlaylistItem*> _failedItems;
+    std::unique_ptr<zcom::MenuPanel> _itemContextMenu = nullptr;
 
     std::unique_ptr<zcom::Button> _addFileButton = nullptr;
     std::unique_ptr<zcom::Button> _addFolderButton = nullptr;
@@ -162,10 +163,16 @@ private:
     //int _currentMouseYPos = 0;
     bool _movedFar = false;
 
+    // playlist item context menu
+
+    void _ShowPlaylistContextMenu(int x, int y, int64_t itemId = -1);
+
     // Playlist mouse events
 
     void _HandlePlaylistLeftClick(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y);
-    void _HandlePlaylistLeftRelease(zcom::Base* item, int x, int y);
+    void _HandlePlaylistLeftRelease(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y);
+    void _HandlePlaylistRightClick(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y);
+    void _HandlePlaylistRightRelease(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y);
     void _HandlePlaylistMouseMove(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int deltaX, int deltaY);
 
     // Network panel change tracking
@@ -226,6 +233,8 @@ private:
 
     std::unique_ptr<EventReceiver<NetworkStatsEvent>> _networkStatsEventReceiver = nullptr;
     void _UpdateNetworkStats();
+
+    bool _Online();
 
     // Permissions change handling
 

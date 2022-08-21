@@ -71,6 +71,30 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _playlistPanel->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     _playlistPanel->SetProperty(shadowProps);
     _playlistPanel->SetTabIndex(-1);
+    _playlistPanel->AddPostLeftPressed([&](zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y)
+    {
+        for (auto& target : targets)
+            if (target.target != _playlistPanel.get() &&
+                target.target != _playlistLabel.get())
+                return;
+        _selectedItemIds.clear();
+        _itemAppearanceChanged = true;
+    }, { this });
+    _playlistPanel->AddPostRightPressed([&](zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y)
+    {
+        for (auto& target : targets)
+            if (target.target != _playlistPanel.get() &&
+                target.target != _playlistLabel.get())
+                return;
+        _selectedItemIds.clear();
+        _itemAppearanceChanged = true;
+    }, { this });
+
+    _playlistLabel = Create<zcom::Label>(L"Playlist");
+    _playlistLabel->SetBaseSize(100, 40);
+    _playlistLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+    _playlistLabel->SetMargins({ 10.0f });
+    _playlistLabel->SetFontSize(24.0f);
 
     _readyItemPanel = Create<zcom::Panel>();
     _readyItemPanel->SetParentSizePercent(1.0f, 1.0f);
@@ -79,9 +103,13 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _readyItemPanel->Scrollable(zcom::Scrollbar::VERTICAL, true);
     _readyItemPanel->ScrollBackgroundVisible(zcom::Scrollbar::VERTICAL, true);
     _readyItemPanel->AddPostLeftPressed([=](zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y) { _HandlePlaylistLeftClick(item, targets, x, y); }, { this });
-    _readyItemPanel->AddOnLeftReleased([=](zcom::Base* item, int x, int y) { _HandlePlaylistLeftRelease(item, x, y); }, { this });
+    _readyItemPanel->AddPostLeftReleased([=](zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y) { _HandlePlaylistLeftRelease(item, targets, x, y); }, { this });
+    _readyItemPanel->AddPostRightPressed([=](zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y) { _HandlePlaylistRightClick(item, targets, x, y); }, { this });
+    _readyItemPanel->AddPostRightReleased([=](zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y) { _HandlePlaylistRightRelease(item, targets, x, y); }, { this });
     _readyItemPanel->AddPostMouseMove([=](zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int deltaX, int deltaY) { _HandlePlaylistMouseMove(item, targets, deltaX, deltaY); }, { this });
     _readyItemPanel->SetTabIndex(-1);
+
+    _itemContextMenu = Create<zcom::MenuPanel>();
 
     _fileDropLabel = Create<zcom::Label>(L"Drop files..");
     _fileDropLabel->SetBaseSize(200, 50);
@@ -100,12 +128,6 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _fileDropOverlay->SetZIndex(2);
     _fileDropOverlay->SetVisible(false);
     _fileDropOverlay->AddItem(_fileDropLabel.get());
-
-    _playlistLabel = Create<zcom::Label>(L"Playlist");
-    _playlistLabel->SetBaseSize(100, 40);
-    _playlistLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
-    _playlistLabel->SetMargins({ 10.0f });
-    _playlistLabel->SetFontSize(24.0f);
 
     _addFileButton = Create<zcom::Button>(L"Add files");
     _addFileButton->SetParentWidthPercent(1.0f);
@@ -1021,7 +1043,9 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
         }
         if (user && !user->GetPermission(PERMISSION_MANAGE_ITEMS))
         {
-            deleteVisible = false;
+            PlaylistItem* item = _app->playlist.GetItem(_readyItems[i]->GetItemId());
+            if (!item || item->GetUserId() != user->id)
+                deleteVisible = false;
         }
 
         int buttons = 0;
@@ -1300,15 +1324,7 @@ void PlaybackOverlayScene::_RearrangeNetworkPanel()
         return;
     _networkPanelChanged = false;
     
-    bool online = false;
-    auto clientMgr = APP_NETWORK->GetManager<znet::ClientManager>();
-    if (clientMgr && clientMgr->Online())
-        online = true;
-    auto serverMgr = APP_NETWORK->GetManager<znet::ServerManager>();
-    if (serverMgr && serverMgr->InitSuccessful())
-        online = true;
-
-    if (online)
+    if (_Online())
         _RearrangeNetworkPanel_Online();
     else
         _RearrangeNetworkPanel_Offline();
@@ -1503,8 +1519,15 @@ void PlaybackOverlayScene::_UpdateItemAppearance()
 
 void PlaybackOverlayScene::_HandlePlaylistLeftClick(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y)
 {
-    if (targets.empty())
+    if (targets.size() == 1)
+    {
+        if (x < item->GetWidth() - _playlistPanel->ScrollbarWidth(zcom::Scrollbar::VERTICAL) && !_selectedItemIds.empty())
+        {
+            _selectedItemIds.clear();
+            _itemAppearanceChanged = true;
+        }
         return;
+    }
 
     // If a button was clicked, don't handle
     if (targets.front().target->GetName() == zcom::Button::Name())
@@ -1556,18 +1579,25 @@ void PlaybackOverlayScene::_HandlePlaylistLeftClick(zcom::Base* item, std::vecto
             int64_t itemId = ((zcom::OverlayPlaylistItem*)target.target)->GetItemId();
 
             // Holding CTRL allows selecting multiple items. Otherwise, clicking on any item clears the selection.
-            // Clicking an unselected item selects it, while clicking a selected item unselects it.
+            // Clicking an unselected item selects it, while clicking a selected (while holding CTRL) item unselects it.
             // The above 2 rules work in combination.
             bool alreadySelected = _selectedItemIds.find(itemId) != _selectedItemIds.end();
-            if (!_app->keyboardManager.KeyState(VK_CONTROL))
+            bool ctrlClicked = _app->keyboardManager.KeyState(VK_CONTROL);
+            if (!ctrlClicked)
+            {
                 _selectedItemIds.clear();
-            if (!alreadySelected)
                 _selectedItemIds.insert(itemId);
+            }
             else
-                _selectedItemIds.erase(itemId);
+            {
+                if (!alreadySelected)
+                    _selectedItemIds.insert(itemId);
+                else
+                    _selectedItemIds.erase(itemId);
+            }
 
             // Start drag-selecting if CTRL is not clicked
-            if (!_app->keyboardManager.KeyState(VK_CONTROL))
+            if (!ctrlClicked)
             {
                 _selectingItems = true;
                 _selectionStartPos = y + _readyItemPanel->VisualScrollPosition(zcom::Scrollbar::VERTICAL);
@@ -1577,11 +1607,12 @@ void PlaybackOverlayScene::_HandlePlaylistLeftClick(zcom::Base* item, std::vecto
             //_heldItemId = ((zcom::OverlayPlaylistItem*)target.target)->GetItemId();
             //_clickYPos = y + _readyItemPanel->VisualVerticalScroll();
             //_movedFar = false;
+            break;
         }
     }
 }
 
-void PlaybackOverlayScene::_HandlePlaylistLeftRelease(zcom::Base* item, int x, int y)
+void PlaybackOverlayScene::_HandlePlaylistLeftRelease(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y)
 {
     _selectingItems = false;
     _selectionStartPos = -1;
@@ -1623,6 +1654,81 @@ void PlaybackOverlayScene::_HandlePlaylistLeftRelease(zcom::Base* item, int x, i
         // Set flag here, because Request_MoveItem has edge cases where it doesn't do that itself
         _playlistChanged = true;
     }
+}
+
+void PlaybackOverlayScene::_HandlePlaylistRightClick(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y)
+{
+    if (targets.size() == 1)
+    {
+        if (x < item->GetWidth() - _playlistPanel->ScrollbarWidth(zcom::Scrollbar::VERTICAL) && !_selectedItemIds.empty())
+        {
+            _selectedItemIds.clear();
+            _itemAppearanceChanged = true;
+        }
+        return;
+    }
+
+    // If left mouse button is pressed, ignore
+    if (_readyItemPanel->GetMouseLeftClicked())
+        return;
+
+    // If a button was clicked, don't handle
+    if (targets.front().target->GetName() == zcom::Button::Name())
+        return;
+
+    // Check if item was clicked
+    int64_t itemId = -1;
+    for (auto& target : targets)
+    {
+        if (target.target->GetName() != zcom::OverlayPlaylistItem::Name())
+            continue;
+
+        itemId = ((zcom::OverlayPlaylistItem*)target.target)->GetItemId();
+        break;
+    }
+
+    // Select right clicked item
+    if (itemId != -1)
+    {
+        bool alreadySelected = _selectedItemIds.find(itemId) != _selectedItemIds.end();
+        if (!alreadySelected)
+        {
+            _selectedItemIds.clear();
+            _selectedItemIds.insert(itemId);
+            _itemAppearanceChanged = true;
+        }
+    }
+}
+
+void PlaybackOverlayScene::_HandlePlaylistRightRelease(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y)
+{
+    if (targets.size() == 1)
+        return;
+
+    // If left mouse button is pressed, ignore
+    if (_readyItemPanel->GetMouseLeftClicked())
+        return;
+
+    // If a button was clicked, don't handle
+    if (targets.front().target->GetName() == zcom::Button::Name())
+        return;
+
+    // If a move handle was clicked, don't handle
+    if (targets.front().target->GetName() == zcom::DotGrid::Name())
+        return;
+
+    // Check if item was clicked
+    int64_t itemId = -1;
+    for (auto& target : targets)
+    {
+        if (target.target->GetName() != zcom::OverlayPlaylistItem::Name())
+            continue;
+
+        itemId = ((zcom::OverlayPlaylistItem*)target.target)->GetItemId();
+        break;
+    }
+
+    _ShowPlaylistContextMenu(x, y, itemId);
 }
 
 void PlaybackOverlayScene::_HandlePlaylistMouseMove(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int deltaX, int deltaY)
@@ -1704,6 +1810,144 @@ void PlaybackOverlayScene::_HandlePlaylistMouseMove(zcom::Base* item, std::vecto
         else if (y >= _readyItemPanel->GetHeight())
             _readyItemPanel->Scroll(zcom::Scrollbar::VERTICAL, _readyItemPanel->ScrollPosition(zcom::Scrollbar::VERTICAL) + ((y - _readyItemPanel->GetHeight()) / 10 + 1));
     }
+}
+
+void PlaybackOverlayScene::_ShowPlaylistContextMenu(int x, int y, int64_t itemId)
+{
+    bool showClearAllItems = true;
+    bool showClearSelectedItems = true;
+    bool showClearFailedItems = true;
+    bool showClearLoadingItems = true;
+    bool showClearSelfHostedItems = false;
+    bool showSaveSelectedToPlaylist = true;
+
+    if (!_app->users.GetThisUser()->GetPermission(PERMISSION_MANAGE_ITEMS))
+    {
+        showClearAllItems = false;
+        showClearSelectedItems = false;
+    }
+    if (_readyItems.empty())
+    {
+        showClearAllItems = false;
+    }
+    if (_selectedItemIds.empty())
+    {
+        showClearSelectedItems = false;
+        showSaveSelectedToPlaylist = false;
+    }
+    if (_loadingItems.empty())
+    {
+        showClearLoadingItems = false;
+    }
+    if (_failedItems.empty())
+    {
+        showClearFailedItems = false;
+    }
+    if (_Online())
+    {
+        for (auto& item : _readyItems)
+        {
+            PlaylistItem* pitem = _app->playlist.GetItem(item->GetItemId());
+            if (pitem && pitem->GetUserId() == _app->users.GetThisUser()->id)
+            {
+                showClearSelfHostedItems = true;
+                break;
+            }
+        }
+    }
+
+    if (!showClearAllItems &&
+        !showClearSelectedItems &&
+        !showClearFailedItems &&
+        !showClearLoadingItems &&
+        !showClearSelfHostedItems &&
+        !showSaveSelectedToPlaylist)
+        return;
+
+    _itemContextMenu->ClearItems();
+    if (showClearAllItems)
+    {
+        auto menuItem = Create<zcom::MenuItem>(L"Clear playlist", [&](bool)
+        {
+            auto items = _app->playlist.ReadyItems();
+            for (auto& item : items)
+            {
+                _app->playlist.Request_DeleteItem(item->GetItemId());
+            }
+        });
+        _itemContextMenu->AddItem(std::move(menuItem));
+    }
+    if (showClearSelectedItems)
+    {
+        auto menuItem = Create<zcom::MenuItem>(L"Remove selected items", [&](bool)
+        {
+            for (auto& id : _selectedItemIds)
+            {
+                _app->playlist.Request_DeleteItem(id);
+            }
+        });
+        _itemContextMenu->AddItem(std::move(menuItem));
+    }
+    if (showClearFailedItems)
+    {
+        auto menuItem = Create<zcom::MenuItem>(L"Remove failed items", [&](bool)
+        {
+            auto items = _app->playlist.FailedItems();
+            for (auto& item : items)
+            {
+                _app->playlist.Request_DeleteItem(item->GetItemId());
+            }
+        });
+        _itemContextMenu->AddItem(std::move(menuItem));
+    }
+    if (showClearLoadingItems)
+    {
+        auto menuItem = Create<zcom::MenuItem>(L"Remove loading items", [&](bool)
+        {
+            auto items = _app->playlist.LoadingItems();
+            for (auto& item : items)
+            {
+                _app->playlist.Request_DeleteItem(item->GetItemId());
+            }
+        });
+        _itemContextMenu->AddItem(std::move(menuItem));
+    }
+    if (showClearSelfHostedItems)
+    {
+        auto menuItem = Create<zcom::MenuItem>(L"Remove my items", [&](bool)
+        {
+            int64_t myId = _app->users.GetThisUser()->id;
+            auto items = _app->playlist.ReadyItems();
+            for (auto& item : items)
+            {
+                if (item->GetUserId() == myId)
+                {
+                    _app->playlist.Request_DeleteItem(item->GetItemId());
+                }
+            }
+        });
+        _itemContextMenu->AddItem(std::move(menuItem));
+    }
+    if (showSaveSelectedToPlaylist)
+    {
+        // Add separator if needed
+        if (_itemContextMenu->ItemCount() != 0)
+            _itemContextMenu->AddItem(Create<zcom::MenuItem>());
+
+        auto menuItem = Create<zcom::MenuItem>(L"Save selected items to playlist", [&](bool)
+        {
+
+        });
+        menuItem->SetDisabled(true);
+        _itemContextMenu->AddItem(std::move(menuItem));
+    }
+
+    RECT clickRect;
+    clickRect.left = x + _readyItemPanel->GetScreenX();
+    clickRect.right = clickRect.left;
+    clickRect.top = y + _readyItemPanel->GetScreenY();
+    clickRect.bottom = clickRect.top;
+    _app->Overlay()->ShowMenu(_itemContextMenu.get(), clickRect);
 }
 
 void PlaybackOverlayScene::_InvokeNetworkPanelChange()
@@ -1799,6 +2043,17 @@ void PlaybackOverlayScene::_UpdateNetworkStats()
         // Upload
         _uploadSpeedLabel->SetText(BytesToString(ev.bytesSent * 1000 / ev.timeInterval.GetDuration(MILLISECONDS)) + L"/s");
     }
+}
+
+bool PlaybackOverlayScene::_Online()
+{
+    auto clientMgr = APP_NETWORK->GetManager<znet::ClientManager>();
+    if (clientMgr && clientMgr->Online())
+        return true;
+    auto serverMgr = APP_NETWORK->GetManager<znet::ServerManager>();
+    if (serverMgr && serverMgr->InitSuccessful())
+        return true;
+    return false;
 }
 
 void PlaybackOverlayScene::_HandlePermissionChange()
