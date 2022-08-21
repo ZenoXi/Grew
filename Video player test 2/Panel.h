@@ -581,14 +581,66 @@ namespace zcom
             int adjX = x + _horizontalScrollbar.scrollAmount;
             int adjY = y + _verticalScrollbar.scrollAmount;
 
-            for (auto& item : _items)
+            for (auto& _item : _items)
             {
-                if (!item.item->GetVisible()) continue;
+                Base* item = _item.item;
+                if (!item->GetVisible())
+                    continue;
+                if (item->GetMouseInside())
+                    return item->OnLeftPressed(adjX - item->GetX(), adjY - item->GetY()).Add(this, x, y);
+            }
+            return EventTargets().Add(this, x, y);
 
-                if (item.item->GetMouseInside())
-                {
-                    return item.item->OnLeftPressed(adjX - item.item->GetX(), adjY - item.item->GetY()).Add(this, x, y);
-                }
+            // CODE BELOW CONTAINS A SOLUTION FOR A FIXED* PROBLEM
+            // * might still have edge cases, hence why I'm not removing the code
+            // * the fix at the moment is calling 'OnMouseMove' from 'OnLeft/RightClick'
+            // * if the click mouse pos doesn't match stored mouse position
+
+            // Find top hovered item
+            //
+            // The code here somewhat duplicates the code in 'OnMouseMove'.
+            // While I could just check for which item 'GetMouseInside' returns true
+            // (and did so for a while), such a solution runs into problems in specific
+            // edge cases. In particular, when passing mouse click messages from overlay
+            // scene with an open menu to other scenes. While the menu is open, an
+            // occlusion panel is also open, which blocks mouse move events from
+            // going through to other scenes, thus 'GetMouseInside' will always return
+            // false. Closing the menu on click and passing the mouse click message to
+            // other scenes will therefore run into problems because no mouse move
+            // events were sent to make any items clickable (aka. mouseInside = true).
+            //
+            // All this means that mouse clicks (both right and left) need to do their
+            // own hit test calculations when 'GetMouseInside' returns false for all
+            // items. If any item returns true, the click must be passed to it, because
+            // of special cases of drag-clicking outside of the visual item area.
+
+            // Get all hovered items
+            std::vector<Base*> hoveredComponents;
+            for (auto& _item : _items)
+            {
+                Base* item = _item.item;
+
+                if (!item->GetVisible())
+                    continue;
+
+                if (item->GetMouseInside())
+                    return item->OnLeftPressed(adjX - item->GetX(), adjY - item->GetY()).Add(this, x, y);
+
+                if (adjX >= item->GetX() && adjX < item->GetX() + item->GetWidth() &&
+                    adjY >= item->GetY() && adjY < item->GetY() + item->GetHeight())
+                    hoveredComponents.push_back(item);
+            }
+            if (!hoveredComponents.empty())
+            {
+                // Find item with highest z-index
+                Base* topmost = hoveredComponents[0];
+                for (int i = 1; i < hoveredComponents.size(); i++)
+                    if (hoveredComponents[i]->GetZIndex() > topmost->GetZIndex())
+                        topmost = hoveredComponents[i];
+
+                if (!topmost->GetMouseInside())
+                    topmost->OnMouseEnter();
+                return topmost->OnLeftPressed(adjX - topmost->GetX(), adjY - topmost->GetY()).Add(this, GetMousePosX(), GetMousePosY());
             }
             return EventTargets().Add(this, x, y);
         }
@@ -634,14 +686,51 @@ namespace zcom
             int adjX = x + _horizontalScrollbar.scrollAmount;
             int adjY = y + _verticalScrollbar.scrollAmount;
 
-            for (auto& item : _items)
+            for (auto& _item : _items)
             {
-                if (!item.item->GetVisible()) continue;
+                Base* item = _item.item;
+                if (!item->GetVisible())
+                    continue;
+                if (item->GetMouseInside())
+                    return item->OnRightPressed(adjX - item->GetX(), adjY - item->GetY()).Add(this, x, y);
+            }
+            return EventTargets().Add(this, x, y);
 
-                if (item.item->GetMouseInside())
-                {
-                    return item.item->OnRightPressed(adjX - item.item->GetX(), adjY - item.item->GetY()).Add(this, x, y);
-                }
+            // CODE BELOW CONTAINS A SOLUTION FOR A FIXED* PROBLEM
+            // * might still have edge cases, hence why I'm not removing the code
+            // * the fix at the moment is calling 'OnMouseMove' from 'OnLeft/RightClick'
+            // * if the click mouse pos doesn't match stored mouse position
+
+            // Find top hovered item
+            // ** In depth explanation in '_OnLeftPressed' **
+
+            // Get all hovered items
+            std::vector<Base*> hoveredComponents;
+            for (auto& _item : _items)
+            {
+                Base* item = _item.item;
+
+                if (!item->GetVisible())
+                    continue;
+
+                if (item->GetMouseInside())
+                    return item->OnRightPressed(adjX - item->GetX(), adjY - item->GetY()).Add(this, x, y);
+
+                if (adjX >= item->GetX() && adjX < item->GetX() + item->GetWidth() &&
+                    adjY >= item->GetY() && adjY < item->GetY() + item->GetHeight())
+                    hoveredComponents.push_back(item);
+            }
+            if (!hoveredComponents.empty())
+            {
+                // Find item with highest z-index
+                Base* topmost = hoveredComponents[0];
+                for (int i = 1; i < hoveredComponents.size(); i++)
+                    if (hoveredComponents[i]->GetZIndex() > topmost->GetZIndex())
+                        topmost = hoveredComponents[i];
+
+                if (!topmost->GetMouseInside())
+                    topmost->OnMouseEnter();
+                return topmost->OnRightPressed(adjX - topmost->GetX(), adjY - topmost->GetY()).Add(this, GetMousePosX(), GetMousePosY());
             }
             return EventTargets().Add(this, x, y);
         }
