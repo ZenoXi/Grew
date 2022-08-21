@@ -709,6 +709,10 @@ namespace zcom
             if (!_active) return EventTargets();
             if (_mouseLeftClicked) return EventTargets();
 
+            // Correct mouse position if it doesn't match click position
+            if (_mousePosX != x || _mousePosY != y)
+                OnMouseMove(x, y);
+
             _mouseLeftClicked = true;
             _onLeftPressed.InvokeAll(this, x, y);
             auto targets = _OnLeftPressed(x, y);
@@ -719,6 +723,11 @@ namespace zcom
         {
             if (!_active) return EventTargets();
             if (!_mouseLeftClicked) return EventTargets();
+
+            // Correct mouse position if it doesn't match release position
+            if (x != std::numeric_limits<int>::min() && y != std::numeric_limits<int>::min())
+                if (_mousePosX != x || _mousePosY != y)
+                    OnMouseMove(x, y);
 
             _mouseLeftClicked = false;
             _onLeftReleased.InvokeAll(this, x, y);
@@ -731,6 +740,10 @@ namespace zcom
             if (!_active) return EventTargets();
             if (_mouseRightClicked) return EventTargets();
 
+            // Correct mouse position if it doesn't match click position
+            if (_mousePosX != x || _mousePosY != y)
+                OnMouseMove(x, y);
+
             _mouseRightClicked = true;
             _onRightPressed.InvokeAll(this, x, y);
             auto targets = _OnRightPressed(x, y);
@@ -741,6 +754,11 @@ namespace zcom
         {
             if (!_active) return EventTargets();
             if (!_mouseRightClicked) return EventTargets();
+
+            // Correct mouse position if it doesn't match release position
+            if (x != std::numeric_limits<int>::min() && y != std::numeric_limits<int>::min())
+                if (_mousePosX != x || _mousePosY != y)
+                    OnMouseMove(x, y);
 
             _mouseRightClicked = false;
             _onRightReleased.InvokeAll(this, x, y);
