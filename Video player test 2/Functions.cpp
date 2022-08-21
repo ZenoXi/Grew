@@ -239,7 +239,7 @@ int64_t str_to_int(const std::string& str, int base)
     bool negative = false;
     
     std::vector<int> nums;
-    nums.reserve(9);
+    nums.reserve(19);
 
     // Get numbers from string
     for (int i = 0; i < str.length(); i++) {
@@ -254,14 +254,15 @@ int64_t str_to_int(const std::string& str, int base)
             }
         }
 
-        if (nums.size() > 8) continue;
+        if (nums.size() >= 19)
+            break;
     }
     if (nums.size() == 0) return 0;
 
     // Combine digits into a number
-    int size = nums.size();
-    int mult = 1;
-    int fnum = 0;
+    size_t size = nums.size();
+    int64_t mult = 1;
+    int64_t fnum = 0;
 
     for (int i = size - 1; i >= 0; i--) {
         fnum += nums[i] * mult;
