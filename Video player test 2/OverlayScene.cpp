@@ -23,7 +23,7 @@ void OverlayScene::_Init(const SceneOptionsBase* options)
     });
 
     // Add handlers
-    auto testFunc = [&](const zcom::EventTargets* targets)
+    auto nonClickFunc = [&](const zcom::EventTargets* targets)
     {
         if (targets->Empty())
             return false;
@@ -34,19 +34,35 @@ void OverlayScene::_Init(const SceneOptionsBase* options)
 
         return true;
     };
+    auto clickFunc = [&](const zcom::EventTargets* targets)
+    {
+        if (targets->Empty())
+            return false;
+
+        // Notification panel (not the actual notification)
+        if (targets->Size() == 1 && targets->Contains(_notificationPanel.get()))
+            return false;
+
+        // Occlusion panel
+        if (targets->MainTarget() == _occlusionPanel.get())
+            return false;
+
+        return true;
+    };
+
     auto hideHoverText = [&](const zcom::EventTargets* targets)
     {
         _hoverTextLabel->SetVisible(false);
         return false;
     };
     _canvas->AddOnMouseMove(hideHoverText);
-    _canvas->AddOnMouseMove(testFunc);
-    _canvas->AddOnLeftPressed(testFunc);
-    _canvas->AddOnLeftReleased(testFunc);
-    _canvas->AddOnRightPressed(testFunc);
-    _canvas->AddOnRightReleased(testFunc);
-    _canvas->AddOnWheelUp(testFunc);
-    _canvas->AddOnWheelDown(testFunc);
+    _canvas->AddOnMouseMove(nonClickFunc);
+    _canvas->AddOnLeftPressed(clickFunc);
+    _canvas->AddOnLeftReleased(clickFunc);
+    _canvas->AddOnRightPressed(clickFunc);
+    _canvas->AddOnRightReleased(clickFunc);
+    _canvas->AddOnWheelUp(nonClickFunc);
+    _canvas->AddOnWheelDown(nonClickFunc);
 
     //
     _notificationPanel = Create<zcom::Panel>();
