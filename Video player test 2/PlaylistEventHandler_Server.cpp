@@ -100,16 +100,6 @@ void PlaylistEventHandler_Server::_CheckForUserDisconnect()
                 i--;
             }
         }
-
-        // Remove custom user permissions
-        for (int i = 0; i < _playlist->customUserPermissions.size(); i++)
-        {
-            if (_playlist->customUserPermissions[i].first == ev.userId)
-            {
-                _playlist->customUserPermissions.erase(_playlist->customUserPermissions.begin() + 1);
-                i--;
-            }
-        }
     }
 }
 

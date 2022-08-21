@@ -4,18 +4,6 @@
 #include "PlaylistEventHandler_Offline.h"
 
 // Playlist_Internal
-PlaylistPermissions Playlist_Internal::GetUserPermissions(int64_t userId) const
-{
-    for (auto& permPair : customUserPermissions)
-    {
-        if (permPair.first == userId)
-        {
-            return permPair.second;
-        }
-    }
-    return options.defaultPermissions;
-}
-
 void Playlist_Internal::Reset()
 {
     readyItems.clear();
@@ -122,6 +110,15 @@ std::vector<PlaylistItem*> Playlist::AllItems() const
     return items;
 }
 
+PlaylistItem* Playlist::GetItem(int64_t itemId) const
+{
+    auto allItems = AllItems();
+    for (auto& item : allItems)
+        if (item->GetItemId() == itemId)
+            return item;
+    return nullptr;
+}
+
 int64_t Playlist::PendingItemPlay() const
 {
     return _playlist->pendingItemPlay;
@@ -158,35 +155,4 @@ int64_t Playlist::CurrentlyPlaying() const
 int64_t Playlist::CurrentlyStarting() const
 {
     return _playlist->currentlyStarting;
-}
-
-void Playlist::SetUserPermissions(int64_t userId, PlaylistPermissions perm)
-{
-    // Find specified user and assign the new permissions.
-    // If new permissions match default permissions, remove
-    // the custom permissions entry.
-    for (int i = 0; i < _playlist->customUserPermissions.size(); i++)
-    {
-        if (_playlist->customUserPermissions[i].first == userId)
-        {
-            if (perm == _playlist->options.defaultPermissions)
-            {
-                _playlist->customUserPermissions.erase(_playlist->customUserPermissions.begin() + i);
-                return;
-            }
-            else
-            {
-                _playlist->customUserPermissions[i].second = perm;
-                return;
-            }
-        }
-    }
-
-    if (perm != _playlist->options.defaultPermissions)
-        _playlist->customUserPermissions.push_back({ userId, perm });
-}
-
-PlaylistPermissions Playlist::GetUserPermissions(int64_t userId) const
-{
-    return _playlist->GetUserPermissions(userId);
 }

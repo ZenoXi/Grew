@@ -5,32 +5,9 @@
 
 #include <vector>
 
-struct PlaylistPermissions
-{
-    bool addItems = true;
-    bool manageItems = true;
-    bool startStopItems = true;
-
-    inline bool operator==(const PlaylistPermissions& other)
-    {
-        return addItems == other.addItems
-            && manageItems == other.manageItems
-            && startStopItems == other.startStopItems;
-    }
-
-    inline bool operator!=(const PlaylistPermissions& other)
-    {
-        return !(*this == other);
-    }
-
-    // std::string ToString() const { return ""; }
-    // void FromString(std::string optString) {}
-};
-
 struct PlaylistOptions
 {
     bool autoplay = true;
-    PlaylistPermissions defaultPermissions;
 };
 
 class Playlist_Internal
@@ -56,8 +33,6 @@ public:
     int64_t startRequestIssuer = -1; // TODO: move to server handler
 
     PlaylistOptions options;
-    std::vector<std::pair<int64_t, PlaylistPermissions>> customUserPermissions;
-    PlaylistPermissions GetUserPermissions(int64_t userId) const;
 
     void Reset();
 };
@@ -79,6 +54,7 @@ public:
     std::vector<PlaylistItem*> LoadingItems() const;
     std::vector<PlaylistItem*> FailedItems() const;
     std::vector<PlaylistItem*> AllItems() const;
+    PlaylistItem* GetItem(int64_t itemId) const;
     int64_t PendingItemPlay() const;
     int64_t PendingItemStop() const;
     std::vector<int64_t> PendingItemDeletes() const;
@@ -88,8 +64,6 @@ public:
 
     void SetOptions(PlaylistOptions opt) { _playlist->options = opt; }
     PlaylistOptions GetOptions() const { return _playlist->options; }
-    void SetUserPermissions(int64_t userId, PlaylistPermissions perm = {});
-    PlaylistPermissions GetUserPermissions(int64_t userId) const;
 
     void Update();
 
