@@ -110,7 +110,7 @@ void ConnectScene::_Init(const SceneOptionsBase* options)
     _usernameInput->SetBaseSize(240, 30);
     _usernameInput->SetOffsetPixels(120, 250);
     _usernameInput->SetCornerRounding(5.0f);
-    _usernameInput->SetPlaceholderText(L"(Optional)");
+    _usernameInput->PlaceholderText()->SetText(L"(Optional)");
     _usernameInput->SetTabIndex(2);
 
     _separator2 = Create<zcom::EmptyPanel>();
@@ -302,7 +302,7 @@ void ConnectScene::_Update()
                     APP_NETWORK->StartManager();
                     _connectionSuccessful = true;
                     _closeScene = true;
-                    _app->users.SetSelfUsername(_usernameInput->GetText());
+                    _app->users.SetSelfUsername(_usernameInput->Text()->GetText());
                 }
                 else if (manager->PasswordRequired())
                 {
@@ -392,8 +392,8 @@ void ConnectScene::_ConnectClicked()
         _portInput->SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
 
         // Check if ip/port is valid
-        std::string ip = wstring_to_string(_ipInput->GetText());
-        std::string port = wstring_to_string(_portInput->GetText());
+        std::string ip = wstring_to_string(_ipInput->Text()->GetText());
+        std::string port = wstring_to_string(_portInput->Text()->GetText());
         bool addressValid = true;
         std::wstring errorMessage = L"Invalid";
         if (!LastIpOptionAdapter::ValidateIp(ip))
@@ -464,7 +464,7 @@ void ConnectScene::_PwContinueClicked()
     _connectButton->Text()->SetText(L"Cancel");
     _connectLoadingImage->ResetAnimation();
     _connectLoadingInfoLabel->SetVisible(false);
-    APP_NETWORK->SetManager(std::make_unique<znet::ClientManager>(_ip, _port, wstring_to_string(_passwordInput->GetText())));
+    APP_NETWORK->SetManager(std::make_unique<znet::ClientManager>(_ip, _port, wstring_to_string(_passwordInput->Text()->GetText())));
     _ClosePasswordInput();
 }
 
@@ -506,8 +506,8 @@ void ConnectScene::_RearrangeRecentConnectionsPanel()
         {
             std::array<std::string, 2> ipParts;
             split_str(ip, ipParts, ':');
-            _ipInput->SetText(string_to_wstring(ipParts[0]));
-            _portInput->SetText(string_to_wstring(ipParts[1]));
+            _ipInput->Text()->SetText(string_to_wstring(ipParts[0]));
+            _portInput->Text()->SetText(string_to_wstring(ipParts[1]));
         });
         auto removeButton = Create<zcom::Button>();
         removeButton->SetBaseSize(22, 22);

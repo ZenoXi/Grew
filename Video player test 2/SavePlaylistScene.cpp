@@ -72,9 +72,10 @@ void SavePlaylistScene::_Init(const SceneOptionsBase* options)
     _playlistNameInput->SetBaseSize(-60, 30);
     _playlistNameInput->SetParentWidthPercent(1.0f);
     _playlistNameInput->SetOffsetPixels(30, 100);
-    _playlistNameInput->SetPlaceholderText(L"Playlist name");
-    _playlistNameInput->SetText(opt.openedPlaylistName);
+    _playlistNameInput->PlaceholderText()->SetText(L"Playlist name");
+    _playlistNameInput->Text()->SetText(opt.openedPlaylistName);
     _playlistNameInput->SetCornerRounding(5.0f);
+    //_playlistNameInput->SetPattern(L"[^/\\:\*\?\"<>\|]*");
 
     _playlistFilenameLabel = Create<zcom::Label>();
     _playlistFilenameLabel->SetBaseSize(-60, 20);
@@ -194,13 +195,14 @@ void SavePlaylistScene::_Resize(int width, int height)
 
 void SavePlaylistScene::_UpdateFilenameLabel()
 {
-    std::wstring text = _playlistNameInput->GetText();
+    std::wstring text = _playlistNameInput->Text()->GetText();
     if (text.empty())
     {
         _playlistFilenameLabel->SetText(L"Filename: \"Playlist {first available number}\"");
     }
     else
     {
+        // TODO: use text input regex (once implemented)
         // Sanitize input
         for (int i = 0; i < text.length(); i++)
         {
@@ -256,7 +258,7 @@ void SavePlaylistScene::_SaveClicked()
     // Create filename
     //////////////////
 
-    std::wstring filename = _playlistNameInput->GetText();
+    std::wstring filename = _playlistNameInput->Text()->GetText();
     std::wstring playlistName;
     if (filename.empty())
     {

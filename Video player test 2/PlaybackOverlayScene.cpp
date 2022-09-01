@@ -347,7 +347,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         _usernameButton->SetVisible(false);
         _usernameInput->SetVisible(true);
         auto user = _app->users.GetThisUser();
-        _usernameInput->SetText(user ? user->name : L"");
+        _usernameInput->Text()->SetText(user ? user->name : L"");
         _selectUsernameInput = true;
     });
     _usernameButton->SetZIndex(1);
@@ -355,7 +355,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _usernameInput = Create<zcom::TextInput>();
     _usernameInput->SetBaseSize(180, 30);
     _usernameInput->SetOffsetPixels(60, 30);
-    _usernameInput->SetPlaceholderText(L"New username");
+    _usernameInput->PlaceholderText()->SetText(L"New username");
     _usernameInput->SetBorderVisibility(false);
     _usernameInput->SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
     _usernameInput->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
@@ -369,7 +369,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         }
         else if (key == VK_RETURN)
         {
-            App::Instance()->users.SetSelfUsername(_usernameInput->GetText());
+            App::Instance()->users.SetSelfUsername(_usernameInput->Text()->GetText());
             //APP_NETWORK->SetUsername(_usernameInput->GetText());
             _networkPanelChanged = true;
             quit = true;
