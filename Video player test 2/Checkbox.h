@@ -38,6 +38,7 @@ namespace zcom
         EventTargets _OnLeftPressed(int x, int y);
         void _OnSelected();
         void _OnDeselected();
+        bool _OnHotkey(int id) { return false; }
         bool _OnKeyDown(BYTE vkCode);
         bool _OnKeyUp(BYTE vkCode) { return false; }
         bool _OnChar(wchar_t ch) { return false; }

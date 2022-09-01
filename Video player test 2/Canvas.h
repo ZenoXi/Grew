@@ -290,6 +290,11 @@ namespace zcom
         // KEYBOARD EVENT MANAGER FUNCTIONS
         //
 
+        bool _OnHotkey(int id)
+        {
+            return false;
+        }
+
         bool _OnKeyDown(BYTE vkCode)
         {
             if (vkCode == VK_TAB)

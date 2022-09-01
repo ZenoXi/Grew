@@ -131,6 +131,12 @@ struct WindowMessage
     LPARAM lParam = 0;
 };
 
+struct Hotkey
+{
+    UINT modifiers;
+    UINT keyCode;
+};
+
 enum class CursorIcon
 {
     APP_STARTING,
@@ -367,6 +373,9 @@ class DisplayWindow
     HCURSOR _prevCursor = 0;
     HCURSOR _cursor = 0;
 
+    // Hotkeys
+    std::unordered_map<int, Hotkey> _hotkeys;
+
     // Handlers
     std::vector<MouseEventHandler*> _mouseHandlers;
     std::vector<KeyboardEventHandler*> _keyboardHandlers;
@@ -413,6 +422,7 @@ public:
     void HandleCursorVisibility();
     // Resets screen shutoff timer
     void ResetScreenTimer();
+    void SetHotkey(int id, UINT modifiers, UINT keyCode);
 private:
     static LRESULT WINAPI _HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
     static LRESULT WINAPI _HandleMsgThunk(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

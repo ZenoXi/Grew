@@ -418,7 +418,25 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
         }
         case WM_SYSKEYDOWN:
         {
-            std::cout << "syskeydown" << std::endl;
+            // Translate to a regular key down message
+            bool contextCode = (lParam & KF_ALTDOWN) == KF_ALTDOWN;
+            if (!contextCode)
+            {
+                _m_msg.lock();
+                _msgQueue.push({ false, WM_KEYDOWN, wParam, lParam });
+                _m_msg.unlock();
+            }
+            else
+            {
+                // null context code
+                lParam &= ~KF_ALTDOWN;
+
+                _m_msg.lock();
+                _msgQueue.push({ false, WM_KEYDOWN, VK_MENU, lParam });
+                _msgQueue.push({ false, WM_KEYDOWN, wParam, lParam });
+                _m_msg.unlock();
+            }
+
             _m_msg.lock();
             _msgQueue.push({ false, WM_SYSKEYDOWN, wParam, lParam });
             _m_msg.unlock();
@@ -426,7 +444,25 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
         }
         case WM_SYSKEYUP:
         {
-            std::cout << "syskeyup" << std::endl;
+            // Translate to a regular key up message
+            bool contextCode = (lParam & KF_ALTDOWN) == KF_ALTDOWN;
+            if (!contextCode)
+            {
+                _m_msg.lock();
+                _msgQueue.push({ false, WM_KEYUP, wParam, lParam });
+                _m_msg.unlock();
+            }
+            else
+            {
+                // null context code
+                lParam &= ~KF_ALTDOWN;
+
+                _m_msg.lock();
+                _msgQueue.push({ false, WM_KEYUP, VK_MENU, lParam });
+                _msgQueue.push({ false, WM_KEYUP, wParam, lParam });
+                _m_msg.unlock();
+            }
+
             _m_msg.lock();
             _msgQueue.push({ false, WM_SYSKEYUP, wParam, lParam });
             _m_msg.unlock();
@@ -767,6 +803,15 @@ void DisplayWindow::HandleCursorVisibility()
 void DisplayWindow::ResetScreenTimer()
 {
     SetThreadExecutionState(ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED);
+}
+
+void DisplayWindow::SetHotkey(int id, UINT modifiers, UINT keyCode)
+{
+    if (_hotkeys.find(id) != _hotkeys.end())
+        UnregisterHotKey(_hwnd, id);
+
+    RegisterHotKey(_hwnd, id, modifiers, keyCode);
+    _hotkeys[id] = Hotkey{ modifiers, keyCode };
 }
 
 void DisplayWindow::AddMouseHandler(MouseEventHandler* handler)

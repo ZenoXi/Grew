@@ -39,6 +39,23 @@ public:
     }
 
 private:  // Keyboard event handling
+    bool _OnHotkey(int id)
+    {
+        if (_exclusiveHandler)
+        {
+            if (EVENT_HANDLED(_exclusiveHandler->OnHotkey(id)))
+            {
+                return true;
+            }
+        }
+
+        for (auto& handler : _handlers)
+        {
+            handler->OnHotkey(id);
+        }
+        return true;
+    }
+
     bool _OnKeyDown(BYTE vkCode)
     {
         if (_exclusiveHandler)

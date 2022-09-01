@@ -125,6 +125,11 @@ namespace zcom
 
         void _OnDeselected();
 
+        bool _OnHotkey(int id)
+        {
+            return false;
+        }
+
         bool _OnKeyDown(BYTE vkCode)
         {
             if (vkCode == VK_RETURN)

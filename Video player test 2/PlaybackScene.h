@@ -29,6 +29,7 @@
 
 class PlaybackShortcutHandler : public KeyboardEventHandler
 {
+    bool _OnHotkey(int id) { return false; }
     bool _OnKeyDown(BYTE vkCode) { return false; }
     bool _OnKeyUp(BYTE vkCode) { return false; }
     bool _OnChar(wchar_t ch) { return false; }
