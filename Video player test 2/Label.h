@@ -2,6 +2,9 @@
 
 #include "ComponentBase.h"
 #include "ComHelper.h"
+#include "KeyboardEventHandler.h"
+
+#include "Functions.h"
 
 #include <string_view>
 
@@ -15,7 +18,31 @@ namespace zcom
         TRAILING
     };
 
-    class Label : public Base
+    struct LineMetricsResult
+    {
+        std::vector<DWRITE_LINE_METRICS> lineMetrics;
+    };
+
+    struct TextPositionHitResult
+    {
+        FLOAT posX;
+        FLOAT posY;
+        DWRITE_HIT_TEST_METRICS hitMetrics;
+    };
+
+    struct TextRangeHitResult
+    {
+        std::vector<DWRITE_HIT_TEST_METRICS> hitMetrics;
+    };
+
+    struct HitTestResult
+    {
+        BOOL isTrailingHit = false;
+        BOOL isInside = false;
+        DWRITE_HIT_TEST_METRICS hitMetrics;
+    };
+
+    class Label : public Base, public KeyboardEventHandler
     {
 #pragma region base_class
     protected:
@@ -28,42 +55,38 @@ namespace zcom
                 g.refs->push_back((IUnknown**)&_textBrush);
             }
 
+            // Get selected area
+            TextRangeHitResult result;
+            if (_selectionLength < 0)
+                result = HitTestTextRange(_selectionStart + _selectionLength, -_selectionLength);
+            else if (_selectionLength > 0)
+                result = HitTestTextRange(_selectionStart, _selectionLength);
+
+            // Draw selection background
+            if (!result.hitMetrics.empty())
+            {
+                ID2D1SolidColorBrush* brush = nullptr;
+                g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::DodgerBlue, 0.5f), &brush);
+
+                for (auto& metric : result.hitMetrics)
+                {
+                    D2D1_RECT_F rect;
+                    rect.left = metric.left;
+                    rect.top = metric.top;
+                    rect.right = rect.left + metric.width;
+                    rect.bottom = rect.top + metric.height;
+                    g.target->FillRectangle(rect, brush);
+                }
+
+                brush->Release();
+            }
+
             DWRITE_TEXT_METRICS textMetrics;
             _dwriteTextLayout->GetMetrics(&textMetrics);
 
             D2D1_POINT_2F pos;
-            if (_hTextAlignment == TextAlignment::LEADING)
-            {
-                pos.x = 0;
-            }
-            else if (_hTextAlignment == TextAlignment::CENTER)
-            {
-                pos.x = 0;
-            }
-            else if (_hTextAlignment == TextAlignment::JUSTIFIED)
-            {
-                pos.x = 0;
-            }
-            else if (_hTextAlignment == TextAlignment::TRAILING)
-            {
-                pos.x = 0;
-            }
-            //
-            if (_vTextAlignment == Alignment::START)
-            {
-                pos.y = 0;
-            }
-            else if (_vTextAlignment == Alignment::CENTER)
-            {
-                pos.y = (GetHeight() - textMetrics.height) * 0.5f;
-            }
-            else if (_vTextAlignment == Alignment::END)
-            {
-                pos.y = GetHeight() - textMetrics.height;
-            }
-
-            pos.x += _margins.left;
-            pos.y += _margins.top;
+            pos.x = _margins.left;
+            pos.y = _TextTopPos();
 
             // Draw text
             if (!_text.empty())
@@ -79,6 +102,127 @@ namespace zcom
         void _OnResize(int width, int height)
         {
             _CreateTextLayout();
+        }
+
+        EventTargets _OnLeftPressed(int x, int y)
+        {
+            if (_textSelectable)
+            {
+                // Get click text position
+                auto result = HitTestPoint((float)x, (float)y);
+                _selectionStart = result.hitMetrics.textPosition;
+                if (result.isTrailingHit)
+                    _selectionStart++;
+                _selectionLength = 0;
+                _selecting = true;
+
+                InvokeRedraw();
+            }
+            return EventTargets().Add(this, x, y);
+        }
+
+        EventTargets _OnLeftReleased(int x, int y)
+        {
+            _selecting = false;
+            return EventTargets().Add(this, x, y);
+        }
+
+        EventTargets _OnMouseMove(int deltaX, int deltaY)
+        {
+            if (deltaX == 0 && deltaY == 0)
+                return EventTargets().Add(this, GetMousePosX(), GetMousePosY());
+
+            if (_selecting)
+            {
+                auto result = HitTestPoint((float)GetMousePosX(), (float)GetMousePosY());
+                int currentTextPosition = result.hitMetrics.textPosition;
+                if (result.isTrailingHit)
+                    currentTextPosition++;
+                int selectionLength = currentTextPosition - _selectionStart;
+
+                if (selectionLength != _selectionLength)
+                {
+                    _selectionLength = selectionLength;
+                    InvokeRedraw();
+                }
+            }
+
+            return EventTargets().Add(this, GetMousePosX(), GetMousePosY());
+        }
+
+        void _OnSelected();
+
+        void _OnDeselected();
+
+        bool _OnHotkey(int id)
+        {
+            return false;
+        }
+
+        bool _OnKeyDown(BYTE vkCode)
+        {
+            if (vkCode == 'C' && KeyState('C', KMOD_CONTROL))
+            {
+                int selStart = _selectionStart;
+                int selLength = _selectionLength;
+                if (selLength != 0)
+                {
+                    if (selLength < 0)
+                    {
+                        selStart = selStart + selLength;
+                        selLength = -selLength;
+                    }
+                }
+
+                if (selLength != 0)
+                {
+                    std::wstring copyTextW = _text.substr(selStart, selLength);
+                    std::string copyText = wstring_to_string(copyTextW);
+                    copyTextW.resize(copyTextW.length() + 1);
+                    copyText.resize(copyText.length() + 1);
+                    // Passing the handle to the window causes some 'EmptyClipboard'
+                    // calls take up to 5 seconds to complete. In addition, while the
+                    // documentation states that 'SetClipboardData' should fail after
+                    // emptying the clipboard after OpenClipboard(NULL), that does
+                    // not appear to actually happen.
+                    if (OpenClipboard(NULL))
+                    {
+                        EmptyClipboard();
+
+                        { // Add wstring
+                            HGLOBAL hGlobalMem = GlobalAlloc(GMEM_MOVEABLE, copyTextW.length() * sizeof(wchar_t));
+                            wchar_t* wstrMem = (wchar_t*)GlobalLock(hGlobalMem);
+                            if (wstrMem)
+                                std::copy_n(copyTextW.data(), copyTextW.length(), wstrMem);
+                            GlobalUnlock(hGlobalMem);
+                            SetClipboardData(CF_UNICODETEXT, hGlobalMem);
+                        }
+                        { // Add string
+                            HGLOBAL hGlobalMem = GlobalAlloc(GMEM_MOVEABLE, copyText.length() * sizeof(char));
+                            wchar_t* strMem = (wchar_t*)GlobalLock(hGlobalMem);
+                            if (strMem)
+                                std::copy_n(copyText.data(), copyText.length(), strMem);
+                            GlobalUnlock(hGlobalMem);
+                            SetClipboardData(CF_TEXT, hGlobalMem);
+                        }
+
+                        CloseClipboard();
+                    }
+                }
+                return true;
+            }
+
+            return false;
+        }
+
+        bool _OnKeyUp(BYTE vkCode)
+        {
+            return false;
+        }
+
+        bool _OnChar(wchar_t ch)
+        {
+            return false;
         }
 
         void _CreateTextFormat()
@@ -210,11 +354,20 @@ namespace zcom
         DWRITE_FONT_STRETCH _fontStretch = DWRITE_FONT_STRETCH_NORMAL;
         D2D1_COLOR_F _fontColor = D2D1::ColorF(0.8f, 0.8f, 0.8f);
 
+        int _selectionStart = 0;
+        int _selectionLength = 0;
+        bool _selecting = false;
+        bool _textSelectable = false;
+
         ID2D1SolidColorBrush* _textBrush = nullptr;
 
         IDWriteFactory* _dwriteFactory = nullptr;
         IDWriteTextFormat* _dwriteTextFormat = nullptr;
         IDWriteTextLayout* _dwriteTextLayout = nullptr;
+
+        Event<void> _textChangedEvent;
+        Event<void> _textFormatChangedEvent;
+        Event<void> _textLayoutChangedEvent;
 
     protected:
         friend class Scene;
@@ -223,6 +376,8 @@ namespace zcom
         void Init(std::wstring text = L"")
         {
             _text = text;
+
+            SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
 
             // Create text rendering resources
             DWriteCreateFactory(
@@ -320,12 +475,29 @@ namespace zcom
             return textMetrics.height + _margins.top + _margins.bottom;
         }
 
+        bool GetTextSelectable() const
+        {
+            return _textSelectable;
+        }
+
+        int GetSelectionStart() const
+        {
+            return _selectionStart;
+        }
+
+        int GetSelectionLength() const
+        {
+            return _selectionLength;
+        }
+
         void SetText(std::wstring text)
         {
             if (text == _text)
                 return;
 
             _text = text;
+            SetSelectionStart(0);
+            SetSelectionLength(0);
             _CreateTextLayout();
         }
 
@@ -428,6 +600,141 @@ namespace zcom
             _fontColor = color;
             SafeFullRelease((IUnknown**)&_textBrush);
             InvokeRedraw();
+        }
+
+        void SetTextSelectable(bool selectable)
+        {
+            if (selectable == _textSelectable)
+                return;
+
+            _textSelectable = selectable;
+            if (_textSelectable)
+            {
+                SetDefaultCursor(CursorIcon::IBEAM);
+                SetSelectable(true);
+            }
+            else
+            {
+                SetDefaultCursor(CursorIcon::ARROW);
+                SetSelectable(false);
+                _selecting = false;
+                _selectionStart = 0;
+                _selectionLength = 0;
+            }
+            InvokeRedraw();
+        }
+
+        void SetSelectionStart(int selectionStart)
+        {
+            if (!_textSelectable)
+                return;
+            if (selectionStart == _selectionStart)
+                return;
+
+            _selectionStart = selectionStart;
+            InvokeRedraw();
+        }
+
+        void SetSelectionLength(int selectionLength)
+        {
+            if (!_textSelectable)
+                return;
+            if (selectionLength == _selectionLength)
+                return;
+
+            _selectionLength = selectionLength;
+            InvokeRedraw();
+        }
+
+        LineMetricsResult LineMetrics() const
+        {
+            UINT32 lineCount;
+            _dwriteTextLayout->GetLineMetrics(nullptr, 0, &lineCount);
+            if (lineCount == 0)
+                return LineMetricsResult{};
+
+            std::vector<DWRITE_LINE_METRICS> metrics;
+            metrics.resize(lineCount);
+            _dwriteTextLayout->GetLineMetrics(metrics.data(), metrics.size(), &lineCount);
+
+            return LineMetricsResult{ metrics };
+        }
+
+        DWRITE_TEXT_METRICS TextMetrics() const
+        {
+            DWRITE_TEXT_METRICS metrics;
+            _dwriteTextLayout->GetMetrics(&metrics);
+            return metrics;
+        }
+
+    protected:
+        float _TextTopPos() const
+        {
+            auto metrics = TextMetrics();
+            if (_vTextAlignment == Alignment::START)
+                return _margins.top;
+            else if (_vTextAlignment == Alignment::CENTER)
+                return _margins.top + ((GetHeight() - _margins.top - _margins.bottom) - metrics.height) * 0.5f;
+            else if (_vTextAlignment == Alignment::END)
+                return _margins.top + GetHeight() - metrics.height - _margins.bottom;
+        }
+    public:
+
+        HitTestResult HitTestPoint(float x, float y)
+        {
+            HitTestResult result;
+            _dwriteTextLayout->HitTestPoint(x - _margins.left, y - _TextTopPos(), &result.isTrailingHit, &result.isInside, &result.hitMetrics);
+            return result;
+        }
+
+        TextPositionHitResult HitTestTextPosition(uint32_t textPosition, bool isTrailingHit = false) const
+        {
+            TextPositionHitResult metrics;
+            _dwriteTextLayout->HitTestTextPosition(
+                textPosition,
+                isTrailingHit,
+                &metrics.posX, &metrics.posY,
+                &metrics.hitMetrics
+            );
+            metrics.posX += _margins.left;
+            metrics.posY += _TextTopPos();
+            return metrics;
+        }
+
+        TextRangeHitResult HitTestTextRange(uint32_t textPosition, uint32_t textLength) const
+        {
+            std::vector<DWRITE_HIT_TEST_METRICS> metricsArray;
+
+            auto metrics = TextMetrics();
+            metricsArray.resize((size_t)metrics.lineCount * metrics.maxBidiReorderingDepth);
+            
+            while (true)
+            {
+                // Arbitrarily large limit
+                if (metricsArray.size() > 10000000)
+                    return {};
+
+                uint32_t actualCount;
+                HRESULT hr = _dwriteTextLayout->HitTestTextRange(
+                    textPosition,
+                    textLength,
+                    _margins.left,
+                    _TextTopPos(),
+                    metricsArray.data(),
+                    metricsArray.size(),
+                    &actualCount
+                );
+                if (hr == E_NOT_SUFFICIENT_BUFFER)
+                {
+                    metricsArray.resize(metricsArray.size() * 1.5 + 1);
+                    continue;
+                }
+
+                if (actualCount < metricsArray.size())
+                    metricsArray.resize(actualCount);
+
+                return { metricsArray };
+            }
         }
     };
 }
