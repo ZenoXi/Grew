@@ -244,6 +244,7 @@ namespace zcom
             );
 
             InvokeRedraw();
+            _textFormatChangedEvent.InvokeAll(this);
         }
 
         void _CreateTextLayout()
@@ -332,6 +333,7 @@ namespace zcom
             }
 
             InvokeRedraw();
+            _textLayoutChangedEvent.InvokeAll(this);
         }
 
     public:
@@ -365,9 +367,9 @@ namespace zcom
         IDWriteTextFormat* _dwriteTextFormat = nullptr;
         IDWriteTextLayout* _dwriteTextLayout = nullptr;
 
-        Event<void> _textChangedEvent;
-        Event<void> _textFormatChangedEvent;
-        Event<void> _textLayoutChangedEvent;
+        Event<void, Label*, std::wstring&> _textChangedEvent;
+        Event<void, Label*> _textFormatChangedEvent;
+        Event<void, Label*> _textLayoutChangedEvent;
 
     protected:
         friend class Scene;
@@ -494,6 +496,9 @@ namespace zcom
         {
             if (text == _text)
                 return;
+
+            // 'text' can be modified by the handlers
+            _textChangedEvent.InvokeAll(this, text);
 
             _text = text;
             SetSelectionStart(0);
@@ -735,6 +740,39 @@ namespace zcom
 
                 return { metricsArray };
             }
+        }
+
+        // Handler parameters:
+        // - a pointer to the label object
+        // - a reference to the new text string. This parameter can be modified
+        void AddOnTextChanged(std::function<void(Label*, std::wstring&)> handler, EventInfo info = EventInfo{nullptr, ""})
+        {
+            _textChangedEvent.Add(handler, info);
+        }
+
+        void AddOnTextFormatChanged(std::function<void(Label*)> handler, EventInfo info = EventInfo{ nullptr, "" })
+        {
+            _textFormatChangedEvent.Add(handler, info);
+        }
+
+        void AddOnTextLayoutChanged(std::function<void(Label*)> handler, EventInfo info = EventInfo{ nullptr, "" })
+        {
+            _textLayoutChangedEvent.Add(handler, info);
+        }
+
+        void RemoveOnTextChanged(EventInfo info)
+        {
+            _textChangedEvent.Remove(info);
+        }
+
+        void RemoveOnTextFormatChanged(EventInfo info)
+        {
+            _textFormatChangedEvent.Remove(info);
+        }
+
+        void RemoveOnTextLayoutChanged(EventInfo info)
+        {
+            _textLayoutChangedEvent.Remove(info);
         }
     };
 }
