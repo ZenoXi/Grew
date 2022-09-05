@@ -234,7 +234,7 @@ namespace zcom
 
         EventTargets _OnMouseMove(int deltaX, int deltaY)
         {
-            Panel::_OnMouseMove(deltaX, deltaY);
+            auto targets = Panel::_OnMouseMove(deltaX, deltaY);
 
             // Get new cursor position
             if (_textLabel->GetSelectionLength() != 0)
@@ -247,6 +247,16 @@ namespace zcom
                     InvokeRedraw();
                 }
             }
+
+            // Set cursor icon
+            int trueX = GetMousePosX();
+            int trueY = GetMousePosY();
+            RECT margins = GetTextAreaMargins();
+            if (trueX < margins.left || trueX > GetWidth() - margins.right ||
+                trueY < margins.top || trueY > GetHeight() - margins.bottom)
+                SetDefaultCursor(targets.MainTarget()->GetDefaultCursor());
+            else
+                SetDefaultCursor(CursorIcon::IBEAM);
 
             return EventTargets().Add(this, GetMousePosX(), GetMousePosY());
         }
@@ -860,7 +870,9 @@ namespace zcom
 
                 if (newText != _textLabel->GetText() && _TextMatches(newText, _pattern))
                 {
+                    _settingInternally = true;
                     _textLabel->SetText(newText);
+                    _settingInternally = false;
                     _cursorPos = newCursorPos;
                     _UpdateTargetCursorXPos();
                 }
@@ -924,7 +936,9 @@ namespace zcom
 
             if (_TextMatches(newText, _pattern))
             {
+                _settingInternally = true;
                 _textLabel->SetText(newText);
+                _settingInternally = false;
                 _cursorPos = newCursorPos;
             }
 
@@ -964,6 +978,9 @@ namespace zcom
         MatchEnforcing _matchEnforcing = MatchEnforcing::IMMEDIATE;
         std::wstring _initialText = L"";
 
+        Event<void, Label*, std::wstring&> _textChangedEvent;
+        bool _settingInternally = false;
+
     protected:
         friend class Scene;
         friend class Base;
@@ -998,6 +1015,19 @@ namespace zcom
 
             AddItem(_textLabel.get());
             AddItem(_placeholderTextLabel.get());
+
+            _textLabel->AddOnTextChanged([&](Label* label, std::wstring& newText)
+            {
+                _OnLabelTextChanged(label, newText);
+            }, { this });
+            _textLabel->AddOnTextFormatChanged([&](Label* label)
+            {
+                _OnLabelTextFormatChanged(label);
+            }, { this });
+            _textLabel->AddOnTextLayoutChanged([&](Label* label)
+            {
+                _OnLabelTextLayoutChanged(label);
+            }, { this });
 
             _UpdateTargetCursorXPos();
             _UpdateTextArea();
@@ -1084,6 +1114,19 @@ namespace zcom
         void SetMatchEnforcing(MatchEnforcing matchEnforcing)
         {
             _matchEnforcing = matchEnforcing;
+        }
+
+        // Handler parameters:
+        // - a pointer to the label object
+        // - a reference to the new text string. This parameter can be modified
+        void AddOnTextChanged(std::function<void(Label*, std::wstring&)> handler, EventInfo info = EventInfo{ nullptr, "" })
+        {
+            _textChangedEvent.Add(handler, info);
+        }
+
+        void RemoveOnTextChanged(EventInfo info)
+        {
+            _textChangedEvent.Remove(info);
         }
 
     protected:
@@ -1250,6 +1293,29 @@ namespace zcom
         bool _TextMatches(const std::wstring& text, const std::wstring& pattern)
         {
             return pattern.empty() || text.empty() || std::regex_match(text, std::wregex(pattern));
+        }
+
+        void _OnLabelTextChanged(Label* label, std::wstring& newText)
+        {
+            if (!_settingInternally)
+            {
+                if (!_TextMatches(newText, _pattern))
+                {
+                    newText = label->GetText();
+                }
+            }
+
+            _textChangedEvent.InvokeAll(label, newText);
+        }
+
+        void _OnLabelTextFormatChanged(Label* label)
+        {
+
+        }
+
+        void _OnLabelTextLayoutChanged(Label* label)
+        {
+            _UpdateLabelPlacement();
         }
     };
 }
