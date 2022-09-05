@@ -2,6 +2,7 @@
 
 #include "ComponentBase.h"
 #include "Label.h"
+#include "Image.h"
 
 #include "Event.h"
 #include "KeyboardEventHandler.h"
@@ -63,11 +64,15 @@ namespace zcom
             brush->Release();
             if (image)
             {
-                g.target->DrawBitmap
-                (
-                    image,
-                    D2D1::RectF(0, 0, g.target->GetSize().width, g.target->GetSize().height)
-                );
+                auto imageComp = Create<zcom::Image>();
+                imageComp->SetSize(GetWidth(), GetHeight());
+                imageComp->SetStretchMode(_stretchMode);
+                imageComp->SetImage(image);
+                g.target->DrawBitmap(imageComp->Draw(g));
+                //(
+                //    image,
+                //    D2D1::RectF(0, 0, g.target->GetSize().width, g.target->GetSize().height)
+                //);
             }
 
             g.target->DrawBitmap(
@@ -170,6 +175,7 @@ namespace zcom
         D2D1_COLOR_F _colorHovered = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f);
         ID2D1Bitmap* _imageClicked = nullptr;
         D2D1_COLOR_F _colorClicked = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.1f);
+        ImageStretchMode _stretchMode = ImageStretchMode::FILL;
 
     protected:
         friend class Scene;
@@ -274,6 +280,15 @@ namespace zcom
             default:
                 break;
             }
+        }
+
+        void SetImageStretch(ImageStretchMode mode)
+        {
+            if (mode == _stretchMode)
+                return;
+
+            _stretchMode = mode;
+            InvokeRedraw();
         }
 
         void SetOnActivated(const std::function<void()>& func)
