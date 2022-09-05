@@ -11,6 +11,8 @@ namespace zcom
         FILL,
         // Fits and centers the image so that nothing is cropped
         FIT,
+        // Centers the image without any stretching
+        CENTER,
         // Doesn't do any stretching or aligning
         NONE
     };
@@ -71,6 +73,14 @@ namespace zcom
                     destRect = D2D1::RectF(0.0f, 0.0f, targetWidth, targetHeight);
                 }
 
+                g.target->DrawBitmap(_image, destRect, 1.0f, D2D1_INTERPOLATION_MODE_CUBIC, srcRect);
+            }
+            else if (_mode == ImageStretchMode::CENTER)
+            {
+                float xOffset = (g.target->GetSize().width - _image->GetSize().width) * 0.5f;
+                float yOffset = (g.target->GetSize().height - _image->GetSize().height) * 0.5f;
+                D2D1_RECT_F destRect = { xOffset, yOffset, xOffset + _image->GetSize().width, yOffset + _image->GetSize().height };
+                D2D1_RECT_F srcRect = { 0.0f, 0.0f, _image->GetSize().width, _image->GetSize().height };
                 g.target->DrawBitmap(_image, destRect, 1.0f, D2D1_INTERPOLATION_MODE_CUBIC, srcRect);
             }
         }
