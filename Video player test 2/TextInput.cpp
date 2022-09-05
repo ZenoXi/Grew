@@ -13,7 +13,7 @@ void zcom::TextInput::_OnDeselected()
 {
     _scene->GetApp()->keyboardManager.ResetExclusiveHandler();
 
-    if (_TextMatches(_textLabel->GetText(), _pattern))
+    if (!_TextMatches(_textLabel->GetText(), _pattern))
     //if (!_pattern.empty() && !_textLabel->GetText().empty() && !std::regex_match(_textLabel->GetText(), std::wregex(_pattern)))
         _textLabel->SetText(_initialText);
 
