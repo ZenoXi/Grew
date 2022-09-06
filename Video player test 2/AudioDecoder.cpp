@@ -1,6 +1,10 @@
 #include "AudioDecoder.h"
 #include "AudioFrame.h"
 
+#include "Options.h"
+#include "OptionNames.h"
+#include "IntOptionAdapter.h"
+
 extern "C"
 {
 #include <libavcodec/avcodec.h>
@@ -37,9 +41,7 @@ AudioDecoder::AudioDecoder(const MediaStream& stream)
 
     _timebase = stream.timeBase;
 
-    // placeholder until global options are implemented
-    _MAX_FRAME_QUEUE_SIZE = 100;
-    _MAX_PACKET_QUEUE_SIZE = 500;
+    _LoadOptions();
 
     // Start decoding thread
     _decoderThread = std::thread(&AudioDecoder::_DecoderThread, this);
@@ -74,8 +76,19 @@ void AudioDecoder::_DecoderThread()
 
     bool discontinuity = true;
 
+    Clock threadClock = Clock(0);
+
     while (!_decoderThreadStop)
     {
+        threadClock.Update();
+
+        // Update options
+        if (threadClock.Now() > _lastOptionCheck + _optionCheckInterval)
+        {
+            _lastOptionCheck = threadClock.Now();
+            _LoadOptions();
+        }
+
         // Seek
         if (_decoderThreadFlush)
         {
@@ -161,6 +174,16 @@ void AudioDecoder::_DecoderThread()
 
     av_frame_unref(frame);
     av_frame_free(&frame);
+}
+
+void AudioDecoder::_LoadOptions()
+{
+    // Frame buffer size
+    std::wstring optStr = Options::Instance()->GetValue(OPTIONS_MAX_AUDIO_FRAMES);
+    _MAX_FRAME_QUEUE_SIZE = IntOptionAdapter(optStr, 100).Value();
+
+    // Packet buffer size
+    _MAX_PACKET_QUEUE_SIZE = 500;
 }
 
 void SelectSampleConverter(void(**convertChunk)(AudioChunkData), int& bytesPerSample, int sampleFormat)

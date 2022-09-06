@@ -28,6 +28,9 @@ class SubtitleDecoder : public IMediaDecoder
     TimePoint _lastBufferedSubtitleTime = -1;
     std::thread _renderingThread;
 
+    TimePoint _lastOptionCheck = -1;
+    Duration _optionCheckInterval = Duration(1, SECONDS);
+
 public:
     struct FontDesc
     {
@@ -50,5 +53,6 @@ private:
     void _DecoderThread();
     void _RenderingThread();
 
+    void _LoadOptions();
     void _ResetRenderer();
 };

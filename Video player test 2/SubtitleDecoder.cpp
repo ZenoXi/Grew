@@ -1,5 +1,9 @@
 #include "SubtitleDecoder.h"
 
+#include "Options.h"
+#include "OptionNames.h"
+#include "IntOptionAdapter.h"
+
 SubtitleDecoder::SubtitleDecoder(const MediaStream& stream)
     : _stream(stream)
 {
@@ -15,9 +19,9 @@ SubtitleDecoder::SubtitleDecoder(const MediaStream& stream)
 
     _timebase = _stream.timeBase;
 
+    _LoadOptions();
+
     // placeholder until global options are implemented
-    _MAX_FRAME_QUEUE_SIZE = 10;
-    _MAX_PACKET_QUEUE_SIZE = 30;
 
     // Start decoding and rendering threads
     _decoderThread = std::thread(&SubtitleDecoder::_DecoderThread, this);
@@ -41,8 +45,19 @@ SubtitleDecoder::~SubtitleDecoder()
 
 void SubtitleDecoder::_DecoderThread()
 {
+    Clock threadClock = Clock(0);
+
     while (!_decoderThreadStop)
     {
+        threadClock.Update();
+
+        // Update options
+        if (threadClock.Now() > _lastOptionCheck + _optionCheckInterval)
+        {
+            _lastOptionCheck = threadClock.Now();
+            _LoadOptions();
+        }
+
         // Seek
         if (_decoderThreadFlush)
         {
@@ -302,6 +317,23 @@ void SubtitleDecoder::SkipForward(Duration amount)
 {
     _lastRenderedFrameTime += amount;
     ClearFrames();
+}
+
+void SubtitleDecoder::_LoadOptions()
+{
+    // Subtitle framerate
+    std::wstring optStr = Options::Instance()->GetValue(OPTIONS_SUBTITLE_FRAMERATE);
+    int64_t fps = IntOptionAdapter(optStr, 20).Value();
+    _timeBetweenFrames = Duration(1000 / fps, MILLISECONDS);
+    if (_timeBetweenFrames < Duration(1, MILLISECONDS))
+        _timeBetweenFrames = Duration(1, MILLISECONDS);
+
+    // Frame buffer size
+    optStr = Options::Instance()->GetValue(OPTIONS_MAX_SUBTITLE_FRAMES);
+    _MAX_FRAME_QUEUE_SIZE = IntOptionAdapter(optStr, 10).Value();
+
+    // Packet buffer size
+    _MAX_PACKET_QUEUE_SIZE = 30;
 }
 
 void SubtitleDecoder::_ResetRenderer()

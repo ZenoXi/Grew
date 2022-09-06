@@ -1,10 +1,16 @@
 #include "VideoDecoder.h"
 #include "VideoFrame.h"
 
+#include "Options.h"
+#include "OptionNames.h"
+#include "IntOptionAdapter.h"
+
 extern "C"
 {
 #include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
+#include <libavdevice/avdevice.h>
 }
 
 VideoDecoder::VideoDecoder(const MediaStream& stream)
@@ -16,9 +22,7 @@ VideoDecoder::VideoDecoder(const MediaStream& stream)
 
     _timebase = stream.timeBase;
 
-    // placeholder until global options are implemented
-    _MAX_FRAME_QUEUE_SIZE = 30;
-    _MAX_PACKET_QUEUE_SIZE = 100;
+    _LoadOptions();
 
     // Start decoding thread
     _decoderThread = std::thread(&VideoDecoder::_DecoderThread, this);
@@ -53,8 +57,19 @@ void VideoDecoder::_DecoderThread()
 
     bool discontinuity = true;
 
+    Clock threadClock = Clock(0);
+
     while (!_decoderThreadStop)
     {
+        threadClock.Update();
+
+        // Update options
+        if (threadClock.Now() > _lastOptionCheck + _optionCheckInterval)
+        {
+            _lastOptionCheck = threadClock.Now();
+            _LoadOptions();
+        }
+
         // Seek
         if (_decoderThreadFlush)
         {
@@ -151,4 +166,14 @@ void VideoDecoder::_DecoderThread()
     if (swsContext) sws_freeContext(swsContext);
     av_frame_unref(frame);
     av_frame_free(&frame);
+}
+
+void VideoDecoder::_LoadOptions()
+{
+    // Frame buffer size
+    std::wstring optStr = Options::Instance()->GetValue(OPTIONS_MAX_VIDEO_FRAMES);
+    _MAX_FRAME_QUEUE_SIZE = IntOptionAdapter(optStr, 12).Value();
+
+    // Packet buffer size
+    _MAX_PACKET_QUEUE_SIZE = 30;
 }
