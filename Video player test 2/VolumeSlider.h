@@ -7,6 +7,7 @@
 #include "GameTime.h"
 #include "Options.h"
 #include "OptionNames.h"
+#include "FloatOptionAdapter.h"
 #include "Functions.h"
 #include "Transition.h"
 
@@ -321,7 +322,7 @@ namespace zcom
             valueStr << (int)roundf(_value * 100.0f) << "%";
             _volumeLabel->SetText(valueStr.str());
 
-            Options::Instance()->SetValue(OPTIONS_VOLUME, string_to_wstring(float_to_str(GetVolume())));
+            Options::Instance()->SetValue(OPTIONS_VOLUME, FloatOptionAdapter(GetVolume()).ToOptionString());
 
             InvokeRedraw();
         }
