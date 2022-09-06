@@ -51,12 +51,26 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     _portLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
     _portLabel->SetFontSize(18.0f);
     _portLabel->SetMargins({ 2.0f });
+    _portLabel->SetTextSelectable(true);
 
     _portInput = Create<zcom::TextInput>();
     _portInput->SetBaseSize(60, 30);
     _portInput->SetOffsetPixels(120, 90);
     _portInput->SetCornerRounding(5.0f);
     _portInput->SetTabIndex(0);
+    //_portInput->SetTextAreaMargins({ 0, 0, 20 });
+    //_portInput->SetMultiline(true);
+    _portInput->SetPattern(
+        L"^[1-9]"
+        "|[1-9][0-9]"
+        "|[1-9][0-9][0-9]"
+        "|[1-9][0-9][0-9][0-9]"
+        "|[1-5][0-9][0-9][0-9][0-9]"
+        "|6[0-4][0-9][0-9][0-9]"
+        "|65[0-4][0-9][0-9]"
+        "|655[0-2][0-9]"
+        "|6553[0-5]$"
+    );
 
     _presetDropdown = Create<zcom::DropdownSelection>(L"Presets", L"No presets added");
     _presetDropdown->SetBaseSize(100, 30);
@@ -89,7 +103,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     _usernameInput->SetBaseSize(240, 30);
     _usernameInput->SetOffsetPixels(120, 140);
     _usernameInput->SetCornerRounding(5.0f);
-    _usernameInput->SetPlaceholderText(L"(Optional)");
+    _usernameInput->PlaceholderText()->SetText(L"(Optional)");
     _usernameInput->SetTabIndex(1);
 
     _advancedOptionsPanel = Create<zcom::DirectionalPanel>(zcom::PanelDirection::DOWN);
@@ -613,7 +627,7 @@ void StartServerScene::_Update()
 
         _portInput->SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
         // Check if port is valid
-        std::string port = wstring_to_string(_portInput->GetText());
+        std::wstring port = _portInput->Text()->GetText();
         bool addressValid = true;
         if (!LastIpOptionAdapter::ValidatePort(port))
         {
@@ -630,11 +644,11 @@ void StartServerScene::_Update()
         {
             _startLoadingInfoLabel->SetVisible(false);
 
-            auto manager = std::make_unique<znet::ServerManager>(str_to_int(port), wstring_to_string(_passwordInput->GetText()));
+            auto manager = std::make_unique<znet::ServerManager>(str_to_int(wstring_to_string(port)), wstring_to_string(_passwordInput->Text()->GetText()));
             if (manager->InitSuccessful())
             {
                 int maxUsers = -1;
-                std::wstring maxUsersInput = _maxUsersInput->GetText();
+                std::wstring maxUsersInput = _maxUsersInput->Text()->GetText();
                 if (!maxUsersInput.empty())
                 {
                     try

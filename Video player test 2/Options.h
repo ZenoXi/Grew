@@ -6,7 +6,7 @@
 
 class Options
 {
-    std::map<std::string, std::string> _options;
+    std::map<std::wstring, std::wstring> _options;
     std::mutex _m_options;
 
 private: // Singleton interface
@@ -21,6 +21,6 @@ private:
     void _SaveToFile();
 
 public:
-    std::string GetValue(std::string name);
-    void SetValue(std::string name, std::string value);
+    std::wstring GetValue(std::wstring name);
+    void SetValue(std::wstring name, std::wstring value);
 };

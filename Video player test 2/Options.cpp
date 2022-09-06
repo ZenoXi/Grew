@@ -43,17 +43,17 @@ void Options::_LoadFromFile()
 
     path /= L"Grew";
     path /= L"options";
-    std::ifstream fin(path.string());
+    std::wifstream fin(path.string());
     if (!fin)
         return;
 
     while (!fin.eof())
     {
-        std::string line;
+        std::wstring line;
         std::getline(fin, line);
         
-        std::array<std::string, 2> parts;
-        split_str(line, parts, '=');
+        std::array<std::wstring, 2> parts;
+        split_wstr(line, parts, '=');
 
         if (parts[0].empty())
             continue;
@@ -75,7 +75,7 @@ void Options::_SaveToFile()
 
     path /= L"Grew";
     path /= L"options";
-    std::ofstream fout(path.string());
+    std::wofstream fout(path.string());
     if (!fout)
         return;
 
@@ -85,13 +85,13 @@ void Options::_SaveToFile()
     }
 }
 
-std::string Options::GetValue(std::string name)
+std::wstring Options::GetValue(std::wstring name)
 {
     std::lock_guard<std::mutex> lock(_m_options);
     return _options[name];
 }
 
-void Options::SetValue(std::string name, std::string value)
+void Options::SetValue(std::wstring name, std::wstring value)
 {
     std::lock_guard<std::mutex> lock(_m_options);
     _options[name] = value;
