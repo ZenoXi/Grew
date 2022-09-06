@@ -1,6 +1,9 @@
 ﻿#include "DisplayWindow.h"
 
 #include "Functions.h"
+#include "Options.h"
+#include "OptionNames.h"
+#include "BoolOptionAdapter.h"
 
 #include <iostream>
 #include <cassert>
@@ -41,34 +44,29 @@ DisplayWindow::DisplayWindow(HINSTANCE hInst, wchar_t* pArgs, LPCWSTR name) : _a
     
     RegisterClassEx(&wc);
 
-    // Create window at the center of screen
-    //RECT desktop;
-    //HWND deskwin = GetDesktopWindow();
-    //GetWindowRect(deskwin, &desktop);
-
-    //RECT wr;
-    //wr.left = (desktop.right / 2) - width / 2;
-    //wr.top = (desktop.bottom / 2) - height / 2;
-    //wr.right = wr.left + width;
-    //wr.bottom = wr.top + height;
-    //AdjustWindowRect(&wr, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, FALSE);
-
-
-    // Create maximized window
+    // Calculate initial window size
     RECT workRect;
     SystemParametersInfo(SPI_GETWORKAREA, 0, &workRect, 0);
     int x = (workRect.right - width) / 2;
     int y = (workRect.bottom - height) / 2;
+    int w = width;
+    int h = height;
+
+    // Set windowed rect size
+    _windowedRect.left = x;
+    _windowedRect.top = y;
+    _windowedRect.right = x + w;
+    _windowedRect.bottom = y + h;
+    _last2Moves[0] = _windowedRect;
+    _last2Moves[1] = _windowedRect;
 
     // Create and show window
     _hwnd = CreateWindowEx(
-        /*WS_EX_ACCEPTFILES*/NULL,
+        NULL,
         _wndClassName,
         WINDOW_NAME.c_str(),
         WS_OVERLAPPEDWINDOW,
-        //0, 0, workRect.right, workRect.bottom,
-        x, y, width, height,
-        //CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+        x, y, w, h,
         NULL,
         NULL,
         hInst,
@@ -79,30 +77,19 @@ DisplayWindow::DisplayWindow(HINSTANCE hInst, wchar_t* pArgs, LPCWSTR name) : _a
     HRESULT hr = RegisterDragDrop(_hwnd, _fileDropHandler.get());
 
     gfx.Initialize(&_hwnd);
-
-    //PAINTSTRUCT ps;
-    //HDC hdc = BeginPaint(_hwnd, &ps);
-    //FillRect(hdc, &ps.rcPaint, CreateSolidBrush(RGB(128, 128, 128)));
-    //EndPaint(_hwnd, &ps);
-
-    _windowedRect.left = x;
-    _windowedRect.top = y;
-    _windowedRect.right = x + width;
-    _windowedRect.bottom = y + height;
-    _last2Moves[0] = _windowedRect;
-    _last2Moves[1] = _windowedRect;
     
+    // Enable dark mode
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
     BOOL value = TRUE;
     ::DwmSetWindowAttribute(_hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
 
-    ShowWindow(_hwnd, SW_SHOWNORMAL);
+    std::wstring optStr = Options::Instance()->GetValue(OPTIONS_START_MAXIMIZED);
+    bool startMaximized = BoolOptionAdapter(optStr).Value();
+    if (startMaximized)
+        ShowWindow(_hwnd, SW_SHOWMAXIMIZED);
+    else
+        ShowWindow(_hwnd, SW_SHOWNORMAL);
     UpdateWindow(_hwnd);
-
-    // Start message handle thread
-    //_msgThreadController.Add("stop", sizeof(bool));
-    //_msgThreadController.Set("stop", false);
-    //_msgThread = std::thread(&DisplayWindow::MsgHandleThread, this);
 }
 
 DisplayWindow::~DisplayWindow()
