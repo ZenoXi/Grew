@@ -308,11 +308,14 @@ namespace zcom
                 }
             }
 
-            // Set hover text if contents are cut off
-            if (charactersCut > 0)
-                SetHoverText(_text);
-            else
-                SetHoverText(L"");
+            if (!_customHoverText)
+            {
+                // Set hover text if contents are cut off
+                if (charactersCut > 0)
+                    Base::SetHoverText(_text);
+                else
+                    Base::SetHoverText(L"");
+            }
 
             // Alignment
             if (_hTextAlignment == TextAlignment::LEADING)
@@ -348,6 +351,7 @@ namespace zcom
         bool _wrapText = false;
         std::wstring _cutoff = L"";
         RECT_F _margins = { 0, 0, 0, 0 };
+        bool _customHoverText = false;
 
         std::wstring _font = L"Calibri";
         float _fontSize = 14.0f;
@@ -649,6 +653,16 @@ namespace zcom
 
             _selectionLength = selectionLength;
             InvokeRedraw();
+        }
+
+        void SetHoverText(std::wstring text)
+        {
+            if (!text.empty())
+                _customHoverText = true;
+            else
+                _customHoverText = false;
+
+            Base::SetHoverText(text);
         }
 
         LineMetricsResult LineMetrics() const
