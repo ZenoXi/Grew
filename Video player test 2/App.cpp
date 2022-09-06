@@ -3,7 +3,7 @@
 #include "TopMenuScene.h"
 #include "OverlayScene.h"
 #include "SettingsScene.h"
-#include "EntryScene.h";
+#include "EntryScene.h"
 #include "ConnectScene.h"
 #include "StartServerScene.h"
 #include "PlaybackScene.h"
@@ -23,6 +23,8 @@
 
 #include "ClientManager.h"
 #include "ServerManager.h"
+
+#include "BoolOptionAdapter.h"
 
 App* App::_instance = nullptr;
 
@@ -106,7 +108,12 @@ void App::Init(DisplayWindow& dw, std::string startScene)
     Instance()->_scenes.push_back(new OpenPlaylistScene(_instance));
     Instance()->_scenes.push_back(new SavePlaylistScene(_instance));
     Instance()->_scenes.push_back(new ManagePlaylistsScene(_instance));
-    Instance()->InitScene(startScene, nullptr);
+
+    // Init initial scenes
+    std::wstring optStr = Options::Instance()->GetValue(OPTIONS_START_IN_PLAYLIST);
+    bool startInPlaylist = BoolOptionAdapter(optStr).Value();
+    if (!startInPlaylist)
+        Instance()->InitScene(startScene, nullptr);
     Instance()->InitScene(PlaybackOverlayScene::StaticName(), nullptr);
 
     // Start main loop
