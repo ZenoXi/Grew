@@ -3,6 +3,7 @@
 #include "OverlayScene.h"
 
 #include "Options.h"
+#include "OptionNames.h"
 #include "LastIpOptionAdapter.h"
 #include "Network.h"
 #include "ClientManager.h"
@@ -392,8 +393,8 @@ void ConnectScene::_ConnectClicked()
         _portInput->SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
 
         // Check if ip/port is valid
-        std::string ip = wstring_to_string(_ipInput->Text()->GetText());
-        std::string port = wstring_to_string(_portInput->Text()->GetText());
+        std::wstring ip = _ipInput->Text()->GetText();
+        std::wstring port = _portInput->Text()->GetText();
         bool addressValid = true;
         std::wstring errorMessage = L"Invalid";
         if (!LastIpOptionAdapter::ValidateIp(ip))
@@ -427,13 +428,13 @@ void ConnectScene::_ConnectClicked()
             _connectButton->Text()->SetText(L"Cancel");
             _connectLoadingImage->ResetAnimation();
             _connectLoadingInfoLabel->SetVisible(false);
-            _ip = ip;
-            _port = str_to_int(port);
+            _ip = wstring_to_string(ip);
+            _port = str_to_int(wstring_to_string(port));
             APP_NETWORK->SetManager(std::make_unique<znet::ClientManager>(_ip, _port));
 
-            LastIpOptionAdapter optAdapter(Options::Instance()->GetValue("lastIps"));
+            LastIpOptionAdapter optAdapter(Options::Instance()->GetValue(OPTIONS_RECENT_IPS));
             bool ipValid = optAdapter.AddIp(ip, port);
-            Options::Instance()->SetValue("lastIps", optAdapter.ToOptionString());
+            Options::Instance()->SetValue(OPTIONS_RECENT_IPS, optAdapter.ToOptionString());
             _RearrangeRecentConnectionsPanel();
         }
     }
@@ -487,15 +488,15 @@ void ConnectScene::_ClosePasswordInput()
 
 void ConnectScene::_RearrangeRecentConnectionsPanel()
 {
-    LastIpOptionAdapter optAdapter(Options::Instance()->GetValue("lastIps"));
+    LastIpOptionAdapter optAdapter(Options::Instance()->GetValue(OPTIONS_RECENT_IPS));
     auto ipList = optAdapter.GetList();
     ID2D1Bitmap* removeIcon = ResourceManager::GetImage("item_delete");
     _recentConnectionsPanel->DeferLayoutUpdates();
     _recentConnectionsPanel->ClearItems();
     for (int i = 0; i < ipList.size(); i++)
     {
-        std::string ip = ipList[i];
-        auto ipButton = Create<zcom::Button>(string_to_wstring(ip));
+        std::wstring ip = ipList[i];
+        auto ipButton = Create<zcom::Button>(ip);
         ipButton->SetParentWidthPercent(1.0f);
         ipButton->SetBaseSize(-22, 22);
         ipButton->SetVerticalOffsetPixels(i * 22);
@@ -504,10 +505,10 @@ void ConnectScene::_RearrangeRecentConnectionsPanel()
         ipButton->SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
         ipButton->SetOnActivated([&, ip]()
         {
-            std::array<std::string, 2> ipParts;
-            split_str(ip, ipParts, ':');
-            _ipInput->Text()->SetText(string_to_wstring(ipParts[0]));
-            _portInput->Text()->SetText(string_to_wstring(ipParts[1]));
+            std::array<std::wstring, 2> ipParts;
+            split_wstr(ip, ipParts, ':');
+            _ipInput->Text()->SetText(ipParts[0]);
+            _portInput->Text()->SetText(ipParts[1]);
         });
         auto removeButton = Create<zcom::Button>();
         removeButton->SetBaseSize(22, 22);
@@ -517,10 +518,10 @@ void ConnectScene::_RearrangeRecentConnectionsPanel()
         removeButton->SetBackgroundImage(removeIcon);
         removeButton->SetOnActivated([&, ip]()
         {
-            LastIpOptionAdapter _optAdapter(Options::Instance()->GetValue("lastIps"));
+            LastIpOptionAdapter _optAdapter(Options::Instance()->GetValue(OPTIONS_RECENT_IPS));
             if (_optAdapter.RemoveIp(ip))
             {
-                Options::Instance()->SetValue("lastIps", _optAdapter.ToOptionString());
+                Options::Instance()->SetValue(OPTIONS_RECENT_IPS, _optAdapter.ToOptionString());
                 _RearrangeRecentConnectionsPanel();
             }
         });

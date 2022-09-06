@@ -2,6 +2,7 @@
 
 #include "XAudio2_AudioOutputAdapter.h"
 #include "Options.h"
+#include "OptionNames.h"
 
 Playback::Playback()
 {
@@ -57,7 +58,7 @@ void Playback::Update()
 
                 // Get volume from saved options
                 float volume = 0.2f;
-                try { volume = std::stof(Options::Instance()->GetValue("volume")); }
+                try { volume = std::stof(Options::Instance()->GetValue(OPTIONS_VOLUME)); }
                 catch (std::out_of_range) {}
                 catch (std::invalid_argument) {}
                 _controller->SetVolume(volume);
