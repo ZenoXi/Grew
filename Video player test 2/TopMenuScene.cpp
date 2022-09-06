@@ -2,6 +2,7 @@
 #include "TopMenuScene.h"
 
 #include "OverlayScene.h"
+#include "SettingsScene.h"
 
 TopMenuScene::TopMenuScene(App* app)
     : Scene(app)
@@ -40,13 +41,14 @@ void TopMenuScene::_Init(const SceneOptionsBase* options)
     offset += _settingsButton->GetBaseWidth();
     _settingsButton->SetOnActivated([&]()
     {
-        _app->Overlay()->ShowMenu(_menuPanel.get(), { _settingsButton->GetHorizontalOffsetPixels() + 3, 0, _settingsButton->GetHorizontalOffsetPixels() + 3, 0 });
+        _app->InitScene(SettingsScene::StaticName(), nullptr);
+        _app->MoveSceneToFront(SettingsScene::StaticName());
     });
     _settingsButton->SetOnHovered([&]()
     {
         if (_app->Overlay()->MenuOpened())
         {
-            _app->Overlay()->ShowMenu(_menuPanel.get(), { _settingsButton->GetHorizontalOffsetPixels() + 3, 0, _settingsButton->GetHorizontalOffsetPixels() + 3, 0 });
+            _app->Overlay()->ShowMenu(nullptr, RECT{});
         }
     });
 
