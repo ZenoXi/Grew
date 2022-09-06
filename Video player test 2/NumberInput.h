@@ -48,6 +48,7 @@ namespace zcom
                 return;
 
             _value = value;
+            _valueChangedEvent.InvokeAll(_value);
             _BoundValue();
             _UpdateText();
         }
@@ -84,6 +85,16 @@ namespace zcom
             if (_minValue > _maxValue)
                 _minValue = _maxValue;
             _BoundValue();
+        }
+
+        void AddOnValueChanged(std::function<void(NumberInputValue)> handler, EventInfo info = EventInfo{ nullptr, "" })
+        {
+            _valueChangedEvent.Add(handler, info);
+        }
+
+        void RemoveOnValueChanged(EventInfo info)
+        {
+            _valueChangedEvent.Remove(info);
         }
 
 
@@ -162,6 +173,8 @@ namespace zcom
         NumberInputValue _maxValue;
 
         bool _internalChange = false;
+
+        Event<void, NumberInputValue> _valueChangedEvent;
 
     private:
         void _UpdateValue()
