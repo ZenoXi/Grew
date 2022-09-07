@@ -5,6 +5,9 @@
 #include "HostPlaybackController.h"
 #include "ReceiverPlaybackController.h"
 #include "Options.h"
+#include "OptionNames.h"
+#include "IntOptionAdapter.h"
+#include "FloatOptionAdapter.h"
 #include "Permissions.h"
 
 #include <iomanip>
@@ -894,9 +897,11 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
         if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
             break;
 
-        int seekAmount = 15;
-        if (_shortcutHandler->KeyState(VK_CONTROL)) seekAmount = 60;
-        if (_shortcutHandler->KeyState(VK_SHIFT)) seekAmount = 5;
+        int seekAmount = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_SEEK_AMOUNT), 15).Value();
+        if (_shortcutHandler->KeyState(VK_CONTROL))
+            seekAmount = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_SEEK_AMOUNT_LARGE), 60).Value();
+        if (_shortcutHandler->KeyState(VK_SHIFT))
+            seekAmount = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_SEEK_AMOUNT_SMALL), 5).Value();
         _playback->Controller()->Seek(_playback->Controller()->CurrentTime() - Duration(seekAmount, SECONDS));
         _skipBackwardsIcon->Show(seekAmount);
         break;
@@ -909,9 +914,11 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
         if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
             break;
 
-        int seekAmount = 15;
-        if (_shortcutHandler->KeyState(VK_CONTROL)) seekAmount = 60;
-        if (_shortcutHandler->KeyState(VK_SHIFT)) seekAmount = 5;
+        int seekAmount = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_SEEK_AMOUNT), 15).Value();
+        if (_shortcutHandler->KeyState(VK_CONTROL))
+            seekAmount = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_SEEK_AMOUNT_LARGE), 60).Value();
+        if (_shortcutHandler->KeyState(VK_SHIFT))
+            seekAmount = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_SEEK_AMOUNT_SMALL), 5).Value();
         _playback->Controller()->Seek(_playback->Controller()->CurrentTime() + Duration(seekAmount, SECONDS));
         _skipForwardsIcon->Show(seekAmount);
         break;
@@ -920,9 +927,11 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
     {
         if (_playback->Initializing()) break;
 
-        float volumeChange = 0.05f;
-        if (_shortcutHandler->KeyState(VK_CONTROL)) volumeChange = 0.2f;
-        if (_shortcutHandler->KeyState(VK_SHIFT)) volumeChange = 0.01f;
+        float volumeChange = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_VOLUME_CHANGE_AMOUNT), 5).Value() * 0.01f;
+        if (_shortcutHandler->KeyState(VK_CONTROL))
+            volumeChange = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_VOLUME_CHANGE_AMOUNT_LARGE), 20).Value() * 0.01f;
+        if (_shortcutHandler->KeyState(VK_SHIFT))
+            volumeChange = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_VOLUME_CHANGE_AMOUNT_SMALL), 1).Value() * 0.01f;
         _volumeSlider->SetValue(_volumeSlider->GetValue() + volumeChange);
         _playback->Controller()->SetVolume(_volumeSlider->GetVolume());
         _volumeIcon->Show(roundf(_volumeSlider->GetValue() * 100.0f));
@@ -932,9 +941,11 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
     {
         if (_playback->Initializing()) break;
 
-        float volumeChange = 0.05f;
-        if (_shortcutHandler->KeyState(VK_CONTROL)) volumeChange = 0.2f;
-        if (_shortcutHandler->KeyState(VK_SHIFT)) volumeChange = 0.01f;
+        float volumeChange = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_VOLUME_CHANGE_AMOUNT), 5).Value() * 0.01f;
+        if (_shortcutHandler->KeyState(VK_CONTROL))
+            volumeChange = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_VOLUME_CHANGE_AMOUNT_LARGE), 20).Value() * 0.01f;
+        if (_shortcutHandler->KeyState(VK_SHIFT))
+            volumeChange = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_VOLUME_CHANGE_AMOUNT_SMALL), 1).Value() * 0.01f;
         _volumeSlider->SetValue(_volumeSlider->GetValue() - volumeChange);
         _playback->Controller()->SetVolume(_volumeSlider->GetVolume());
         _volumeIcon->Show(roundf(_volumeSlider->GetValue() * 100.0f));
