@@ -152,6 +152,21 @@ namespace znet
         //  a serialized MediaPacket object
         SUBTITLE_PACKET,
 
+        // Sent to the host to inform of client's memory requirements
+        // Contains:
+        //  size_t - video memory limit in bytes
+        VIDEO_MEMORY_LIMIT,
+
+        // Sent to the host to inform of client's memory requirements
+        // Contains:
+        //  size_t - audio memory limit in bytes
+        AUDIO_MEMORY_LIMIT,
+
+        // Sent to the host to inform of client's memory requirements
+        // Contains:
+        //  size_t - subtitle memory limit in bytes
+        SUBTITLE_MEMORY_LIMIT,
+
         // Sent by user if it wants the playback of some media, which it does not host
         // Contains:
         //  int32_t - media id

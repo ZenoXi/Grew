@@ -1,6 +1,9 @@
 #pragma once
 
 #include "LocalFileDataProvider.h"
+#include "PacketSubscriber.h"
+
+#include <unordered_map>
 
 class MediaHostDataProvider : public IMediaDataProvider
 {
@@ -15,6 +18,13 @@ class MediaHostDataProvider : public IMediaDataProvider
     std::mutex _m_seek;
 
     std::vector<int64_t> _destinationUsers;
+
+    std::unique_ptr<znet::PacketReceiver> _videoMemoryPacketReceiver = nullptr;
+    std::unique_ptr<znet::PacketReceiver> _audioMemoryPacketReceiver = nullptr;
+    std::unique_ptr<znet::PacketReceiver> _subtitleMemoryPacketReceiver = nullptr;
+    std::unordered_map<int64_t, size_t> _videoMemoryLimits;
+    std::unordered_map<int64_t, size_t> _audioMemoryLimits;
+    std::unordered_map<int64_t, size_t> _subtitleMemoryLimits;
 
 public:
     MediaHostDataProvider(std::unique_ptr<LocalFileDataProvider> localDataProvider, std::vector<int64_t> participants);
@@ -34,6 +44,11 @@ protected:
 private:
     void _ReadPackets();
     void _ManageNetwork();
+
+    void _CheckForVideoMemoryPackets();
+    void _CheckForAudioMemoryPackets();
+    void _CheckForSubtitleMemoryPackets();
+    void _UpdateSelfMemoryLimit();
 
     // Host specific
 public:

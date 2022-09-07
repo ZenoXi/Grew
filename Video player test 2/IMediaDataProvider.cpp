@@ -2,15 +2,13 @@
 
 #include "Functions.h"
 #include "Languages.h"
+#include "Options.h"
+#include "OptionNames.h"
+#include "IntOptionAdapter.h"
 
 IMediaDataProvider::IMediaDataProvider()
 {
-    _videoData.allowedMemory = 250000000; // 250 MB
-    _audioData.allowedMemory = 50000000; // 50 MB
-    _subtitleData.allowedMemory = 10000000; // 10 MB
-    //_videoData.allowedMemory = 1000000000; // 1 GB
-    //_audioData.allowedMemory = 100000000; // 100 MB
-    //_subtitleData.allowedMemory = 50000000; // 50 MB
+    _UpdateMemoryLimits(true);
 }
 
 IMediaDataProvider::IMediaDataProvider(IMediaDataProvider* other)
@@ -134,6 +132,11 @@ Duration IMediaDataProvider::MaxMediaDuration()
     return Duration(finalDuration, MICROSECONDS);
 }
 
+void IMediaDataProvider::AutoUpdateMemoryFromSettings(bool autoUpdate)
+{
+    _autoUpdateMemory = autoUpdate;
+}
+
 void IMediaDataProvider::SetAllowedVideoMemory(size_t bytes)
 {
     _SetAllowedMemory(_videoData, bytes);
@@ -154,24 +157,60 @@ void IMediaDataProvider::_SetAllowedMemory(MediaData& mediaData, size_t bytes)
     mediaData.allowedMemory = bytes;
 }
 
-bool IMediaDataProvider::VideoMemoryExceeded() const
+size_t IMediaDataProvider::GetAllowedVideoMemory() const
+{
+    return _GetAllowedMemory(_videoData);
+}
+
+size_t IMediaDataProvider::GetAllowedAudioMemory() const
+{
+    return _GetAllowedMemory(_audioData);
+}
+
+size_t IMediaDataProvider::GetAllowedSubtitleMemory() const
+{
+    return _GetAllowedMemory(_subtitleData);
+}
+
+size_t IMediaDataProvider::_GetAllowedMemory(const MediaData& mediaData) const
+{
+    return mediaData.allowedMemory;
+}
+
+bool IMediaDataProvider::VideoMemoryExceeded()
 {
     return _MemoryExceeded(_videoData);
 }
 
-bool IMediaDataProvider::AudioMemoryExceeded() const
+bool IMediaDataProvider::AudioMemoryExceeded()
 {
     return _MemoryExceeded(_audioData);
 }
 
-bool IMediaDataProvider::SubtitleMemoryExceeded() const
+bool IMediaDataProvider::SubtitleMemoryExceeded()
 {
     return _MemoryExceeded(_subtitleData);
 }
 
-bool IMediaDataProvider::_MemoryExceeded(const MediaData& mediaData) const
+bool IMediaDataProvider::_MemoryExceeded(const MediaData& mediaData)
 {
+    _UpdateMemoryLimits();
     return mediaData.totalMemoryUsed > mediaData.allowedMemory;
+}
+
+void IMediaDataProvider::_UpdateMemoryLimits(bool force)
+{
+    if (force || _autoUpdateMemory)
+    {
+        _memoryUpdateClock.Update();
+        if (force || _memoryUpdateClock.Now() > _lastMemoryUpdate + _memoryUpdateInterval)
+        {
+            _lastMemoryUpdate = _memoryUpdateClock.Now();
+            _videoData.allowedMemory = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_MAX_VIDEO_MEMORY), 250).Value() * 1000000;
+            _audioData.allowedMemory = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_MAX_AUDIO_MEMORY), 10).Value() * 1000000;
+            _subtitleData.allowedMemory = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_MAX_SUBTITLE_MEMORY), 1).Value() * 1000000;
+        }
+    }
 }
 
 IMediaDataProvider::SeekResult IMediaDataProvider::Seek(IMediaDataProvider::SeekData seekData)
@@ -436,6 +475,8 @@ MediaPacket IMediaDataProvider::GetSubtitlePacket()
 
 MediaPacket IMediaDataProvider::_GetPacket(MediaData& mediaData)
 {
+    _UpdateMemoryLimits();
+
     std::unique_lock<std::mutex> lock(mediaData.mtx);
 
     // Keep memory usage in check

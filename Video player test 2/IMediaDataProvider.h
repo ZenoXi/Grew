@@ -121,15 +121,25 @@ public:
 
     // MEMORY MANAGEMENT
 public:
+    void AutoUpdateMemoryFromSettings(bool autoUpdate);
     void SetAllowedVideoMemory(size_t bytes);
     void SetAllowedAudioMemory(size_t bytes);
     void SetAllowedSubtitleMemory(size_t bytes);
-    bool VideoMemoryExceeded() const;
-    bool AudioMemoryExceeded() const;
-    bool SubtitleMemoryExceeded() const;
+    size_t GetAllowedVideoMemory() const;
+    size_t GetAllowedAudioMemory() const;
+    size_t GetAllowedSubtitleMemory() const;
+    bool VideoMemoryExceeded();
+    bool AudioMemoryExceeded();
+    bool SubtitleMemoryExceeded();
 private:
     void _SetAllowedMemory(MediaData& mediaData, size_t bytes);
-    bool _MemoryExceeded(const MediaData& mediaData) const;
+    size_t _GetAllowedMemory(const MediaData& mediaData) const;
+    bool _MemoryExceeded(const MediaData& mediaData);
+    void _UpdateMemoryLimits(bool force = false);
+    bool _autoUpdateMemory = true;
+    TimePoint _lastMemoryUpdate = -1;
+    Duration _memoryUpdateInterval = Duration(1, SECONDS);
+    Clock _memoryUpdateClock = Clock(0);
 
 
     // STREAM CONTROL

@@ -113,6 +113,11 @@ void MediaReceiverDataProvider::_Initialize()
     // Send receive confirmation
     APP_NETWORK->Send(znet::Packet((int)znet::PacketType::METADATA_CONFIRMATION), { _hostId });
 
+    // Send memory limits
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::VIDEO_MEMORY_LIMIT).From(GetAllowedVideoMemory()), { _hostId });
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::AUDIO_MEMORY_LIMIT).From(GetAllowedAudioMemory()), { _hostId });
+    APP_NETWORK->Send(znet::Packet((int)znet::PacketType::SUBTITLE_MEMORY_LIMIT).From(GetAllowedSubtitleMemory()), { _hostId });
+
     _initializing = false;
 
     std::cout << "Init success!" << std::endl;
@@ -120,8 +125,41 @@ void MediaReceiverDataProvider::_Initialize()
 
 void MediaReceiverDataProvider::_ReadPackets()
 {
+    size_t currentVideoMemoryLimit = 0;
+    size_t currentAudioMemoryLimit = 0;
+    size_t currentSubtitleMemoryLimit = 0;
+
     while (!_PACKET_THREAD_STOP)
     {
+        bool changed = false;
+        // Update limits
+        size_t newVideoMemoryLimit = GetAllowedVideoMemory();
+        if (newVideoMemoryLimit != currentVideoMemoryLimit)
+        {
+            currentVideoMemoryLimit = newVideoMemoryLimit;
+            changed = true;
+        }
+        size_t newAudioMemoryLimit = GetAllowedAudioMemory();
+        if (newAudioMemoryLimit != currentAudioMemoryLimit)
+        {
+            currentAudioMemoryLimit = newAudioMemoryLimit;
+            changed = true;
+        }
+        size_t newSubtitleMemoryLimit = GetAllowedSubtitleMemory();
+        if (newSubtitleMemoryLimit != currentSubtitleMemoryLimit)
+        {
+            currentSubtitleMemoryLimit = newSubtitleMemoryLimit;
+            changed = true;
+        }
+
+        // Send limits
+        if (changed)
+        {
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::VIDEO_MEMORY_LIMIT).From(GetAllowedVideoMemory()), { _hostId });
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::AUDIO_MEMORY_LIMIT).From(GetAllowedAudioMemory()), { _hostId });
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::SUBTITLE_MEMORY_LIMIT).From(GetAllowedSubtitleMemory()), { _hostId });
+        }
+
         if (_seekReceived && _waitingForSeek)// && _initiateSeekReceiver->SeekDataReceived())
         {
             _waitingForSeek = false;

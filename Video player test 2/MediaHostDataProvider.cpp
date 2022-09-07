@@ -1,14 +1,22 @@
 #include "MediaHostDataProvider.h"
 
 #include "Network.h"
+#include "Options.h"
+#include "OptionNames.h"
+#include "IntOptionAdapter.h"
 
 #include <iostream>
 
 MediaHostDataProvider::MediaHostDataProvider(std::unique_ptr<LocalFileDataProvider> localDataProvider, std::vector<int64_t> participants)
     : IMediaDataProvider(localDataProvider.get())
 {
+    _videoMemoryPacketReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::VIDEO_MEMORY_LIMIT);
+    _audioMemoryPacketReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::AUDIO_MEMORY_LIMIT);
+    _subtitleMemoryPacketReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::SUBTITLE_MEMORY_LIMIT);
+    // Update manually with input from clients
+    AutoUpdateMemoryFromSettings(false);
+
     _localDataProvider = std::move(localDataProvider);
-    _localDataProvider->Start();
     _destinationUsers = participants;
 
     _initializing = true;
@@ -80,6 +88,8 @@ void MediaHostDataProvider::_Initialize()
     _localDataProvider->SetAllowedVideoMemory(10000000); // 10 MB
     _localDataProvider->SetAllowedAudioMemory(5000000); // 5 MB
     _localDataProvider->SetAllowedSubtitleMemory(1000000); // 1 MB
+    _localDataProvider->AutoUpdateMemoryFromSettings(false);
+    _localDataProvider->Start();
 
     // Create metadata confirmation receiver
     class MetadataTracker : public znet::PacketSubscriber
@@ -242,8 +252,25 @@ void MediaHostDataProvider::_ReadPackets()
     MediaPacket audioPacket;
     MediaPacket subtitlePacket;
 
+    TimePoint lastMemoryUpdate = -1;
+    Duration memoryUpdateInterval = Duration(2, SECONDS);
+    Clock threadClock = Clock(0);
+
     while (!_PACKET_THREAD_STOP)
     {
+        threadClock.Update();
+
+        // Periodically update memory limits in case options change
+        if (threadClock.Now() >= lastMemoryUpdate + memoryUpdateInterval)
+        {
+            lastMemoryUpdate = threadClock.Now();
+            _UpdateSelfMemoryLimit();
+        }
+
+        _CheckForVideoMemoryPackets();
+        _CheckForAudioMemoryPackets();
+        _CheckForSubtitleMemoryPackets();
+
         std::unique_lock<std::mutex> lock(_m_seek);
         if (_waitForDiscontinuity)
         {
@@ -357,6 +384,116 @@ void MediaHostDataProvider::_ReadPackets()
 void MediaHostDataProvider::_ManageNetwork()
 {
 
+}
+
+void MediaHostDataProvider::_CheckForVideoMemoryPackets()
+{
+    if (!_videoMemoryPacketReceiver)
+        return;
+
+    if (_videoMemoryPacketReceiver->PacketCount() > 0)
+    {
+        // Process packet
+        auto packetPair = _videoMemoryPacketReceiver->GetPacket();
+        znet::Packet packet = std::move(packetPair.first);
+        int64_t userId = packetPair.second;
+
+        if (packet.size == sizeof(size_t))
+        {
+            size_t bytes = packet.Cast<size_t>();
+            _videoMemoryLimits[userId] = bytes;
+            _UpdateSelfMemoryLimit();
+        }
+    }
+}
+
+void MediaHostDataProvider::_CheckForAudioMemoryPackets()
+{
+    if (!_audioMemoryPacketReceiver)
+        return;
+
+    if (_audioMemoryPacketReceiver->PacketCount() > 0)
+    {
+        // Process packet
+        auto packetPair = _audioMemoryPacketReceiver->GetPacket();
+        znet::Packet packet = std::move(packetPair.first);
+        int64_t userId = packetPair.second;
+
+        if (packet.size == sizeof(size_t))
+        {
+            size_t bytes = packet.Cast<size_t>();
+            _audioMemoryLimits[userId] = bytes;
+            _UpdateSelfMemoryLimit();
+        }
+    }
+}
+
+void MediaHostDataProvider::_CheckForSubtitleMemoryPackets()
+{
+    if (!_subtitleMemoryPacketReceiver)
+        return;
+
+    if (_subtitleMemoryPacketReceiver->PacketCount() > 0)
+    {
+        // Process packet
+        auto packetPair = _subtitleMemoryPacketReceiver->GetPacket();
+        znet::Packet packet = std::move(packetPair.first);
+        int64_t userId = packetPair.second;
+
+        if (packet.size == sizeof(size_t))
+        {
+            size_t bytes = packet.Cast<size_t>();
+            _subtitleMemoryLimits[userId] = bytes;
+            _UpdateSelfMemoryLimit();
+        }
+    }
+}
+
+void MediaHostDataProvider::_UpdateSelfMemoryLimit()
+{
+    size_t MIN_VIDEO_MEMORY = 100000000; // 100 mb
+    size_t MIN_AUDIO_MEMORY = 10000000; // 10 mb
+    size_t MIN_SUBTITLE_MEMORY = 1000000; // 1 mb
+
+    // Calculate allowed video memory
+    size_t allowedVideoMemory = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_MAX_VIDEO_MEMORY), 250).Value() * 1000000;
+    for (auto& pair : _videoMemoryLimits)
+    {
+        if (pair.second < allowedVideoMemory)
+        {
+            allowedVideoMemory = pair.second;
+        }
+    }
+    if (allowedVideoMemory < MIN_VIDEO_MEMORY)
+        allowedVideoMemory = MIN_VIDEO_MEMORY;
+
+    // Calculate allowed audio memory
+    size_t allowedAudioMemory = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_MAX_AUDIO_MEMORY), 10).Value() * 1000000;
+    for (auto& pair : _audioMemoryLimits)
+    {
+        if (pair.second < allowedAudioMemory)
+        {
+            allowedVideoMemory = pair.second;
+        }
+    }
+    if (allowedAudioMemory < MIN_AUDIO_MEMORY)
+        allowedAudioMemory = MIN_AUDIO_MEMORY;
+
+    // Calculate allowed subtitle memory
+    size_t allowedSubtitleMemory = IntOptionAdapter(Options::Instance()->GetValue(OPTIONS_MAX_SUBTITLE_MEMORY), 1).Value() * 1000000;
+    for (auto& pair : _subtitleMemoryLimits)
+    {
+        if (pair.second < allowedSubtitleMemory)
+        {
+            allowedSubtitleMemory = pair.second;
+        }
+    }
+    if (allowedSubtitleMemory < MIN_SUBTITLE_MEMORY)
+        allowedSubtitleMemory = MIN_SUBTITLE_MEMORY;
+
+    SetAllowedVideoMemory(allowedVideoMemory);
+    SetAllowedAudioMemory(allowedAudioMemory);
+    SetAllowedSubtitleMemory(allowedSubtitleMemory);
 }
 
 std::vector<int64_t> MediaHostDataProvider::GetDestinationUsers()
