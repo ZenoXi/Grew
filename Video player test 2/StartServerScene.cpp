@@ -3,6 +3,7 @@
 
 #include "Permissions.h"
 #include "Options.h"
+#include "OptionNames.h"
 #include "LastIpOptionAdapter.h"
 #include "Network.h"
 #include "ServerManager.h"
@@ -58,6 +59,10 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     _portInput->SetOffsetPixels(120, 90);
     _portInput->SetCornerRounding(5.0f);
     _portInput->SetTabIndex(0);
+    _portInput->Text()->SetFont(L"Monocraft");
+    _portInput->Text()->SetFontWeight(DWRITE_FONT_WEIGHT_MEDIUM);
+    //_portInput->Text()->SetFontStretch(DWRITE_FONT_STRETCH_UNDEFINED);
+    //_portInput->Text()->SetFont(L"Mongolian Baiti Regular");
     //_portInput->SetTextAreaMargins({ 0, 0, 20 });
     //_portInput->SetMultiline(true);
     _portInput->SetPattern(
@@ -71,6 +76,21 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         "|655[0-2][0-9]"
         "|6553[0-5]$"
     );
+
+    // Get recent/default port
+    std::wstring defaultPort = Options::Instance()->GetValue(OPTIONS_DEFAULT_PORT);
+    if (!defaultPort.empty())
+    {
+        _portInput->Text()->SetText(defaultPort);
+    }
+    else
+    {
+        std::wstring recentPort = Options::Instance()->GetValue(OPTIONS_LAST_PORT);
+        if (!recentPort.empty())
+        {
+            _portInput->Text()->SetText(recentPort);
+        }
+    }
 
     _presetDropdown = Create<zcom::DropdownSelection>(L"Presets", L"No presets added");
     _presetDropdown->SetBaseSize(100, 30);
@@ -616,6 +636,11 @@ void StartServerScene::_Update()
         App::Instance()->usersServer.DefaultUser()->SetPermission(PERMISSION_CHANGE_STREAMS, _allowStreamChangingCheckbox->Checked());
         App::Instance()->usersServer.DefaultUser()->SetPermission(PERMISSION_DRAW, _allowDrawingCheckbox->Checked());
 
+        // Set username
+        std::wstring defaultUsername = Options::Instance()->GetValue(OPTIONS_DEFAULT_USERNAME);
+        if (!defaultUsername.empty())
+            _app->users.SetSelfUsername(defaultUsername);
+
         APP_NETWORK->StartManager();
         _startSuccessful = true;
         _closeScene = true;
@@ -643,6 +668,9 @@ void StartServerScene::_Update()
         else
         {
             _startLoadingInfoLabel->SetVisible(false);
+
+            // Save used port
+            Options::Instance()->SetValue(OPTIONS_LAST_PORT, port);
 
             auto manager = std::make_unique<znet::ServerManager>(str_to_int(wstring_to_string(port)), wstring_to_string(_passwordInput->Text()->GetText()));
             if (manager->InitSuccessful())

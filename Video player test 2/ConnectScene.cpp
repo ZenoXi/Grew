@@ -114,6 +114,21 @@ void ConnectScene::_Init(const SceneOptionsBase* options)
     _usernameInput->PlaceholderText()->SetText(L"(Optional)");
     _usernameInput->SetTabIndex(2);
 
+    // Get recent/default username
+    std::wstring defaultUsername = Options::Instance()->GetValue(OPTIONS_DEFAULT_USERNAME);
+    if (!defaultUsername.empty())
+    {
+        _usernameInput->Text()->SetText(defaultUsername);
+    }
+    else
+    {
+        std::wstring recentUsername = Options::Instance()->GetValue(OPTIONS_LAST_USERNAME);
+        if (!recentUsername.empty())
+        {
+            _usernameInput->Text()->SetText(recentUsername);
+        }
+    }
+
     _separator2 = Create<zcom::EmptyPanel>();
     _separator2->SetBaseSize(440, 1);
     _separator2->SetVerticalOffsetPixels(-80);
@@ -304,6 +319,9 @@ void ConnectScene::_Update()
                     _connectionSuccessful = true;
                     _closeScene = true;
                     _app->users.SetSelfUsername(_usernameInput->Text()->GetText());
+
+                    // Save used username
+                    Options::Instance()->SetValue(OPTIONS_LAST_USERNAME, _usernameInput->Text()->GetText());
                 }
                 else if (manager->PasswordRequired())
                 {
