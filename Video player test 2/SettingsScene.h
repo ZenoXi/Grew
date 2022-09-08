@@ -32,6 +32,7 @@ struct SettingsSceneOptions : public SceneOptionsBase
 
 class SettingsScene : public Scene
 {
+    std::unique_ptr<zcom::Panel> _backgroundPanel = nullptr;
     std::unique_ptr<zcom::Panel> _mainPanel = nullptr;
     std::unique_ptr<zcom::Label> _titleLabel = nullptr;
     std::unique_ptr<zcom::Button> _cancelButton = nullptr;

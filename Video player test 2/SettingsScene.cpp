@@ -207,15 +207,28 @@ void SettingsScene::_Init(const SceneOptionsBase* options)
     //_mainPanel->AddItem(_separatorBottom.get());
     _mainPanel->AddItem(_saveButton.get());
 
+    _backgroundPanel = Create<zcom::Panel>();
+    _backgroundPanel->SetParentSizePercent(1.0f, 1.0f);
+    _backgroundPanel->AddPostLeftPressed([&](zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y)
+    {
+        // Close scene if clicked outside main panel
+        if (targets.size() == 1)
+        {
+            _CancelClicked();
+        }
+    });
+
     _SelectTab(SettingsSceneOptions::MAIN);
 
-    _canvas->AddComponent(_mainPanel.get());
+    _backgroundPanel->AddItem(_mainPanel.get());
+    _canvas->AddComponent(_backgroundPanel.get());
     _canvas->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.2f));
 }
 
 void SettingsScene::_Uninit()
 {
     _canvas->ClearComponents();
+    _backgroundPanel->ClearItems();
     _mainPanel->ClearItems();
     _sideMenuPanel->ClearItems();
     _settingsPanel->ClearItems();
@@ -225,6 +238,7 @@ void SettingsScene::_Uninit()
     //_advancedSettingsPanel->ClearItems();
     //_keybindSettingsPanel->ClearItems();
 
+    _backgroundPanel = nullptr;
     _mainPanel = nullptr;
     _titleLabel = nullptr;
     _cancelButton = nullptr;
