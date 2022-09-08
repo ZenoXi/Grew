@@ -501,9 +501,20 @@ void SettingsScene::_ShowNetworkSettingsTab()
         input->SetCornerRounding(5.0f);
         input->PlaceholderText()->SetText(L"Use last entered port");
         input->Text()->SetText(value);
+        input->SetPattern(
+            L"^[1-9]"
+            "|[1-9][0-9]"
+            "|[1-9][0-9][0-9]"
+            "|[1-9][0-9][0-9][0-9]"
+            "|[1-5][0-9][0-9][0-9][0-9]"
+            "|6[0-4][0-9][0-9][0-9]"
+            "|65[0-4][0-9][0-9]"
+            "|655[0-2][0-9]"
+            "|6553[0-5]$"
+        );
         input->AddOnTextChanged([&](zcom::Label*, std::wstring& newValue)
         {
-            _changedSettings[OPTIONS_DEFAULT_USERNAME] = newValue;
+            _changedSettings[OPTIONS_DEFAULT_PORT] = newValue;
         });
 
         panel->AddItem(label.release(), true);
