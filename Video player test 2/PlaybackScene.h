@@ -13,6 +13,7 @@
 #include "ComponentBase.h"
 #include "Panel.h"
 #include "Image.h"
+#include "PlaybackController.h"
 #include "PlaybackControllerPanel.h"
 #include "SeekBar.h"
 #include "ControlBarBackground.h"
@@ -47,30 +48,15 @@ class PlaybackScene : public Scene
     std::unique_ptr<zcom::Panel> _controlBar = nullptr;
     
     std::unique_ptr<zcom::ControlBarBackground> _controlBarBackground = nullptr;
-    std::unique_ptr<zcom::SeekBar> _seekBar = nullptr;
-    std::unique_ptr<zcom::VolumeSlider> _volumeSlider = nullptr;
-    std::unique_ptr<zcom::PlayButton> _playButton = nullptr;
-    std::unique_ptr<zcom::Button> _playNextButton = nullptr;
-    std::unique_ptr<zcom::Button> _playPreviousButton = nullptr;
+    std::unique_ptr<zcom::PlaybackController> _playbackController = nullptr;
     std::unique_ptr<zcom::PlaybackControllerPanel> _playbackControllerPanel = nullptr;
-    std::unique_ptr<zcom::Button> _overlayButton = nullptr;
-    std::unique_ptr<zcom::Button> _fullscreenButton = nullptr;
+
     std::unique_ptr<zcom::LoadingCircle> _loadingCircle = nullptr;
     std::unique_ptr<zcom::FastForwardIcon> _skipBackwardsIcon = nullptr;
     std::unique_ptr<zcom::FastForwardIcon> _skipForwardsIcon = nullptr;
     std::unique_ptr<zcom::PauseIcon> _pauseIcon = nullptr;
     std::unique_ptr<zcom::ResumeIcon> _resumeIcon = nullptr;
     std::unique_ptr<zcom::VolumeIcon> _volumeIcon = nullptr;
-    std::unique_ptr<zcom::Panel> _timeHoverPanel = nullptr;
-    std::unique_ptr<zcom::Label> _timeLabel = nullptr;
-    std::unique_ptr<zcom::Label> _chapterLabel = nullptr;
-
-    std::unique_ptr<zcom::Button> _settingsButton = nullptr;
-    bool _streamChangingAllowed = true;
-    std::unique_ptr<zcom::MenuPanel> _streamMenuPanel = nullptr;
-    std::unique_ptr<zcom::MenuPanel> _videoStreamMenuPanel = nullptr;
-    std::unique_ptr<zcom::MenuPanel> _audioStreamMenuPanel = nullptr;
-    std::unique_ptr<zcom::MenuPanel> _subtitleStreamMenuPanel = nullptr;
 
     std::unique_ptr<zcom::Waveform> _waveform = nullptr;
 
@@ -110,7 +96,5 @@ public:
     bool Finished() const;
 
 private:
-    void _UpdatePermissions();
-    void _SetupStreamMenu();
     bool _HandleKeyDown(BYTE keyCode);
 };

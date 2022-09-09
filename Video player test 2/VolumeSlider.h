@@ -10,6 +10,7 @@
 #include "FloatOptionAdapter.h"
 #include "Functions.h"
 #include "Transition.h"
+#include "ResourceManager.h"
 
 #include <sstream>
 

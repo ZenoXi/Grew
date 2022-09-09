@@ -21,6 +21,22 @@ namespace zcom
     protected:
         void _OnUpdate()
         {
+            // Disable seekbar
+            if (_duration == -1)
+            {
+                if (_timeHovered)
+                {
+                    _onHoverEnded.InvokeAll();
+                    _timeHovered = false;
+
+                    // Start height change transition
+                    _timeBarHeightTransition.Start(_timeBarHeight, 1.0f);
+                }
+
+                _held = false;
+            }
+
+            // Update transition
             float initialValue = _timeBarHeight;
             _timeBarHeightTransition.Apply(_timeBarHeight);
             if (_timeBarHeight != initialValue)
@@ -73,59 +89,47 @@ namespace zcom
                     GetHeight() / 2.0f + _timeBarHeight),
                 _remainingPartBrush
             );
-            // Buffered part
-            if (_buffered > 0)
+            if (_duration > 0)
             {
+                // Buffered part
+                if (_buffered > 0)
+                {
+                    g.target->FillRectangle(
+                        D2D1::RectF(
+                            timeTextWidth,
+                            GetHeight() / 2.0f - _timeBarHeight,
+                            timeTextWidth + bufferedPartWidth,
+                            GetHeight() / 2.0f + _timeBarHeight
+                        ),
+                        _bufferedPartBrush
+                    );
+                }
+                //else
+                //{
+                //    g.target->FillRectangle(
+                //        D2D1::RectF(
+                //            timeTextWidth + viewedPartWidth,
+                //            GetHeight() / 2.0f - 1.0f,
+                //            timeTextWidth + bufferedPartWidth,
+                //            GetHeight() / 2.0f + 1.0f),
+                //        _viewedBufferingPartBrush
+                //    );
+                //}
+                // Completed part
                 g.target->FillRectangle(
                     D2D1::RectF(
                         timeTextWidth,
                         GetHeight() / 2.0f - _timeBarHeight,
-                        timeTextWidth + bufferedPartWidth,
+                        timeTextWidth + viewedPartWidth,
                         GetHeight() / 2.0f + _timeBarHeight
                     ),
-                    _bufferedPartBrush
+                    _viewedPartBrush
                 );
-            }
-            //else
-            //{
-            //    g.target->FillRectangle(
-            //        D2D1::RectF(
-            //            timeTextWidth + viewedPartWidth,
-            //            GetHeight() / 2.0f - 1.0f,
-            //            timeTextWidth + bufferedPartWidth,
-            //            GetHeight() / 2.0f + 1.0f),
-            //        _viewedBufferingPartBrush
-            //    );
-            //}
-            // Completed part
-            g.target->FillRectangle(
-                D2D1::RectF(
-                    timeTextWidth,
-                    GetHeight() / 2.0f - _timeBarHeight,
-                    timeTextWidth + viewedPartWidth,
-                    GetHeight() / 2.0f + _timeBarHeight
-                ),
-                _viewedPartBrush
-            );
-            // Chapter markers
-            for (int i = 0; i < _chapters.size(); i++)
-            {
-                // Start marker
-                int startXPos = (_chapters[i].start.GetTicks() / (double)_duration.GetTicks()) * seekBarWidth;
-                g.target->FillRectangle(
-                    D2D1::RectF(
-                        timeTextWidth + startXPos,
-                        GetHeight() / 2.0f + _timeBarHeight,
-                        timeTextWidth + startXPos + 1.0f,
-                        GetHeight() / 2.0f + _timeBarHeight + 4.0f
-                    ),
-                    _remainingPartBrush
-                );
-
-                // End marker
-                if (_chapters[i].end.GetTicks() != AV_NOPTS_VALUE)
+                // Chapter markers
+                for (int i = 0; i < _chapters.size(); i++)
                 {
-                    int endXPos = (_chapters[i].end.GetTicks() / (double)_duration.GetTicks()) * seekBarWidth;
+                    // Start marker
+                    int startXPos = (_chapters[i].start.GetTicks() / (double)_duration.GetTicks()) * seekBarWidth;
                     g.target->FillRectangle(
                         D2D1::RectF(
                             timeTextWidth + startXPos,
@@ -135,32 +139,55 @@ namespace zcom
                         ),
                         _remainingPartBrush
                     );
+
+                    // End marker
+                    if (_chapters[i].end.GetTicks() != AV_NOPTS_VALUE)
+                    {
+                        int endXPos = (_chapters[i].end.GetTicks() / (double)_duration.GetTicks()) * seekBarWidth;
+                        g.target->FillRectangle(
+                            D2D1::RectF(
+                                timeTextWidth + startXPos,
+                                GetHeight() / 2.0f + _timeBarHeight,
+                                timeTextWidth + startXPos + 1.0f,
+                                GetHeight() / 2.0f + _timeBarHeight + 4.0f
+                            ),
+                            _remainingPartBrush
+                        );
+                    }
+                }
+
+                // 
+                if (/*GetMouseInside()*/_timeHovered)
+                {
+                    int markerPosition = viewedPartWidth;
+                    if (_held)
+                        markerPosition = _heldPosition;
+
+                    g.target->FillEllipse(
+                        D2D1::Ellipse(
+                            D2D1::Point2F(
+                                timeTextWidth + markerPosition,
+                                GetHeight() / 2.0f
+                            ),
+                            5.0f,
+                            5.0f
+                        ),
+                        _seekbarMarkerBrush
+                    );
                 }
             }
 
-            // 
-            if (/*GetMouseInside()*/_timeHovered)
-            {
-                int markerPosition = viewedPartWidth;
-                if (_held)
-                    markerPosition = _heldPosition;
-
-                g.target->FillEllipse(
-                    D2D1::Ellipse(
-                        D2D1::Point2F(
-                            timeTextWidth + markerPosition,
-                            GetHeight() / 2.0f
-                        ),
-                        5.0f,
-                        5.0f
-                    ),
-                    _seekbarMarkerBrush
-                );
-            }
-
             // Create time strings
-            _currentTimeLabel->SetText(string_to_wstring(TimeToString(_currentTime)));
-            _durationLabel->SetText(string_to_wstring(TimeToString(_duration.GetTicks())));
+            if (_duration > 0)
+            {
+                _currentTimeLabel->SetText(string_to_wstring(TimeToString(_currentTime)));
+                _durationLabel->SetText(string_to_wstring(TimeToString(_duration.GetTicks())));
+            }
+            else
+            {
+                _currentTimeLabel->SetText(L"--:--");
+                _durationLabel->SetText(L"--:--");
+            }
 
             // Draw time strings
             auto currentTimeRect = D2D1::RectF(
@@ -187,6 +214,8 @@ namespace zcom
         EventTargets _OnMouseMove(int deltaX, int deltaY)
         {
             if (deltaX == 0 && deltaY == 0)
+                return EventTargets().Add(this, GetMousePosX(), GetMousePosY());
+            if (_duration == -1)
                 return EventTargets().Add(this, GetMousePosX(), GetMousePosY());
 
             int timeTextWidth = ceilf(_maxTimeWidth) + _margins * 2;
@@ -265,6 +294,9 @@ namespace zcom
 
         EventTargets _OnLeftPressed(int x, int y)
         {
+            if (_duration == -1)
+                return EventTargets().Add(this, x, y);
+
             int timeTextWidth = ceilf(_maxTimeWidth) + _margins * 2;
             int seekBarWidth = GetWidth() - timeTextWidth * 2;
             int xPos = GetMousePosX() - timeTextWidth;
@@ -280,6 +312,9 @@ namespace zcom
 
         EventTargets _OnLeftReleased(int x, int y)
         {
+            if (_duration == -1)
+                return EventTargets().Add(this, x, y);
+
             int timeTextWidth = ceilf(_maxTimeWidth) + _margins * 2;
             int seekBarWidth = GetWidth() - timeTextWidth * 2;
             _selectedTime = _duration.GetTicks() * _heldPosition / (double)seekBarWidth;
@@ -293,8 +328,8 @@ namespace zcom
 #pragma endregion
 
     private:
-        Duration _duration = 0;
-        Duration _buffered = 0;
+        Duration _duration = -1;
+        Duration _buffered = -1;
         TimePoint _currentTime = 0;
 
         std::unique_ptr<Label> _currentTimeLabel = nullptr;
@@ -333,10 +368,8 @@ namespace zcom
         friend class Scene;
         friend class Base;
         SeekBar(Scene* scene) : Base(scene) {}
-        void Init(long long int duration)
+        void Init()
         {
-            _duration = duration;
-
             _maxTimeWidth = 62.0f;
             _textHeight = 20.0f;
 

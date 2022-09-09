@@ -55,7 +55,26 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     shadowProps.offsetY = 0.0f;
     shadowProps.blurStandardDeviation = 5.0f;
     shadowProps.color = D2D1::ColorF(0, 1.0f);
-    
+
+    _nonControllerPanel = Create<zcom::Panel>();
+    _nonControllerPanel->SetBaseHeight(-61);
+    _nonControllerPanel->SetParentSizePercent(1.0f, 1.0f);
+
+    _playbackControllerPanel = Create<zcom::Panel>();
+    _playbackControllerPanel->SetBaseHeight(60);
+    _playbackControllerPanel->SetParentWidthPercent(1.0f);
+    _playbackControllerPanel->SetVerticalAlignment(zcom::Alignment::END);
+    _playbackControllerPanel->SetBackgroundColor(D2D1::ColorF(0.15f, 0.15f, 0.15f));
+    _playbackControllerPanel->SetZIndex(2);
+
+    _playbackControllerSeparator = Create<zcom::EmptyPanel>();
+    _playbackControllerSeparator->SetBaseHeight(1);
+    _playbackControllerSeparator->SetVerticalOffsetPixels(-60);
+    _playbackControllerSeparator->SetParentWidthPercent(1.0f);
+    _playbackControllerSeparator->SetVerticalAlignment(zcom::Alignment::END);
+    _playbackControllerSeparator->SetBackgroundColor(D2D1::ColorF(0));
+    _playbackControllerSeparator->SetZIndex(2);
+
     _sideMenuPanel = Create<zcom::Panel>();
     _sideMenuPanel->SetParentHeightPercent(1.0f);
     _sideMenuPanel->SetBaseWidth(199);
@@ -505,13 +524,22 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _networkBannerPanel->AddItem(_uploadSpeedImage.get());
     _networkBannerPanel->AddItem(_uploadSpeedLabel.get());
 
-    _canvas->AddComponent(_sideMenuPanel.get());
-    _canvas->AddComponent(_playlistPanel.get());
-    _canvas->AddComponent(_networkBannerPanel.get());
-    _canvas->AddComponent(_connectedUsersPanel.get());
-    _canvas->AddComponent(_offlineLabel.get());
-    _canvas->AddComponent(_connectButton.get());
-    _canvas->AddComponent(_startServerButton.get());
+    _nonControllerPanel->AddItem(_sideMenuPanel.get());
+    _nonControllerPanel->AddItem(_playlistPanel.get());
+    _nonControllerPanel->AddItem(_networkBannerPanel.get());
+    _nonControllerPanel->AddItem(_connectedUsersPanel.get());
+    _nonControllerPanel->AddItem(_offlineLabel.get());
+    _nonControllerPanel->AddItem(_connectButton.get());
+    _nonControllerPanel->AddItem(_startServerButton.get());
+
+    _playbackController = Create<zcom::PlaybackController>();
+    _playbackController->SetParentSizePercent(1.0f, 1.0f);
+
+    _playbackControllerPanel->AddItem(_playbackController.get());
+
+    _canvas->AddComponent(_nonControllerPanel.get());
+    _canvas->AddComponent(_playbackControllerPanel.get());
+    _canvas->AddComponent(_playbackControllerSeparator.get());
     _canvas->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.75f));
 
     // Init network panel
@@ -526,14 +554,17 @@ void PlaybackOverlayScene::_Uninit()
 
 void PlaybackOverlayScene::_Focus()
 {
-    App::Instance()->keyboardManager.AddHandler(_shortcutHandler.get());
+    _app->keyboardManager.AddHandler(_playbackController.get());
+    GetKeyboardState(_playbackController->KeyStates());
+    _app->keyboardManager.AddHandler(_shortcutHandler.get());
     GetKeyboardState(_shortcutHandler->KeyStates());
     _app->window.AddDragDropHandler(_playlistFileDropHandler.get());
 }
 
 void PlaybackOverlayScene::_Unfocus()
 {
-    App::Instance()->keyboardManager.RemoveHandler(_shortcutHandler.get());
+    _app->keyboardManager.RemoveHandler(_playbackController.get());
+    _app->keyboardManager.RemoveHandler(_shortcutHandler.get());
     _app->window.RemoveDragDropHandler(_playlistFileDropHandler.get());
 }
 
