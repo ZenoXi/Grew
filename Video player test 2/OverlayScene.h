@@ -27,6 +27,8 @@ public:
     void ShowMenu(zcom::MenuPanel* menu, RECT parentRect = {});
     bool MenuOpened() const { return _menu; }
     void ShowHoverText(std::wstring text, int x, int y, int maxWidth = 600);
+    void AddItem(zcom::Base* item);
+    void RemoveItem(zcom::Base* item);
 
 public:
     OverlayScene(App* app);

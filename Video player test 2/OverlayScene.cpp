@@ -212,6 +212,16 @@ void OverlayScene::ShowHoverText(std::wstring text, int x, int y, int maxWidth)
     _hoverTextLabel->InvokeRedraw();
 }
 
+void OverlayScene::AddItem(zcom::Base* item)
+{
+    _canvas->AddComponent(item);
+}
+
+void OverlayScene::RemoveItem(zcom::Base* item)
+{
+    _canvas->RemoveComponent(item);
+}
+
 void OverlayScene::_UpdateNotifications()
 {
     bool changed = false;
