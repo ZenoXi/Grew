@@ -13,20 +13,32 @@ struct AVCodecContext;
 
 class SubtitleDecoder : public IMediaDecoder
 {
+    enum class SubtitleType
+    {
+        ASS,
+        IMAGE,
+        TEXT
+    };
+
     AVCodecContext* _codecContext;
+    SubtitleType _subType;
+
+    // ASS
     ASS_Library* _library = nullptr;
     ASS_Renderer* _renderer = nullptr;
     ASS_Track* _track = nullptr;
     std::mutex _m_ass;
 
-    MediaStream _stream;
-    int _outputWidth = 0;
-    int _outputHeight = 0;
-
     Duration _timeBetweenFrames = Duration(50, MILLISECONDS);
     TimePoint _lastRenderedFrameTime = -1;
     TimePoint _lastBufferedSubtitleTime = -1;
     std::thread _renderingThread;
+
+    //
+
+    MediaStream _stream;
+    int _outputWidth = 0;
+    int _outputHeight = 0;
 
     TimePoint _lastOptionCheck = -1;
     Duration _optionCheckInterval = Duration(1, SECONDS);

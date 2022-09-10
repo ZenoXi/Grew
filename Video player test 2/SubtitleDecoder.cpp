@@ -4,6 +4,12 @@
 #include "OptionNames.h"
 #include "IntOptionAdapter.h"
 
+extern "C"
+{
+#include <libswscale/swscale.h>
+}
+
+
 SubtitleDecoder::SubtitleDecoder(const MediaStream& stream)
     : _stream(stream)
 {
@@ -12,20 +18,38 @@ SubtitleDecoder::SubtitleDecoder(const MediaStream& stream)
     avcodec_parameters_to_context(_codecContext, stream.GetParams());
     avcodec_open2(_codecContext, codec, NULL);
 
-    _library = ass_library_init();
-    _track = ass_new_track(_library);
-    ass_process_data(_track, (char*)_stream.GetParams()->extradata, _stream.GetParams()->extradata_size);
-    _ResetRenderer();
+    if (stream.GetParams()->codec_id == AV_CODEC_ID_ASS ||
+        stream.GetParams()->codec_id == AV_CODEC_ID_SSA)
+    {
+        _subType = SubtitleType::ASS;
+    }
+    else if (stream.GetParams()->codec_id == AV_CODEC_ID_HDMV_PGS_SUBTITLE)
+    {
+        _subType = SubtitleType::IMAGE;
+        AV_PIX_FMT_PAL8;
+    }
+    else if (stream.GetParams()->codec_id == AV_CODEC_ID_SUBRIP ||
+        stream.GetParams()->codec_id == AV_CODEC_ID_SRT)
+    {
+        _subType = SubtitleType::TEXT;
+    }
+
+    if (_subType == SubtitleType::ASS)
+    {
+        _library = ass_library_init();
+        _track = ass_new_track(_library);
+        ass_process_data(_track, (char*)_stream.GetParams()->extradata, _stream.GetParams()->extradata_size);
+        _ResetRenderer();
+    }
 
     _timebase = _stream.timeBase;
 
     _LoadOptions();
 
-    // placeholder until global options are implemented
-
     // Start decoding and rendering threads
     _decoderThread = std::thread(&SubtitleDecoder::_DecoderThread, this);
-    _renderingThread = std::thread(&SubtitleDecoder::_RenderingThread, this);
+    if (_subType == SubtitleType::ASS)
+        _renderingThread = std::thread(&SubtitleDecoder::_RenderingThread, this);
 }
 
 SubtitleDecoder::~SubtitleDecoder()
@@ -38,14 +62,19 @@ SubtitleDecoder::~SubtitleDecoder()
     avcodec_close(_codecContext);
     avcodec_free_context(&_codecContext);
 
-    ass_free_track(_track);
-    ass_renderer_done(_renderer);
-    ass_library_done(_library);
+    if (_subType == SubtitleType::ASS)
+    {
+        ass_free_track(_track);
+        ass_renderer_done(_renderer);
+        ass_library_done(_library);
+    }
 }
 
 void SubtitleDecoder::_DecoderThread()
 {
     Clock threadClock = Clock(0);
+
+    SwsContext* swsContext = NULL;
 
     while (!_decoderThreadStop)
     {
@@ -68,12 +97,15 @@ void SubtitleDecoder::_DecoderThread()
             //while (avcodec_decode_subtitle2(_codecContext, &sub, &gotSub, flushPkt) >= 0);
             //avcodec_flush_buffers(_codecContext);
 
-            std::unique_lock<std::mutex> lock(_m_ass);
-            ass_free_track(_track);
-            _track = ass_new_track(_library);
-            ass_process_data(_track, (char*)_stream.GetParams()->extradata, _stream.GetParams()->extradata_size);
-            _lastRenderedFrameTime = -1;
-            lock.unlock();
+            if (_subType == SubtitleType::ASS)
+            {
+                std::unique_lock<std::mutex> lock(_m_ass);
+                ass_free_track(_track);
+                _track = ass_new_track(_library);
+                ass_process_data(_track, (char*)_stream.GetParams()->extradata, _stream.GetParams()->extradata_size);
+                _lastRenderedFrameTime = -1;
+                lock.unlock();
+            }
 
             ClearFrames();
             ClearPackets();
@@ -99,22 +131,92 @@ void SubtitleDecoder::_DecoderThread()
         //    packet.GetPacket()->data[i] %= 128;
         //}
 
-        // Decode
-        //AVSubtitle sub;
-        //int gotSub;
-        //int bytesUsed = avcodec_decode_subtitle2(_codecContext, &sub, &gotSub, packet.GetPacket());
-        //if (!gotSub || bytesUsed < 0) continue;
-
         int64_t timestamp = av_rescale_q(packet.GetPacket()->pts, _timebase, { 1, AV_TIME_BASE });
         int64_t duration = av_rescale_q(packet.GetPacket()->duration, _timebase, { 1, AV_TIME_BASE });
 
-        std::unique_lock<std::mutex> lock(_m_ass);
-        ass_process_chunk(_track, (char*)packet.GetPacket()->data, packet.GetPacket()->size, timestamp / 1000, duration / 1000);
-        lock.unlock();
+        if (_subType == SubtitleType::IMAGE)
+        {
+            // Decode
+            AVSubtitle sub;
+            int gotSub;
+            int bytesUsed = avcodec_decode_subtitle2(_codecContext, &sub, &gotSub, packet.GetPacket());
+            if (!gotSub || bytesUsed < 0) continue;
 
-        if (_lastRenderedFrameTime == -1)
-            _lastRenderedFrameTime = TimePoint(timestamp, MICROSECONDS) - _timeBetweenFrames;
-        _lastBufferedSubtitleTime = TimePoint(timestamp + duration, MICROSECONDS);
+            // Create output frame
+            int width, height;
+            if (_outputWidth != 0 && _outputHeight != 0)
+            {
+                width = _outputWidth;
+                height = _outputHeight;
+            }
+            else
+            {
+                width = 1280;
+                height = 720;
+            }
+            VideoFrame* vf = new VideoFrame(width, height, timestamp);
+            std::fill_n((uchar*)vf->GetBytes(), vf->GetWidth() * vf->GetHeight() * 4, 0);
+
+            // Copy rects to frame
+            for (int i = 0; i < sub.num_rects; i++)
+            {
+                AVSubtitleRect* rect = sub.rects[i];
+
+                // Create sub frame
+                VideoFrame* sf = new VideoFrame(rect->w, rect->h, 0);
+
+                // Convert
+                SwsContext* swsContext = sws_getContext(
+                    rect->w,
+                    rect->h,
+                    _codecContext->pix_fmt,
+                    rect->w,
+                    rect->h,
+                    AV_PIX_FMT_BGRA,
+                    SWS_FAST_BILINEAR,
+                    NULL,
+                    NULL,
+                    NULL
+                );
+
+                uchar* dest[4] = { NULL, NULL, NULL, NULL };
+                int destLinesize[4] = { 0, 0, 0, 0 };
+                dest[0] = (uchar*)sf->GetBytes();
+                destLinesize[0] = rect->w * 4;
+
+                sws_scale(swsContext, rect->data, rect->linesize, 0, rect->h, dest, destLinesize);
+                sws_freeContext(swsContext);
+
+                // Copy contents from subtitle frame to video frame
+                for (int y = rect->y; y < rect->y + rect->h; y++)
+                {
+                    for (int x = rect->x; x < rect->x + rect->w; x++)
+                    {
+                        if (x < 0 || x >= vf->GetWidth())
+                            continue;
+                        if (y < 0 || y >= vf->GetHeight())
+                            continue;
+                        vf->SetPixel(x, y, sf->GetPixel(x - rect->x, y - rect->y));
+                    }
+                }
+                delete sf;
+            }
+
+            std::lock_guard<std::mutex> lock(_m_frames);
+            _frames.push((IMediaFrame*)vf);
+        }
+        else if (_subType == SubtitleType::ASS)
+        {
+            // Pass to renderer
+            std::unique_lock<std::mutex> lock(_m_ass);
+            ass_process_chunk(_track, (char*)packet.GetPacket()->data, packet.GetPacket()->size, timestamp / 1000, duration / 1000);
+            lock.unlock();
+
+            if (_lastRenderedFrameTime == -1)
+                _lastRenderedFrameTime = TimePoint(timestamp, MICROSECONDS) - _timeBetweenFrames;
+            _lastBufferedSubtitleTime = TimePoint(timestamp + duration, MICROSECONDS);
+        }
+
         //for (int i = 0; i < sub.num_rects; i++)
         //{
         //    ass_process_chunk(_track, sub.rects[i]->ass, strlen(sub.rects[i]->ass), timestamp / 1000, duration / 1000);
@@ -338,6 +440,9 @@ void SubtitleDecoder::_LoadOptions()
 
 void SubtitleDecoder::_ResetRenderer()
 {
+    if (_subType != SubtitleType::ASS)
+        return;
+
     if (_renderer)
     {
         ass_renderer_done(_renderer);
