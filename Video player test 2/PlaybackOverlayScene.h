@@ -65,6 +65,9 @@ class PlaybackOverlayScene : public Scene
 
     std::unique_ptr<zcom::Button> _closeOverlayButton = nullptr;
 
+    std::unique_ptr<zcom::Button> _toggleInfoPanelButton = nullptr;
+    std::unique_ptr<zcom::Panel> _infoPanel = nullptr;
+
     std::unique_ptr<zcom::Panel> _networkBannerPanel = nullptr;
     std::unique_ptr<zcom::Label> _networkStatusLabel = nullptr;
     std::unique_ptr<zcom::Button> _closeNetworkButton = nullptr;

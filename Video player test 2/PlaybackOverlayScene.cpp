@@ -269,6 +269,39 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         App::Instance()->MoveSceneToBack(this->GetName());
     });
 
+    _infoPanel = Create<zcom::Panel>();
+    _infoPanel->SetBaseWidth(400);
+    _infoPanel->SetParentHeightPercent(1.0f);
+    _infoPanel->SetHorizontalAlignment(zcom::Alignment::END);
+
+    _toggleInfoPanelButton = Create<zcom::Button>();
+    _toggleInfoPanelButton->SetParentHeightPercent(1.0f);
+    _toggleInfoPanelButton->SetBaseWidth(25);
+    _toggleInfoPanelButton->SetHorizontalAlignment(zcom::Alignment::END);
+    _toggleInfoPanelButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
+    _toggleInfoPanelButton->SetButtonHoverColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.07f));
+    _toggleInfoPanelButton->SetButtonClickColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f));
+    _toggleInfoPanelButton->SetButtonImageAll(ResourceManager::GetImage("menu_arrow_right_7"));
+    _toggleInfoPanelButton->SetImageStretch(zcom::ImageStretchMode::CENTER);
+    _toggleInfoPanelButton->SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
+    _toggleInfoPanelButton->SetActivation(zcom::ButtonActivation::PRESS);
+    _toggleInfoPanelButton->SetOnActivated([&]()
+    {
+        if (_infoPanel->GetVisible())
+        {
+            _infoPanel->SetVisible(false);
+            _playlistPanel->SetBaseWidth(-200 -25);
+            _toggleInfoPanelButton->SetButtonImageAll(ResourceManager::GetImage("menu_arrow_left_7"));
+        }
+        else
+        {
+            _infoPanel->SetVisible(true);
+            _playlistPanel->SetBaseWidth(-200 -400);
+            _toggleInfoPanelButton->SetButtonImageAll(ResourceManager::GetImage("menu_arrow_right_7"));
+        }
+    });
+    _toggleInfoPanelButton->SetZIndex(2);
+
     _networkBannerPanel = Create<zcom::Panel>();
     _networkBannerPanel->SetBaseSize(340, 60);
     _networkBannerPanel->SetOffsetPixels(-30, 30);
@@ -540,13 +573,16 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _networkBannerPanel->AddItem(_uploadSpeedImage.get());
     _networkBannerPanel->AddItem(_uploadSpeedLabel.get());
 
+    _infoPanel->AddItem(_networkBannerPanel.get());
+    _infoPanel->AddItem(_connectedUsersPanel.get());
+    _infoPanel->AddItem(_offlineLabel.get());
+    _infoPanel->AddItem(_connectButton.get());
+    _infoPanel->AddItem(_startServerButton.get());
+
     _nonControllerPanel->AddItem(_sideMenuPanel.get());
     _nonControllerPanel->AddItem(_playlistPanel.get());
-    _nonControllerPanel->AddItem(_networkBannerPanel.get());
-    _nonControllerPanel->AddItem(_connectedUsersPanel.get());
-    _nonControllerPanel->AddItem(_offlineLabel.get());
-    _nonControllerPanel->AddItem(_connectButton.get());
-    _nonControllerPanel->AddItem(_startServerButton.get());
+    _nonControllerPanel->AddItem(_infoPanel.get());
+    _nonControllerPanel->AddItem(_toggleInfoPanelButton.get());
 
     _playbackController = Create<zcom::PlaybackController>();
     _playbackController->SetParentSizePercent(1.0f, 1.0f);
