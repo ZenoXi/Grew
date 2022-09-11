@@ -48,7 +48,7 @@ private: // Scene control
     std::vector<Scene*> _scenes;
     int _currentSceneIndex = -1;
     std::vector<Scene*> _activeScenes;
-    std::queue<std::string> _scenesToUninitialize;
+    std::deque<std::string> _scenesToUninitialize;
     bool _fullscreen = false;
 public:
     bool SetScene(std::string name, SceneOptionsBase* options);

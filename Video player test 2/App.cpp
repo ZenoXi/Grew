@@ -196,6 +196,11 @@ bool App::ReinitScene(std::string name, SceneOptionsBase* options)
     Scene* scene = FindActiveScene(name);
     if (scene)
     {
+        // Remove scene from uninit pending
+        auto it = std::find(_scenesToUninitialize.begin(), _scenesToUninitialize.end(), name);
+        if (it != _scenesToUninitialize.end())
+            _scenesToUninitialize.erase(it);
+
         bool focused = scene->Focused();
         scene->Uninit();
         scene->Init(options);
@@ -212,7 +217,7 @@ bool App::ReinitScene(std::string name, SceneOptionsBase* options)
 
 void App::UninitScene(std::string name)
 {
-    _scenesToUninitialize.push(name);
+    _scenesToUninitialize.push_back(name);
 }
 
 void App::_UninitScene(std::string name)
@@ -516,20 +521,25 @@ void App::LoopThread()
         }
 
         auto activeScenes = ActiveScenes();
+#ifdef PRINT_FRAME_TIMES
+        timer.Update();
+        start = timer.Now();
+#endif
+        // Update scenes
         for (auto& scene : activeScenes)
         {
-#ifdef PRINT_FRAME_TIMES
-            timer.Update();
-            start = timer.Now();
-#endif
             scene->Update();
+        }
 #ifdef PRINT_FRAME_TIMES
-            timer.Update();
-            update += timer.Now() - start;
-
-            timer.Update();
-            start = timer.Now();
+        timer.Update();
+        update += timer.Now() - start;
+        
+        timer.Update();
+        start = timer.Now();
 #endif
+        // Draw scenes
+        for (auto& scene : activeScenes)
+        {
             if (scene->Redraw())
             {
                 if (!redraw)
@@ -538,11 +548,11 @@ void App::LoopThread()
                 scene->Draw(window.gfx.GetGraphics());
                 redraw = true;
             }
-#ifdef PRINT_FRAME_TIMES
-            timer.Update();
-            draw += timer.Now() - start;
-#endif
         }
+#ifdef PRINT_FRAME_TIMES
+        timer.Update();
+        draw += timer.Now() - start;
+#endif
         if (redraw)
         {
             std::cout << "Redrawn (" << framecounter++ << ")\n";
@@ -550,8 +560,6 @@ void App::LoopThread()
             timer.Update();
             start = timer.Now();
 #endif
-
-
             window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0.3f, 0.3f, 0.3f));
             //window.gfx.GetGraphics().target->Clear(D2D1::ColorF(0));
             if (_fullscreen)
@@ -589,7 +597,7 @@ void App::LoopThread()
         while (!_scenesToUninitialize.empty())
         {
             _UninitScene(_scenesToUninitialize.front());
-            _scenesToUninitialize.pop();
+            _scenesToUninitialize.pop_front();
         }
 
 #ifdef PRINT_FRAME_TIMES
