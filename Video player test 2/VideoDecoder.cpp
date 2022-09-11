@@ -1,6 +1,8 @@
 #include "VideoDecoder.h"
 #include "VideoFrame.h"
 
+#include "App.h"
+
 #include "Options.h"
 #include "OptionNames.h"
 #include "IntOptionAdapter.h"
@@ -11,6 +13,7 @@ extern "C"
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 #include <libavdevice/avdevice.h>
+#include <libavutil/hwcontext.h>
 }
 
 VideoDecoder::VideoDecoder(const MediaStream& stream)
@@ -18,6 +21,29 @@ VideoDecoder::VideoDecoder(const MediaStream& stream)
     AVCodec* codec = avcodec_find_decoder(stream.GetParams()->codec_id);
     _codecContext = avcodec_alloc_context3(codec);
     avcodec_parameters_to_context(_codecContext, stream.GetParams());
+
+    // Find supported hw acceleration modes
+    if (avcodec_get_hw_config(codec, 0))
+    {
+        AVBufferRef* dctx = nullptr;
+        for (int i = 0; !dctx; i++)
+        {
+            const AVCodecHWConfig* hwconfig = avcodec_get_hw_config(codec, i);
+            if (!hwconfig)
+                break;
+
+            //int ret = av_hwdevice_ctx_create(&dctx, AV_HWDEVICE_TYPE_CUDA, NULL, NULL, 0);
+            //int ret = av_hwdevice_ctx_create(&dctx, AV_HWDEVICE_TYPE_DXVA2, NULL, NULL, 0);
+            int ret = av_hwdevice_ctx_create(&dctx, hwconfig->device_type, NULL, NULL, 0);
+        }
+        if (dctx)
+        {
+            _codecContext->hw_device_ctx = dctx;
+            _hwDeviceCtx = dctx;
+            _hwAccelerated = true;
+        }
+    }
+
     avcodec_open2(_codecContext, codec, NULL);
 
     _timebase = stream.timeBase;
@@ -33,7 +59,6 @@ VideoDecoder::~VideoDecoder()
     _decoderThreadStop = true;
     if (_decoderThread.joinable())
         _decoderThread.join();
-    avcodec_close(_codecContext);
     avcodec_free_context(&_codecContext);
 }
 
@@ -124,6 +149,58 @@ void VideoDecoder::_DecoderThread()
             continue;
         }
 
+        int err = 0;
+        AVPixelFormat outputFormat = _codecContext->pix_fmt;
+        while (_hwAccelerated)
+        {
+            AVPixelFormat* pformats;
+            err = av_hwframe_transfer_get_formats(frame->hw_frames_ctx, AV_HWFRAME_TRANSFER_DIRECTION_FROM, &pformats, 0);
+            if (err < 0)
+                break;
+            std::vector<AVPixelFormat> formats;
+            while (*pformats != AV_PIX_FMT_NONE)
+                formats.push_back(*(pformats++));
+            if (formats.empty())
+            {
+                err = -1;
+                break;
+            }
+
+            // Set up output frame
+            AVFrame* oframe = NULL;
+            outputFormat = formats[0];
+            if (frame->format == outputFormat)
+                break;
+            oframe = av_frame_alloc();
+            if (!oframe)
+            {
+                err = -1;
+                break;
+            }
+            oframe->format = outputFormat;
+
+            // Move data from hw frame
+            err = av_hwframe_transfer_data(oframe, frame, 0);
+            if (err < 0)
+            {
+                av_frame_free(&oframe);
+                break;
+            }
+            err = av_frame_copy_props(oframe, frame);
+
+            // Swap frame data
+            av_frame_unref(frame);
+            av_frame_move_ref(frame, oframe);
+            av_frame_free(&oframe);
+
+            break;
+        }
+        if (err < 0)
+        {
+            std::cout << "HW error " << err << '\n';
+            continue;
+        }
+
         // Deferred destination buffer initialization
         if (data == nullptr)
         {
@@ -137,7 +214,7 @@ void VideoDecoder::_DecoderThread()
             swsContext = sws_getContext(
                 _codecContext->width,
                 _codecContext->height,
-                _codecContext->pix_fmt,
+                outputFormat,
                 _codecContext->width,
                 _codecContext->height,
                 AV_PIX_FMT_BGRA,
@@ -163,7 +240,8 @@ void VideoDecoder::_DecoderThread()
 
     delete[] data;
 
-    if (swsContext) sws_freeContext(swsContext);
+    if (swsContext)
+        sws_freeContext(swsContext);
     av_frame_unref(frame);
     av_frame_free(&frame);
 }
