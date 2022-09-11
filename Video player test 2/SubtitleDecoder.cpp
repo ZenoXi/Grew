@@ -74,8 +74,6 @@ void SubtitleDecoder::_DecoderThread()
 {
     Clock threadClock = Clock(0);
 
-    SwsContext* swsContext = NULL;
-
     while (!_decoderThreadStop)
     {
         threadClock.Update();
@@ -140,7 +138,8 @@ void SubtitleDecoder::_DecoderThread()
             AVSubtitle sub;
             int gotSub;
             int bytesUsed = avcodec_decode_subtitle2(_codecContext, &sub, &gotSub, packet.GetPacket());
-            if (!gotSub || bytesUsed < 0) continue;
+            if (!gotSub || bytesUsed < 0)
+                continue;
 
             // Create output frame
             int width, height;
@@ -201,6 +200,8 @@ void SubtitleDecoder::_DecoderThread()
                 }
                 delete sf;
             }
+
+            avsubtitle_free(&sub);
 
             std::lock_guard<std::mutex> lock(_m_frames);
             _frames.push((IMediaFrame*)vf);
