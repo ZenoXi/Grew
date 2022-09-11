@@ -351,7 +351,7 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
         case WM_GETMINMAXINFO:
         {
             MINMAXINFO* info = (MINMAXINFO*)lParam;
-            info->ptMinTrackSize.x = 800;
+            info->ptMinTrackSize.x = 900;
             info->ptMinTrackSize.y = 600;
             break;
         }
