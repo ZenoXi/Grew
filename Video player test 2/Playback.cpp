@@ -1,4 +1,5 @@
 #include "Playback.h"
+#include "App.h"
 
 #include "XAudio2_AudioOutputAdapter.h"
 #include "Options.h"
@@ -75,6 +76,19 @@ void Playback::Update()
     {
         _controller->Update();
         _player->Update();
+
+        if (_controller->Finished())
+        {
+            int64_t itemId = App::Instance()->playlist.CurrentlyPlaying();
+            if (itemId != -1)
+            {
+                PlaylistItem* item = App::Instance()->playlist.GetItem(itemId);
+                if (item->GetUserId() == -1 || item->GetUserId() == App::Instance()->users.GetThisUser()->id)
+                {
+                    App::Instance()->playlist.Request_StopItem(itemId, true);
+                }
+            }
+        }
     }
 }
 

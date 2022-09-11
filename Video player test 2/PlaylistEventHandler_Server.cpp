@@ -18,6 +18,7 @@ PlaylistEventHandler_Server::PlaylistEventHandler_Server(Playlist_Internal* play
     _playbackStartRequestReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_START_REQUEST);
     _playbackStartResponseReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_START_RESPONSE);
     _playbackStopRequestReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_STOP_REQUEST);
+    _playbackFinishedReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYBACK_FINISHED);
     _itemMoveRequestReceiver = std::make_unique<znet::PacketReceiver>(znet::PacketType::PLAYLIST_ITEM_MOVE_REQUEST);
 
     // Set up media id generator
@@ -47,6 +48,7 @@ void PlaylistEventHandler_Server::Update()
     _CheckForStartRequest();
     _CheckForStartResponse();
     _CheckForStopRequest();
+    _CheckForPlaybackFinish();
     _CheckForItemMoveRequest();
 
     _UpdateStartOrderTimeout();
@@ -378,6 +380,46 @@ void PlaylistEventHandler_Server::_CheckForStopRequest()
                 _playlist->currentlyPlaying = -1;
                 break;
             }
+        }
+    }
+}
+
+void PlaylistEventHandler_Server::_CheckForPlaybackFinish()
+{
+    while (_playbackFinishedReceiver->PacketCount() > 0)
+    {
+        // Process packet
+        auto packetPair = _playbackFinishedReceiver->GetPacket();
+        znet::Packet packet = std::move(packetPair.first);
+        int64_t userId = packetPair.second;
+
+        if (_playlist->currentlyPlaying == -1)
+            continue;
+
+        // Check if user is host
+        bool userIsHost = false;
+        int itemIndex = -1;
+        for (int i = 0; i < _playlist->readyItems.size(); i++)
+        {
+            if (_playlist->readyItems[i]->GetUserId() == userId)
+            {
+                userIsHost = true;
+                itemIndex = i;
+                break;
+            }
+        }
+        if (!userIsHost)
+            continue;
+
+        // Sent playback stop order to all clients
+        APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP), APP_NETWORK->UserIds(true));
+        _playlist->currentlyPlaying = -1;
+
+        // Send self request to play next item
+        if (_playlist->options.autoplay && _playlist->readyItems.size() > itemIndex + 1)
+        {
+            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_REQUEST)
+                .From(_playlist->readyItems[itemIndex + 1]->GetMediaId()), { 0 }, 1);
         }
     }
 }

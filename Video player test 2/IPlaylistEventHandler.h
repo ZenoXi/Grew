@@ -13,7 +13,7 @@ public:
     virtual void OnAddItemRequest(std::unique_ptr<PlaylistItem> item) = 0;
     virtual void OnDeleteItemRequest(int64_t itemId) = 0;
     virtual void OnPlayItemRequest(int64_t itemId) = 0;
-    virtual void OnStopItemRequest(int64_t itemId) = 0;
+    virtual void OnStopItemRequest(int64_t itemId, bool playbackFinished) = 0;
     virtual void OnMoveItemRequest(std::vector<int64_t> itemIds, int slot) = 0;
 
     virtual void Update() = 0;

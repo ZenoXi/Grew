@@ -336,6 +336,9 @@ namespace znet
         // Sent by the server to client when its playback stop request is denied
         PLAYBACK_STOP_DENIED,
 
+        // Sent by the host when it has finished the playback
+        PLAYBACK_FINISHED,
+
         // Sent when a client wants to change the position of an item in the playlist
         // Contains:
         //  int32_t - new slot (0-index)

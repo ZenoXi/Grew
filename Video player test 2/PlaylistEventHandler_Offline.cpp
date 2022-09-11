@@ -26,11 +26,13 @@ void PlaylistEventHandler_Offline::Update()
     _ManageLoadingItems();
 
     // Check for playback end
-    if (_playlist->currentlyPlaying != -1 && App::Instance()->playback.Controller()->Finished())
-    {
-        App::Instance()->playback.Stop();
-        _playlist->currentlyPlaying = -1;
-    }
+    //if (_playlist->currentlyPlaying != -1 && App::Instance()->playback.Controller()->Finished())
+    //{
+    //    App::Instance()->playback.Stop();
+    //    App::Instance()->UninitScene(PlaybackScene::StaticName());
+    //    _playlist->currentlyPlaying = -1;
+    //    App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
+    //}
 }
 
 void PlaylistEventHandler_Offline::OnAddItemRequest(std::unique_ptr<PlaylistItem> item)
@@ -119,7 +121,7 @@ void PlaylistEventHandler_Offline::OnPlayItemRequest(int64_t itemId)
     }
 }
 
-void PlaylistEventHandler_Offline::OnStopItemRequest(int64_t itemId)
+void PlaylistEventHandler_Offline::OnStopItemRequest(int64_t itemId, bool playbackFinished)
 {
     for (int i = 0; i < _playlist->readyItems.size(); i++)
     {
@@ -127,10 +129,15 @@ void PlaylistEventHandler_Offline::OnStopItemRequest(int64_t itemId)
         {
             if (_playlist->currentlyPlaying == itemId)
             {
+                // Stop current playback
                 App::Instance()->playback.Stop();
                 App::Instance()->UninitScene(PlaybackScene::StaticName());
                 _playlist->currentlyPlaying = -1;
                 App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
+
+                // Play next item
+                if (_playlist->options.autoplay && playbackFinished && i + 1 < _playlist->readyItems.size())
+                    OnPlayItemRequest(_playlist->readyItems[i + 1]->GetItemId());
             }
             return;
         }

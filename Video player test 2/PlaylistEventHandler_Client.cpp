@@ -162,7 +162,7 @@ void PlaylistEventHandler_Client::OnPlayItemRequest(int64_t itemId)
     }
 }
 
-void PlaylistEventHandler_Client::OnStopItemRequest(int64_t itemId)
+void PlaylistEventHandler_Client::OnStopItemRequest(int64_t itemId, bool playbackFinished)
 {
     for (int i = 0; i < _playlist->readyItems.size(); i++)
     {
@@ -176,11 +176,19 @@ void PlaylistEventHandler_Client::OnStopItemRequest(int64_t itemId)
                     _playbackParticipationTracker.reset();
             }
 
-            // Send stop request
-            APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_REQUEST), { 0 }, 1);
+            if (playbackFinished)
+            {
+                // Send playback finished notification
+                APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_FINISHED), { 0 }, 1);
+            }
+            else
+            {
+                // Send stop request
+                APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_REQUEST), { 0 }, 1);
 
-            _playlist->pendingItemStop = itemId;
-            App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
+                _playlist->pendingItemStop = itemId;
+                App::Instance()->events.RaiseEvent(PlaylistChangedEvent{});
+            }
             return;
         }
     }

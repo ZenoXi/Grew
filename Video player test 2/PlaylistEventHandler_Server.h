@@ -12,7 +12,7 @@ public:
     void OnAddItemRequest(std::unique_ptr<PlaylistItem> item) {}
     void OnDeleteItemRequest(int64_t itemId) {}
     void OnPlayItemRequest(int64_t itemId) {}
-    void OnStopItemRequest(int64_t itemId) {}
+    void OnStopItemRequest(int64_t itemId, bool playbackFinished) {}
     void OnMoveItemRequest(std::vector<int64_t> itemIds, int slot) {}
 
     void Update();
@@ -29,6 +29,7 @@ private:
     std::unique_ptr<znet::PacketReceiver> _playbackStartRequestReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _playbackStartResponseReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _playbackStopRequestReceiver = nullptr;
+    std::unique_ptr<znet::PacketReceiver> _playbackFinishedReceiver = nullptr;
     std::unique_ptr<znet::PacketReceiver> _itemMoveRequestReceiver = nullptr;
 
     void _CheckForUserConnect();
@@ -39,6 +40,7 @@ private:
     void _CheckForStartRequest();
     void _CheckForStartResponse();
     void _CheckForStopRequest();
+    void _CheckForPlaybackFinish();
     void _CheckForItemMoveRequest();
 
     // Start order timeout

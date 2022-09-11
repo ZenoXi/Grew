@@ -54,9 +54,9 @@ void Playlist::Request_PlayItem(int64_t itemId)
     _eventHandler->OnPlayItemRequest(itemId);
 }
 
-void Playlist::Request_StopItem(int64_t itemId)
+void Playlist::Request_StopItem(int64_t itemId, bool playbackFinished)
 {
-    _eventHandler->OnStopItemRequest(itemId);
+    _eventHandler->OnStopItemRequest(itemId, playbackFinished);
 }
 
 void Playlist::Request_MoveItems(std::vector<int64_t> itemIds, int slot)

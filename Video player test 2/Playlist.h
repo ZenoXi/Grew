@@ -46,7 +46,8 @@ public:
     void Request_AddItem(std::unique_ptr<PlaylistItem> item);
     void Request_DeleteItem(int64_t itemId);
     void Request_PlayItem(int64_t itemId);
-    void Request_StopItem(int64_t itemId);
+    // Set playbackFinished to true when you are the host that is stopping a fully completed playback
+    void Request_StopItem(int64_t itemId, bool playbackFinished = false);
     void Request_MoveItems(std::vector<int64_t> itemIds, int slot);
 
     std::vector<PlaylistItem*> ReadyItems() const;
