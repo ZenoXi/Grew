@@ -115,6 +115,21 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _playlistLabel->SetMargins({ 10.0f });
     _playlistLabel->SetFontSize(24.0f);
 
+    _playlistEmptyLabel = Create<zcom::Label>(
+        L"The playlist is currently empty\n"
+        "Add media using the side panel buttons or drag-drop files directly"
+    );
+    _playlistEmptyLabel->SetParentWidthPercent(1.0f);
+    _playlistEmptyLabel->SetBaseSize(-40, 300);
+    _playlistEmptyLabel->SetVerticalOffsetPixels(80);
+    _playlistEmptyLabel->SetHorizontalAlignment(zcom::Alignment::CENTER);
+    _playlistEmptyLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+    _playlistEmptyLabel->SetFontSize(16.0f);
+    _playlistEmptyLabel->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
+    _playlistEmptyLabel->SetFontColor(D2D1::ColorF(0.6f, 0.6f, 0.6f));
+    _playlistEmptyLabel->SetWordWrap(true);
+    _playlistEmptyLabel->SetZIndex(2);
+
     _readyItemPanel = Create<zcom::Panel>();
     _readyItemPanel->SetParentSizePercent(1.0f, 1.0f);
     _readyItemPanel->SetBaseHeight(-40);
@@ -144,7 +159,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _fileDropOverlay->SetBaseHeight(-40);
     _fileDropOverlay->SetVerticalOffsetPixels(40);
     _fileDropOverlay->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.5f));
-    _fileDropOverlay->SetZIndex(2);
+    _fileDropOverlay->SetZIndex(3);
     _fileDropOverlay->SetVisible(false);
     _fileDropOverlay->AddItem(_fileDropLabel.get());
 
@@ -508,6 +523,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _sideMenuPanel->AddItem(_closeOverlayButton.get());
 
     _playlistPanel->AddItem(_playlistLabel.get());
+    _playlistPanel->AddItem(_playlistEmptyLabel.get());
     _playlistPanel->AddItem(_readyItemPanel.get());
     _playlistPanel->AddItem(_fileDropOverlay.get());
 
@@ -926,7 +942,11 @@ void PlaybackOverlayScene::_RearrangePlaylistPanel()
     _SplitItems();
     _SortItems();
 
-    //const int ITEM_HEIGHT = 25;
+    // Show/hide empty playlist label
+    if (_playlistItems.empty())
+        _playlistEmptyLabel->SetVisible(true);
+    else
+        _playlistEmptyLabel->SetVisible(false);
 
     // Add ready items
     // Use 'while' to allow early exiting if reordering is aborted

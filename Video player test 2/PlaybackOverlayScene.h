@@ -40,6 +40,7 @@ class PlaybackOverlayScene : public Scene
     std::unique_ptr<zcom::Panel> _playlistPanel = nullptr;
     std::unique_ptr<zcom::Panel> _readyItemPanel = nullptr;
     std::unique_ptr<zcom::Label> _playlistLabel = nullptr;
+    std::unique_ptr<zcom::Label> _playlistEmptyLabel = nullptr;
     std::vector<std::unique_ptr<zcom::OverlayPlaylistItem>> _playlistItems;
     std::vector<zcom::OverlayPlaylistItem*> _readyItems;
     std::vector<zcom::OverlayPlaylistItem*> _pendingItems;
