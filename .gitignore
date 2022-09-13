@@ -3,5 +3,6 @@
 !*.h
 !*.cpp
 !*.hpp
+!*.hlsl
 !.gitignore
 !Video player test 2/
