@@ -28,32 +28,44 @@ namespace zcom
     protected:
         bool _Redraw()
         {
-            return _text->Redraw();
+            return _text->Redraw()
+                || _image->Redraw()
+                || _imageHovered->Redraw()
+                || _imageClicked->Redraw();
         }
 
         void _OnDraw(Graphics g)
         {
+            // Update images
+            if (_image->Redraw())
+                _image->Draw(g);
+            if (_imageHovered->Redraw())
+                _imageHovered->Draw(g);
+            if (_imageClicked->Redraw())
+                _imageClicked->Draw(g);
+
             D2D1_COLOR_F color;
-            ID2D1Bitmap* image;
+            zcom::Image* image = nullptr;
             if (GetMouseInsideArea())
             {
                 if (GetMouseLeftClicked())
                 {
                     color = _colorClicked;
-                    image = _imageClicked;
+                    image = _imageClicked.get();
                 }
                 else
                 {
                     color = _colorHovered;
-                    image = _imageHovered;
+                    image = _imageHovered.get();
                 }
             }
             else
             {
                 color = _color;
-                image = _image;
+                image = _image.get();
             }
             
+            // Draw button color
             ID2D1SolidColorBrush* brush;
             g.target->CreateSolidColorBrush(color, &brush);
             g.target->FillRectangle
@@ -62,19 +74,12 @@ namespace zcom
                 brush
             );
             brush->Release();
-            if (image)
-            {
-                auto imageComp = Create<zcom::Image>();
-                imageComp->SetSize(GetWidth(), GetHeight());
-                imageComp->SetStretchMode(_stretchMode);
-                imageComp->SetImage(image);
-                g.target->DrawBitmap(imageComp->Draw(g));
-                //(
-                //    image,
-                //    D2D1::RectF(0, 0, g.target->GetSize().width, g.target->GetSize().height)
-                //);
-            }
 
+            // Draw button image
+            if (image && image->GetImage())
+                g.target->DrawBitmap(image->Base::Image());
+
+            // Draw button text
             g.target->DrawBitmap(
                 _text->Draw(g),
                 D2D1::RectF(
@@ -89,6 +94,9 @@ namespace zcom
         void _OnResize(int width, int height)
         {
             _text->Resize(width, height);
+            _image->Resize(width, height);
+            _imageHovered->Resize(width, height);
+            _imageClicked->Resize(width, height);
         }
 
         void _OnMouseEnterArea()
@@ -168,14 +176,12 @@ namespace zcom
         bool _hovered = false;
 
         std::unique_ptr<Label> _text = nullptr;
-
-        ID2D1Bitmap* _image = nullptr;
+        std::unique_ptr<zcom::Image> _image = nullptr;
+        std::unique_ptr<zcom::Image> _imageHovered = nullptr;
+        std::unique_ptr<zcom::Image> _imageClicked = nullptr;
         D2D1_COLOR_F _color = D2D1::ColorF(0, 0.0f);
-        ID2D1Bitmap* _imageHovered = nullptr;
         D2D1_COLOR_F _colorHovered = D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f);
-        ID2D1Bitmap* _imageClicked = nullptr;
         D2D1_COLOR_F _colorClicked = D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.1f);
-        ImageStretchMode _stretchMode = ImageStretchMode::FILL;
 
     protected:
         friend class Scene;
@@ -189,6 +195,16 @@ namespace zcom
             _text->SetSize(GetWidth(), GetHeight());
             _text->SetHorizontalTextAlignment(TextAlignment::CENTER);
             _text->SetVerticalTextAlignment(Alignment::CENTER);
+
+            _image = Create<zcom::Image>();
+            _image->SetSize(GetWidth(), GetHeight());
+            _image->SetPlacement(ImagePlacement::FIT);
+            _imageHovered = Create<zcom::Image>();
+            _imageHovered->SetSize(GetWidth(), GetHeight());
+            _imageHovered->SetPlacement(ImagePlacement::FIT);
+            _imageClicked = Create<zcom::Image>();
+            _imageClicked->SetSize(GetWidth(), GetHeight());
+            _imageClicked->SetPlacement(ImagePlacement::FIT);
         }
     public:
         ~Button() {}
@@ -199,9 +215,9 @@ namespace zcom
 
         void SetButtonImageAll(ID2D1Bitmap* image)
         {
-            SetButtonImage(image);
-            SetButtonHoverImage(image);
-            SetButtonClickImage(image);
+            _image->SetImage(image);
+            _imageHovered->SetImage(image);
+            _imageClicked->SetImage(image);
         }
 
         void SetButtonColorAll(D2D1_COLOR_F color)
@@ -211,12 +227,58 @@ namespace zcom
             SetButtonClickColor(color);
         }
 
-        void SetButtonImage(ID2D1Bitmap* image)
+        zcom::Image* ButtonImage()
         {
-            if (image == _image)
-                return;
-            _image = image;
-            InvokeRedraw();
+            return _image.get();
+        }
+
+        zcom::Image* ButtonHoverImage()
+        {
+            return _imageHovered.get();
+        }
+
+        zcom::Image* ButtonClickImage()
+        {
+            return _imageClicked.get();
+        }
+
+        // Copies all parameters (except the image itself) to all button images
+        void UseImageParamsForAll(zcom::Image* image)
+        {
+            // Copy image params before overwriting internal images
+            // in case and internal image is used as the copy base
+            RECT_F sourceRect = image->GetSourceRect();
+            ImagePlacement placement = image->GetPlacement();
+            float offsetX = image->GetImageOffsetX();
+            float offsetY = image->GetImageOffsetY();
+            float scaleX = image->GetScaleX();
+            float scaleY = image->GetScaleY();
+            bool snap = image->GetPixelSnap();
+            float opacity = image->GetImageOpacity();
+            D2D1_COLOR_F color = image->GetTintColor();
+
+            // Apply to internal images
+            _image->SetSourceRect(sourceRect);
+            _image->SetPlacement(placement);
+            _image->SetImageOffset(offsetX, offsetY);
+            _image->SetScale(scaleX, scaleY);
+            _image->SetPixelSnap(snap);
+            _image->SetImageOpacity(opacity);
+            _image->SetTintColor(color);
+            _imageHovered->SetSourceRect(sourceRect);
+            _imageHovered->SetPlacement(placement);
+            _imageHovered->SetImageOffset(offsetX, offsetY);
+            _imageHovered->SetScale(scaleX, scaleY);
+            _imageHovered->SetPixelSnap(snap);
+            _imageHovered->SetImageOpacity(opacity);
+            _imageHovered->SetTintColor(color);
+            _imageClicked->SetSourceRect(sourceRect);
+            _imageClicked->SetPlacement(placement);
+            _imageClicked->SetImageOffset(offsetX, offsetY);
+            _imageClicked->SetScale(scaleX, scaleY);
+            _imageClicked->SetPixelSnap(snap);
+            _imageClicked->SetImageOpacity(opacity);
+            _imageClicked->SetTintColor(color);
         }
 
         void SetButtonColor(D2D1_COLOR_F color)
@@ -227,27 +289,11 @@ namespace zcom
             InvokeRedraw();
         }
 
-        void SetButtonHoverImage(ID2D1Bitmap* image)
-        {
-            if (image == _imageHovered)
-                return;
-            _imageHovered = image;
-            InvokeRedraw();
-        }
-
         void SetButtonHoverColor(D2D1_COLOR_F color)
         {
             if (color == _colorHovered)
                 return;
             _colorHovered = color;
-            InvokeRedraw();
-        }
-
-        void SetButtonClickImage(ID2D1Bitmap* image)
-        {
-            if (image == _imageClicked)
-                return;
-            _imageClicked = image;
             InvokeRedraw();
         }
 
@@ -280,15 +326,6 @@ namespace zcom
             default:
                 break;
             }
-        }
-
-        void SetImageStretch(ImageStretchMode mode)
-        {
-            if (mode == _stretchMode)
-                return;
-
-            _stretchMode = mode;
-            InvokeRedraw();
         }
 
         void SetOnActivated(const std::function<void()>& func)
