@@ -5,6 +5,8 @@
 #include "OptionNames.h"
 #include "BoolOptionAdapter.h"
 
+#include "TintEffect.h"
+
 #include <iostream>
 #include <cassert>
 #include <sstream>
@@ -891,6 +893,9 @@ void WindowGraphics::Initialize(HWND* hwnd_t)
         {},
         p_D2DFactory.GetAddressOf()
     );
+
+    // Register custom effects
+    hr = CustomTintEffect::Register(p_D2DFactory.Get());
 
     D3D11CreateDevice(nullptr,
         D3D_DRIVER_TYPE_HARDWARE,
