@@ -282,7 +282,10 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _toggleInfoPanelButton->SetButtonHoverColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.07f));
     _toggleInfoPanelButton->SetButtonClickColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f));
     _toggleInfoPanelButton->SetButtonImageAll(ResourceManager::GetImage("menu_arrow_right_7"));
-    _toggleInfoPanelButton->SetImageStretch(zcom::ImageStretchMode::CENTER);
+    _toggleInfoPanelButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::CENTER);
+    _toggleInfoPanelButton->ButtonImage()->SetPixelSnap(true);
+    _toggleInfoPanelButton->UseImageParamsForAll(_toggleInfoPanelButton->ButtonImage());
+    //_toggleInfoPanelButton->SetImageStretch(zcom::ImageStretchMode::CENTER);
     _toggleInfoPanelButton->SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
     _toggleInfoPanelButton->SetActivation(zcom::ButtonActivation::PRESS);
     _toggleInfoPanelButton->SetOnActivated([&]()
@@ -339,9 +342,12 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _toggleChatButton->SetBaseSize(30, 30);
     _toggleChatButton->SetOffsetPixels(0, 30);
     _toggleChatButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
-    _toggleChatButton->SetButtonImage(ResourceManager::GetImage("chat_vdim"));
-    _toggleChatButton->SetButtonHoverImage(ResourceManager::GetImage("chat_dim"));
-    _toggleChatButton->SetButtonClickImage(ResourceManager::GetImage("chat_dim"));
+    _toggleChatButton->ButtonImage()->SetImage(ResourceManager::GetImage("chat_vdim"));
+    _toggleChatButton->ButtonHoverImage()->SetImage(ResourceManager::GetImage("chat_dim"));
+    _toggleChatButton->ButtonClickImage()->SetImage(ResourceManager::GetImage("chat_dim"));
+    //_toggleChatButton->SetButtonImage(ResourceManager::GetImage("chat_vdim"));
+    //_toggleChatButton->SetButtonHoverImage(ResourceManager::GetImage("chat_dim"));
+    //_toggleChatButton->SetButtonClickImage(ResourceManager::GetImage("chat_dim"));
     _toggleChatButton->SetButtonColorAll(D2D1::ColorF(0.13f, 0.13f, 0.13f));
     _toggleChatButton->SetSelectable(false);
     _toggleChatButton->SetActivation(zcom::ButtonActivation::PRESS);
@@ -363,9 +369,12 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _toggleUserListButton->SetBaseSize(30, 30);
     _toggleUserListButton->SetOffsetPixels(30, 30);
     _toggleUserListButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
-    _toggleUserListButton->SetButtonImage(ResourceManager::GetImage("user_vdim"));
-    _toggleUserListButton->SetButtonHoverImage(ResourceManager::GetImage("user_dim"));
-    _toggleUserListButton->SetButtonClickImage(ResourceManager::GetImage("user_dim"));
+    _toggleUserListButton->ButtonImage()->SetImage(ResourceManager::GetImage("user_vdim"));
+    _toggleUserListButton->ButtonHoverImage()->SetImage(ResourceManager::GetImage("user_dim"));
+    _toggleUserListButton->ButtonClickImage()->SetImage(ResourceManager::GetImage("user_dim"));
+    //_toggleUserListButton->SetButtonImage(ResourceManager::GetImage("user_vdim"));
+    //_toggleUserListButton->SetButtonHoverImage(ResourceManager::GetImage("user_dim"));
+    //_toggleUserListButton->SetButtonClickImage(ResourceManager::GetImage("user_dim"));
     _toggleUserListButton->SetButtonColorAll(D2D1::ColorF(0.13f, 0.13f, 0.13f));
     _toggleUserListButton->SetSelectable(false);
     _toggleUserListButton->SetActivation(zcom::ButtonActivation::PRESS);

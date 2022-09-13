@@ -121,9 +121,12 @@ void zcom::PlaybackController::Init()
     _playNextButton->SetVerticalAlignment(zcom::Alignment::END);
     _playNextButton->SetVerticalOffsetPixels(-5);
     _playNextButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
-    _playNextButton->SetButtonImage(ResourceManager::GetImage("play_next_dim"));
-    _playNextButton->SetButtonHoverImage(ResourceManager::GetImage("play_next"));
-    _playNextButton->SetButtonClickImage(ResourceManager::GetImage("play_next"));
+    _playNextButton->ButtonImage()->SetImage(ResourceManager::GetImage("play_next_dim"));
+    _playNextButton->ButtonHoverImage()->SetImage(ResourceManager::GetImage("play_next"));
+    _playNextButton->ButtonClickImage()->SetImage(ResourceManager::GetImage("play_next"));
+    //_playNextButton->SetButtonImage(ResourceManager::GetImage("play_next_dim"));
+    //_playNextButton->SetButtonHoverImage(ResourceManager::GetImage("play_next"));
+    //_playNextButton->SetButtonClickImage(ResourceManager::GetImage("play_next"));
     _playNextButton->SetSelectable(false);
     _playNextButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _playNextButton->SetOnActivated([&]()
@@ -150,9 +153,12 @@ void zcom::PlaybackController::Init()
     _playPreviousButton->SetVerticalAlignment(zcom::Alignment::END);
     _playPreviousButton->SetVerticalOffsetPixels(-5);
     _playPreviousButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
-    _playPreviousButton->SetButtonImage(ResourceManager::GetImage("play_previous_dim"));
-    _playPreviousButton->SetButtonHoverImage(ResourceManager::GetImage("play_previous"));
-    _playPreviousButton->SetButtonClickImage(ResourceManager::GetImage("play_previous"));
+    _playPreviousButton->ButtonImage()->SetImage(ResourceManager::GetImage("play_previous_dim"));
+    _playPreviousButton->ButtonHoverImage()->SetImage(ResourceManager::GetImage("play_previous"));
+    _playPreviousButton->ButtonClickImage()->SetImage(ResourceManager::GetImage("play_previous"));
+    //_playPreviousButton->SetButtonImage(ResourceManager::GetImage("play_previous_dim"));
+    //_playPreviousButton->SetButtonHoverImage(ResourceManager::GetImage("play_previous"));
+    //_playPreviousButton->SetButtonClickImage(ResourceManager::GetImage("play_previous"));
     _playPreviousButton->SetSelectable(false);
     _playPreviousButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _playPreviousButton->SetOnActivated([&]()
@@ -178,9 +184,12 @@ void zcom::PlaybackController::Init()
     _overlayButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
     _overlayButton->SetOffsetPixels(-120, -5);
     _overlayButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
-    _overlayButton->SetButtonImage(ResourceManager::GetImage("playlist_dim"));
-    _overlayButton->SetButtonHoverImage(ResourceManager::GetImage("playlist"));
-    _overlayButton->SetButtonClickImage(ResourceManager::GetImage("playlist"));
+    _overlayButton->ButtonImage()->SetImage(ResourceManager::GetImage("playlist_dim"));
+    _overlayButton->ButtonHoverImage()->SetImage(ResourceManager::GetImage("playlist"));
+    _overlayButton->ButtonClickImage()->SetImage(ResourceManager::GetImage("playlist"));
+    //_overlayButton->SetButtonImage(ResourceManager::GetImage("playlist_dim"));
+    //_overlayButton->SetButtonHoverImage(ResourceManager::GetImage("playlist"));
+    //_overlayButton->SetButtonClickImage(ResourceManager::GetImage("playlist"));
     _overlayButton->SetSelectable(false);
     _overlayButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _overlayButton->SetOnActivated([&]()
@@ -193,9 +202,12 @@ void zcom::PlaybackController::Init()
     _settingsButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
     _settingsButton->SetOffsetPixels(-160, -5);
     _settingsButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
-    _settingsButton->SetButtonImage(ResourceManager::GetImage("settings_dim"));
-    _settingsButton->SetButtonHoverImage(ResourceManager::GetImage("settings"));
-    _settingsButton->SetButtonClickImage(ResourceManager::GetImage("settings"));
+    _settingsButton->ButtonImage()->SetImage(ResourceManager::GetImage("settings_dim"));
+    _settingsButton->ButtonHoverImage()->SetImage(ResourceManager::GetImage("settings"));
+    _settingsButton->ButtonClickImage()->SetImage(ResourceManager::GetImage("settings"));
+    //_settingsButton->SetButtonImage(ResourceManager::GetImage("settings_dim"));
+    //_settingsButton->SetButtonHoverImage(ResourceManager::GetImage("settings"));
+    //_settingsButton->SetButtonClickImage(ResourceManager::GetImage("settings"));
     _settingsButton->SetSelectable(false);
     _settingsButton->SetOnActivated([&]()
     {
@@ -228,25 +240,34 @@ void zcom::PlaybackController::Init()
     _fullscreenButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
     _fullscreenButton->SetOffsetPixels(-80, -5);
     _fullscreenButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
-    _fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_on_dim"));
-    _fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_on"));
-    _fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_on"));
+    _fullscreenButton->ButtonImage()->SetImage(ResourceManager::GetImage("fullscreen_on_dim"));
+    _fullscreenButton->ButtonHoverImage()->SetImage(ResourceManager::GetImage("fullscreen_on"));
+    _fullscreenButton->ButtonClickImage()->SetImage(ResourceManager::GetImage("fullscreen_on"));
+    //_fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_on_dim"));
+    //_fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_on"));
+    //_fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_on"));
     _fullscreenButton->SetSelectable(false);
     _fullscreenButton->SetOnActivated([&]()
     {
         if (_scene->GetApp()->Fullscreen())
         {
             _scene->GetApp()->Fullscreen(false);
-            _fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_on_dim"));
-            _fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_on"));
-            _fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_on"));
+            _fullscreenButton->ButtonImage()->SetImage(ResourceManager::GetImage("fullscreen_on_dim"));
+            _fullscreenButton->ButtonHoverImage()->SetImage(ResourceManager::GetImage("fullscreen_on"));
+            _fullscreenButton->ButtonClickImage()->SetImage(ResourceManager::GetImage("fullscreen_on"));
+            //_fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_on_dim"));
+            //_fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_on"));
+            //_fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_on"));
         }
         else
         {
             _scene->GetApp()->Fullscreen(true);
-            _fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_off_dim"));
-            _fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_off"));
-            _fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_off"));
+            _fullscreenButton->ButtonImage()->SetImage(ResourceManager::GetImage("fullscreen_off_dim"));
+            _fullscreenButton->ButtonHoverImage()->SetImage(ResourceManager::GetImage("fullscreen_off"));
+            _fullscreenButton->ButtonClickImage()->SetImage(ResourceManager::GetImage("fullscreen_off"));
+            //_fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_off_dim"));
+            //_fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_off"));
+            //_fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_off"));
         }
     });
 
@@ -359,15 +380,21 @@ void zcom::PlaybackController::_UpdateFullscreenButton(bool force)
         _inFullscreen = _scene->GetApp()->Fullscreen();
         if (_inFullscreen)
         {
-            _fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_off_dim"));
-            _fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_off"));
-            _fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_off"));
+            _fullscreenButton->ButtonImage()->SetImage(ResourceManager::GetImage("fullscreen_off_dim"));
+            _fullscreenButton->ButtonHoverImage()->SetImage(ResourceManager::GetImage("fullscreen_off"));
+            _fullscreenButton->ButtonClickImage()->SetImage(ResourceManager::GetImage("fullscreen_off"));
+            //_fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_off_dim"));
+            //_fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_off"));
+            //_fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_off"));
         }
         else
         {
-            _fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_on_dim"));
-            _fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_on"));
-            _fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_on"));
+            _fullscreenButton->ButtonImage()->SetImage(ResourceManager::GetImage("fullscreen_on_dim"));
+            _fullscreenButton->ButtonHoverImage()->SetImage(ResourceManager::GetImage("fullscreen_on"));
+            _fullscreenButton->ButtonClickImage()->SetImage(ResourceManager::GetImage("fullscreen_on"));
+            //_fullscreenButton->SetButtonImage(ResourceManager::GetImage("fullscreen_on_dim"));
+            //_fullscreenButton->SetButtonHoverImage(ResourceManager::GetImage("fullscreen_on"));
+            //_fullscreenButton->SetButtonClickImage(ResourceManager::GetImage("fullscreen_on"));
         }
     }
 }

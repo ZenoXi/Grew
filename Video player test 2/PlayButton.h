@@ -79,15 +79,21 @@ namespace zcom
             _paused = paused;
             if (_paused)
             {
-                SetButtonImage(_playIcon);
-                SetButtonHoverImage(_playIconHover);
-                SetButtonClickImage(_playIconHover);
+                ButtonImage()->SetImage(_playIcon);
+                ButtonHoverImage()->SetImage(_playIconHover);
+                ButtonClickImage()->SetImage(_playIconHover);
+                //SetButtonImage(_playIcon);
+                //SetButtonHoverImage(_playIconHover);
+                //SetButtonClickImage(_playIconHover);
             }
             else
             {
-                SetButtonImage(_pauseIcon);
-                SetButtonHoverImage(_pauseIconHover);
-                SetButtonClickImage(_pauseIconHover);
+                ButtonImage()->SetImage(_pauseIcon);
+                ButtonHoverImage()->SetImage(_pauseIconHover);
+                ButtonClickImage()->SetImage(_pauseIconHover);
+                //SetButtonImage(_pauseIcon);
+                //SetButtonHoverImage(_pauseIconHover);
+                //SetButtonClickImage(_pauseIconHover);
             }
         }
 

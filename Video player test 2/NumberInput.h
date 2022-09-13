@@ -113,8 +113,8 @@ namespace zcom
             valueUpButton->SetAlignment(Alignment::END, Alignment::CENTER);
             valueUpButton->SetPreset(ButtonPreset::NO_EFFECTS);
             valueUpButton->SetButtonImageAll(ResourceManager::GetImage("number_inc_color"));
-            valueUpButton->SetButtonImage(ResourceManager::GetImage("number_inc"));
-            valueUpButton->SetImageStretch(ImageStretchMode::CENTER);
+            valueUpButton->ButtonImage()->SetImage(ResourceManager::GetImage("number_inc"));
+            valueUpButton->ButtonImage()->SetPlacement(ImagePlacement::CENTER);
             valueUpButton->SetSelectable(false);
             valueUpButton->SetActivation(zcom::ButtonActivation::PRESS);
             valueUpButton->SetOnActivated([&]()
@@ -129,8 +129,10 @@ namespace zcom
             valueDownButton->SetAlignment(Alignment::END, Alignment::CENTER);
             valueDownButton->SetPreset(ButtonPreset::NO_EFFECTS);
             valueDownButton->SetButtonImageAll(ResourceManager::GetImage("number_dec_color"));
-            valueDownButton->SetButtonImage(ResourceManager::GetImage("number_dec"));
-            valueDownButton->SetImageStretch(ImageStretchMode::CENTER);
+            valueDownButton->ButtonImage()->SetImage(ResourceManager::GetImage("number_dec"));
+            valueDownButton->ButtonImage()->SetPlacement(ImagePlacement::CENTER);
+            //valueDownButton->SetButtonImage(ResourceManager::GetImage("number_dec"));
+            //valueDownButton->SetImageStretch(ImageStretchMode::CENTER);
             valueDownButton->SetSelectable(false);
             valueDownButton->SetActivation(zcom::ButtonActivation::PRESS);
             valueDownButton->SetOnActivated([&]()

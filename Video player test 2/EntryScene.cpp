@@ -46,9 +46,12 @@ void EntryScene::_Init(const SceneOptionsBase* options)
     _connectButton->SetVerticalOffsetPixels(20);
     _connectButton->SetBaseWidth(100);
     _connectButton->SetBaseHeight(100);
-    _connectButton->SetButtonImage(ResourceManager::GetImage("connect_dim"));
-    _connectButton->SetButtonHoverImage(ResourceManager::GetImage("connect_bright"));
-    _connectButton->SetButtonClickImage(ResourceManager::GetImage("connect_bright"));
+    _connectButton->ButtonImage()->SetImage(ResourceManager::GetImage("connect_dim"));
+    _connectButton->ButtonHoverImage()->SetImage(ResourceManager::GetImage("connect_bright"));
+    _connectButton->ButtonClickImage()->SetImage(ResourceManager::GetImage("connect_bright"));
+    //_connectButton->SetButtonImage(ResourceManager::GetImage("connect_dim"));
+    //_connectButton->SetButtonHoverImage(ResourceManager::GetImage("connect_bright"));
+    //_connectButton->SetButtonClickImage(ResourceManager::GetImage("connect_bright"));
     _connectButton->SetButtonHoverColor(D2D1::ColorF(0, 0.0f));
     _connectButton->SetOnActivated([&]() { OnConnectSelected(); });
     _connectButton->SetTabIndex(0);
@@ -68,9 +71,12 @@ void EntryScene::_Init(const SceneOptionsBase* options)
     _shareButton->SetVerticalOffsetPixels(20);
     _shareButton->SetBaseWidth(100);
     _shareButton->SetBaseHeight(100);
-    _shareButton->SetButtonImage(ResourceManager::GetImage("share_dim"));
-    _shareButton->SetButtonHoverImage(ResourceManager::GetImage("share_bright"));
-    _shareButton->SetButtonClickImage(ResourceManager::GetImage("share_bright"));
+    _shareButton->ButtonImage()->SetImage(ResourceManager::GetImage("share_dim"));
+    _shareButton->ButtonHoverImage()->SetImage(ResourceManager::GetImage("share_bright"));
+    _shareButton->ButtonClickImage()->SetImage(ResourceManager::GetImage("share_bright"));
+    //_shareButton->SetButtonImage(ResourceManager::GetImage("share_dim"));
+    //_shareButton->SetButtonHoverImage(ResourceManager::GetImage("share_bright"));
+    //_shareButton->SetButtonClickImage(ResourceManager::GetImage("share_bright"));
     _shareButton->SetButtonHoverColor(D2D1::ColorF(0, 0.0f));
     _shareButton->SetOnActivated([&]() { OnShareSelected(); });
     _shareButton->SetTabIndex(1);
@@ -90,9 +96,12 @@ void EntryScene::_Init(const SceneOptionsBase* options)
     _fileButton->SetVerticalOffsetPixels(20);
     _fileButton->SetBaseWidth(100);
     _fileButton->SetBaseHeight(100);
-    _fileButton->SetButtonImage(ResourceManager::GetImage("file_dim"));
-    _fileButton->SetButtonHoverImage(ResourceManager::GetImage("file_bright"));
-    _fileButton->SetButtonClickImage(ResourceManager::GetImage("file_bright"));
+    _fileButton->ButtonImage()->SetImage(ResourceManager::GetImage("file_dim"));
+    _fileButton->ButtonHoverImage()->SetImage(ResourceManager::GetImage("file_bright"));
+    _fileButton->ButtonClickImage()->SetImage(ResourceManager::GetImage("file_bright"));
+    //_fileButton->SetButtonImage(ResourceManager::GetImage("file_dim"));
+    //_fileButton->SetButtonHoverImage(ResourceManager::GetImage("file_bright"));
+    //_fileButton->SetButtonClickImage(ResourceManager::GetImage("file_bright"));
     _fileButton->SetButtonHoverColor(D2D1::ColorF(0, 0.0f));
     _fileButton->SetOnActivated([&]() { OnFileSelected(); });
     _fileButton->SetTabIndex(2);
@@ -120,9 +129,18 @@ void EntryScene::_Init(const SceneOptionsBase* options)
     _mainPanel->AddItem(_fileLabel.get());
     _mainPanel->AddItem(_testButton.get());
 
+    //_testImage = Create<zcom::Image>(ResourceManager::GetImage("connect_dim"));
+    //_testImage->SetBaseSize(400, 400);
+    //_testImage->SetBorderVisibility(true);
+    //_testImage->SetSourceRect({ 50, 50, 250, 200 });
+    //_testImage->SetScale(0.5f, 0.5f);
+    //_testImage->SetPixelSnap(true);
+    //_testImage->SetPlacement(zcom::ImagePlacement::FIT);
+
     //_canvas->AddComponent(_testNotification.get());
     //_canvas->GetPanel()->AddItemShadow(_testNotification.get());
     _canvas->AddComponent(_mainPanel.get());
+    //_canvas->AddComponent(_testImage.get());
     _canvas->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
 }
 
@@ -152,6 +170,8 @@ void EntryScene::_Unfocus()
 
 void EntryScene::_Update()
 {
+    _testImage->SetImageOffsetX(_testImage->GetImageOffsetX() + 0.01f);
+
     _canvas->Update();
 
     if (_connectPanelOpen)
