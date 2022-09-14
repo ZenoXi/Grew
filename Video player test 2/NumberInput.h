@@ -108,13 +108,18 @@ namespace zcom
             SetTextAreaMargins({ 0, 0, 19, 0 });
 
             auto valueUpButton = Create<Button>(L"");
-            valueUpButton->SetBaseSize(19, 9);
-            valueUpButton->SetVerticalOffsetPixels(-5);
-            valueUpButton->SetAlignment(Alignment::END, Alignment::CENTER);
+            valueUpButton->SetBaseWidth(19);
+            valueUpButton->SetParentHeightPercent(0.5f);
+            valueUpButton->SetAlignment(Alignment::END, Alignment::START);
             valueUpButton->SetPreset(ButtonPreset::NO_EFFECTS);
-            valueUpButton->SetButtonImageAll(ResourceManager::GetImage("number_inc_color"));
-            valueUpButton->ButtonImage()->SetImage(ResourceManager::GetImage("number_inc"));
-            valueUpButton->ButtonImage()->SetPlacement(ImagePlacement::CENTER);
+            valueUpButton->SetButtonImageAll(ResourceManager::GetImage("menu_arrow_up_7x7"));
+            valueUpButton->ButtonImage()->SetPlacement(ImagePlacement::BOTTOM_CENTER);
+            valueUpButton->ButtonImage()->SetImageOffsetY(-1.0f);
+            valueUpButton->ButtonImage()->SetPixelSnap(true);
+            valueUpButton->UseImageParamsForAll(valueUpButton->ButtonImage());
+            valueUpButton->ButtonImage()->SetTintColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
+            valueUpButton->ButtonHoverImage()->SetTintColor(D2D1::ColorF(D2D1::ColorF::DodgerBlue));
+            valueUpButton->ButtonClickImage()->SetTintColor(D2D1::ColorF(D2D1::ColorF::DodgerBlue));
             valueUpButton->SetSelectable(false);
             valueUpButton->SetActivation(zcom::ButtonActivation::PRESS);
             valueUpButton->SetOnActivated([&]()
@@ -124,15 +129,18 @@ namespace zcom
             });
 
             auto valueDownButton = Create<Button>(L"");
-            valueDownButton->SetBaseSize(19, 9);
-            valueDownButton->SetVerticalOffsetPixels(5);
-            valueDownButton->SetAlignment(Alignment::END, Alignment::CENTER);
+            valueDownButton->SetBaseWidth(19);
+            valueDownButton->SetParentHeightPercent(0.5f);
+            valueDownButton->SetAlignment(Alignment::END, Alignment::END);
             valueDownButton->SetPreset(ButtonPreset::NO_EFFECTS);
-            valueDownButton->SetButtonImageAll(ResourceManager::GetImage("number_dec_color"));
-            valueDownButton->ButtonImage()->SetImage(ResourceManager::GetImage("number_dec"));
-            valueDownButton->ButtonImage()->SetPlacement(ImagePlacement::CENTER);
-            //valueDownButton->SetButtonImage(ResourceManager::GetImage("number_dec"));
-            //valueDownButton->SetImageStretch(ImageStretchMode::CENTER);
+            valueDownButton->SetButtonImageAll(ResourceManager::GetImage("menu_arrow_down_7x7"));
+            valueDownButton->ButtonImage()->SetPlacement(ImagePlacement::TOP_CENTER);
+            valueDownButton->ButtonImage()->SetImageOffsetY(1.0f);
+            valueDownButton->ButtonImage()->SetPixelSnap(true);
+            valueDownButton->UseImageParamsForAll(valueDownButton->ButtonImage());
+            valueDownButton->ButtonImage()->SetTintColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
+            valueDownButton->ButtonHoverImage()->SetTintColor(D2D1::ColorF(D2D1::ColorF::DodgerBlue));
+            valueDownButton->ButtonClickImage()->SetTintColor(D2D1::ColorF(D2D1::ColorF::DodgerBlue));
             valueDownButton->SetSelectable(false);
             valueDownButton->SetActivation(zcom::ButtonActivation::PRESS);
             valueDownButton->SetOnActivated([&]()

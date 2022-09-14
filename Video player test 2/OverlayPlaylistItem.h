@@ -70,7 +70,9 @@ namespace zcom
             _playButton->SetHorizontalAlignment(Alignment::END);
             _playButton->SetActivation(ButtonActivation::RELEASE);
             _playButton->SetOnActivated([&]() { _play = true; });
-            _playButton->SetBackgroundImage(ResourceManager::GetImage("item_play"));
+            _playButton->SetButtonImageAll(ResourceManager::GetImage("play_15x15"));
+            _playButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::CENTER);
+            _playButton->UseImageParamsForAll(_playButton->ButtonImage());
             _playButton->SetVisible(false);
 
             _deleteButton = Create<Button>();
@@ -78,7 +80,9 @@ namespace zcom
             _deleteButton->SetHorizontalAlignment(Alignment::END);
             _deleteButton->SetActivation(ButtonActivation::RELEASE);
             _deleteButton->SetOnActivated([&]() { _delete = true; });
-            _deleteButton->SetBackgroundImage(ResourceManager::GetImage("delete"));
+            _deleteButton->SetButtonImageAll(ResourceManager::GetImage("delete_15x15"));
+            _deleteButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::CENTER);
+            _deleteButton->UseImageParamsForAll(_deleteButton->ButtonImage());
             _deleteButton->SetVisible(false);
 
             _stopButton = Create<Button>();
@@ -86,7 +90,9 @@ namespace zcom
             _stopButton->SetHorizontalAlignment(Alignment::END);
             _stopButton->SetActivation(ButtonActivation::RELEASE);
             _stopButton->SetOnActivated([&]() { _stop = true; });
-            _stopButton->SetBackgroundImage(ResourceManager::GetImage("item_stop"));
+            _stopButton->SetButtonImageAll(ResourceManager::GetImage("stop_13x13"));
+            _stopButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::CENTER);
+            _stopButton->UseImageParamsForAll(_stopButton->ButtonImage());
             _stopButton->SetVisible(false);
 
             _buttonPanel->AddItem(_playButton.get());

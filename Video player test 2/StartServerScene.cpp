@@ -151,7 +151,9 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _generalOptionsArrowImage = Create<zcom::Image>();
         _generalOptionsArrowImage->SetBaseSize(25, 25);
         _generalOptionsArrowImage->SetVerticalOffsetPixels(3);
-        _generalOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_expand"));
+        _generalOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_arrow_right_7x7"));
+        _generalOptionsArrowImage->SetPlacement(zcom::ImagePlacement::CENTER);
+        _generalOptionsArrowImage->SetTintColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
 
         _generalOptionsButton = Create<zcom::Button>(L"General");
         _generalOptionsButton->SetBaseHeight(30);
@@ -171,13 +173,13 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
             if (!_generalOptionsOpen)
             {
                 _generalOptionsPanel->SetBaseHeight(_generalOptionsPanel->GetContentHeight() + 10);
-                _generalOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_expand_down"));
+                _generalOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_arrow_down_7x7"));
                 _generalOptionsOpen = true;
             }
             else
             {
                 _generalOptionsPanel->SetBaseHeight(30);
-                _generalOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_expand"));
+                _generalOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_arrow_right_7x7"));
                 _generalOptionsOpen = false;
             }
         });
@@ -257,7 +259,9 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _playlistOptionsArrowImage = Create<zcom::Image>();
         _playlistOptionsArrowImage->SetBaseSize(25, 25);
         _playlistOptionsArrowImage->SetVerticalOffsetPixels(3);
-        _playlistOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_expand"));
+        _playlistOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_arrow_right_7x7"));
+        _playlistOptionsArrowImage->SetPlacement(zcom::ImagePlacement::CENTER);
+        _playlistOptionsArrowImage->SetTintColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
 
         _playlistOptionsButton = Create<zcom::Button>(L"Playlist");
         _playlistOptionsButton->SetBaseHeight(30);
@@ -277,13 +281,13 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
             if (!_playlistOptionsOpen)
             {
                 _playlistOptionsPanel->SetBaseHeight(_playlistOptionsPanel->GetContentHeight() + 10);
-                _playlistOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_expand_down"));
+                _playlistOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_arrow_down_7x7"));
                 _playlistOptionsOpen = true;
             }
             else
             {
                 _playlistOptionsPanel->SetBaseHeight(30);
-                _playlistOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_expand"));
+                _playlistOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_arrow_right_7x7"));
                 _playlistOptionsOpen = false;
             }
         });
@@ -369,7 +373,9 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _playbackOptionsArrowImage = Create<zcom::Image>();
         _playbackOptionsArrowImage->SetBaseSize(25, 25);
         _playbackOptionsArrowImage->SetVerticalOffsetPixels(3);
-        _playbackOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_expand"));
+        _playbackOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_arrow_right_7x7"));
+        _playbackOptionsArrowImage->SetPlacement(zcom::ImagePlacement::CENTER);
+        _playbackOptionsArrowImage->SetTintColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
 
         _playbackOptionsButton = Create<zcom::Button>(L"Playback");
         _playbackOptionsButton->SetBaseHeight(30);
@@ -389,13 +395,13 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
             if (!_playbackOptionsOpen)
             {
                 _playbackOptionsPanel->SetBaseHeight(_playbackOptionsPanel->GetContentHeight() + 10);
-                _playbackOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_expand_down"));
+                _playbackOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_arrow_down_7x7"));
                 _playbackOptionsOpen = true;
             }
             else
             {
                 _playbackOptionsPanel->SetBaseHeight(30);
-                _playbackOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_expand"));
+                _playbackOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_arrow_right_7x7"));
                 _playbackOptionsOpen = false;
             }
         });
@@ -502,7 +508,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     _cancelButton->SetBaseSize(30, 30);
     _cancelButton->SetOffsetPixels(-30, 30);
     _cancelButton->SetHorizontalAlignment(zcom::Alignment::END);
-    _cancelButton->SetBackgroundImage(ResourceManager::GetImage("item_delete"));
+    _cancelButton->SetBackgroundImage(ResourceManager::GetImage("close_100x100"));
     _cancelButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _cancelButton->SetOnActivated([&]() { _CancelClicked(); });
 

@@ -49,7 +49,7 @@ void ManagePlaylistsScene::_Init(const SceneOptionsBase* options)
     _cancelButton->SetBaseSize(30, 30);
     _cancelButton->SetOffsetPixels(-30, 30);
     _cancelButton->SetHorizontalAlignment(zcom::Alignment::END);
-    _cancelButton->SetBackgroundImage(ResourceManager::GetImage("item_delete"));
+    _cancelButton->SetBackgroundImage(ResourceManager::GetImage("close_100x100"));
     _cancelButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _cancelButton->SetOnActivated([&]() { _CancelClicked(); });
 

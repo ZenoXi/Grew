@@ -281,11 +281,13 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _toggleInfoPanelButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
     _toggleInfoPanelButton->SetButtonHoverColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.07f));
     _toggleInfoPanelButton->SetButtonClickColor(D2D1::ColorF(1.0f, 1.0f, 1.0f, 0.1f));
-    _toggleInfoPanelButton->SetButtonImageAll(ResourceManager::GetImage("menu_arrow_right_7"));
+    _toggleInfoPanelButton->SetButtonImageAll(ResourceManager::GetImage("menu_arrow_right_7x7"));
     _toggleInfoPanelButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::CENTER);
     _toggleInfoPanelButton->ButtonImage()->SetPixelSnap(true);
     _toggleInfoPanelButton->UseImageParamsForAll(_toggleInfoPanelButton->ButtonImage());
-    //_toggleInfoPanelButton->SetImageStretch(zcom::ImageStretchMode::CENTER);
+    _toggleInfoPanelButton->ButtonImage()->SetTintColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
+    _toggleInfoPanelButton->ButtonHoverImage()->SetTintColor(D2D1::ColorF(D2D1::ColorF::DodgerBlue));
+    _toggleInfoPanelButton->ButtonClickImage()->SetTintColor(D2D1::ColorF(D2D1::ColorF::DodgerBlue));
     _toggleInfoPanelButton->SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
     _toggleInfoPanelButton->SetActivation(zcom::ButtonActivation::PRESS);
     _toggleInfoPanelButton->SetOnActivated([&]()
@@ -294,13 +296,13 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         {
             _infoPanel->SetVisible(false);
             _playlistPanel->SetBaseWidth(-200 -25);
-            _toggleInfoPanelButton->SetButtonImageAll(ResourceManager::GetImage("menu_arrow_left_7"));
+            _toggleInfoPanelButton->SetButtonImageAll(ResourceManager::GetImage("menu_arrow_left_7x7"));
         }
         else
         {
             _infoPanel->SetVisible(true);
             _playlistPanel->SetBaseWidth(-200 -400);
-            _toggleInfoPanelButton->SetButtonImageAll(ResourceManager::GetImage("menu_arrow_right_7"));
+            _toggleInfoPanelButton->SetButtonImageAll(ResourceManager::GetImage("menu_arrow_right_7x7"));
         }
     });
     _toggleInfoPanelButton->SetZIndex(2);
@@ -342,12 +344,12 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _toggleChatButton->SetBaseSize(30, 30);
     _toggleChatButton->SetOffsetPixels(0, 30);
     _toggleChatButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
-    _toggleChatButton->ButtonImage()->SetImage(ResourceManager::GetImage("chat_vdim"));
-    _toggleChatButton->ButtonHoverImage()->SetImage(ResourceManager::GetImage("chat_dim"));
-    _toggleChatButton->ButtonClickImage()->SetImage(ResourceManager::GetImage("chat_dim"));
-    //_toggleChatButton->SetButtonImage(ResourceManager::GetImage("chat_vdim"));
-    //_toggleChatButton->SetButtonHoverImage(ResourceManager::GetImage("chat_dim"));
-    //_toggleChatButton->SetButtonClickImage(ResourceManager::GetImage("chat_dim"));
+    _toggleChatButton->SetButtonImageAll(ResourceManager::GetImage("chat_20x20"));
+    _toggleChatButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::CENTER);
+    _toggleChatButton->UseImageParamsForAll(_toggleChatButton->ButtonImage());
+    _toggleChatButton->ButtonImage()->SetTintColor(D2D1::ColorF(0.6f, 0.6f, 0.6f));
+    _toggleChatButton->ButtonHoverImage()->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
+    _toggleChatButton->ButtonClickImage()->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
     _toggleChatButton->SetButtonColorAll(D2D1::ColorF(0.13f, 0.13f, 0.13f));
     _toggleChatButton->SetSelectable(false);
     _toggleChatButton->SetActivation(zcom::ButtonActivation::PRESS);
@@ -369,12 +371,12 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _toggleUserListButton->SetBaseSize(30, 30);
     _toggleUserListButton->SetOffsetPixels(30, 30);
     _toggleUserListButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
-    _toggleUserListButton->ButtonImage()->SetImage(ResourceManager::GetImage("user_vdim"));
-    _toggleUserListButton->ButtonHoverImage()->SetImage(ResourceManager::GetImage("user_dim"));
-    _toggleUserListButton->ButtonClickImage()->SetImage(ResourceManager::GetImage("user_dim"));
-    //_toggleUserListButton->SetButtonImage(ResourceManager::GetImage("user_vdim"));
-    //_toggleUserListButton->SetButtonHoverImage(ResourceManager::GetImage("user_dim"));
-    //_toggleUserListButton->SetButtonClickImage(ResourceManager::GetImage("user_dim"));
+    _toggleUserListButton->SetButtonImageAll(ResourceManager::GetImage("user_12x12"));
+    _toggleUserListButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::CENTER);
+    _toggleUserListButton->UseImageParamsForAll(_toggleUserListButton->ButtonImage());
+    _toggleUserListButton->ButtonImage()->SetTintColor(D2D1::ColorF(0.6f, 0.6f, 0.6f));
+    _toggleUserListButton->ButtonHoverImage()->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
+    _toggleUserListButton->ButtonClickImage()->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
     _toggleUserListButton->SetButtonColorAll(D2D1::ColorF(0.13f, 0.13f, 0.13f));
     _toggleUserListButton->SetSelectable(false);
     _toggleUserListButton->SetActivation(zcom::ButtonActivation::PRESS);
@@ -472,7 +474,9 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _downloadSpeedImage = Create<zcom::Image>();
     _downloadSpeedImage->SetBaseSize(15, 15);
     _downloadSpeedImage->SetOffsetPixels(285, 31);
-    _downloadSpeedImage->SetImage(ResourceManager::GetImage("download_color_15"));
+    _downloadSpeedImage->SetImage(ResourceManager::GetImage("download_9x9"));
+    _downloadSpeedImage->SetPlacement(zcom::ImagePlacement::CENTER);
+    _downloadSpeedImage->SetTintColor(D2D1::ColorF(0.0f, 0.6f, 0.0f));
 
     _downloadSpeedLabel = Create<zcom::Label>(L"0b/s");
     _downloadSpeedLabel->SetBaseSize(40, 15);
@@ -486,7 +490,9 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _uploadSpeedImage = Create<zcom::Image>();
     _uploadSpeedImage->SetBaseSize(15, 15);
     _uploadSpeedImage->SetOffsetPixels(285, 44);
-    _uploadSpeedImage->SetImage(ResourceManager::GetImage("upload_color_15"));
+    _uploadSpeedImage->SetImage(ResourceManager::GetImage("upload_9x9"));
+    _uploadSpeedImage->SetPlacement(zcom::ImagePlacement::CENTER);
+    _uploadSpeedImage->SetTintColor(D2D1::ColorF(0.67f, 0.0f, 0.0f));
 
     _uploadSpeedLabel = Create<zcom::Label>(L"0b/s");
     _uploadSpeedLabel->SetBaseSize(40, 15);

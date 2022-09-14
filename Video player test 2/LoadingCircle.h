@@ -87,7 +87,7 @@ namespace zcom
         LoadingCircle(Scene* scene) : Base(scene) {}
         void Init()
         {
-            _circleBitmap = ResourceManager::GetImage("loading_circle");
+            _circleBitmap = ResourceManager::GetImage("loading_circle_128x128");
             _textLabel = Create<Label>();
             _textLabel->SetSize(GetWidth() - 10, 20);
             _textLabel->SetHorizontalTextAlignment(TextAlignment::CENTER);

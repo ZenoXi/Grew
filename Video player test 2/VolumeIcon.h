@@ -105,7 +105,7 @@ namespace zcom
         {
             SetVisible(false);
 
-            _iconBitmap = ResourceManager::GetImage("volume_icon");
+            _iconBitmap = ResourceManager::GetImage("volume_168x160");
             _textLabel = Create<Label>();
             _textLabel->SetSize(60, 20);
             _textLabel->SetHorizontalTextAlignment(TextAlignment::CENTER);

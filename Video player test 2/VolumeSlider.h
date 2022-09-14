@@ -59,15 +59,16 @@ namespace zcom
                 g.refs->push_back((IUnknown**)&_remainingPartBrush);
             }
 
-            // Draw Volume icon
+            // Update volume icon color
             if (GetMouseInside())
-            {
-                g.target->DrawBitmap(_volumeIconHover, D2D1::RectF(0.0f, 0.0f, 30.0f, 30.0f));
-            }
+                _volumeImage->SetTintColor(D2D1::ColorF(1.0f, 1.0f, 1.0f));
             else
-            {
-                g.target->DrawBitmap(_volumeIcon, D2D1::RectF(0.0f, 0.0f, 30.0f, 30.0f));
-            }
+                _volumeImage->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
+
+            // Draw Volume icon
+            if (_volumeImage->Redraw())
+                _volumeImage->Draw(g);
+            g.target->DrawBitmap(_volumeImage->Base::Image(), D2D1::RectF(0.0f, 0.0f, 30.0f, 30.0f));
 
             // Draw the seek bar
             float progress = _value;
@@ -251,13 +252,11 @@ namespace zcom
 
         bool _volumeHovered = false;
 
-        ID2D1Bitmap* _volumeIcon = nullptr;
-        ID2D1Bitmap* _volumeIconHover = nullptr;
-
         ID2D1SolidColorBrush* _selectedPartBrush = nullptr;
         ID2D1SolidColorBrush* _volumeBarMarkerBrush = nullptr;
         ID2D1SolidColorBrush* _remainingPartBrush = nullptr;
 
+        std::unique_ptr<zcom::Image> _volumeImage = nullptr;
         std::unique_ptr<Label> _volumeLabel = nullptr;
 
         TimePoint _mouseHoverStart = 0;
@@ -271,8 +270,10 @@ namespace zcom
             _value = value;
             _extendedWidth = extendedWidth;
 
-            _volumeIcon = ResourceManager::GetImage("volume_dim_30");
-            _volumeIconHover = ResourceManager::GetImage("volume_30");
+            _volumeImage = Create<zcom::Image>(ResourceManager::GetImage("volume_22x22"));
+            _volumeImage->SetSize(30, 30);
+            _volumeImage->SetPlacement(ImagePlacement::CENTER);
+            _volumeImage->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
 
             _volumeLabel = Create<Label>(L"");
             _volumeLabel->SetSize(40, 30);

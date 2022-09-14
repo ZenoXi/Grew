@@ -36,9 +36,7 @@ namespace zcom
         bool _clicked = false;
 
         ID2D1Bitmap* _playIcon = nullptr;
-        ID2D1Bitmap* _playIconHover = nullptr;
         ID2D1Bitmap* _pauseIcon = nullptr;
-        ID2D1Bitmap* _pauseIconHover = nullptr;
 
     protected:
         friend class Scene;
@@ -48,22 +46,18 @@ namespace zcom
         {
             Button::Init();
 
-            _playIcon = ResourceManager::GetImage("play_dim");
-            _playIconHover = ResourceManager::GetImage("play");
-            _pauseIcon = ResourceManager::GetImage("pause_dim");
-            _pauseIconHover = ResourceManager::GetImage("pause");
+            _playIcon = ResourceManager::GetImage("play_18x18");
+            _pauseIcon = ResourceManager::GetImage("pause_18x18");
             SetPreset(ButtonPreset::NO_EFFECTS);
             SetPaused(false);
             SetSelectable(false);
+
+            ButtonImage()->SetPlacement(zcom::ImagePlacement::CENTER);
+            UseImageParamsForAll(ButtonImage());
+            ButtonImage()->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
         }
     public:
-        ~PlayButton()
-        {
-            //SafeFullRelease((IUnknown**)&_primaryColorBrush);
-            //SafeFullRelease((IUnknown**)&_blankBrush);
-            //SafeFullRelease((IUnknown**)&_opacityBrush);
-            //SafeFullRelease((IUnknown**)&_playButton);
-        }
+        ~PlayButton() {}
         PlayButton(PlayButton&&) = delete;
         PlayButton& operator=(PlayButton&&) = delete;
         PlayButton(const PlayButton&) = delete;
@@ -78,23 +72,9 @@ namespace zcom
         {
             _paused = paused;
             if (_paused)
-            {
-                ButtonImage()->SetImage(_playIcon);
-                ButtonHoverImage()->SetImage(_playIconHover);
-                ButtonClickImage()->SetImage(_playIconHover);
-                //SetButtonImage(_playIcon);
-                //SetButtonHoverImage(_playIconHover);
-                //SetButtonClickImage(_playIconHover);
-            }
+                SetButtonImageAll(_playIcon);
             else
-            {
-                ButtonImage()->SetImage(_pauseIcon);
-                ButtonHoverImage()->SetImage(_pauseIconHover);
-                ButtonClickImage()->SetImage(_pauseIconHover);
-                //SetButtonImage(_pauseIcon);
-                //SetButtonHoverImage(_pauseIconHover);
-                //SetButtonClickImage(_pauseIconHover);
-            }
+                SetButtonImageAll(_pauseIcon);
         }
 
         bool Clicked()

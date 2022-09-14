@@ -11,24 +11,9 @@ namespace zcom
     {
 #pragma region base_class
     protected:
-        void _OnDraw(Graphics g)
-        {
-            Button::_OnDraw(g);
-
-            D2D1_SIZE_F size = g.target->GetSize();
-            g.target->DrawBitmap(
-                _downArrow,
-                D2D1::RectF(
-                    size.width - 25.0f,
-                    floorf((size.height - 25.0f) * 0.5f),
-                    size.width,
-                    floorf((size.height - 25.0f) * 0.5f + size.height)
-                )
-            );
-        }
-
         void _OnResize(int width, int height)
         {
+            Button::_OnResize(width, height);
             Text()->Resize(width - 25, height);
         }
 
@@ -40,8 +25,6 @@ namespace zcom
 #pragma endregion
 
     private:
-        ID2D1Bitmap* _downArrow = nullptr;
-
         std::unique_ptr<MenuPanel> _menuPanel = nullptr;
         bool _menuPanelEmpty = true;
         std::wstring _defaultText;
@@ -59,7 +42,14 @@ namespace zcom
             Text()->SetSize(GetWidth(), GetHeight());
             Text()->SetVerticalTextAlignment(Alignment::CENTER);
             Text()->SetMargins({ 5.0f });
-            _downArrow = ResourceManager::GetImage("menu_expand_down");
+
+            SetButtonImageAll(ResourceManager::GetImage("menu_arrow_down_7x7"));
+            ButtonImage()->SetPlacement(ImagePlacement::CENTER_RIGHT);
+            ButtonImage()->SetImageOffsetX(-9.0f);
+            UseImageParamsForAll(ButtonImage());
+            ButtonImage()->SetTintColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
+            ButtonHoverImage()->SetTintColor(D2D1::ColorF(D2D1::ColorF::DodgerBlue));
+            ButtonClickImage()->SetTintColor(D2D1::ColorF(D2D1::ColorF::DodgerBlue));
 
             _defaultText = defaultText;
             _menuPanel = Create<zcom::MenuPanel>();

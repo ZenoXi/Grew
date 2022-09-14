@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Label.h"
+#include "Image.h"
 #include "ResourceManager.h"
 
 namespace zcom
@@ -87,8 +88,11 @@ namespace zcom
             // Draw expand arrow
             if (_menuPanel)
             {
+                if (_menuExpandImage->Redraw())
+                    _menuExpandImage->Draw(g);
+
                 auto size = g.target->GetSize();
-                g.target->DrawBitmap(_menuExpandArrow, D2D1::RectF(
+                g.target->DrawBitmap(_menuExpandImage->Base::Image(), D2D1::RectF(
                     size.width - 25,
                     0,
                     size.width,
@@ -117,7 +121,7 @@ namespace zcom
     private:
         std::unique_ptr<Label> _label = nullptr;
         MenuPanel* _menuPanel = nullptr;
-        ID2D1Bitmap* _menuExpandArrow = nullptr;
+        std::unique_ptr<zcom::Image> _menuExpandImage = nullptr;
         std::function<void(bool)> _onClick;
         bool _closeOnClick = true;
         bool _separator = false;
@@ -169,7 +173,10 @@ namespace zcom
             Init(text);
 
             _menuPanel = panel;
-            _menuExpandArrow = ResourceManager::GetImage("menu_expand");
+            _menuExpandImage = Create<zcom::Image>(ResourceManager::GetImage("menu_arrow_right_7x7"));
+            _menuExpandImage->SetSize(25, 25);
+            _menuExpandImage->SetPlacement(ImagePlacement::CENTER);
+            _menuExpandImage->SetTintColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
         }
     public:
         ~MenuItem() {}
