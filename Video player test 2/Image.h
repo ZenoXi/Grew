@@ -67,6 +67,22 @@ namespace zcom
             return _sourceRect;
         }
 
+        // Set target area to draw to and perform calculations with
+        // A target rect smaller than the draw area will NOT clip content, only scale it when needed
+        void SetTargetRect(RECT_F rect)
+        {
+            if (rect == _targetRect)
+                return;
+
+            _targetRect = rect;
+            InvokeRedraw();
+        }
+
+        RECT_F GetTargetRect() const
+        {
+            return _targetRect;
+        }
+
         void SetPlacement(ImagePlacement placement)
         {
             if (placement == _placement)
@@ -207,6 +223,7 @@ namespace zcom
     private:
         ID2D1Bitmap* _image = nullptr;
         RECT_F _sourceRect = {0.0f, 0.0f, std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
+        RECT_F _targetRect = { -1.0f, -1.0f, -1.0f, -1.0f };
         ImagePlacement _placement = ImagePlacement::NONE;
         float _offsetX = 0.0f;
         float _offsetY = 0.0f;
@@ -223,8 +240,13 @@ namespace zcom
             if (!_image)
                 return;
 
+
             D2D1_RECT_F srcRect = { _sourceRect.left, _sourceRect.top, _sourceRect.right, _sourceRect.bottom };
             D2D1_RECT_F destRect = { 0.0f, 0.0f, g.target->GetSize().width, g.target->GetSize().height };
+            bool customTarget = _targetRect != RECT_F{ -1.0f, -1.0f, -1.0f, -1.0f };
+            RECT_F targetRect = { 0.0f, 0.0f, g.target->GetSize().width, g.target->GetSize().height };
+            if (customTarget)
+                targetRect = { _targetRect.left, _targetRect.top, _targetRect.right, _targetRect.bottom };
 
             // Bound src rect
             if (srcRect.left < 0.0f)
@@ -241,8 +263,8 @@ namespace zcom
             {
                 float width = (srcRect.right - srcRect.left) * _scaleX;
                 float height = (srcRect.bottom - srcRect.top) * _scaleY;
-                float left = 0.0f + _offsetX;
-                float top = 0.0f + _offsetY;
+                float left = targetRect.left + _offsetX;
+                float top = targetRect.top + _offsetY;
                 if (_snap)
                 {
                     left = std::roundf(left);
@@ -252,15 +274,15 @@ namespace zcom
             }
             else if (_placement == ImagePlacement::FILL)
             {
-                float left = 0.0f + _offsetX;
-                float top = 0.0f + _offsetY;
+                float left = targetRect.left + _offsetX;
+                float top = targetRect.top + _offsetY;
                 if (_snap)
                 {
                     left = std::roundf(left);
                     top = std::roundf(top);
                 }
-                float width = g.target->GetSize().width;
-                float height = g.target->GetSize().height;
+                float width = targetRect.right - targetRect.left;
+                float height = targetRect.bottom - targetRect.top;
                 destRect = { left, top, left + width, top + height};
             }
             else if (_placement == ImagePlacement::FIT)
@@ -268,18 +290,18 @@ namespace zcom
                 // Scale frame to preserve aspect ratio
                 float imageWidth = srcRect.right - srcRect.left;
                 float imageHeight = srcRect.bottom - srcRect.top;
-                float targetWidth = g.target->GetSize().width;
-                float targetHeight = g.target->GetSize().height;
+                float targetWidth = targetRect.right - targetRect.left;
+                float targetHeight = targetRect.bottom - targetRect.top;
                 if (imageWidth / imageHeight < targetWidth / targetHeight)
                 {
                     float scale = imageHeight / targetHeight;
                     float newWidth = imageWidth / scale;
                     destRect = D2D1::Rect
                     (
-                        (targetWidth - newWidth) * 0.5f,
-                        0.0f,
-                        (targetWidth - newWidth) * 0.5f + newWidth,
-                        targetHeight
+                        targetRect.left + (targetWidth - newWidth) * 0.5f,
+                        targetRect.top,
+                        targetRect.left + (targetWidth - newWidth) * 0.5f + newWidth,
+                        targetRect.top + targetHeight
                     );
                 }
                 else if (imageWidth / imageHeight > targetWidth / targetHeight)
@@ -288,15 +310,15 @@ namespace zcom
                     float newHeight = imageHeight / scale;
                     destRect = D2D1::Rect
                     (
-                        0.0f,
-                        (targetHeight - newHeight) * 0.5f,
-                        targetWidth,
-                        (targetHeight - newHeight) * 0.5f + newHeight
+                        targetRect.left,
+                        targetRect.top + (targetHeight - newHeight) * 0.5f,
+                        targetRect.left + targetWidth,
+                        targetRect.top + (targetHeight - newHeight) * 0.5f + newHeight
                     );
                 }
                 else
                 {
-                    destRect = D2D1::RectF(0.0f, 0.0f, targetWidth, targetHeight);
+                    destRect = D2D1::RectF(targetRect.left, targetRect.top, targetRect.left + targetWidth, targetRect.top + targetHeight);
                 }
 
                 // Apply offset
@@ -324,8 +346,8 @@ namespace zcom
                 float height = (srcRect.bottom - srcRect.top) * _scaleY;
 
                 // Calculate placement
-                float left = 0.0f;
-                float top = 0.0f;
+                float left = targetRect.left;
+                float top = targetRect.top;
                 switch (_placement)
                 {
                 case ImagePlacement::TOP_LEFT:
@@ -334,46 +356,46 @@ namespace zcom
                 }
                 case ImagePlacement::TOP_CENTER:
                 {
-                    left = (g.target->GetSize().width - width) * 0.5f;
+                    left = targetRect.left + (targetRect.right - targetRect.left - width) * 0.5f;
                     break;
                 }
                 case ImagePlacement::TOP_RIGHT:
                 {
-                    left = g.target->GetSize().width - width;
+                    left = targetRect.right - width;
                     break;
                 }
                 case ImagePlacement::CENTER_LEFT:
                 {
-                    top = (g.target->GetSize().height - height) * 0.5f;
+                    top = targetRect.top + (targetRect.bottom - targetRect.top - height) * 0.5f;
                     break;
                 }
                 case ImagePlacement::CENTER:
                 {
-                    top = (g.target->GetSize().height - height) * 0.5f;
-                    left = (g.target->GetSize().width - width) * 0.5f;
+                    top = targetRect.top + (targetRect.bottom - targetRect.top - height) * 0.5f;
+                    left = targetRect.left + (targetRect.right - targetRect.left - width) * 0.5f;
                     break;
                 }
                 case ImagePlacement::CENTER_RIGHT:
                 {
-                    top = (g.target->GetSize().height - height) * 0.5f;
-                    left = g.target->GetSize().width - width;
+                    top = targetRect.top + (targetRect.bottom - targetRect.top - height) * 0.5f;
+                    left = targetRect.right - width;
                     break;
                 }
                 case ImagePlacement::BOTTOM_LEFT:
                 {
-                    top = g.target->GetSize().height - height;
+                    top = targetRect.bottom - height;
                     break;
                 }
                 case ImagePlacement::BOTTOM_CENTER:
                 {
-                    top = g.target->GetSize().height - height;
-                    left = (g.target->GetSize().width - width) * 0.5f;
+                    top = targetRect.bottom - height;
+                    left = targetRect.left + (targetRect.right - targetRect.left - width) * 0.5f;
                     break;
                 }
                 case ImagePlacement::BOTTOM_RIGHT:
                 {
-                    top = g.target->GetSize().height - height;
-                    left = g.target->GetSize().width - width;
+                    top = targetRect.bottom - height;
+                    left = targetRect.right - width;
                     break;
                 }
                 default:
