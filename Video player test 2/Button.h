@@ -248,6 +248,7 @@ namespace zcom
             // Copy image params before overwriting internal images
             // in case and internal image is used as the copy base
             RECT_F sourceRect = image->GetSourceRect();
+            RECT_F targetRect = image->GetTargetRect();
             ImagePlacement placement = image->GetPlacement();
             float offsetX = image->GetImageOffsetX();
             float offsetY = image->GetImageOffsetY();
@@ -259,6 +260,7 @@ namespace zcom
 
             // Apply to internal images
             _image->SetSourceRect(sourceRect);
+            _image->SetTargetRect(targetRect);
             _image->SetPlacement(placement);
             _image->SetImageOffset(offsetX, offsetY);
             _image->SetScale(scaleX, scaleY);
@@ -266,6 +268,7 @@ namespace zcom
             _image->SetImageOpacity(opacity);
             _image->SetTintColor(color);
             _imageHovered->SetSourceRect(sourceRect);
+            _imageHovered->SetTargetRect(targetRect);
             _imageHovered->SetPlacement(placement);
             _imageHovered->SetImageOffset(offsetX, offsetY);
             _imageHovered->SetScale(scaleX, scaleY);
@@ -273,6 +276,7 @@ namespace zcom
             _imageHovered->SetImageOpacity(opacity);
             _imageHovered->SetTintColor(color);
             _imageClicked->SetSourceRect(sourceRect);
+            _imageClicked->SetTargetRect(targetRect);
             _imageClicked->SetPlacement(placement);
             _imageClicked->SetImageOffset(offsetX, offsetY);
             _imageClicked->SetScale(scaleX, scaleY);
