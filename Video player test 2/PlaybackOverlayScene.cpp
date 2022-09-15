@@ -166,11 +166,16 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _addFileButton = Create<zcom::Button>(L"Add files");
     _addFileButton->SetParentWidthPercent(1.0f);
     _addFileButton->SetBaseHeight(30);
-    _addFileButton->SetVerticalOffsetPixels(0);
+    _addFileButton->SetVerticalOffsetPixels(10);
     _addFileButton->SetButtonHoverColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     _addFileButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
     _addFileButton->Text()->SetFontSize(16.0f);
-    _addFileButton->Text()->SetMargins({ 10.0f });
+    _addFileButton->Text()->SetMargins({ 40.0f });
+    _addFileButton->SetButtonImageAll(ResourceManager::GetImage("open_file_20x20"));
+    _addFileButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::CENTER);
+    _addFileButton->ButtonImage()->SetTargetRect({ 5.0f, 0.0f, 35.0f, 30.0f });
+    _addFileButton->ButtonImage()->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
+    _addFileButton->UseImageParamsForAll(_addFileButton->ButtonImage());
     _addFileButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _addFileButton->SetOnActivated([&]()
     {
@@ -187,11 +192,16 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _addFolderButton = Create<zcom::Button>(L"Add folder");
     _addFolderButton->SetParentWidthPercent(1.0f);
     _addFolderButton->SetBaseHeight(30);
-    _addFolderButton->SetVerticalOffsetPixels(30);
+    _addFolderButton->SetVerticalOffsetPixels(40);
     _addFolderButton->SetButtonHoverColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     _addFolderButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
     _addFolderButton->Text()->SetFontSize(16.0f);
-    _addFolderButton->Text()->SetMargins({ 10.0f });
+    _addFolderButton->Text()->SetMargins({ 40.0f });
+    _addFolderButton->SetButtonImageAll(ResourceManager::GetImage("open_folder_20x20"));
+    _addFolderButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::CENTER);
+    _addFolderButton->ButtonImage()->SetTargetRect({ 5.0f, 0.0f, 35.0f, 30.0f });
+    _addFolderButton->ButtonImage()->SetTintColor(D2D1::ColorF(0.8f, 0.6525f, 0.3576f));
+    _addFolderButton->UseImageParamsForAll(_addFolderButton->ButtonImage());
     _addFolderButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _addFolderButton->SetOnActivated([&]()
     {
@@ -208,11 +218,16 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _openPlaylistButton = Create<zcom::Button>(L"Open playlist");
     _openPlaylistButton->SetParentWidthPercent(1.0f);
     _openPlaylistButton->SetBaseHeight(30);
-    _openPlaylistButton->SetVerticalOffsetPixels(70);
+    _openPlaylistButton->SetVerticalOffsetPixels(80);
     _openPlaylistButton->SetButtonHoverColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     _openPlaylistButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
     _openPlaylistButton->Text()->SetFontSize(16.0f);
-    _openPlaylistButton->Text()->SetMargins({ 10.0f });
+    _openPlaylistButton->Text()->SetMargins({ 40.0f });
+    _openPlaylistButton->SetButtonImageAll(ResourceManager::GetImage("open_playlist_22x22"));
+    _openPlaylistButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::CENTER);
+    _openPlaylistButton->ButtonImage()->SetTargetRect({ 5.0f, 0.0f, 35.0f, 30.0f });
+    _openPlaylistButton->ButtonImage()->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
+    _openPlaylistButton->UseImageParamsForAll(_openPlaylistButton->ButtonImage());
     _openPlaylistButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _openPlaylistButton->SetOnActivated([&]()
     {
@@ -224,11 +239,16 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _savePlaylistButton = Create<zcom::Button>(L"Save playlist");
     _savePlaylistButton->SetParentWidthPercent(1.0f);
     _savePlaylistButton->SetBaseHeight(30);
-    _savePlaylistButton->SetVerticalOffsetPixels(100);
+    _savePlaylistButton->SetVerticalOffsetPixels(110);
     _savePlaylistButton->SetButtonHoverColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     _savePlaylistButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
     _savePlaylistButton->Text()->SetFontSize(16.0f);
-    _savePlaylistButton->Text()->SetMargins({ 10.0f });
+    _savePlaylistButton->Text()->SetMargins({ 40.0f });
+    _savePlaylistButton->SetButtonImageAll(ResourceManager::GetImage("save_playlist_22x22"));
+    _savePlaylistButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::CENTER);
+    _savePlaylistButton->ButtonImage()->SetTargetRect({ 5.0f, 0.0f, 35.0f, 30.0f });
+    _savePlaylistButton->ButtonImage()->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
+    _savePlaylistButton->UseImageParamsForAll(_savePlaylistButton->ButtonImage());
     _savePlaylistButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _savePlaylistButton->SetOnActivated([&]()
     {
@@ -239,14 +259,19 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         App::Instance()->MoveSceneToFront(SavePlaylistScene::StaticName());
     });
 
-    _manageSavedPlaylistsButton = Create<zcom::Button>(L"Manage saved playlists");
+    _manageSavedPlaylistsButton = Create<zcom::Button>(L"Manage playlists");
     _manageSavedPlaylistsButton->SetParentWidthPercent(1.0f);
     _manageSavedPlaylistsButton->SetBaseHeight(30);
-    _manageSavedPlaylistsButton->SetVerticalOffsetPixels(130);
+    _manageSavedPlaylistsButton->SetVerticalOffsetPixels(140);
     _manageSavedPlaylistsButton->SetButtonHoverColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     _manageSavedPlaylistsButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
     _manageSavedPlaylistsButton->Text()->SetFontSize(16.0f);
-    _manageSavedPlaylistsButton->Text()->SetMargins({ 10.0f });
+    _manageSavedPlaylistsButton->Text()->SetMargins({ 40.0f });
+    _manageSavedPlaylistsButton->SetButtonImageAll(ResourceManager::GetImage("manage_playlists_24x24"));
+    _manageSavedPlaylistsButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::CENTER);
+    _manageSavedPlaylistsButton->ButtonImage()->SetTargetRect({ 5.0f, 0.0f, 35.0f, 30.0f });
+    _manageSavedPlaylistsButton->ButtonImage()->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
+    _manageSavedPlaylistsButton->UseImageParamsForAll(_manageSavedPlaylistsButton->ButtonImage());
     _manageSavedPlaylistsButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _manageSavedPlaylistsButton->SetOnActivated([&]()
     {
@@ -1804,8 +1829,8 @@ void PlaybackOverlayScene::_HandlePlaylistRightClick(zcom::Base* item, std::vect
 
 void PlaybackOverlayScene::_HandlePlaylistRightRelease(zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y)
 {
-    if (targets.size() == 1)
-        return;
+    //if (targets.size() == 1)
+    //    return;
 
     // If left mouse button is pressed, ignore
     if (_readyItemPanel->GetMouseLeftClicked())
