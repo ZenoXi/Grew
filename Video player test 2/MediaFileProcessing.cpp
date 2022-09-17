@@ -404,6 +404,18 @@ void MediaFileProcessing::_CalculateMissingStreamData(bool full)
         }
     };
 
+    class SubtitleStreamDecoder : public StreamDecoder
+    {
+    public:
+        SubtitleStreamDecoder(MediaStream* stream) : StreamDecoder(stream)
+        {
+            frameDataGathered = true;
+        }
+
+    private:
+        void _ExtractInfoFromFrame(AVFrame* frame) {}
+    };
+
     // Align stream_index
     std::vector<std::unique_ptr<StreamDecoder>> streamDecoders;
     streamDecoders.resize(avfContext->nb_streams);
@@ -416,6 +428,11 @@ void MediaFileProcessing::_CalculateMissingStreamData(bool full)
     for (int i = 0; i < audioStreams.size(); i++)
     {
         AudioStreamDecoder* decoder = new AudioStreamDecoder(&audioStreams[i]);
+        streamDecoders[decoder->mediaStream->index] = std::unique_ptr<StreamDecoder>(decoder);
+    }
+    for (int i = 0; i < subtitleStreams.size(); i++)
+    {
+        SubtitleStreamDecoder* decoder = new SubtitleStreamDecoder(&subtitleStreams[i]);
         streamDecoders[decoder->mediaStream->index] = std::unique_ptr<StreamDecoder>(decoder);
     }
 
