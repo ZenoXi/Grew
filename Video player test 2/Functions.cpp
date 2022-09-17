@@ -170,6 +170,24 @@ std::wstring string_to_wstring(const std::string& s)
     return converter.from_bytes(s);
 }
 
+std::string wstr_to_utf8(const std::wstring& ws)
+{
+    // Setup converter
+    using convert_type = std::codecvt_utf8_utf16<wchar_t>;
+    std::wstring_convert<convert_type, wchar_t> converter;
+
+    return converter.to_bytes(ws);
+}
+
+std::wstring utf8_to_wstr(const std::string& s)
+{
+    // Setup converter
+    using convert_type = std::codecvt_utf8_utf16<wchar_t>;
+    std::wstring_convert<convert_type, wchar_t> converter;
+
+    return converter.from_bytes(s);
+}
+
 void split_str(const std::string& str, std::vector<std::string>& output, char split, bool ignoreEmpty)
 {
     int beginIndex = 0;

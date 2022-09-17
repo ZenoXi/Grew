@@ -103,6 +103,8 @@ Pos2D<T> line_segment_intersection(const Pos2D<T>& s1, const Pos2D<T>& e1, const
 // Strings
 std::string wstring_to_string(const std::wstring& ws);
 std::wstring string_to_wstring(const std::string& s);
+std::string wstr_to_utf8(const std::wstring& ws);
+std::wstring utf8_to_wstr(const std::string& s);
 void split_str(const std::string& str, std::vector<std::string>& output, char split = ' ', bool ignoreEmpty = false);
 void split_wstr(const std::wstring& str, std::vector<std::wstring>& output, wchar_t split = L' ', bool ignoreEmpty = false);
 template<size_t Count>
