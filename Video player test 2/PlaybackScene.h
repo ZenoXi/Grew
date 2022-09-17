@@ -70,10 +70,11 @@ class PlaybackScene : public Scene
     ID2D1Bitmap1* _ccanvas = nullptr;
     bool _redraw = false;
 
-    ID2D1Bitmap* _videoFrameBitmap = nullptr;
-    ID2D1Bitmap* _subtitleFrameBitmap = nullptr;
+    ID2D1Bitmap1* _videoFrameBitmap = nullptr;
+    ID2D1Bitmap1* _subtitleFrameBitmap = nullptr;
     bool _videoFrameChanged = false;
     bool _subtitleFrameChanged = false;
+    SubtitlePosition _subPos;
 
 public:
     PlaybackScene(App* app);

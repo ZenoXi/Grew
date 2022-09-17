@@ -1,5 +1,7 @@
 #include "VideoDecoder.h"
-#include "VideoFrame.h"
+//#include "VideoFrame.h"
+
+#include "VideoFrame_BGRA.h"
 
 #include "App.h"
 
@@ -229,12 +231,17 @@ void VideoDecoder::_DecoderThread()
         long long int timestamp = av_rescale_q(frame->pts, _timebase, { 1, AV_TIME_BASE });
         if (frame->pts == AV_NOPTS_VALUE)
             timestamp = AV_NOPTS_VALUE;
-        VideoFrame* vf = new VideoFrame(frame->width, frame->height, timestamp, discontinuity);
+
+        auto pData = std::make_unique<unsigned char[]>(frame->width * frame->height * 4);
+        std::copy_n(data, frame->width * frame->height * 4, pData.get());
+        VideoFrame_BGRA* videoFrame = new VideoFrame_BGRA(TimePoint(timestamp, MICROSECONDS), frame->width, frame->height, std::move(pData));
+
+        //VideoFrame* vf = new VideoFrame(frame->width, frame->height, timestamp, discontinuity);
         discontinuity = false;
-        vf->SetBytes(data);
+        //vf->SetBytes(data);
 
         _m_frames.lock();
-        _frames.push((IMediaFrame*)vf);
+        _frames.push((IMediaFrame*)videoFrame);
         _m_frames.unlock();
     }
 

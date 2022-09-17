@@ -4,7 +4,8 @@
 #include "VideoDecoder.h"
 #include "AudioDecoder.h"
 #include "SubtitleDecoder.h"
-#include "IVideoOutputAdapter.h"
+#include "VideoOutputAdapter.h"
+#include "SubtitleOutputAdapter.h"
 #include "IAudioOutputAdapter.h"
 #include "GameTime.h"
 
@@ -37,8 +38,8 @@ class MediaPlayer
     //std::unique_ptr<AudioFrame> _nextAudioFrame = nullptr;
     //std::unique_ptr<VideoFrame> _nextSubtitleFrame = nullptr;
 
-    // Subtitles and video are combined
-    IVideoOutputAdapter* _videoOutputAdapter = nullptr;
+    VideoOutputAdapter* _videoOutputAdapter = nullptr;
+    SubtitleOutputAdapter* _subtitleOutputAdapter = nullptr;
     IAudioOutputAdapter* _audioOutputAdapter = nullptr;
 
     //std::unique_ptr<MediaStream> _pendingVideoStream = nullptr;
@@ -60,7 +61,8 @@ class MediaPlayer
 public:
     MediaPlayer(
         IMediaDataProvider* dataProvider,
-        IVideoOutputAdapter* videoAdapter,
+        VideoOutputAdapter* videoAdapter,
+        SubtitleOutputAdapter* subtitleAdapter,
         IAudioOutputAdapter* audioAdapter
     );
     ~MediaPlayer();

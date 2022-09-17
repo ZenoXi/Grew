@@ -2,7 +2,9 @@
 
 #include "IMediaDataProvider.h"
 #include "BasePlaybackController.h"
-#include "IVideoOutputAdapter.h"
+//#include "IVideoOutputAdapter.h"
+#include "VideoOutputAdapter.h"
+#include "SubtitleOutputAdapter.h"
 #include "IAudioOutputAdapter.h"
 
 #include <memory>
@@ -18,7 +20,9 @@ public:
     bool InitFailed() const;
     IPlaybackController* Controller() const;
     IMediaDataProvider* DataProvider() const;
-    IVideoOutputAdapter* VideoAdapter() const;
+    //IVideoOutputAdapter* VideoAdapter() const;
+    VideoOutputAdapter* VideoAdapter() const;
+    SubtitleOutputAdapter* SubtitleAdapter() const;
     IAudioOutputAdapter* AudioAdapter() const;
 
     Playback();
@@ -30,6 +34,7 @@ private:
     std::unique_ptr<MediaPlayer> _player;
     bool _initFailed = false;
 
-    std::unique_ptr<IVideoOutputAdapter> _videoAdapter = nullptr;
+    std::unique_ptr<VideoOutputAdapter> _videoAdapter = nullptr;
+    std::unique_ptr<SubtitleOutputAdapter> _subtitleAdapter = nullptr;
     std::unique_ptr<IAudioOutputAdapter> _audioAdapter = nullptr;
 };

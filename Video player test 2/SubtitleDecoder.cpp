@@ -1,14 +1,19 @@
 #include "SubtitleDecoder.h"
 
+#include "SubtitleFrame_Image.h"
+#include "SubtitleFrame_Text.h"
+
 #include "Options.h"
 #include "OptionNames.h"
 #include "IntOptionAdapter.h"
+#include "Functions.h"
 
 extern "C"
 {
 #include <libswscale/swscale.h>
 }
 
+#include <iostream>
 
 SubtitleDecoder::SubtitleDecoder(const MediaStream& stream)
     : _stream(stream)
@@ -141,30 +146,18 @@ void SubtitleDecoder::_DecoderThread()
             if (!gotSub || bytesUsed < 0)
                 continue;
 
-            // Create output frame
-            int width, height;
-            if (_outputWidth != 0 && _outputHeight != 0)
-            {
-                width = _outputWidth;
-                height = _outputHeight;
-            }
-            else
-            {
-                width = 1280;
-                height = 720;
-            }
-            VideoFrame* vf = new VideoFrame(width, height, timestamp);
-            std::fill_n((uchar*)vf->GetBytes(), vf->GetWidth() * vf->GetHeight() * 4, 0);
+            // Create frame
+            SubtitleFrame_Image* subFrame = new SubtitleFrame_Image(TimePoint(timestamp, MICROSECONDS));
 
-            // Copy rects to frame
+            // Add rects
             for (int i = 0; i < sub.num_rects; i++)
             {
                 AVSubtitleRect* rect = sub.rects[i];
 
-                // Create sub frame
-                VideoFrame* sf = new VideoFrame(rect->w, rect->h, 0);
+                // Alloc image memory
+                auto data = std::make_unique<unsigned char[]>(rect->w * rect->h * 4);
 
-                // Convert
+                // Setup converter
                 SwsContext* swsContext = sws_getContext(
                     rect->w,
                     rect->h,
@@ -177,34 +170,23 @@ void SubtitleDecoder::_DecoderThread()
                     NULL,
                     NULL
                 );
-
                 uchar* dest[4] = { NULL, NULL, NULL, NULL };
                 int destLinesize[4] = { 0, 0, 0, 0 };
-                dest[0] = (uchar*)sf->GetBytes();
+                dest[0] = data.get();
                 destLinesize[0] = rect->w * 4;
 
+                // Convert
                 sws_scale(swsContext, rect->data, rect->linesize, 0, rect->h, dest, destLinesize);
                 sws_freeContext(swsContext);
 
-                // Copy contents from subtitle frame to video frame
-                for (int y = rect->y; y < rect->y + rect->h; y++)
-                {
-                    for (int x = rect->x; x < rect->x + rect->w; x++)
-                    {
-                        if (x < 0 || x >= vf->GetWidth())
-                            continue;
-                        if (y < 0 || y >= vf->GetHeight())
-                            continue;
-                        vf->SetPixel(x, y, sf->GetPixel(x - rect->x, y - rect->y));
-                    }
-                }
-                delete sf;
+                // Add data to frame
+                subFrame->AddRect({ rect->x, rect->y, rect->x + rect->w, rect->y + rect->h }, std::move(data));
             }
 
             avsubtitle_free(&sub);
 
             std::lock_guard<std::mutex> lock(_m_frames);
-            _frames.push((IMediaFrame*)vf);
+            _frames.push((IMediaFrame*)subFrame);
         }
         else if (_subType == SubtitleType::ASS)
         {
@@ -216,6 +198,20 @@ void SubtitleDecoder::_DecoderThread()
             if (_lastRenderedFrameTime == -1)
                 _lastRenderedFrameTime = TimePoint(timestamp, MICROSECONDS) - _timeBetweenFrames;
             _lastBufferedSubtitleTime = TimePoint(timestamp + duration, MICROSECONDS);
+        }
+        else
+        {
+            std::wstring text = utf8_to_wstr(std::string((char*)packet.GetPacket()->data));
+            //std::wcout << text << '\n';
+
+            // Create frame
+            SubtitleFrame_Text* subFrame = new SubtitleFrame_Text(TimePoint(timestamp, MICROSECONDS), text);
+            // Create empty frame at the end of display time
+            SubtitleFrame_Text* subFrameEnd = new SubtitleFrame_Text(TimePoint(timestamp + duration, MICROSECONDS), L"");
+
+            std::lock_guard<std::mutex> lock(_m_frames);
+            _frames.push((IMediaFrame*)subFrame);
+            _frames.push((IMediaFrame*)subFrameEnd);
         }
 
         //for (int i = 0; i < sub.num_rects; i++)
@@ -230,44 +226,18 @@ void SubtitleDecoder::_DecoderThread()
 #define _b(c)  (((c)>>8)&0xFF)
 #define _a(c)  ((c)&0xFF)
 
-// fg - foreground, bg - background
-PixelData BlendPixel(PixelData fg, PixelData bg)
+void BlendSingle(unsigned char* frameData, RECT frameRect, ASS_Image* img)
 {
-    // nvm this blending sucks ass but i'll just leave it here cause it looks kinda nice and reminds me of my wasted time
+    unsigned int framePitch = (frameRect.right - frameRect.left) * 4;
 
-    // THIS FUNCTION MIGHT NEED HEAVY OPTIMISATION IN THE FORM OF PACKING RGB VALUES
-    // INTO A SINGLE VARIABLE OR SIMPLY NOT USING FLOATS
-    // Solution taken from here https://stackoverflow.com/a/48343059
-
-    struct PixelDataFloat
+    struct PixelData
     {
-        float r;
-        float g;
-        float b;
-        float a;
+        unsigned char b;
+        unsigned char g;
+        unsigned char r;
+        unsigned char a;
     };
-    PixelDataFloat fgf = { fg.r / 255.0f, fg.g / 255.0f, fg.b / 255.0f, fg.a / 255.0f };
-    PixelDataFloat bgf = { bg.r / 255.0f, bg.g / 255.0f, bg.b / 255.0f, bg.a / 255.0f };
-
-    float newA = (1.0f - fgf.a) * bgf.a + fgf.a;
-    float newR = ((1.0f - fgf.a) * bgf.a * bgf.r + fgf.a * fgf.r) / newA;
-    float newG = ((1.0f - fgf.a) * bgf.a * bgf.g + fgf.a * fgf.g) / newA;
-    float newB = ((1.0f - fgf.a) * bgf.a * bgf.b + fgf.a * fgf.b) / newA;
-
-    // Ensuring value validity, might need uncommenting if overflow/underflow appears to be common
-    //if (newR > 1.0f) newR = 1.0f;
-    //else if (newR < 0.0f) newR = 0.0f;
-    //if (newG > 1.0f) newG = 1.0f;
-    //else if (newG < 0.0f) newG = 0.0f;
-    //if (newB > 1.0f) newB = 1.0f;
-    //else if (newB < 0.0f) newB = 0.0f;
-
-    return { uchar(newR * 255), uchar(newG * 255) , uchar(newB * 255) , uchar(newA * 255) };
-}
-
-void BlendSingle(VideoFrame* frame, ASS_Image* img)
-{
-    PixelData imgPd = { _r(img->color), _g(img->color), _b(img->color), 255 - _a(img->color) };
+    PixelData imgPd = { _b(img->color), _g(img->color), _r(img->color), 255 - _a(img->color) };
 
     unsigned char* src = img->bitmap;
     for (int y = 0; y < img->h; y++)
@@ -276,31 +246,34 @@ void BlendSingle(VideoFrame* frame, ASS_Image* img)
         {
             int screenX = img->dst_x + x;
             int screenY = img->dst_y + y;
-
-            //PixelData imgpdNewA = imgpd;
-            //imgpdNewA.a = ((unsigned)src[x]) * imgpd.a / 255;
-            //frame->SetPixel(screenX, screenY, BlendPixel(frame->GetPixel(screenX, screenY), imgpdNewA));
+            if (screenX < frameRect.left ||
+                screenY < frameRect.top ||
+                screenX >= frameRect.right ||
+                screenY >= frameRect.bottom
+            ) continue;
+            int frameX = screenX - frameRect.left;
+            int frameY = screenY - frameRect.top;
 
             PixelData pdCopy = imgPd;
             pdCopy.a = ((unsigned)src[x]) * imgPd.a / 255;
-            PixelData framePd = frame->GetPixel(screenX, screenY);
+            PixelData framePd = *(PixelData*)(frameData + (frameY * framePitch + frameX * 4));
 
             framePd.r = (pdCopy.a * pdCopy.r + (255 - pdCopy.a) * framePd.r) / 255;
             framePd.g = (pdCopy.a * pdCopy.g + (255 - pdCopy.a) * framePd.g) / 255;
             framePd.b = (pdCopy.a * pdCopy.b + (255 - pdCopy.a) * framePd.b) / 255;
             framePd.a = (255 - pdCopy.a) * framePd.a / 255 + pdCopy.a;
 
-            frame->SetPixel(screenX, screenY, framePd);
+            *(PixelData*)(frameData + (frameY * framePitch + frameX * 4)) = framePd;
         }
         src += img->stride;
     }
 }
 
-void Blend(VideoFrame* frame, ASS_Image* img)
+void Blend(unsigned char* frameData, RECT frameRect, ASS_Image* img)
 {
     while (img)
     {
-        BlendSingle(frame, img);
+        BlendSingle(frameData, frameRect, img);
         img = img->next;
     }
 }
@@ -334,52 +307,76 @@ void SubtitleDecoder::_RenderingThread()
         ASS_Image* img = ass_render_frame(_renderer, _track, _lastRenderedFrameTime.GetTime(MILLISECONDS), &change);
         if (change != 0)
         {
-            int width, height;
-            if (_outputWidth != 0 && _outputHeight != 0)
+            // Pass empty frame
+            if (!img)
             {
-                width = _outputWidth;
-                height = _outputHeight;
+                SubtitleFrame_Image* emptyFrame = new SubtitleFrame_Image(_lastRenderedFrameTime);
+                std::lock_guard<std::mutex> lock2(_m_frames);
+                _frames.push((IMediaFrame*)emptyFrame);
             }
             else
             {
-                width = _track->PlayResX;
-                height = _track->PlayResY;
-            }
-            VideoFrame* vf = new VideoFrame(width, height, _lastRenderedFrameTime.GetTime(MICROSECONDS));
-            std::fill_n((uchar*)vf->GetBytes(), vf->GetWidth() * vf->GetHeight() * 4, 0);
-            Blend(vf, img);
+                // Calculate final image rect
+                RECT finalRect = { img->dst_x, img->dst_y, img->dst_x + img->w, img->dst_y + img->h };
+                ASS_Image* imgNext = img->next;
+                while (imgNext)
+                {
+                    // Update bounds
+                    if (imgNext->dst_x < finalRect.left)
+                        finalRect.left = imgNext->dst_x;
+                    if (imgNext->dst_y < finalRect.top)
+                        finalRect.top = imgNext->dst_y;
+                    if (imgNext->dst_x + imgNext->w > finalRect.right)
+                        finalRect.right = imgNext->dst_x + imgNext->w;
+                    if (imgNext->dst_y + imgNext->h > finalRect.bottom)
+                        finalRect.bottom = imgNext->dst_y + imgNext->h;
 
-            std::lock_guard<std::mutex> lock2(_m_frames);
-            _frames.push((IMediaFrame*)vf);
+                    imgNext = imgNext->next;
+                }
+                int rectWidth = finalRect.right - finalRect.left;
+                int rectHeight = finalRect.bottom - finalRect.top;
+
+                // Create frame data
+                auto data = std::make_unique<unsigned char[]>(rectWidth * rectHeight * 4);
+                std::fill_n(data.get(), rectWidth * rectHeight * 4, 0);
+                Blend(data.get(), finalRect, img);
+
+                // Create frame
+                SubtitleFrame_Image* frame = new SubtitleFrame_Image(_lastRenderedFrameTime);
+                frame->AddRect(finalRect, std::move(data));
+
+                std::lock_guard<std::mutex> lock2(_m_frames);
+                _frames.push((IMediaFrame*)frame);
+            }
         }
 
         lock.unlock();
     }
 }
 
-VideoFrame SubtitleDecoder::RenderFrame(TimePoint time)
-{
-    std::unique_lock<std::mutex> lock(_m_ass);
-    ASS_Image* img = ass_render_frame(_renderer, _track, time.GetTime(MILLISECONDS), NULL);
-    lock.unlock();
-
-    //VideoFrame vf = VideoFrame(_track->PlayResX, _track->PlayResY, time.GetTime(MICROSECONDS));
-    int width, height;
-    if (_outputWidth != 0 && _outputHeight != 0)
-    {
-        width = _outputWidth;
-        height = _outputHeight;
-    }
-    else
-    {
-        width = _track->PlayResX;
-        height = _track->PlayResY;
-    }
-    VideoFrame vf = VideoFrame(width, height, time.GetTime(MICROSECONDS));
-    std::fill_n((uchar*)vf.GetBytes(), vf.GetWidth() * vf.GetHeight() * 4, 0);
-    Blend(&vf, img);
-    return vf;
-}
+//VideoFrame SubtitleDecoder::RenderFrame(TimePoint time)
+//{
+//    std::unique_lock<std::mutex> lock(_m_ass);
+//    ASS_Image* img = ass_render_frame(_renderer, _track, time.GetTime(MILLISECONDS), NULL);
+//    lock.unlock();
+//
+//    //VideoFrame vf = VideoFrame(_track->PlayResX, _track->PlayResY, time.GetTime(MICROSECONDS));
+//    int width, height;
+//    if (_outputWidth != 0 && _outputHeight != 0)
+//    {
+//        width = _outputWidth;
+//        height = _outputHeight;
+//    }
+//    else
+//    {
+//        width = _track->PlayResX;
+//        height = _track->PlayResY;
+//    }
+//    VideoFrame vf = VideoFrame(width, height, time.GetTime(MICROSECONDS));
+//    std::fill_n((uchar*)vf.GetBytes(), vf.GetWidth() * vf.GetHeight() * 4, 0);
+//    Blend(&vf, img);
+//    return vf;
+//}
 
 void SubtitleDecoder::AddFonts(const std::vector<FontDesc>& fonts)
 {

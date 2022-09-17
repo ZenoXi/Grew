@@ -30,6 +30,7 @@ void Playback::Stop()
     _dataProvider.reset();
 
     _videoAdapter.reset();
+    _subtitleAdapter.reset();
     _audioAdapter.reset();
 }
 
@@ -45,7 +46,8 @@ void Playback::Update()
                 _dataProvider->Start();
 
                 // Create adapters
-                _videoAdapter = std::make_unique<IVideoOutputAdapter>();
+                _videoAdapter = std::make_unique<VideoOutputAdapter>();
+                _subtitleAdapter = std::make_unique<SubtitleOutputAdapter>();
                 auto audioStream = _dataProvider->CurrentAudioStream();
                 if (audioStream)
                     _audioAdapter = std::make_unique<XAudio2_AudioOutputAdapter>(audioStream->channels, audioStream->sampleRate);
@@ -53,7 +55,7 @@ void Playback::Update()
                     _audioAdapter = std::make_unique<XAudio2_AudioOutputAdapter>();
 
                 // Create media player
-                _player = std::make_unique<MediaPlayer>(_dataProvider.get(), _videoAdapter.get(), _audioAdapter.get());
+                _player = std::make_unique<MediaPlayer>(_dataProvider.get(), _videoAdapter.get(), _subtitleAdapter.get(), _audioAdapter.get());
 
                 // Attach player to controller
                 _controller->AttachMediaPlayer(_player.get());
@@ -112,9 +114,14 @@ IMediaDataProvider* Playback::DataProvider() const
     return _dataProvider.get();
 }
 
-IVideoOutputAdapter* Playback::VideoAdapter() const
+VideoOutputAdapter* Playback::VideoAdapter() const
 {
     return _videoAdapter.get();
+}
+
+SubtitleOutputAdapter* Playback::SubtitleAdapter() const
+{
+    return _subtitleAdapter.get();
 }
 
 IAudioOutputAdapter* Playback::AudioAdapter() const

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "IMediaDecoder.h"
-#include "VideoFrame.h"
+//#include "VideoFrame.h"
 #include "GameTime.h"
 
 extern "C"
@@ -53,7 +53,7 @@ public:
 
     SubtitleDecoder(const MediaStream& stream);
     ~SubtitleDecoder();
-    VideoFrame RenderFrame(TimePoint time);
+    //VideoFrame RenderFrame(TimePoint time);
     void AddFonts(const std::vector<FontDesc>& fonts);
     void SetOutputSize(int width, int height);
     int GetOutputWidth() const;

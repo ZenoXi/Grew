@@ -10,6 +10,8 @@
 #include "FloatOptionAdapter.h"
 #include "Permissions.h"
 
+#include "TintEffect.h"
+
 #include <iomanip>
 
 PlaybackScene::PlaybackScene(App* app)
@@ -446,12 +448,12 @@ void PlaybackScene::_Update()
     // Check for redraw
     if (!_playback->Initializing())
     {
-        if (_playback->VideoAdapter()->VideoDataChanged())
+        if (_playback->VideoAdapter()->FrameChanged())
         {
             _redraw = true;
             _videoFrameChanged = true;
         }
-        if (_playback->VideoAdapter()->SubtitleDataChanged())
+        if (_playback->SubtitleAdapter()->FrameChanged())
         {
             _redraw = true;
             _subtitleFrameChanged = true;
@@ -493,82 +495,57 @@ ID2D1Bitmap* PlaybackScene::_Draw(Graphics g)
 
     if (!_playback->Initializing())
     {
-        const VideoFrame& videoFrame = _playback->VideoAdapter()->GetVideoData();
-        const VideoFrame& subtitleFrame = _playback->VideoAdapter()->GetSubtitleData();
+        //const VideoFrame& videoFrame = _playback->VideoAdapter()->GetVideoData();
+        //const VideoFrame& subtitleFrame = _playback->VideoAdapter()->GetSubtitleData();
+        if (!_videoFrameBitmap)
+            _videoFrameChanged = true;
+        if (!_subtitleFrameBitmap)
+            _subtitleFrameChanged = true;
+
+        IVideoFrame* videoFrame = _playback->VideoAdapter()->GetFrameData();
+        ISubtitleFrame* subtitleFrame = _playback->SubtitleAdapter()->GetFrameData();
+
+        int subtitleDrawAreaWidth = 0;
+        int subtitleDrawAreaHeight = 0;
 
         // Update video bitmap
         if (_videoFrameChanged)
+            if (videoFrame)
+                videoFrame->DrawFrame(g, &_videoFrameBitmap);
+
+        if (_videoFrameBitmap && videoFrame)
         {
-            if (_videoFrameBitmap)
-                zcom::SafeFullRelease((IUnknown**)&_videoFrameBitmap);
-
-            bool frameValid = videoFrame.GetWidth() && videoFrame.GetHeight();
-            if (frameValid)
-            {
-                D2D1_BITMAP_PROPERTIES props;
-                props.dpiX = 96.0f;
-                props.dpiY = 96.0f;
-                props.pixelFormat = D2D1::PixelFormat
-                (
-                    DXGI_FORMAT_B8G8R8A8_UNORM,
-                    D2D1_ALPHA_MODE_IGNORE
-                );
-                g.target->CreateBitmap
-                (
-                    D2D1::SizeU(videoFrame.GetWidth(), videoFrame.GetHeight()),
-                    props,
-                    &_videoFrameBitmap
-                );
-                g.refs->push_back((IUnknown**)&_videoFrameBitmap);
-
-                D2D1_RECT_U rect = D2D1::RectU(0, 0, videoFrame.GetWidth(), videoFrame.GetHeight());
-                _videoFrameBitmap->CopyFromMemory(&rect, videoFrame.GetBytes(), videoFrame.GetWidth() * 4);
-            }
+            subtitleDrawAreaWidth = videoFrame->GetWidth();
+            subtitleDrawAreaHeight = videoFrame->GetHeight();
+        }
+        else
+        {
+            subtitleDrawAreaWidth = _ccanvas->GetSize().width;
+            subtitleDrawAreaHeight = _ccanvas->GetSize().height;
         }
 
         // Update subtitle bitmap
         if (_subtitleFrameChanged)
         {
-            if (_subtitleFrameBitmap)
-                zcom::SafeFullRelease((IUnknown**)&_subtitleFrameBitmap);
-
-            bool frameValid = subtitleFrame.GetWidth() && subtitleFrame.GetHeight();
-            if (frameValid)
-            {
-                D2D1_BITMAP_PROPERTIES props;
-                props.dpiX = 96.0f;
-                props.dpiY = 96.0f;
-                props.pixelFormat = D2D1::PixelFormat
-                (
-                    DXGI_FORMAT_B8G8R8A8_UNORM,
-                    D2D1_ALPHA_MODE_PREMULTIPLIED
-                );
-                g.target->CreateBitmap
-                (
-                    D2D1::SizeU(subtitleFrame.GetWidth(), subtitleFrame.GetHeight()),
-                    props,
-                    &_subtitleFrameBitmap
-                );
-                g.refs->push_back((IUnknown**)&_subtitleFrameBitmap);
-
-                D2D1_RECT_U rect = D2D1::RectU(0, 0, subtitleFrame.GetWidth(), subtitleFrame.GetHeight());
-                _subtitleFrameBitmap->CopyFromMemory(&rect, subtitleFrame.GetBytes(), subtitleFrame.GetWidth() * 4);
-            }
+            _subPos.x = 0;
+            _subPos.y = 0;
+            if (subtitleFrame)
+                subtitleFrame->DrawFrame(g, &_subtitleFrameBitmap, _subPos, subtitleDrawAreaWidth, subtitleDrawAreaHeight);
         }
 
-        // Determine video destination dimensions
+        // Determine video frame destination dimensions
         D2D1_RECT_F destRectVideo;
         D2D1_RECT_F srcRectVideo;
         if (_videoFrameBitmap)
         {
             // Scale frame to preserve aspect ratio
-            srcRectVideo = D2D1::RectF(0.0f, 0.0f, videoFrame.GetWidth(), videoFrame.GetHeight());
+            srcRectVideo = D2D1::RectF(0.0f, 0.0f, videoFrame->GetWidth(), videoFrame->GetHeight());
             float tWidth = g.target->GetSize().width;
             float tHeight = g.target->GetSize().height;
-            if (videoFrame.GetWidth() / (float)videoFrame.GetHeight() < tWidth / tHeight)
+            if (videoFrame->GetWidth() / (float)videoFrame->GetHeight() < tWidth / tHeight)
             {
-                float scale = videoFrame.GetHeight() / tHeight;
-                float newWidth = videoFrame.GetWidth() / scale;
+                float scale = videoFrame->GetHeight() / tHeight;
+                float newWidth = videoFrame->GetWidth() / scale;
                 destRectVideo = D2D1::Rect
                 (
                     (tWidth - newWidth) * 0.5f,
@@ -577,10 +554,10 @@ ID2D1Bitmap* PlaybackScene::_Draw(Graphics g)
                     tHeight
                 );
             }
-            else if (videoFrame.GetWidth() / (float)videoFrame.GetHeight() > tWidth / tHeight)
+            else if (videoFrame->GetWidth() / (float)videoFrame->GetHeight() > tWidth / tHeight)
             {
-                float scale = videoFrame.GetWidth() / tWidth;
-                float newHeight = videoFrame.GetHeight() / scale;
+                float scale = videoFrame->GetWidth() / tWidth;
+                float newHeight = videoFrame->GetHeight() / scale;
                 destRectVideo = D2D1::Rect
                 (
                     0.0f,
@@ -595,45 +572,41 @@ ID2D1Bitmap* PlaybackScene::_Draw(Graphics g)
             }
         }
 
-        // Determine subtitle destination dimensions
+        // Determine subtitle frame destination dimensions
         D2D1_RECT_F destRectSubtitles;
-        D2D1_RECT_F srcRectSubtitles = D2D1::RectF(0.0f, 0.0f, subtitleFrame.GetWidth(), subtitleFrame.GetHeight());
-        if (_videoFrameBitmap)
+        D2D1_RECT_F srcRectSubtitles;
+        if (_subtitleFrameBitmap)
         {
-            destRectSubtitles = destRectVideo;
-        }
-        else
-        {
-            // Scale frame to preserve aspect ratio
-            float tWidth = g.target->GetSize().width;
-            float tHeight = g.target->GetSize().height;
-            if (subtitleFrame.GetWidth() / (float)subtitleFrame.GetHeight() < tWidth / tHeight)
+            srcRectSubtitles = D2D1::RectF(
+                0,
+                0,
+                _subtitleFrameBitmap->GetSize().width,
+                _subtitleFrameBitmap->GetSize().height
+            );
+
+            if (_videoFrameBitmap)
             {
-                float scale = subtitleFrame.GetHeight() / tHeight;
-                float newWidth = subtitleFrame.GetWidth() / scale;
-                destRectSubtitles = D2D1::Rect
-                (
-                    (tWidth - newWidth) * 0.5f,
-                    0.0f,
-                    (tWidth - newWidth) * 0.5f + newWidth,
-                    tHeight
-                );
-            }
-            else if (subtitleFrame.GetWidth() / (float)subtitleFrame.GetHeight() > tWidth / tHeight)
-            {
-                float scale = subtitleFrame.GetWidth() / tWidth;
-                float newHeight = subtitleFrame.GetHeight() / scale;
-                destRectSubtitles = D2D1::Rect
-                (
-                    0.0f,
-                    (tHeight - newHeight) * 0.5f,
-                    tWidth,
-                    (tHeight - newHeight) * 0.5f + newHeight
-                );
+                float videoScale = (destRectVideo.right - destRectVideo.left) / (srcRectVideo.right - srcRectVideo.left);
+
+                // Calculate destination rect size and scale it to video draw dimensions
+                destRectSubtitles.left = _subPos.x * videoScale;
+                destRectSubtitles.top = _subPos.y * videoScale;
+                destRectSubtitles.right = (_subPos.x + srcRectSubtitles.right) * videoScale;
+                destRectSubtitles.bottom = (_subPos.y + srcRectSubtitles.bottom) * videoScale;
+
+                // Position destination rect correctly
+                destRectSubtitles.left += destRectVideo.left;
+                destRectSubtitles.top += destRectVideo.top;
+                destRectSubtitles.right += destRectVideo.left;
+                destRectSubtitles.bottom += destRectVideo.top;
             }
             else
             {
-                destRectSubtitles = D2D1::RectF(0.0f, 0.0f, tWidth, tHeight);
+                // If no video, use absolute coordinates
+                destRectSubtitles.left = _subPos.x;
+                destRectSubtitles.top = _subPos.y;
+                destRectSubtitles.right = _subPos.x + srcRectSubtitles.right;
+                destRectSubtitles.bottom = _subPos.y + srcRectSubtitles.bottom;
             }
         }
 
@@ -644,6 +617,9 @@ ID2D1Bitmap* PlaybackScene::_Draw(Graphics g)
         // Draw subtitles
         if (_subtitleFrameBitmap)
             g.target->DrawBitmap(_subtitleFrameBitmap, destRectSubtitles, 1.0f, D2D1_INTERPOLATION_MODE_CUBIC, srcRectSubtitles);
+
+        _videoFrameChanged = false;
+        _subtitleFrameChanged = false;
     }
 
     // Draw UI

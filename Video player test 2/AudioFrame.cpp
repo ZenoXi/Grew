@@ -3,7 +3,8 @@
 #include <algorithm>
 
 AudioFrame::AudioFrame(int sampleCount, int channelCount, int sampleRate, long long int timestamp, bool first, bool last)
-    : _samples(sampleCount),
+    : IMediaFrame(TimePoint(timestamp, MICROSECONDS)),
+    _samples(sampleCount),
     _channels(channelCount),
     _sampleRate(sampleRate),
     _timestamp(timestamp),
@@ -15,6 +16,7 @@ AudioFrame::AudioFrame(int sampleCount, int channelCount, int sampleRate, long l
 AudioFrame::~AudioFrame() {}
 
 AudioFrame::AudioFrame(const AudioFrame& ad)
+    : IMediaFrame(TimePoint(ad._timestamp, MICROSECONDS))
 {
     _samples = ad._samples;
     _channels = ad._channels;
@@ -41,6 +43,7 @@ AudioFrame& AudioFrame::operator=(const AudioFrame& ad)
 }
 
 AudioFrame::AudioFrame(AudioFrame&& ad) noexcept
+    : IMediaFrame(TimePoint(ad._timestamp, MICROSECONDS))
 {
     _samples = ad._samples;
     _channels = ad._channels;

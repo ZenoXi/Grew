@@ -10,10 +10,12 @@ bool TimeExceeded(Clock timer, double timeLimit)
 
 MediaPlayer::MediaPlayer(
     IMediaDataProvider* dataProvider,
-    IVideoOutputAdapter* videoAdapter,
+    VideoOutputAdapter* videoAdapter,
+    SubtitleOutputAdapter* subtitleAdapter,
     IAudioOutputAdapter* audioAdapter
 ) : _dataProvider(dataProvider),
     _videoOutputAdapter(videoAdapter),
+    _subtitleOutputAdapter(subtitleAdapter),
     _audioOutputAdapter(audioAdapter)
 {
     std::unique_ptr<MediaStream> videoStream = _dataProvider->CurrentVideoStream();
@@ -148,7 +150,8 @@ void MediaPlayer::Update(double timeLimit)
                 {
                     _subtitleData.nextFrame.reset(nullptr);
                     _subtitleData.currentFrame.reset(nullptr);
-                    _videoOutputAdapter->SetSubtitleData(VideoFrame(1, 1, -1));
+                    //_videoOutputAdapter->SetSubtitleData(VideoFrame(1, 1, -1));
+                    _subtitleOutputAdapter->SetFrame(std::make_unique<ISubtitleFrame>());
                 }
                 if (passResult == 3)
                 {
@@ -252,7 +255,7 @@ void MediaPlayer::Update(double timeLimit)
         {
             int outputWidth = ((SubtitleDecoder*)_subtitleData.decoder)->GetOutputWidth();
             int outputHeight = ((SubtitleDecoder*)_subtitleData.decoder)->GetOutputHeight();
-            VideoFrame* nextFrame = (VideoFrame*)_videoData.nextFrame.get();
+            IVideoFrame* nextFrame = (IVideoFrame*)_videoData.nextFrame.get();
             if (outputWidth != nextFrame->GetWidth() || outputHeight != nextFrame->GetHeight())
             {
                 ((SubtitleDecoder*)_subtitleData.decoder)->SetOutputSize(nextFrame->GetWidth(), nextFrame->GetHeight());
@@ -263,30 +266,33 @@ void MediaPlayer::Update(double timeLimit)
         bool frameAdvanced = false;
         if (_videoData.nextFrame)
         {
-            VideoFrame* nextFrame = (VideoFrame*)_videoData.nextFrame.get();
+            IVideoFrame* nextFrame = (IVideoFrame*)_videoData.nextFrame.get();
             if (nextFrame->GetTimestamp() == AV_NOPTS_VALUE)
             {
-                _videoOutputAdapter->SetVideoData(std::move(*(VideoFrame*)_videoData.nextFrame.get()));
-                _videoData.nextFrame.reset((IMediaFrame*)new VideoFrame(1, 1, 1000000000000000));
+                //_videoOutputAdapter->SetVideoData(std::move(*(VideoFrame*)_videoData.nextFrame.get()));
+                _videoOutputAdapter->SetFrame(std::unique_ptr<IVideoFrame>((IVideoFrame*)_videoData.nextFrame.release()));
+                _videoData.nextFrame.reset((IMediaFrame*)new IVideoFrame(100000000000000000, 1, 1));
             }
             else
             {
-                int64_t nextFrameTimestamp = nextFrame->GetTimestamp();
-                if (nextFrameTimestamp <= _playbackTimer.Now().GetTime())
+                TimePoint nextFrameTimestamp = nextFrame->GetTimestamp();
+                if (nextFrameTimestamp <= _playbackTimer.Now())
                 {
                     _videoData.currentFrame.reset(_videoData.nextFrame.release());
                     if (!_recovering && TimerRunning()) // Prevent ugly fast forwarding after seeking
                     {
-                        _videoOutputAdapter->SetVideoData(std::move(*(VideoFrame*)_videoData.currentFrame.get()));
+                        //_videoOutputAdapter->SetVideoData(std::move(*(VideoFrame*)_videoData.currentFrame.get()));
+                        _videoOutputAdapter->SetFrame(std::unique_ptr<IVideoFrame>((IVideoFrame*)_videoData.currentFrame.release()));
                         _videoData.currentFrame.reset();
                     }
                     frameAdvanced = true;
                 }
-                if (nextFrameTimestamp >= _playbackTimer.Now().GetTime())
+                if (nextFrameTimestamp >= _playbackTimer.Now())
                 {
                     if (_videoData.currentFrame)
                     {
-                        _videoOutputAdapter->SetVideoData(std::move(*(VideoFrame*)_videoData.currentFrame.get()));
+                        //_videoOutputAdapter->SetVideoData(std::move(*(VideoFrame*)_videoData.currentFrame.get()));
+                        _videoOutputAdapter->SetFrame(std::unique_ptr<IVideoFrame>((IVideoFrame*)_videoData.currentFrame.release()));
                         _videoData.currentFrame.reset();
                     }
                 }
@@ -325,11 +331,13 @@ void MediaPlayer::Update(double timeLimit)
         }
         if (_subtitleData.nextFrame)
         {
-            VideoFrame* nextFrame = (VideoFrame*)_subtitleData.nextFrame.get();
-            if (nextFrame->GetTimestamp() <= _playbackTimer.Now().GetTime())
+            ISubtitleFrame* nextFrame = (ISubtitleFrame*)_subtitleData.nextFrame.get();
+            if (nextFrame->GetTimestamp() <= _playbackTimer.Now())
             {
+                std::cout << "Frame changed at " << nextFrame->GetTimestamp().GetTime(MILLISECONDS) / 1000.0f << '\n';
+
                 // Notify decoder of significant lag
-                if (_playbackTimer.Now() - TimePoint(nextFrame->GetTimestamp(), MICROSECONDS) > Duration(1, SECONDS))
+                if (_playbackTimer.Now() - nextFrame->GetTimestamp() > Duration(1, SECONDS))
                 {
                     ((SubtitleDecoder*)_subtitleData.decoder)->SkipForward(Duration(1, SECONDS));
                 }
@@ -337,14 +345,16 @@ void MediaPlayer::Update(double timeLimit)
                 _subtitleData.currentFrame.reset(_subtitleData.nextFrame.release());
                 if (!_recovering && TimerRunning()) // Prevent ugly fast forwarding after seeking
                 {
-                    _videoOutputAdapter->SetSubtitleData(std::move(*(VideoFrame*)_subtitleData.currentFrame.get()));
+                    //_videoOutputAdapter->SetSubtitleData(std::move(*(VideoFrame*)_subtitleData.currentFrame.get()));
+                    _subtitleOutputAdapter->SetFrame(std::unique_ptr<ISubtitleFrame>((ISubtitleFrame*)_subtitleData.currentFrame.release()));
                     _subtitleData.currentFrame.reset();
                 }
                 frameAdvanced = true;
             }
             else if (_subtitleData.currentFrame)
             {
-                _videoOutputAdapter->SetSubtitleData(std::move(*(VideoFrame*)_subtitleData.currentFrame.get()));
+                //_videoOutputAdapter->SetSubtitleData(std::move(*(VideoFrame*)_subtitleData.currentFrame.get()));
+                _subtitleOutputAdapter->SetFrame(std::unique_ptr<ISubtitleFrame>((ISubtitleFrame*)_subtitleData.currentFrame.release()));
                 _subtitleData.currentFrame.reset();
             }
         }
