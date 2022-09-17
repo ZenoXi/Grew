@@ -10,6 +10,8 @@
 #include <d2d1effects_2.h>
 #include "Dwrite.h"
 
+#include <vector>
+
 struct Graphics
 {
     ID2D1DeviceContext* target = nullptr;
