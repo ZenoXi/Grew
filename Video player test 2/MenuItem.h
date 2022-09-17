@@ -82,7 +82,7 @@ namespace zcom
             }
             if (_checkmarkIcon && _checked)
             {
-                g.target->DrawBitmap(_checkmarkIcon, D2D1::RectF(0.0f, 0.0f, 25.0f, 25.0f));
+                g.target->DrawBitmap(_checkmarkIcon, D2D1::RectF(6.25f, 6.25f, 18.75f, 18.75f));
             }
 
             // Draw expand arrow
@@ -162,7 +162,7 @@ namespace zcom
             _label->SetFontSize(13.0f);
             _label->SetFontColor(D2D1::ColorF(D2D1::ColorF::White));
 
-            _checkmarkIcon = ResourceManager::GetImage("checkmark");
+            _checkmarkIcon = ResourceManager::GetImage("checkmark_50x50");
 
             SetBaseHeight(25);
             SetParentWidthPercent(1.0f);
