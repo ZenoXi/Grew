@@ -307,6 +307,9 @@ public:
 
     void Play()
     {
+        if (!_sourceVoice)
+            return;
+
         if (_paused)
         {
             _sourceVoice->Start();
@@ -318,6 +321,9 @@ public:
 
     void Pause()
     {
+        if (!_sourceVoice)
+            return;
+
         if (!_paused)
         {
             _sourceVoice->Stop();
@@ -334,6 +340,9 @@ public:
 
     void SetVolume(float volume)
     {
+        if (!_sourceVoice)
+            return;
+
         if (volume > 1.0f) volume = 1.0f;
         if (volume < 0.0f) volume = 0.0f;
         _volume = volume;
@@ -373,6 +382,9 @@ public:
 
     void SetBalance(float balance)
     {
+        if (!_sourceVoice)
+            return;
+
         if (balance > 1.0f) balance = 1.0f;
         if (balance < -1.0f) balance = -1.0f;
         _balance = balance;
