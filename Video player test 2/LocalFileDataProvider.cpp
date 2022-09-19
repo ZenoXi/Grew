@@ -1,13 +1,20 @@
 #include "LocalFileDataProvider.h"
 
+#include "App.h"
+#include "OverlayScene.h"
+#include "PlaybackEvents.h"
+
 #include "MediaFileProcessing.h"
 
+#include <set>
 #include <iostream>
 
 extern "C"
 {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libavdevice/avdevice.h>
+#include <libavutil/avutil.h>
 }
 
 struct StreamChangeDesc
@@ -63,16 +70,159 @@ void LocalFileDataProvider::Start()
     _packetThreadController.Set("stream", StreamChangeDesc{ -1, nullptr, 0 });
     _packetThreadController.Set("stop", false);
     _packetThreadController.Set("eof", false);
+
+    // Open all sources
+    std::lock_guard lock(_m_sources);
+    for (int i = 0; i < _sources.size(); i++)
+    {
+        if (avformat_open_input(&_sources[i].avfContext, _sources[i].filename.c_str(), NULL, NULL) != 0)
+            return; // TODO: show error notification
+    }
+
     _packetReadingThread = std::thread(&LocalFileDataProvider::_ReadPackets, this);
 }
 
 void LocalFileDataProvider::Stop()
 {
     _packetThreadController.Set("stop", true);
+    _abortSourceAdd = true;
     if (_packetReadingThread.joinable())
-    {
         _packetReadingThread.join();
+    if (_sourceAddThread.joinable())
+        _sourceAddThread.join();
+}
+
+bool LocalFileDataProvider::AddLocalMedia(std::string path, int streams)
+{
+    _abortSourceAdd = false;
+    _sourceAddThread = std::thread(&LocalFileDataProvider::_AddLocalMedia, this, path, streams);
+    return true;
+}
+
+void LocalFileDataProvider::_AddLocalMedia(std::string path, int streams)
+{
+    AVFormatContext* context = nullptr;
+    int result = avformat_open_input(&context, path.c_str(), NULL, NULL);
+    if (result != 0)
+    {
+        zcom::NotificationInfo ninfo;
+        ninfo.borderColor = D2D1::ColorF(0.8f, 0.2f, 0.2f);
+        ninfo.duration = Duration(5, SECONDS);
+        ninfo.title = L"Failed to add media";
+        ninfo.text = L"The file could not be opened";
+        App::Instance()->Overlay()->ShowNotification(ninfo);
+        return;
     }
+
+    // Process file
+    MediaFileProcessing fprocessor(context);
+    fprocessor.ignoreVideoStreams       = !(streams & STREAM_SELECTION_VIDEO);
+    fprocessor.ignoreAudioStreams       = !(streams & STREAM_SELECTION_AUDIO);
+    fprocessor.ignoreSubtitleStreams    = !(streams & STREAM_SELECTION_SUBTITLE);
+    fprocessor.ignoreAttachmentStreams  = !(streams & STREAM_SELECTION_ATTACHMENT);
+    fprocessor.ignoreDataStreams        = !(streams & STREAM_SELECTION_DATA);
+    fprocessor.ignoreUnknownStreams     = !(streams & STREAM_SELECTION_UNKNOWN);
+
+    if (!_abortSourceAdd)
+    {
+        fprocessor.ExtractStreams();
+        while (fprocessor.TaskRunning())
+        {
+            if (_abortSourceAdd)
+            {
+                fprocessor.CancelTask();
+                return;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    }
+    if (!_abortSourceAdd)
+    {
+        fprocessor.FindMissingStreamData();
+        while (fprocessor.TaskRunning())
+        {
+            if (_abortSourceAdd)
+            {
+                fprocessor.CancelTask();
+                return;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    }
+    if (!_abortSourceAdd)
+    {
+        fprocessor.CalculateMissingStreamData();
+        while (fprocessor.TaskRunning())
+        {
+            if (_abortSourceAdd)
+            {
+                fprocessor.CancelTask();
+                return;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    }
+    
+    std::unique_lock lockExtra(_m_extraStreams);
+    for (int i = 0; i < fprocessor.attachmentStreams.size(); i++)
+        _attachmentStreams.push_back(std::move(fprocessor.attachmentStreams[i]));
+    for (int i = 0; i < fprocessor.dataStreams.size(); i++)
+        _dataStreams.push_back(std::move(fprocessor.dataStreams[i]));
+    for (int i = 0; i < fprocessor.unknownStreams.size(); i++)
+        _unknownStreams.push_back(std::move(fprocessor.unknownStreams[i]));
+    lockExtra.unlock();
+
+    LocalMediaSource source;
+    source.filename = path;
+    source.LtoG_StreamIndex.resize(context->nb_streams, { -1, LocalMediaSource::OTHER });
+    std::unique_lock lock(_m_sources);
+    if (!fprocessor.videoStreams.empty())
+    {
+        std::lock_guard lock(_videoData.mtx);
+        for (int i = 0; i < fprocessor.videoStreams.size(); i++)
+        {
+            source.LtoG_StreamIndex[fprocessor.videoStreams[i].index] = { _videoData.streams.size(), LocalMediaSource::VIDEO_STREAM };
+            //source.LtoG_StreamIndexVideo.push_back(_videoData.streams.size());
+            _videoData.streams.push_back(std::move(fprocessor.videoStreams[i]));
+            _videoStreamSourceIndex.push_back(_sources.size());
+        }
+    }
+    if (!fprocessor.audioStreams.empty())
+    {
+        std::lock_guard lock(_audioData.mtx);
+        for (int i = 0; i < fprocessor.audioStreams.size(); i++)
+        {
+            source.LtoG_StreamIndex[fprocessor.audioStreams[i].index] = { _audioData.streams.size(), LocalMediaSource::AUDIO_STREAM };
+            //source.LtoG_StreamIndexAudio.push_back(_audioData.streams.size());
+            _audioData.streams.push_back(std::move(fprocessor.audioStreams[i]));
+            _audioStreamSourceIndex.push_back(_sources.size());
+        }
+    }
+    if (!fprocessor.subtitleStreams.empty())
+    {
+        std::lock_guard lock(_subtitleData.mtx);
+        for (int i = 0; i < fprocessor.subtitleStreams.size(); i++)
+        {
+            source.LtoG_StreamIndex[fprocessor.subtitleStreams[i].index] = { _subtitleData.streams.size(), LocalMediaSource::SUBTITLE_STREAM };
+            //source.LtoG_StreamIndexSubtitle.push_back(_subtitleData.streams.size());
+            _subtitleData.streams.push_back(std::move(fprocessor.subtitleStreams[i]));
+            _subtitleStreamSourceIndex.push_back(_sources.size());
+        }
+    }
+    _sources.push_back(std::move(source));
+    lock.unlock();
+
+    // Show notification
+    zcom::NotificationInfo ninfo;
+    ninfo.borderColor = D2D1::ColorF(0.2f, 0.8f, 0.2f);
+    ninfo.duration = Duration(3, SECONDS);
+    ninfo.title = L"Subtitles added";
+    ninfo.text = L"";
+    App::Instance()->Overlay()->ShowNotification(ninfo);
+
+    avformat_close_input(&context);
+
+    App::Instance()->events.RaiseEvent(InputSourcesChangedEvent{});
 }
 
 void LocalFileDataProvider::_Seek(SeekData seekData)
@@ -206,6 +356,27 @@ void LocalFileDataProvider::_Initialize()
     _dataStreams = std::move(fprocessor.dataStreams);
     _unknownStreams = std::move(fprocessor.unknownStreams);
 
+    _sources.push_back({ _filename });
+    _sources[0].LtoG_StreamIndex.resize(_avfContext->nb_streams, { -1, LocalMediaSource::OTHER });
+    for (int i = 0; i < _videoData.streams.size(); i++)
+    {
+        _sources[0].LtoG_StreamIndex[_videoData.streams[i].index] = { i, LocalMediaSource::VIDEO_STREAM };
+        //_sources[0].LtoG_StreamIndexVideo.push_back(i);
+        _videoStreamSourceIndex.push_back(0);
+    }
+    for (int i = 0; i < _audioData.streams.size(); i++)
+    {
+        _sources[0].LtoG_StreamIndex[_audioData.streams[i].index] = { i, LocalMediaSource::AUDIO_STREAM };
+        //_sources[0].LtoG_StreamIndexAudio.push_back(i);
+        _audioStreamSourceIndex.push_back(0);
+    }
+    for (int i = 0; i < _subtitleData.streams.size(); i++)
+    {
+        _sources[0].LtoG_StreamIndex[_subtitleData.streams[i].index] = { i, LocalMediaSource::SUBTITLE_STREAM };
+        //_sources[0].LtoG_StreamIndexSubtitle.push_back(i);
+        _subtitleStreamSourceIndex.push_back(0);
+    }
+
     // Close file handle
     avformat_close_input(&_avfContext);
 
@@ -220,17 +391,32 @@ void LocalFileDataProvider::_Initialize()
 
 void LocalFileDataProvider::_ReadPackets()
 {
-    // Open file
-    if (avformat_open_input(&_avfContext, _filename.c_str(), NULL, NULL) != 0)
-        return; // TODO: show error notification
-
-    AVPacket* packet = av_packet_alloc();
-    bool holdPacket = false;
+    //AVPacket* packet = av_packet_alloc();
+    //bool holdPacket = false;
     bool eof = false;
 
-    int videoStreamIndex = _videoData.currentStream != -1 ? _videoData.streams[_videoData.currentStream].index : -1;
-    int audioStreamIndex = _audioData.currentStream != -1 ? _audioData.streams[_audioData.currentStream].index : -1;
-    int subtitleStreamIndex = _subtitleData.currentStream != -1 ? _subtitleData.streams[_subtitleData.currentStream].index : -1;
+    //int videoStreamIndex = _videoData.currentStream != -1 ? _videoData.streams[_videoData.currentStream].index : -1;
+    //int audioStreamIndex = _audioData.currentStream != -1 ? _audioData.streams[_audioData.currentStream].index : -1;
+    //int subtitleStreamIndex = _subtitleData.currentStream != -1 ? _subtitleData.streams[_subtitleData.currentStream].index : -1;
+
+    int videoStreamIndex = _videoData.currentStream;
+    int audioStreamIndex = _audioData.currentStream;
+    int subtitleStreamIndex = _subtitleData.currentStream;
+
+    std::set<int> activeSourceIndices;
+    if (_videoData.currentStream != -1 && _videoData.currentStream < _videoStreamSourceIndex.size())
+        activeSourceIndices.insert(_videoStreamSourceIndex[_videoData.currentStream]);
+    if (_audioData.currentStream != -1 && _audioData.currentStream < _audioStreamSourceIndex.size())
+        activeSourceIndices.insert(_audioStreamSourceIndex[_audioData.currentStream]);
+    if (_subtitleData.currentStream != -1 && _subtitleData.currentStream < _subtitleStreamSourceIndex.size())
+        activeSourceIndices.insert(_subtitleStreamSourceIndex[_subtitleData.currentStream]);
+
+    ////avformat_new_stream()
+    ////av_open_inpu
+    //avformat_open_input();
+
+    //_avfContext;
+    //AVInputFormat;
 
     while (!_packetThreadController.Get<bool>("stop"))
     {
@@ -239,38 +425,60 @@ void LocalFileDataProvider::_ReadPackets()
         if (!seekData.Default())
         {
             _packetThreadController.Set("seek", IMediaDataProvider::SeekData());
+            activeSourceIndices.clear();
 
-            // Change stream
+            std::unique_lock lock(_m_sources);
+
+            // Change streams
             if (seekData.videoStreamIndex != std::numeric_limits<int>::min())
-            {
                 _videoData.currentStream = seekData.videoStreamIndex;
-                videoStreamIndex = _videoData.currentStream != -1 ? _videoData.streams[_videoData.currentStream].index : -1;
-            }
             if (seekData.audioStreamIndex != std::numeric_limits<int>::min())
-            {
                 _audioData.currentStream = seekData.audioStreamIndex;
-                audioStreamIndex = _audioData.currentStream != -1 ? _audioData.streams[_audioData.currentStream].index : -1;
-            }
             if (seekData.subtitleStreamIndex != std::numeric_limits<int>::min())
-            {
                 _subtitleData.currentStream = seekData.subtitleStreamIndex;
-                subtitleStreamIndex = _subtitleData.currentStream != -1 ? _subtitleData.streams[_subtitleData.currentStream].index : -1;
+
+            if (_videoData.currentStream != -1 && _videoData.currentStream < _videoStreamSourceIndex.size())
+                activeSourceIndices.insert(_videoStreamSourceIndex[_videoData.currentStream]);
+            if (_audioData.currentStream != -1 && _audioData.currentStream < _audioStreamSourceIndex.size())
+                activeSourceIndices.insert(_audioStreamSourceIndex[_audioData.currentStream]);
+            if (_subtitleData.currentStream != -1 && _subtitleData.currentStream < _subtitleStreamSourceIndex.size())
+                activeSourceIndices.insert(_subtitleStreamSourceIndex[_subtitleData.currentStream]);
+
+            // Init required sources
+            for (auto index : activeSourceIndices)
+            {
+                if (!_sources[index].avfContext)
+                {
+                    if (avformat_open_input(&_sources[index].avfContext, _sources[index].filename.c_str(), NULL, NULL) != 0)
+                    {
+                        zcom::NotificationInfo ninfo;
+                        ninfo.borderColor = D2D1::ColorF(0.8f, 0.2f, 0.2f);
+                        ninfo.duration = Duration(5, SECONDS);
+                        ninfo.title = L"Failed to open media source";
+                        ninfo.text = L"The file '" + utf8_to_wstr(_sources[index].filename) + L"' could not be opened. The stream will contain no output";
+                        App::Instance()->Overlay()->ShowNotification(ninfo);
+                    }
+                }
             }
 
-            // Seek
+            // Seek all sources
             int64_t seekTime = seekData.time.GetTime(MICROSECONDS);
-            double seconds = seekTime / 1000000.0;
-            if (seconds < 0) seconds = 0.0;
-            std::cout << "Seeking to " << seconds << "s" << std::endl;
+            for (auto index : activeSourceIndices)
+            {
+                if (_sources[index].avfContext)
+                {
+                    avformat_seek_file(
+                        _sources[index].avfContext,
+                        -1,
+                        std::numeric_limits<int64_t>::min(),
+                        seekTime,
+                        std::numeric_limits<int64_t>::max(),
+                        AVSEEK_FLAG_BACKWARD
+                    );
+                }
+            }
 
-            avformat_seek_file(
-                _avfContext,
-                -1,
-                std::numeric_limits<int64_t>::min(),
-                seekTime,
-                std::numeric_limits<int64_t>::max(),
-                AVSEEK_FLAG_BACKWARD
-            );
+            lock.unlock();
 
             // Clear packet buffers
             _ClearVideoPackets();
@@ -282,137 +490,121 @@ void LocalFileDataProvider::_ReadPackets()
             _AddAudioPacket(MediaPacket(true));
             _AddSubtitlePacket(MediaPacket(true));
 
-            if (holdPacket)
+            // Clear held packets
+            for (auto index : activeSourceIndices)
             {
-                av_packet_unref(packet);
-                holdPacket = false;
+                if (_sources[index].heldPacket)
+                {
+                    av_packet_free(&_sources[index].heldPacket);
+                }
             }
         }
 
-        //// Seek
-        //int64_t seekTime = _packetThreadController.Get<int64_t>("seek");
-        //if (seekTime >= 0)
-        //{
-        //    _packetThreadController.Set("seek", -1LL);
+        std::unique_lock lockSources(_m_sources);
 
-        //    double seconds = seekTime / 1000000.0;
-        //    if (seconds < 0) seconds = 0.0;
-        //    std::cout << "Seeking to " << seconds << "s" << std::endl;
+        bool sleep = true;
 
-        //    avformat_seek_file(
-        //        _avfContext,
-        //        -1,
-        //        std::numeric_limits<int64_t>::min(),
-        //        seekTime,
-        //        std::numeric_limits<int64_t>::max(),
-        //        AVSEEK_FLAG_BACKWARD
-        //    );
-
-        //    // Clear packet buffers
-        //    _ClearVideoPackets();
-        //    _ClearAudioPackets();
-        //    _ClearSubtitlePackets();
-
-        //    // Send flush packets
-        //    _AddVideoPacket(MediaPacket(true));
-        //    _AddAudioPacket(MediaPacket(true));
-        //    _AddSubtitlePacket(MediaPacket(true));
-
-        //    if (holdPacket)
-        //    {
-        //        av_packet_unref(packet);
-        //        holdPacket = false;
-        //    }
-        //}
-
-        //// Change stream
-        //StreamChangeDesc newStream = _packetThreadController.Get<StreamChangeDesc>("stream");
-        //if (newStream.mediaDataPtr)
-        //{
-        //    _packetThreadController.Set("stream", StreamChangeDesc{ -1, nullptr, 0 });
-        //    newStream.mediaDataPtr->currentStream = newStream.streamIndex;
-        //    _packetThreadController.Set("seek", newStream.time.GetTime());
-
-        //    // Update stream indexes
-        //    videoStreamIndex = _videoData.currentStream != -1 ? _videoData.streams[_videoData.currentStream].index : -1;
-        //    audioStreamIndex = _audioData.currentStream != -1 ? _audioData.streams[_audioData.currentStream].index : -1;
-        //    subtitleStreamIndex = _subtitleData.currentStream != -1 ? _subtitleData.streams[_subtitleData.currentStream].index : -1;
-
-        //    continue;
-        //}
-
-        // Read audio and video packets
-        int result = 0;
-        if (!holdPacket)
-            result = av_read_frame(_avfContext, packet);
-
-        if (result >= 0)
+        // Read from active sources
+        for (auto index : activeSourceIndices)
         {
-            if (eof)
-            {
-                eof = false;
-                _packetThreadController.Set("eof", false);
-            }
+            AVPacket* packet;
 
-            if (packet->stream_index == videoStreamIndex)
+            // Read packet / Use held packet
+            int result = 0;
+            if (!_sources[index].heldPacket)
             {
-                if (VideoMemoryExceeded())
-                {
-                    holdPacket = true;
-                }
-                else
-                {
-                    holdPacket = false;
-                    _AddVideoPacket(MediaPacket(packet));
-                    packet = av_packet_alloc();
-                }
-            }
-            else if (packet->stream_index == audioStreamIndex)
-            {
-                if (AudioMemoryExceeded())
-                {
-                    holdPacket = true;
-                }
-                else
-                {
-                    holdPacket = false;
-                    _AddAudioPacket(MediaPacket(packet));
-                    packet = av_packet_alloc();
-                }
-            }
-            else if (packet->stream_index == subtitleStreamIndex)
-            {
-                if (SubtitleMemoryExceeded())
-                {
-                    holdPacket = true;
-                }
-                else
-                {
-                    holdPacket = false;
-                    _AddSubtitlePacket(MediaPacket(packet));
-                    packet = av_packet_alloc();
-                }
+                packet = av_packet_alloc();
+                result = av_read_frame(_sources[index].avfContext, packet);
             }
             else
             {
-                av_packet_unref(packet);
+                packet = _sources[index].heldPacket;
+                _sources[index].heldPacket = nullptr;
             }
 
-            if (holdPacket)
+            // Process packet
+            if (result >= 0)
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                if (eof)
+                {
+                    eof = false;
+                    _packetThreadController.Set("eof", false);
+                }
+
+                // Get packet stream info
+                auto globalStreamData = _sources[index].LtoG_StreamIndex[packet->stream_index];
+                int streamIndex = globalStreamData.first;
+                auto streamType = globalStreamData.second;
+                if (streamIndex == -1)
+                {
+                    av_packet_free(&packet);
+                    continue;
+                }
+
+                // Pass packet to correct stream
+                if (streamType == LocalMediaSource::VIDEO_STREAM && streamIndex == _videoData.currentStream)
+                {
+                    if (VideoMemoryExceeded())
+                    {
+                        _sources[index].heldPacket = packet;
+                    }
+                    else
+                    {
+                        _sources[index].heldPacket = nullptr;
+                        _AddVideoPacket(MediaPacket(packet));
+                    }
+                }
+                else if (streamType == LocalMediaSource::AUDIO_STREAM && streamIndex == _audioData.currentStream)
+                {
+                    if (AudioMemoryExceeded())
+                    {
+                        _sources[index].heldPacket = packet;
+                    }
+                    else
+                    {
+                        _sources[index].heldPacket = nullptr;
+                        _AddAudioPacket(MediaPacket(packet));
+                    }
+                }
+                else if (streamType == LocalMediaSource::SUBTITLE_STREAM && streamIndex == _subtitleData.currentStream)
+                {
+                    if (SubtitleMemoryExceeded())
+                    {
+                        _sources[index].heldPacket = packet;
+                    }
+                    else
+                    {
+                        _sources[index].heldPacket = nullptr;
+                        _AddSubtitlePacket(MediaPacket(packet));
+                    }
+                }
+
+                if (!_sources[index].heldPacket)
+                    sleep = false;
+            }
+            else
+            {
+                if (!eof)
+                {
+                    eof = true;
+                    _packetThreadController.Set("eof", true);
+                }
             }
         }
-        else
-        {
-            if (!eof)
-            {
-                eof = true;
-                _packetThreadController.Set("eof", true);
-            }
+
+        lockSources.unlock();
+
+        if (sleep)
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
     }
 
-    av_packet_free(&packet);
+    // Clear held packets
+    std::lock_guard lockSources2(_m_sources);
+    for (auto& source : _sources)
+    {
+        if (source.heldPacket)
+        {
+            av_packet_free(&source.heldPacket);
+        }
+    }
 }
