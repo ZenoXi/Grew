@@ -76,9 +76,11 @@ namespace zcom
             if (_icon && !_checked)
             {
                 if (!_disabled)
-                    g.target->DrawBitmap(_icon, D2D1::RectF(0.0f, 0.0f, 25.0f, 25.0f));
+                    _iconImage->SetImage(_icon);
                 else
-                    g.target->DrawBitmap(_iconGrayscale, D2D1::RectF(0.0f, 0.0f, 25.0f, 25.0f));
+                    _iconImage->SetImage(_iconGrayscale);
+                _iconImage->Draw(g);
+                g.target->DrawBitmap(_iconImage->Base::Image(), D2D1::RectF(0.0f, 0.0f, 25.0f, 25.0f));
             }
             if (_checkmarkIcon && _checked)
             {
@@ -129,6 +131,8 @@ namespace zcom
         ID2D1Bitmap1* _iconGrayscale = nullptr;
         ID2D1Bitmap* _checkmarkIcon = nullptr;
 
+        std::unique_ptr<zcom::Image> _iconImage = nullptr;
+
         // Exactly 1 item from a check group must be checked at a time
         int _checkGroup = -1;
         bool _checked = false;
@@ -161,6 +165,10 @@ namespace zcom
             _label->SetFont(L"Segoe UI");
             _label->SetFontSize(13.0f);
             _label->SetFontColor(D2D1::ColorF(D2D1::ColorF::White));
+
+            _iconImage = Create<zcom::Image>();
+            _iconImage->SetSize(25, 25);
+            _iconImage->SetPlacement(ImagePlacement::CENTER);
 
             _checkmarkIcon = ResourceManager::GetImage("checkmark_50x50");
 
