@@ -415,8 +415,11 @@ void SubtitleDecoder::SetFramerate(int fps)
 
 void SubtitleDecoder::SkipForward(Duration amount)
 {
-    _lastRenderedFrameTime += amount;
-    ClearFrames();
+    if (_subType == SubtitleType::ASS)
+    {
+        _lastRenderedFrameTime += amount;
+        ClearFrames();
+    }
 }
 
 void SubtitleDecoder::_LoadOptions()
