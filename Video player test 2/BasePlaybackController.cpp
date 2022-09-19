@@ -16,6 +16,9 @@ void BasePlaybackController::AttachMediaPlayer(MediaPlayer* player)
     _videoStreams = _dataProvider->GetAvailableVideoStreams();
     _audioStreams = _dataProvider->GetAvailableAudioStreams();
     _subtitleStreams = _dataProvider->GetAvailableSubtitleStreams();
+    _currentVideoStream = _dataProvider->CurrentVideoStreamIndex();
+    _currentAudioStream = _dataProvider->CurrentAudioStreamIndex();
+    _currentSubtitleStream = _dataProvider->CurrentSubtitleStreamIndex();
 
     _OnMediaPlayerAttach();
 }
@@ -219,17 +222,23 @@ int BasePlaybackController::CurrentSubtitleStream() const
     return _currentSubtitleStream;
 }
 
-std::vector<std::string> BasePlaybackController::GetAvailableVideoStreams() const
+std::vector<std::string> BasePlaybackController::GetAvailableVideoStreams()
 {
+    if (_player)
+        _videoStreams = _dataProvider->GetAvailableVideoStreams();
     return _videoStreams;
 }
 
-std::vector<std::string> BasePlaybackController::GetAvailableAudioStreams() const
+std::vector<std::string> BasePlaybackController::GetAvailableAudioStreams()
 {
+    if (_player)
+        _audioStreams = _dataProvider->GetAvailableAudioStreams();
     return _audioStreams;
 }
 
-std::vector<std::string> BasePlaybackController::GetAvailableSubtitleStreams() const
+std::vector<std::string> BasePlaybackController::GetAvailableSubtitleStreams()
 {
+    if (_player)
+        _subtitleStreams = _dataProvider->GetAvailableSubtitleStreams();
     return _subtitleStreams;
 }

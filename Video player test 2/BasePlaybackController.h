@@ -240,7 +240,7 @@ public:
     int CurrentVideoStream() const;
     int CurrentAudioStream() const;
     int CurrentSubtitleStream() const;
-    std::vector<std::string> GetAvailableVideoStreams() const;
-    std::vector<std::string> GetAvailableAudioStreams() const;
-    std::vector<std::string> GetAvailableSubtitleStreams() const;
+    std::vector<std::string> GetAvailableVideoStreams();
+    std::vector<std::string> GetAvailableAudioStreams();
+    std::vector<std::string> GetAvailableSubtitleStreams();
 };

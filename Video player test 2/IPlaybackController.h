@@ -37,8 +37,8 @@ public:
     virtual int CurrentVideoStream() const = 0;
     virtual int CurrentAudioStream() const = 0;
     virtual int CurrentSubtitleStream() const = 0;
-    virtual std::vector<std::string> GetAvailableVideoStreams() const = 0;
-    virtual std::vector<std::string> GetAvailableAudioStreams() const = 0;
-    virtual std::vector<std::string> GetAvailableSubtitleStreams() const = 0;
+    virtual std::vector<std::string> GetAvailableVideoStreams() = 0;
+    virtual std::vector<std::string> GetAvailableAudioStreams() = 0;
+    virtual std::vector<std::string> GetAvailableSubtitleStreams() = 0;
 
 };
