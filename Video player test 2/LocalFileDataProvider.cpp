@@ -45,6 +45,11 @@ LocalFileDataProvider::LocalFileDataProvider(LocalFileDataProvider* other)
     _packetThreadController.Add("stop", sizeof(bool));
     _packetThreadController.Add("eof", sizeof(bool));
 
+    _sources = other->_sources;
+    _videoStreamSourceIndex = other->_videoStreamSourceIndex;
+    _audioStreamSourceIndex = other->_audioStreamSourceIndex;
+    _subtitleStreamSourceIndex = other->_subtitleStreamSourceIndex;
+
     _filename = other->_filename;
 }
 
