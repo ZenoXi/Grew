@@ -180,7 +180,7 @@ void SubtitleFrame_Text::DrawFrame(Graphics g, ID2D1Bitmap1** targetBitmap, Subt
         DWRITE_FONT_WEIGHT_BOLD,
         DWRITE_FONT_STYLE_NORMAL,
         DWRITE_FONT_STRETCH_NORMAL,
-        34.0f,
+        52.0f,
         L"en-us",
         &format
     );
@@ -203,8 +203,8 @@ void SubtitleFrame_Text::DrawFrame(Graphics g, ID2D1Bitmap1** targetBitmap, Subt
     int finalHeight = (int)std::ceilf(textHeight);
 
     // Calculate bitmap placement (bottom center)
-    position.x = (videoWidth - finalWidth) / 2;
-    position.y = videoHeight - finalHeight - 100;
+    position.x = (videoWidth - (finalWidth + 10)) / 2;
+    position.y = videoHeight - (finalHeight + 10) - 60;
 
     // Recreate layout with new size
     layout->Release();
@@ -223,7 +223,7 @@ void SubtitleFrame_Text::DrawFrame(Graphics g, ID2D1Bitmap1** targetBitmap, Subt
     if (bitmap)
     {
         auto bitmapSize = bitmap->GetSize();
-        if ((int)bitmapSize.width != finalWidth || (int)bitmapSize.height != finalHeight)
+        if ((int)bitmapSize.width != finalWidth + 10 || (int)bitmapSize.height != finalHeight + 10)
             App::Instance()->window.gfx.ReleaseResource((IUnknown**)targetBitmap);
     }
 
@@ -232,7 +232,7 @@ void SubtitleFrame_Text::DrawFrame(Graphics g, ID2D1Bitmap1** targetBitmap, Subt
     if (!bitmap)
     {
         g.target->CreateBitmap(
-            D2D1::SizeU(finalWidth, finalHeight),
+            D2D1::SizeU(finalWidth + 10, finalHeight + 10),
             nullptr,
             0,
             D2D1::BitmapProperties1(
@@ -255,8 +255,8 @@ void SubtitleFrame_Text::DrawFrame(Graphics g, ID2D1Bitmap1** targetBitmap, Subt
     layout->Draw(
         nullptr,
         &renderer,
-        0.0f,
-        0.0f
+        5.0f,
+        5.0f
     );
 
     // Unstash target
