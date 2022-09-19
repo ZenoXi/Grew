@@ -369,6 +369,8 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
 void PlaybackScene::_Uninit()
 {
     zcom::SafeFullRelease((IUnknown**)&_ccanvas);
+    zcom::SafeFullRelease((IUnknown**)&_videoFrameBitmap);
+    zcom::SafeFullRelease((IUnknown**)&_subtitleFrameBitmap);
 
     _canvas->ClearComponents();
     _controlBar->ClearItems();
