@@ -8,6 +8,13 @@
 #include "Options.h"
 #include "OptionNames.h"
 #include "IntOptionAdapter.h"
+#include "FileTypes.h"
+
+zcom::PlaybackController::PlaybackController(Scene* scene)
+    : Panel(scene)
+{
+    _inputSourcesChangedReceiver = std::make_unique<EventReceiver<InputSourcesChangedEvent>>(&App::Instance()->events);
+}
 
 void zcom::PlaybackController::Init()
 {
@@ -203,6 +210,17 @@ void zcom::PlaybackController::Init()
     _settingsButton->SetSelectable(false);
     _settingsButton->SetOnActivated([&]()
     {
+        if (!_playback->Initializing())
+        {
+            _SetupStreamMenu();
+        }
+        else
+        {
+            _videoStreamMenuPanel->ClearItems();
+            _audioStreamMenuPanel->ClearItems();
+            _subtitleStreamMenuPanel->ClearItems();
+        }
+
         RECT buttonRect = {
             _settingsButton->GetScreenX(),
             _settingsButton->GetScreenY(),
@@ -269,6 +287,26 @@ void zcom::PlaybackController::_OnUpdate()
     if (!_playback->Initializing())
     {
         _playbackLoaded = true;
+
+        // Check for file dialog finish
+        if (_fileDialog && _fileDialog->Done())
+        {
+            auto path = _fileDialog->Result();
+            if (!path.empty())
+            {
+                _playback->DataProvider()->AddLocalMedia(wstr_to_utf8(path), STREAM_SELECTION_SUBTITLE);
+            }
+            _addingSubtitles = false;
+            _fileDialog.reset();
+        }
+
+        // Check if input sources changed
+        if (_inputSourcesChangedReceiver->EventCount() > 0)
+        {
+            _inputSourcesChangedReceiver->GetEvent();
+            _SetupStreamMenu();
+            _streamMenuSetup = true;
+        }
 
         // Set up stream menu
         if (!_streamMenuSetup)
@@ -353,6 +391,21 @@ void zcom::PlaybackController::_OnUpdate()
     Panel::_OnUpdate();
 }
 
+void zcom::PlaybackController::_ShowSubtitleOpenDialog()
+{
+    if (_fileDialog)
+        return;
+
+    _addingSubtitles = true;
+    _fileDialog = std::make_unique<AsyncFileDialog>();
+    FileDialogOptions opt;
+    opt.allowedExtensions = {
+        { L"Subtitle files", L"" EXTENSIONS_SUBTITLES },
+        { L"All files", L"*.*" }
+    };
+    _fileDialog->Open(opt);
+}
+
 void zcom::PlaybackController::_UpdateFullscreenButton(bool force)
 {
     if (force || _inFullscreen != _scene->GetApp()->Fullscreen())
@@ -392,14 +445,21 @@ void zcom::PlaybackController::_UpdatePermissions()
 
 void zcom::PlaybackController::_SetupStreamMenu()
 {
-    // Add video streams to menu
     _videoStreamMenuPanel->ClearItems();
+    _audioStreamMenuPanel->ClearItems();
+    _subtitleStreamMenuPanel->ClearItems();
+
+    // Create video stream disable option
     auto noVideoStreamItem = Create<zcom::MenuItem>(L"None", [&](bool) { _playback->Controller()->SetVideoStream(-1); });
     noVideoStreamItem->SetCheckable(true);
     noVideoStreamItem->SetCheckGroup(0);
+    if (_playback->Controller()->CurrentVideoStream() == -1)
+        noVideoStreamItem->SetChecked(true);
     _videoStreamMenuPanel->AddItem(std::move(noVideoStreamItem));
-    _videoStreamMenuPanel->AddItem(Create<zcom::MenuItem>());
+    // Add video streams to menu
     auto videoStreams = _playback->Controller()->GetAvailableVideoStreams();
+    if (!videoStreams.empty())
+        _videoStreamMenuPanel->AddItem(Create<zcom::MenuItem>());
     for (int i = 0; i < videoStreams.size(); i++)
     {
         videoStreams[i] = int_to_str(i + 1) + ".  " + videoStreams[i];
@@ -411,14 +471,17 @@ void zcom::PlaybackController::_SetupStreamMenu()
         _videoStreamMenuPanel->AddItem(std::move(streamItem));
     }
 
-    // Add audio streams to menu
-    _audioStreamMenuPanel->ClearItems();
+    // Create audio stream disable option
     auto noAudioStreamItem = Create<zcom::MenuItem>(L"None", [&](bool) { _playback->Controller()->SetAudioStream(-1); });
     noAudioStreamItem->SetCheckable(true);
     noAudioStreamItem->SetCheckGroup(0);
+    if (_playback->Controller()->CurrentAudioStream() == -1)
+        noAudioStreamItem->SetChecked(true);
     _audioStreamMenuPanel->AddItem(std::move(noAudioStreamItem));
-    _audioStreamMenuPanel->AddItem(Create<zcom::MenuItem>());
+    // Add audio streams to menu
     auto audioStreams = _playback->Controller()->GetAvailableAudioStreams();
+    if (!audioStreams.empty())
+        _audioStreamMenuPanel->AddItem(Create<zcom::MenuItem>());
     for (int i = 0; i < audioStreams.size(); i++)
     {
         audioStreams[i] = int_to_str(i + 1) + ".  " + audioStreams[i];
@@ -430,19 +493,22 @@ void zcom::PlaybackController::_SetupStreamMenu()
         _audioStreamMenuPanel->AddItem(std::move(streamItem));
     }
 
-    // Add subtitle streams to menu
-    _subtitleStreamMenuPanel->ClearItems();
-    auto addSubtitlesItem = Create<zcom::MenuItem>(L"Add subtitles from file", [&](bool) { /* Add subtitles */ });
+    // Create subtitle add option
+    auto addSubtitlesItem = Create<zcom::MenuItem>(L"Add subtitles from file", [&](bool) { _ShowSubtitleOpenDialog(); });
     addSubtitlesItem->SetIcon(ResourceManager::GetImage("plus_13x13"));
-    addSubtitlesItem->SetDisabled(true);
     _subtitleStreamMenuPanel->AddItem(std::move(addSubtitlesItem));
     _subtitleStreamMenuPanel->AddItem(Create<zcom::MenuItem>());
+    // Create subtitle stream disable option
     auto noSubtitleStreamItem = Create<zcom::MenuItem>(L"None", [&](bool) { _playback->Controller()->SetSubtitleStream(-1); });
     noSubtitleStreamItem->SetCheckable(true);
     noSubtitleStreamItem->SetCheckGroup(0);
+    if (_playback->Controller()->CurrentSubtitleStream() == -1)
+        noSubtitleStreamItem->SetChecked(true);
     _subtitleStreamMenuPanel->AddItem(std::move(noSubtitleStreamItem));
-    _subtitleStreamMenuPanel->AddItem(Create<zcom::MenuItem>());
+    // Add subtitle streams to menu
     auto subtitleStreams = _playback->Controller()->GetAvailableSubtitleStreams();
+    if (!subtitleStreams.empty())
+        _subtitleStreamMenuPanel->AddItem(Create<zcom::MenuItem>());
     for (int i = 0; i < subtitleStreams.size(); i++)
     {
         subtitleStreams[i] = int_to_str(i + 1) + ".  " + subtitleStreams[i];

@@ -17,7 +17,11 @@
 #include "VolumeIcon.h"
 #include "MenuPanel.h"
 
+#include "FileDialog.h"
 #include "Playback.h"
+
+#include "AppEvents.h"
+#include "PlaybackEvents.h"
 
 namespace zcom
 {
@@ -33,7 +37,7 @@ namespace zcom
     protected:
         friend class Scene;
         friend class Base;
-        PlaybackController(Scene* scene) : Panel(scene) {}
+        PlaybackController(Scene* scene);
         void Init();
     public:
         ~PlaybackController()
@@ -64,6 +68,12 @@ namespace zcom
         std::unique_ptr<zcom::MenuPanel> _videoStreamMenuPanel = nullptr;
         std::unique_ptr<zcom::MenuPanel> _audioStreamMenuPanel = nullptr;
         std::unique_ptr<zcom::MenuPanel> _subtitleStreamMenuPanel = nullptr;
+
+        bool _addingSubtitles = false;
+        std::unique_ptr<AsyncFileDialog> _fileDialog = nullptr;
+        void _ShowSubtitleOpenDialog();
+
+        std::unique_ptr<EventReceiver<InputSourcesChangedEvent>> _inputSourcesChangedReceiver = nullptr;
 
         Playback* _playback;
         bool _playbackLoaded = false;
