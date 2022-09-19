@@ -394,6 +394,8 @@ std::vector<MediaStream> IMediaDataProvider::GetFontStreams()
 {
     std::vector<MediaStream> fontStreams;
 
+    std::unique_lock lock(_m_extraStreams);
+
     // Search attachment streams
     for (auto& stream : _attachmentStreams)
     {

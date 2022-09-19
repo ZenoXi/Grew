@@ -10,6 +10,17 @@
 #include <thread>
 #include <mutex>
 
+enum StreamSelection
+{
+    STREAM_SELECTION_VIDEO      = 0x0001,
+    STREAM_SELECTION_AUDIO      = 0x0002,
+    STREAM_SELECTION_SUBTITLE   = 0x0004,
+    STREAM_SELECTION_ATTACHMENT = 0x0008,
+    STREAM_SELECTION_DATA       = 0x0010,
+    STREAM_SELECTION_UNKNOWN    = 0x0020,
+    STREAM_SELECTION_ALL        = 0x0040
+};
+
 class IMediaDataProvider
 {
 public:
@@ -25,7 +36,7 @@ public:
         TimePoint lastDts = TimePoint::Min();
         int currentPacket = 0;
         size_t totalMemoryUsed = 0;
-        size_t allowedMemory = 100000000;
+        size_t allowedMemory = 100'000'000;
         std::mutex mtx;
     };
 
@@ -76,6 +87,7 @@ protected:
     MediaData _videoData;
     MediaData _audioData;
     MediaData _subtitleData;
+    std::mutex _m_extraStreams;
     std::vector<MediaStream> _attachmentStreams;
     std::vector<MediaStream> _dataStreams;
     std::vector<MediaStream> _unknownStreams;
@@ -161,6 +173,11 @@ public:
     // index of -1 selects the default stream.
     // time: where to continue playback after stream change.
     std::unique_ptr<MediaStream> SetSubtitleStream(int index = -1, TimePoint time = 0);
+    // Add streams from a local file source. Not all data provider types must support this.
+    //  path: file path of the media;
+    //  flags: a combination of STREAM_SELECTION flags, to choose which stream types to import.
+    // Returns: wether the operation is supported
+    virtual bool AddLocalMedia(std::string path, int streams = STREAM_SELECTION_ALL) { return false; }
 private:
     std::unique_ptr<MediaStream> _SetStream(MediaData& mediaData, int index);
 public:
