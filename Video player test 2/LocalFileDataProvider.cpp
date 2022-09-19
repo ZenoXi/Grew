@@ -81,7 +81,15 @@ void LocalFileDataProvider::Start()
     for (int i = 0; i < _sources.size(); i++)
     {
         if (avformat_open_input(&_sources[i].avfContext, _sources[i].filename.c_str(), NULL, NULL) != 0)
-            return; // TODO: show error notification
+        {
+            zcom::NotificationInfo ninfo;
+            ninfo.borderColor = D2D1::ColorF(0.8f, 0.2f, 0.2f);
+            ninfo.duration = Duration(5, SECONDS);
+            ninfo.title = L"Failed to open media source";
+            ninfo.text = L"The file '" + utf8_to_wstr(_sources[i].filename) + L"' could not be opened. The corresponding stream will contain no output";
+            App::Instance()->Overlay()->ShowNotification(ninfo);
+            return;
+        }
     }
 
     _packetReadingThread = std::thread(&LocalFileDataProvider::_ReadPackets, this);
@@ -95,6 +103,14 @@ void LocalFileDataProvider::Stop()
         _packetReadingThread.join();
     if (_sourceAddThread.joinable())
         _sourceAddThread.join();
+
+    // Close open sources
+    std::lock_guard lock(_m_sources);
+    for (int i = 0; i < _sources.size(); i++)
+    {
+        if (_sources[i].avfContext)
+            avformat_close_input(&_sources[i].avfContext);
+    }
 }
 
 bool LocalFileDataProvider::AddLocalMedia(std::string path, int streams)
@@ -460,7 +476,7 @@ void LocalFileDataProvider::_ReadPackets()
                         ninfo.borderColor = D2D1::ColorF(0.8f, 0.2f, 0.2f);
                         ninfo.duration = Duration(5, SECONDS);
                         ninfo.title = L"Failed to open media source";
-                        ninfo.text = L"The file '" + utf8_to_wstr(_sources[index].filename) + L"' could not be opened. The stream will contain no output";
+                        ninfo.text = L"The file '" + utf8_to_wstr(_sources[index].filename) + L"' could not be opened. The corresponding stream will contain no output";
                         App::Instance()->Overlay()->ShowNotification(ninfo);
                     }
                 }
@@ -512,7 +528,7 @@ void LocalFileDataProvider::_ReadPackets()
         // Read from active sources
         for (auto index : activeSourceIndices)
         {
-            AVPacket* packet;
+            AVPacket* packet = nullptr;
 
             // Read packet / Use held packet
             int result = 0;
@@ -583,12 +599,17 @@ void LocalFileDataProvider::_ReadPackets()
                         _AddSubtitlePacket(MediaPacket(packet));
                     }
                 }
+                else
+                {
+                    av_packet_free(&packet);
+                }
 
                 if (!_sources[index].heldPacket)
                     sleep = false;
             }
             else
             {
+                av_packet_free(&packet);
                 if (!eof)
                 {
                     eof = true;
