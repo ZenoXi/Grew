@@ -39,6 +39,9 @@
 *.tta;*.voc;*.vqf;*.w64;*.wav;\
 *.wma;*.wv;*.xa;*.xm"
 
+#define EXTENSIONS_SUBTITLES "\
+*.srt;*.ssa,*.ass,*.vtt,*.ttml"
+
 static const std::vector<std::pair<std::wstring, std::wstring>> SUPORTED_MEDIA_FILE_TYPES_WINAPI
 {
     { L"Media files", L"" EXTENSIONS_VIDEO ";" EXTENSIONS_AUDIO },
