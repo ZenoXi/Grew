@@ -49,6 +49,46 @@ void MediaFileProcessing::_ExtractStreams()
 
         AVStream* avstream = avfContext->streams[i];
 
+        switch (avstream->codecpar->codec_type)
+        {
+        case AVMEDIA_TYPE_VIDEO:
+        {
+            if (ignoreVideoStreams)
+                continue;
+            break;
+        }
+        case AVMEDIA_TYPE_AUDIO:
+        {
+            if (ignoreAudioStreams)
+                continue;
+            break;
+        }
+        case AVMEDIA_TYPE_SUBTITLE:
+        {
+            if (ignoreSubtitleStreams)
+                continue;
+            break;
+        }
+        case AVMEDIA_TYPE_ATTACHMENT:
+        {
+            if (ignoreAttachmentStreams)
+                continue;
+            break;
+        }
+        case AVMEDIA_TYPE_DATA:
+        {
+            if (ignoreDataStreams)
+                continue;
+            break;
+        }
+        case AVMEDIA_TYPE_UNKNOWN:
+        {
+            if (ignoreUnknownStreams)
+                continue;
+            break;
+        }
+        }
+
         MediaStream stream(avstream->codecpar);
         stream.index = i;
         stream.packetCount = avstream->nb_frames;
@@ -121,6 +161,8 @@ void MediaFileProcessing::_FindMissingStreamData()
     {
         if (_cancelTask)
             break;
+        if (ignoreVideoStreams)
+            break;
 
         // A copy of metadata is necessary because it will be modified
         std::vector<MediaMetadataPair> metadata = stream.metadata;
@@ -158,6 +200,8 @@ void MediaFileProcessing::_FindMissingStreamData()
     {
         if (_cancelTask)
             break;
+        if (ignoreAudioStreams)
+            break;
 
         // A copy of metadata is necessary because it will be modified
         std::vector<MediaMetadataPair> metadata = stream.metadata;
@@ -194,6 +238,8 @@ void MediaFileProcessing::_FindMissingStreamData()
     for (auto& stream : subtitleStreams)
     {
         if (_cancelTask)
+            break;
+        if (ignoreSubtitleStreams)
             break;
 
         // A copy of metadata is necessary because it will be modified
@@ -422,16 +468,22 @@ void MediaFileProcessing::_CalculateMissingStreamData(bool full)
 
     for (int i = 0; i < videoStreams.size(); i++)
     {
+        if (ignoreVideoStreams)
+            break;
         VideoStreamDecoder* decoder = new VideoStreamDecoder(&videoStreams[i]);
         streamDecoders[decoder->mediaStream->index] = std::unique_ptr<StreamDecoder>(decoder);
     }
     for (int i = 0; i < audioStreams.size(); i++)
     {
+        if (ignoreAudioStreams)
+            break;
         AudioStreamDecoder* decoder = new AudioStreamDecoder(&audioStreams[i]);
         streamDecoders[decoder->mediaStream->index] = std::unique_ptr<StreamDecoder>(decoder);
     }
     for (int i = 0; i < subtitleStreams.size(); i++)
     {
+        if (ignoreSubtitleStreams)
+            break;
         SubtitleStreamDecoder* decoder = new SubtitleStreamDecoder(&subtitleStreams[i]);
         streamDecoders[decoder->mediaStream->index] = std::unique_ptr<StreamDecoder>(decoder);
     }
@@ -478,7 +530,7 @@ void MediaFileProcessing::_CalculateMissingStreamData(bool full)
                 }
             }
         }
-        if (done) break; // UNCOMMENT ///////////////////////////////////////////////////////////////////////
+        if (done) break;
 
         int index = packet->stream_index;
         if (!streamDecoders[index]) continue;
@@ -486,7 +538,7 @@ void MediaFileProcessing::_CalculateMissingStreamData(bool full)
         streamDecoders[index]->ExtractInfoFromPacket(packet);
 
         // Only decode until necessary data is extracted
-        if (streamDecoders[index]->frameDataGathered) continue; // UNCOMMENT /////////////////////////////////
+        if (streamDecoders[index]->frameDataGathered) continue;
 
         int response = avcodec_send_packet(streamDecoders[index]->codecContext, packet);
         if (response < 0)

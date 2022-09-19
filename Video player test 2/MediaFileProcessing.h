@@ -20,6 +20,12 @@ struct MediaFileProcessing
     std::vector<MediaStream> attachmentStreams;
     std::vector<MediaStream> dataStreams;
     std::vector<MediaStream> unknownStreams;
+    bool ignoreVideoStreams = false;
+    bool ignoreAudioStreams = false;
+    bool ignoreSubtitleStreams = false;
+    bool ignoreAttachmentStreams = false;
+    bool ignoreDataStreams = false;
+    bool ignoreUnknownStreams = false;
 
     MediaFileProcessing(AVFormatContext* avfc) : avfContext(avfc) {}
     ~MediaFileProcessing() { if (_taskThread.joinable()) _taskThread.join(); }
