@@ -40,8 +40,10 @@ protected:
     void Uninit();
     void Focus();
     void Unfocus();
+public:
     bool Focused() const;
 
+protected:
     void Update();
     bool Redraw();
     ID2D1Bitmap* Draw(Graphics g);
