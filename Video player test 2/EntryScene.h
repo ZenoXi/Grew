@@ -4,6 +4,7 @@
 
 #include "ComponentBase.h"
 #include "Panel.h"
+#include "EmptyPanel.h"
 #include "Button.h"
 #include "TextInput.h"
 #include "Label.h"
@@ -18,11 +19,33 @@ struct EntrySceneOptions : public SceneOptionsBase
 
 class EntryScene : public Scene
 {
-    // Main selection
+    // 
     std::unique_ptr<zcom::Panel> _mainPanel = nullptr;
+    std::unique_ptr<zcom::Image> _logoImage = nullptr;
+    std::unique_ptr<zcom::Label> _titleLabel = nullptr;
+    std::unique_ptr<zcom::Button> _skipHomePageButton = nullptr;
+
     std::unique_ptr<zcom::Button> _connectButton = nullptr;
     std::unique_ptr<zcom::Button> _shareButton = nullptr;
     std::unique_ptr<zcom::Button> _fileButton = nullptr;
+    std::unique_ptr<zcom::Button> _playlistButton = nullptr;
+    std::unique_ptr<zcom::EmptyPanel> _connectMarker = nullptr;
+    std::unique_ptr<zcom::EmptyPanel> _shareMarker = nullptr;
+    std::unique_ptr<zcom::EmptyPanel> _fileMarker = nullptr;
+    std::unique_ptr<zcom::EmptyPanel> _playlistMarker = nullptr;
+
+    std::unique_ptr<zcom::Panel> _sidePanel = nullptr;
+    std::unique_ptr<zcom::Label> _creditsLabel = nullptr;
+
+    std::unique_ptr<zcom::Label> _connectInfoLabel = nullptr;
+    std::unique_ptr<zcom::Label> _shareInfoLabel = nullptr;
+    std::unique_ptr<zcom::Label> _fileInfoLabel = nullptr;
+    std::unique_ptr<zcom::Label> _playlistInfoLabel = nullptr;
+    
+    
+
+    // Main selection
+    std::unique_ptr<zcom::Panel> _mainPanelOld = nullptr;
     std::unique_ptr<zcom::Label> _connectLabel = nullptr;
     std::unique_ptr<zcom::Label> _shareLabel = nullptr;
     std::unique_ptr<zcom::Label> _fileLabel = nullptr;
@@ -53,4 +76,5 @@ private:
     void OnConnectSelected();
     void OnShareSelected();
     void OnFileSelected();
+    void OnPlaylistSelected();
 };

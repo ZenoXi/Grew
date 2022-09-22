@@ -3,6 +3,7 @@
 
 #include "ResourceManager.h"
 #include "Options.h"
+#include "OptionNames.h"
 #include "LastIpOptionAdapter.h"
 #include "Functions.h"
 #include "ConnectScene.h"
@@ -24,120 +25,314 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         opt = *reinterpret_cast<const EntrySceneOptions*>(options);
     }
 
-    zcom::PROP_Shadow shadowProps;
-    shadowProps.blurStandardDeviation = 5.0f;
-    shadowProps.color = D2D1::ColorF(0, 0.75f);
+    zcom::PROP_Shadow mainPanelShadowProps;
+    mainPanelShadowProps.blurStandardDeviation = 5.0f;
+    mainPanelShadowProps.color = D2D1::ColorF(0, 0.75f);
+
+    _mainPanel = Create<zcom::Panel>();
+    _mainPanel->SetParentHeightPercent(1.0f);
+    _mainPanel->SetBaseWidth(500);
+    _mainPanel->SetBackgroundColor(D2D1::ColorF(0.15f, 0.15f, 0.15f));
+    _mainPanel->SetProperty(mainPanelShadowProps);
+
+    zcom::PROP_Shadow titleShadowProps;
+    titleShadowProps.blurStandardDeviation = 2.0f;
+    titleShadowProps.color = D2D1::ColorF(0);
+    titleShadowProps.offsetX = 2.0f;
+    titleShadowProps.offsetY = 2.0f;
+
+    _logoImage = Create<zcom::Image>(ResourceManager::GetImage("grew_logo_full_2192x756"));
+    _logoImage->SetBaseSize(300, 100);
+    _logoImage->SetOffsetPixels(100, 50);
+    _logoImage->SetPlacement(zcom::ImagePlacement::FIT);
+    _logoImage->SetProperty(titleShadowProps);
+
+    _titleLabel = Create<zcom::Label>(L"The best way to share and watch media with friends across the globe");
+    _titleLabel->SetBaseSize(300, 60);
+    _titleLabel->SetOffsetPixels(100, 150);
+    _titleLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+    _titleLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+    _titleLabel->SetFontSize(16.0f);
+    _titleLabel->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
+    _titleLabel->SetWordWrap(true);
+    _titleLabel->SetProperty(titleShadowProps);
+
+    _skipHomePageButton = Create<zcom::Button>(L"Skip this page, and don't show it again");
+    _skipHomePageButton->SetBaseSize(300, 25);
+    _skipHomePageButton->SetAlignment(zcom::Alignment::CENTER, zcom::Alignment::END);
+    _skipHomePageButton->SetVerticalOffsetPixels(-20);
+    _skipHomePageButton->Text()->SetFontColor(D2D1::ColorF(D2D1::ColorF::DodgerBlue));
+    _skipHomePageButton->Text()->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
+    _skipHomePageButton->SetHoverText(L"Start the application directly in the playlist\nThis can be changed at any time in the settings");
+    _skipHomePageButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
+    _skipHomePageButton->SetActivation(zcom::ButtonActivation::PRESS);
+    _skipHomePageButton->SetOnActivated([&]()
+    {
+        // Set option
+        Options::Instance()->SetValue(OPTIONS_START_IN_PLAYLIST, L"true");
+
+        // Close scene
+        App::Instance()->UninitScene(GetName());
+        App::Instance()->MoveSceneToFront(PlaybackScene::StaticName());
+    });
+    _skipHomePageButton->AddOnMouseEnter([&](zcom::Base*)
+    {
+        _skipHomePageButton->Text()->SetUnderline({ 0, (UINT32)_skipHomePageButton->Text()->GetText().length() });
+    });
+    _skipHomePageButton->AddOnMouseLeave([&](zcom::Base*)
+    {
+        _skipHomePageButton->Text()->SetUnderline({ 0, 0 });
+    });
+
 
     // Main selection
-    _mainPanel = Create<zcom::Panel>();
-    _mainPanel->SetHorizontalOffsetPercent(0.5f);
-    _mainPanel->SetVerticalOffsetPercent(0.5f);
-    _mainPanel->SetBaseWidth(380);
-    _mainPanel->SetBaseHeight(180);
-    _mainPanel->SetBackgroundColor(D2D1::ColorF(0.2f, 0.2f, 0.2f, 1.0f));
-    _mainPanel->Scrollable(zcom::Scrollbar::VERTICAL, true);
-    _mainPanel->Scrollable(zcom::Scrollbar::HORIZONTAL, true);
-    _mainPanel->SetCornerRounding(5.0f);
-    _mainPanel->SetProperty(shadowProps);
+    //_mainPanelOld = Create<zcom::Panel>();
+    //_mainPanelOld->SetHorizontalOffsetPercent(0.5f);
+    //_mainPanelOld->SetVerticalOffsetPercent(0.5f);
+    //_mainPanelOld->SetBaseWidth(380);
+    //_mainPanelOld->SetBaseHeight(180);
+    //_mainPanelOld->SetBackgroundColor(D2D1::ColorF(0.2f, 0.2f, 0.2f, 1.0f));
+    //_mainPanelOld->Scrollable(zcom::Scrollbar::VERTICAL, true);
+    //_mainPanelOld->Scrollable(zcom::Scrollbar::HORIZONTAL, true);
+    //_mainPanelOld->SetCornerRounding(5.0f);
+    //_mainPanelOld->SetProperty(mainPanelShadowProps);
 
-    _connectButton = Create<zcom::Button>();
-    _connectButton->SetHorizontalOffsetPixels(20);
-    _connectButton->SetVerticalOffsetPixels(20);
-    _connectButton->SetBaseWidth(100);
-    _connectButton->SetBaseHeight(100);
-    _connectButton->SetButtonImageAll(ResourceManager::GetImage("connect_256x256"));
+    auto connectImage = ResourceManager::GetImage("connect_40x40");
+    auto shareImage = ResourceManager::GetImage("share_40x40");
+    //auto shareImage = ResourceManager::GetImage("close_100x100");
+    auto fileImage = ResourceManager::GetImage("file_40x40");
+    auto playlistImage = ResourceManager::GetImage("playlist_40x40");
+
+    _connectButton = Create<zcom::Button>(L"Connect to server");
+    _connectButton->SetBaseSize(300, 40);
+    _connectButton->SetOffsetPixels(100, 250);
+    _connectButton->SetButtonImageAll(connectImage);
     _connectButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::FILL);
+    _connectButton->ButtonImage()->SetTargetRect({ 5.0f, 0.0f, 45.0f, 40.0f });
     _connectButton->UseImageParamsForAll(_connectButton->ButtonImage());
     _connectButton->ButtonImage()->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
-    _connectButton->SetButtonHoverColor(D2D1::ColorF(0, 0.0f));
+    _connectButton->SetButtonHoverColor(D2D1::ColorF(0, 0.25f));
+    _connectButton->SetButtonClickColor(D2D1::ColorF(0, 0.5f));
+    _connectButton->Text()->SetFontSize(20.0f);
+    _connectButton->Text()->SetMargins({ 50.0f });
+    _connectButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
     _connectButton->SetOnActivated([&]() { OnConnectSelected(); });
+    _connectButton->AddOnMouseEnter([&](zcom::Base*)
+    {
+        _connectMarker->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::DodgerBlue));
+        _connectInfoLabel->SetVisible(true);
+    });
+    _connectButton->AddOnMouseLeave([&](zcom::Base*)
+    {
+        _connectMarker->SetBackgroundColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+        _connectInfoLabel->SetVisible(false);
+    });
     _connectButton->SetTabIndex(0);
 
-    _connectLabel = Create<zcom::Label>(L"Connect");
-    _connectLabel->SetHorizontalOffsetPixels(20);
-    _connectLabel->SetVerticalOffsetPixels(120);
-    _connectLabel->SetBaseWidth(100);
-    _connectLabel->SetBaseHeight(30);
-    _connectLabel->SetFontSize(24.0f);
-    _connectLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
-    _connectLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
-    _connectLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
+    _connectMarker = Create<zcom::EmptyPanel>();
+    _connectMarker->SetBaseSize(3, 40);
+    _connectMarker->SetOffsetPixels(97, 250);
+    _connectMarker->SetBackgroundColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
 
-    _shareButton = Create<zcom::Button>();
-    _shareButton->SetHorizontalOffsetPixels(140);
-    _shareButton->SetVerticalOffsetPixels(20);
-    _shareButton->SetBaseWidth(100);
-    _shareButton->SetBaseHeight(100);
-    _shareButton->SetButtonImageAll(ResourceManager::GetImage("share_256x256"));
+    _shareButton = Create<zcom::Button>(L"Create server");
+    _shareButton->SetBaseSize(300, 40);
+    _shareButton->SetOffsetPixels(100, 300);
+    _shareButton->SetButtonImageAll(shareImage);
     _shareButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::FILL);
+    _shareButton->ButtonImage()->SetTargetRect({ 5.0f, 0.0f, 45.0f, 40.0f });
     _shareButton->UseImageParamsForAll(_shareButton->ButtonImage());
     _shareButton->ButtonImage()->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
-    _shareButton->SetButtonHoverColor(D2D1::ColorF(0, 0.0f));
+    _shareButton->SetButtonHoverColor(D2D1::ColorF(0, 0.25f));
+    _shareButton->SetButtonClickColor(D2D1::ColorF(0, 0.5f));
+    _shareButton->Text()->SetFontSize(20.0f);
+    _shareButton->Text()->SetMargins({ 50.0f });
+    _shareButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
     _shareButton->SetOnActivated([&]() { OnShareSelected(); });
-    _shareButton->SetTabIndex(1);
+    _shareButton->AddOnMouseEnter([&](zcom::Base*)
+    {
+        _shareMarker->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::DodgerBlue));
+        _shareInfoLabel->SetVisible(true);
+    });
+    _shareButton->AddOnMouseLeave([&](zcom::Base*)
+    {
+        _shareMarker->SetBackgroundColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+        _shareInfoLabel->SetVisible(false);
+    });
+    _shareButton->SetTabIndex(0);
 
-    _shareLabel = Create<zcom::Label>(L"Share");
-    _shareLabel->SetHorizontalOffsetPixels(140);
-    _shareLabel->SetVerticalOffsetPixels(120);
-    _shareLabel->SetBaseWidth(100);
-    _shareLabel->SetBaseHeight(30);
-    _shareLabel->SetFontSize(24.0f);
-    _shareLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
-    _shareLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
-    _shareLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
+    _shareMarker = Create<zcom::EmptyPanel>();
+    _shareMarker->SetBaseSize(3, 40);
+    _shareMarker->SetOffsetPixels(97, 300);
+    _shareMarker->SetBackgroundColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
 
-    _fileButton = Create<zcom::Button>();
-    _fileButton->SetHorizontalOffsetPixels(260);
-    _fileButton->SetVerticalOffsetPixels(20);
-    _fileButton->SetBaseWidth(100);
-    _fileButton->SetBaseHeight(100);
-    _fileButton->SetButtonImageAll(ResourceManager::GetImage("file_256x256"));
+    _fileButton = Create<zcom::Button>(L"Open file");
+    _fileButton->SetBaseSize(300, 40);
+    _fileButton->SetOffsetPixels(100, 350);
+    _fileButton->SetButtonImageAll(fileImage);
     _fileButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::FILL);
+    _fileButton->ButtonImage()->SetTargetRect({ 5.0f, 0.0f, 45.0f, 40.0f });
     _fileButton->UseImageParamsForAll(_fileButton->ButtonImage());
     _fileButton->ButtonImage()->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
-    _fileButton->SetButtonHoverColor(D2D1::ColorF(0, 0.0f));
+    _fileButton->SetButtonHoverColor(D2D1::ColorF(0, 0.25f));
+    _fileButton->SetButtonClickColor(D2D1::ColorF(0, 0.5f));
+    _fileButton->Text()->SetFontSize(20.0f);
+    _fileButton->Text()->SetMargins({ 50.0f });
+    _fileButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
     _fileButton->SetOnActivated([&]() { OnFileSelected(); });
-    _fileButton->SetTabIndex(2);
+    _fileButton->AddOnMouseEnter([&](zcom::Base*)
+    {
+        _fileMarker->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::DodgerBlue));
+        _fileInfoLabel->SetVisible(true);
+    });
+    _fileButton->AddOnMouseLeave([&](zcom::Base*)
+    {
+        _fileMarker->SetBackgroundColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+        _fileInfoLabel->SetVisible(false);
+    });
+    _fileButton->SetTabIndex(0);
 
-    _fileLabel = Create<zcom::Label>(L"Offline");
-    _fileLabel->SetHorizontalOffsetPixels(260);
-    _fileLabel->SetVerticalOffsetPixels(120);
-    _fileLabel->SetBaseWidth(100);
-    _fileLabel->SetBaseHeight(30);
-    _fileLabel->SetFontSize(24.0f);
-    _fileLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
-    _fileLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
-    _fileLabel->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD);
+    _fileMarker = Create<zcom::EmptyPanel>();
+    _fileMarker->SetBaseSize(3, 40);
+    _fileMarker->SetOffsetPixels(97, 350);
+    _fileMarker->SetBackgroundColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
 
-    _testButton = Create<zcom::Button>(L"Hi");
-    _testButton->SetOffsetPixels(1000, 300);
-    _testButton->SetBaseSize(100, 25);
-    _testButton->SetBorderVisibility(true);
+    _playlistButton = Create<zcom::Button>(L"Go to playlist");
+    _playlistButton->SetBaseSize(300, 40);
+    _playlistButton->SetOffsetPixels(100, 400);
+    _playlistButton->SetButtonImageAll(playlistImage);
+    _playlistButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::FILL);
+    _playlistButton->ButtonImage()->SetTargetRect({ 5.0f, 0.0f, 45.0f, 40.0f });
+    _playlistButton->UseImageParamsForAll(_playlistButton->ButtonImage());
+    _playlistButton->ButtonImage()->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
+    _playlistButton->SetButtonHoverColor(D2D1::ColorF(0, 0.25f));
+    _playlistButton->SetButtonClickColor(D2D1::ColorF(0, 0.5f));
+    _playlistButton->Text()->SetFontSize(20.0f);
+    _playlistButton->Text()->SetMargins({ 50.0f });
+    _playlistButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
+    _playlistButton->SetOnActivated([&]() { OnPlaylistSelected(); });
+    _playlistButton->AddOnMouseEnter([&](zcom::Base*)
+    {
+        _playlistMarker->SetBackgroundColor(D2D1::ColorF(D2D1::ColorF::DodgerBlue));
+        _playlistInfoLabel->SetVisible(true);
+    });
+    _playlistButton->AddOnMouseLeave([&](zcom::Base*)
+    {
+        _playlistMarker->SetBackgroundColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+        _playlistInfoLabel->SetVisible(false);
+    });
+    _playlistButton->SetTabIndex(0);
 
+    _playlistMarker = Create<zcom::EmptyPanel>();
+    _playlistMarker->SetBaseSize(3, 40);
+    _playlistMarker->SetOffsetPixels(97, 400);
+    _playlistMarker->SetBackgroundColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+
+    _mainPanel->AddItem(_logoImage.get());
+    _mainPanel->AddItem(_titleLabel.get());
+    _mainPanel->AddItem(_skipHomePageButton.get());
     _mainPanel->AddItem(_connectButton.get());
-    _mainPanel->AddItem(_connectLabel.get());
     _mainPanel->AddItem(_shareButton.get());
-    _mainPanel->AddItem(_shareLabel.get());
+    _mainPanel->AddItem(_playlistButton.get());
     _mainPanel->AddItem(_fileButton.get());
-    _mainPanel->AddItem(_fileLabel.get());
-    _mainPanel->AddItem(_testButton.get());
+    _mainPanel->AddItem(_connectMarker.get());
+    _mainPanel->AddItem(_shareMarker.get());
+    _mainPanel->AddItem(_fileMarker.get());
+    _mainPanel->AddItem(_playlistMarker.get());
+
+    // Side panel
+
+    _sidePanel = Create<zcom::Panel>();
+    _sidePanel->SetParentSizePercent(1.0f, 1.0f);
+    _sidePanel->SetBaseWidth(-500);
+    _sidePanel->SetHorizontalAlignment(zcom::Alignment::END);
+
+    _creditsLabel = Create<zcom::Label>(L"v0.0.0 \x00A9 Zenox");
+    _creditsLabel->SetBaseSize(200, 30);
+    _creditsLabel->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
+    _creditsLabel->SetHorizontalTextAlignment(zcom::TextAlignment::TRAILING);
+    _creditsLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+    _creditsLabel->SetMargins({ 0.0f, 0.0f, 10.0f });
+    _creditsLabel->SetFontColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
+
+    _connectInfoLabel = Create<zcom::Label>(L"Connect to an existing server on the internet or the local network");
+    _connectInfoLabel->SetBaseSize(300, 300);
+    _connectInfoLabel->SetAlignment(zcom::Alignment::CENTER, zcom::Alignment::CENTER);
+    _connectInfoLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+    _connectInfoLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+    _connectInfoLabel->SetFontSize(16.0f);
+    _connectInfoLabel->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
+    _connectInfoLabel->SetWordWrap(true);
+    _connectInfoLabel->SetVisible(false);
+
+    _shareInfoLabel = Create<zcom::Label>(L"Create a server that others can connect to\n\n"
+        "If you want users across the internet to be able to connect, you might need port forwarding");
+    _shareInfoLabel->SetBaseSize(300, 300);
+    _shareInfoLabel->SetAlignment(zcom::Alignment::CENTER, zcom::Alignment::CENTER);
+    _shareInfoLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+    _shareInfoLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+    _shareInfoLabel->SetFontSize(16.0f);
+    _shareInfoLabel->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
+    _shareInfoLabel->SetWordWrap(true);
+    _shareInfoLabel->SetVisible(false);
+
+    _fileInfoLabel = Create<zcom::Label>(L"Open local file or files for playback");
+    _fileInfoLabel->SetBaseSize(300, 300);
+    _fileInfoLabel->SetAlignment(zcom::Alignment::CENTER, zcom::Alignment::CENTER);
+    _fileInfoLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+    _fileInfoLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+    _fileInfoLabel->SetFontSize(16.0f);
+    _fileInfoLabel->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
+    _fileInfoLabel->SetWordWrap(true);
+    _fileInfoLabel->SetVisible(false);
+
+    _playlistInfoLabel = Create<zcom::Label>(L"Close this page and go to the playlist");
+    _playlistInfoLabel->SetBaseSize(300, 300);
+    _playlistInfoLabel->SetAlignment(zcom::Alignment::CENTER, zcom::Alignment::CENTER);
+    _playlistInfoLabel->SetHorizontalTextAlignment(zcom::TextAlignment::CENTER);
+    _playlistInfoLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+    _playlistInfoLabel->SetFontSize(16.0f);
+    _playlistInfoLabel->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
+    _playlistInfoLabel->SetWordWrap(true);
+    _playlistInfoLabel->SetVisible(false);
+
+    _sidePanel->AddItem(_creditsLabel.get());
+    _sidePanel->AddItem(_connectInfoLabel.get());
+    _sidePanel->AddItem(_shareInfoLabel.get());
+    _sidePanel->AddItem(_fileInfoLabel.get());
+    _sidePanel->AddItem(_playlistInfoLabel.get());
 
     _canvas->AddComponent(_mainPanel.get());
+    _canvas->AddComponent(_sidePanel.get());
     _canvas->SetBackgroundColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
 }
 
 void EntryScene::_Uninit()
 {
     _canvas->ClearComponents();
+    _mainPanel->ClearItems();
+    _sidePanel->ClearItems();
 
     _mainPanel = nullptr;
+    _logoImage = nullptr;
+    _titleLabel = nullptr;
+    _skipHomePageButton = nullptr;
+
     _connectButton = nullptr;
     _shareButton = nullptr;
     _fileButton = nullptr;
-    _connectLabel = nullptr;
-    _shareLabel = nullptr;
-    _fileLabel = nullptr;
-    _testButton = nullptr;
+    _playlistButton = nullptr;
+    _connectMarker = nullptr;
+    _shareMarker = nullptr;
+    _fileMarker = nullptr;
+    _playlistMarker = nullptr;
+
+    _sidePanel = nullptr;
+    _creditsLabel = nullptr;
+
+    _connectInfoLabel = nullptr;
+    _shareInfoLabel = nullptr;
+    _fileInfoLabel = nullptr;
+    _playlistInfoLabel = nullptr;
 }
 
 void EntryScene::_Focus()
@@ -272,4 +467,10 @@ void EntryScene::OnFileSelected()
         _fileDialog.Open(opt);
         _fileLoading = true;
     }
+}
+
+void EntryScene::OnPlaylistSelected()
+{
+    App::Instance()->UninitScene(GetName());
+    App::Instance()->MoveSceneToFront(PlaybackScene::StaticName());
 }
