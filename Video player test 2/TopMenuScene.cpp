@@ -3,6 +3,7 @@
 
 #include "OverlayScene.h"
 #include "SettingsScene.h"
+#include "EntryScene.h"
 
 TopMenuScene::TopMenuScene(App* app)
     : Scene(app)
@@ -25,14 +26,13 @@ void TopMenuScene::_Init(const SceneOptionsBase* options)
     offset += _homeButton->GetBaseWidth();
     _homeButton->SetOnActivated([&]()
     {
-        _app->Overlay()->ShowMenu(_menuPanel.get(), { _homeButton->GetHorizontalOffsetPixels() + 3, 0, _homeButton->GetHorizontalOffsetPixels() + 3, 0 });
+        _app->InitScene(EntryScene::StaticName(), nullptr);
+        _app->MoveSceneToFront(EntryScene::StaticName());
     });
     _homeButton->SetOnHovered([&]()
     {
         if (_app->Overlay()->MenuOpened())
-        {
-            _app->Overlay()->ShowMenu(_menuPanel.get(), { _homeButton->GetHorizontalOffsetPixels() + 3, 0, _homeButton->GetHorizontalOffsetPixels() + 3, 0 });
-        }
+            _app->Overlay()->ShowMenu(nullptr, RECT{});
     });
 
     _settingsButton = Create<zcom::TopMenuButton>(L"Settings");
@@ -47,9 +47,7 @@ void TopMenuScene::_Init(const SceneOptionsBase* options)
     _settingsButton->SetOnHovered([&]()
     {
         if (_app->Overlay()->MenuOpened())
-        {
             _app->Overlay()->ShowMenu(nullptr, RECT{});
-        }
     });
 
     _toolsButton = Create<zcom::TopMenuButton>(L"Tools");
