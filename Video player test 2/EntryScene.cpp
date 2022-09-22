@@ -83,6 +83,9 @@ void EntryScene::_Init(const SceneOptionsBase* options)
     {
         _skipHomePageButton->Text()->SetUnderline({ 0, 0 });
     });
+    // If skip home page option is already set, don't show the prompt
+    if (Options::Instance()->GetValue(OPTIONS_START_IN_PLAYLIST) == L"true")
+        _skipHomePageButton->SetVisible(false);
 
 
     // Main selection
