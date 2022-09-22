@@ -195,7 +195,11 @@ void zcom::PlaybackController::Init()
     _overlayButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _overlayButton->SetOnActivated([&]()
     {
-        _scene->GetApp()->MoveSceneToFront(PlaybackOverlayScene::StaticName());
+        Scene* scene = _scene->GetApp()->FindActiveScene(PlaybackOverlayScene::StaticName());
+        if (!scene->Focused())
+            _scene->GetApp()->MoveSceneToFront(PlaybackOverlayScene::StaticName());
+        else
+            _scene->GetApp()->MoveSceneToBack(PlaybackOverlayScene::StaticName());
     });
 
     _settingsButton = Create<zcom::Button>(L"");
@@ -384,9 +388,28 @@ void zcom::PlaybackController::_OnUpdate()
         _seekBar->SetBufferedDuration(-1);
         _seekBar->SetCurrentTime(0);
         _seekBar->SetChapters({});
+
+        // Set play button state
+        _playButton->Clicked();
+        _playButton->SetPaused(true);
+    }
+
+    if (!_playback->Controller())
+    {
+        // Use play button to start playback while no playback is in progress
+        if (_playButton->Clicked() && !_playButton->GetPaused())
+        {
+            if (_scene->GetApp()->playlist.CurrentlyStarting() == -1)
+            {
+                auto readyItems = _scene->GetApp()->playlist.ReadyItems();
+                if (!readyItems.empty())
+                    _scene->GetApp()->playlist.Request_PlayItem(readyItems[0]->GetItemId());
+            }
+        }
     }
 
     _UpdateFullscreenButton();
+    _UpdateButtonAppearances();
 
     Panel::_OnUpdate();
 }
@@ -416,6 +439,59 @@ void zcom::PlaybackController::_UpdateFullscreenButton(bool force)
         else
             _fullscreenButton->SetButtonImageAll(ResourceManager::GetImage("fullscreen_on_22x22"));
     }
+}
+
+void zcom::PlaybackController::_UpdateButtonAppearances()
+{
+    // Play button
+    bool playButtonActive = true;
+    if (!_playback->Controller())
+    {
+        // Gray out if user has no permission to start playback
+        const User* thisUser = _scene->GetApp()->users.GetThisUser();
+        if (thisUser && !thisUser->GetPermission(PERMISSION_START_STOP_PLAYBACK))
+            playButtonActive = false;
+
+        // Gray out if there are no ready items in playlist
+        auto readyItems = _scene->GetApp()->playlist.ReadyItems();
+        if (readyItems.empty())
+            playButtonActive = false;
+
+        // Gray out if playback is starting
+        if (_scene->GetApp()->playlist.CurrentlyStarting() != -1)
+            playButtonActive = false;
+    }
+    else
+    {
+        // Gray out if user has no permission to play/pause
+        const User* thisUser = _scene->GetApp()->users.GetThisUser();
+        if (thisUser && !thisUser->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
+            playButtonActive = false;
+    }
+    _playButton->SetActive(playButtonActive);
+
+    // Play next/previous buttons
+    bool playNextPrevActive = true;
+    if (_playback->Initializing())
+    {
+        // Gray out if no playback is currently in progress
+        playNextPrevActive = false;
+    }
+    else
+    {
+        // Gray out if user has no permission to start playback
+        const User* thisUser = _scene->GetApp()->users.GetThisUser();
+        if (thisUser && !thisUser->GetPermission(PERMISSION_START_STOP_PLAYBACK))
+            playNextPrevActive = false;
+    }
+    _playNextButton->SetActive(playNextPrevActive);
+    _playPreviousButton->SetActive(playNextPrevActive);
+
+    // Playlist button
+    if (_scene->GetApp()->FindActiveScene(PlaybackScene::StaticName()))
+        _overlayButton->SetActive(true);
+    else
+        _overlayButton->SetActive(false);
 }
 
 void zcom::PlaybackController::_UpdatePermissions()

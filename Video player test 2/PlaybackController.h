@@ -82,6 +82,7 @@ namespace zcom
 
         bool _inFullscreen = false;
         void _UpdateFullscreenButton(bool force = false);
+        void _UpdateButtonAppearances();
 
         void _UpdatePermissions();
         void _SetupStreamMenu();
