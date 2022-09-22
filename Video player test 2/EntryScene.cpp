@@ -87,22 +87,8 @@ void EntryScene::_Init(const SceneOptionsBase* options)
     if (Options::Instance()->GetValue(OPTIONS_START_IN_PLAYLIST) == L"true")
         _skipHomePageButton->SetVisible(false);
 
-
-    // Main selection
-    //_mainPanelOld = Create<zcom::Panel>();
-    //_mainPanelOld->SetHorizontalOffsetPercent(0.5f);
-    //_mainPanelOld->SetVerticalOffsetPercent(0.5f);
-    //_mainPanelOld->SetBaseWidth(380);
-    //_mainPanelOld->SetBaseHeight(180);
-    //_mainPanelOld->SetBackgroundColor(D2D1::ColorF(0.2f, 0.2f, 0.2f, 1.0f));
-    //_mainPanelOld->Scrollable(zcom::Scrollbar::VERTICAL, true);
-    //_mainPanelOld->Scrollable(zcom::Scrollbar::HORIZONTAL, true);
-    //_mainPanelOld->SetCornerRounding(5.0f);
-    //_mainPanelOld->SetProperty(mainPanelShadowProps);
-
     auto connectImage = ResourceManager::GetImage("connect_40x40");
     auto shareImage = ResourceManager::GetImage("share_40x40");
-    //auto shareImage = ResourceManager::GetImage("close_100x100");
     auto fileImage = ResourceManager::GetImage("file_40x40");
     auto playlistImage = ResourceManager::GetImage("playlist_40x40");
 

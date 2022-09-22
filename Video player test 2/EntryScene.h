@@ -19,7 +19,6 @@ struct EntrySceneOptions : public SceneOptionsBase
 
 class EntryScene : public Scene
 {
-    // 
     std::unique_ptr<zcom::Panel> _mainPanel = nullptr;
     std::unique_ptr<zcom::Image> _logoImage = nullptr;
     std::unique_ptr<zcom::Label> _titleLabel = nullptr;
@@ -42,15 +41,6 @@ class EntryScene : public Scene
     std::unique_ptr<zcom::Label> _fileInfoLabel = nullptr;
     std::unique_ptr<zcom::Label> _playlistInfoLabel = nullptr;
     
-    
-
-    // Main selection
-    std::unique_ptr<zcom::Panel> _mainPanelOld = nullptr;
-    std::unique_ptr<zcom::Label> _connectLabel = nullptr;
-    std::unique_ptr<zcom::Label> _shareLabel = nullptr;
-    std::unique_ptr<zcom::Label> _fileLabel = nullptr;
-    std::unique_ptr<zcom::Button> _testButton = nullptr;
-
     bool _connectPanelOpen = false;
     bool _startServerPanelOpen = false;
 
