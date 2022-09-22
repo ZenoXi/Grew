@@ -193,7 +193,7 @@ void OverlayScene::ShowHoverText(std::wstring text, int x, int y, int maxWidth)
         xPos = _canvas->GetWidth() - 10 - labelWidth;
     int yPos = y + 20;
     int topSize = y - 20;
-    int botSize = _canvas->GetWidth() - y - 30;
+    int botSize = _canvas->GetHeight() - y - 30;
     if (labelHeight > botSize)
     {
         if (labelHeight <= topSize)
@@ -202,7 +202,7 @@ void OverlayScene::ShowHoverText(std::wstring text, int x, int y, int maxWidth)
         }
         else
         {
-            yPos = _canvas->GetWidth() - 10 - labelHeight;
+            yPos = _canvas->GetHeight() - 10 - labelHeight;
         }
     }
     _hoverTextLabel->SetOffsetPixels(xPos, yPos);
