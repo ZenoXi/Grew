@@ -241,13 +241,15 @@ void zcom::PlaybackController::Init()
 
     _streamMenuPanel->SetBaseWidth(150);
     _streamMenuPanel->SetZIndex(255);
-    _streamMenuPanel->AddItem(Create<zcom::MenuItem>(_videoStreamMenuPanel.get(), L"Video tracks"));
-    _streamMenuPanel->AddItem(Create<zcom::MenuItem>(_audioStreamMenuPanel.get(), L"Audio tracks"));
-    _streamMenuPanel->AddItem(Create<zcom::MenuItem>(_subtitleStreamMenuPanel.get(), L"Subtitle tracks"));
-
-    _videoStreamMenuPanel->AddItem(Create<zcom::MenuItem>(L"None"));
-    _audioStreamMenuPanel->AddItem(Create<zcom::MenuItem>(L"None"));
-    _subtitleStreamMenuPanel->AddItem(Create<zcom::MenuItem>(L"None"));
+    auto videoStreamMenuItem = Create<zcom::MenuItem>(_videoStreamMenuPanel.get(), L"Video tracks");
+    auto audioStreamMenuItem = Create<zcom::MenuItem>(_audioStreamMenuPanel.get(), L"Audio tracks");
+    auto subtitleStreamMenuItem = Create<zcom::MenuItem>(_subtitleStreamMenuPanel.get(), L"Subtitle tracks");
+    videoStreamMenuItem->SetDisabled(true);
+    audioStreamMenuItem->SetDisabled(true);
+    subtitleStreamMenuItem->SetDisabled(true);
+    _streamMenuPanel->AddItem(std::move(videoStreamMenuItem));
+    _streamMenuPanel->AddItem(std::move(audioStreamMenuItem));
+    _streamMenuPanel->AddItem(std::move(subtitleStreamMenuItem));
 
     _fullscreenButton = Create<zcom::Button>(L"");
     _fullscreenButton->SetBaseSize(30, 30);
@@ -595,6 +597,20 @@ void zcom::PlaybackController::_SetupStreamMenu()
             streamItem->SetChecked(true);
         _subtitleStreamMenuPanel->AddItem(std::move(streamItem));
     }
+
+    _streamMenuPanel->ClearItems();
+    auto videoStreamMenuItem = Create<zcom::MenuItem>(_videoStreamMenuPanel.get(), L"Video tracks");
+    auto audioStreamMenuItem = Create<zcom::MenuItem>(_audioStreamMenuPanel.get(), L"Audio tracks");
+    auto subtitleStreamMenuItem = Create<zcom::MenuItem>(_subtitleStreamMenuPanel.get(), L"Subtitle tracks");
+    if (_playback->Initializing())
+    {
+        videoStreamMenuItem->SetDisabled(true);
+        audioStreamMenuItem->SetDisabled(true);
+        subtitleStreamMenuItem->SetDisabled(true);
+    }
+    _streamMenuPanel->AddItem(std::move(videoStreamMenuItem));
+    _streamMenuPanel->AddItem(std::move(audioStreamMenuItem));
+    _streamMenuPanel->AddItem(std::move(subtitleStreamMenuItem));
 }
 
 bool zcom::PlaybackController::_OnKeyDown(BYTE keyCode)
