@@ -335,6 +335,12 @@ namespace zcom
                 _dwriteTextLayout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
             }
 
+            // Effects
+            if (_underlineRange.length != 0)
+                _dwriteTextLayout->SetUnderline(true, _underlineRange);
+            if (_strikethroughRange.length != 0)
+                _dwriteTextLayout->SetStrikethrough(true, _strikethroughRange);
+
             InvokeRedraw();
             _textLayoutChangedEvent.InvokeAll(this);
         }
@@ -359,6 +365,9 @@ namespace zcom
         DWRITE_FONT_STYLE _fontStyle = DWRITE_FONT_STYLE_NORMAL;
         DWRITE_FONT_STRETCH _fontStretch = DWRITE_FONT_STRETCH_NORMAL;
         D2D1_COLOR_F _fontColor = D2D1::ColorF(0.8f, 0.8f, 0.8f);
+
+        DWRITE_TEXT_RANGE _underlineRange = { 0, 0 };
+        DWRITE_TEXT_RANGE _strikethroughRange = { 0, 0 };
 
         int _selectionStart = 0;
         int _selectionLength = 0;
@@ -609,6 +618,26 @@ namespace zcom
             _fontColor = color;
             SafeFullRelease((IUnknown**)&_textBrush);
             InvokeRedraw();
+        }
+
+        void SetUnderline(DWRITE_TEXT_RANGE range)
+        {
+            if (range.length == _underlineRange.length &&
+                range.startPosition == _underlineRange.startPosition)
+                return;
+
+            _underlineRange = range;
+            _CreateTextLayout();
+        }
+
+        void SetStrikethrough(DWRITE_TEXT_RANGE range)
+        {
+            if (range.length == _strikethroughRange.length &&
+                range.startPosition == _strikethroughRange.startPosition)
+                return;
+
+            _strikethroughRange = range;
+            _CreateTextLayout();
         }
 
         void SetTextSelectable(bool selectable)
