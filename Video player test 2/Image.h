@@ -240,7 +240,6 @@ namespace zcom
             if (!_image)
                 return;
 
-
             D2D1_RECT_F srcRect = { _sourceRect.left, _sourceRect.top, _sourceRect.right, _sourceRect.bottom };
             D2D1_RECT_F destRect = { 0.0f, 0.0f, g.target->GetSize().width, g.target->GetSize().height };
             bool customTarget = _targetRect != RECT_F{ -1.0f, -1.0f, -1.0f, -1.0f };
@@ -426,8 +425,10 @@ namespace zcom
                 premultiplied.z *= premultiplied.w;
                 tintEffect->SetValue(CUSTOM_TINT_PROP_COLOR, premultiplied);
 
-                // Draw to separate render target and use 'DrawBitmap' for scaling/placement
                 ID2D1Image* stash = nullptr;
+                g.target->GetTarget(&stash);
+
+                // Draw to separate render target and use 'DrawBitmap' for scaling/placement
                 ID2D1Bitmap1* contentBitmap = nullptr;
                 g.target->CreateBitmap(
                     D2D1::SizeU((UINT32)_image->GetSize().width, (UINT32)_image->GetSize().height),
@@ -439,14 +440,15 @@ namespace zcom
                     ),
                     &contentBitmap
                 );
-
-                g.target->GetTarget(&stash);
                 g.target->SetTarget(contentBitmap);
                 g.target->Clear();
                 g.target->DrawImage(tintEffect);
                 g.target->SetTarget(stash);
                 stash->Release();
-                g.target->DrawBitmap(contentBitmap, destRect, _imageOpacity, D2D1_INTERPOLATION_MODE_CUBIC, srcRect);
+                // Flush here (before DrawBitmap) because otherwise some bullshit interaction causes things rendered to the
+                // content bitmap to sometimes not show up (ONLY  when usiNG D2D1_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC!!@.!?!?!?2!)
+                g.target->Flush();
+                g.target->DrawBitmap(contentBitmap, destRect, _imageOpacity, D2D1_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC, srcRect);
 
                 contentBitmap->Release();
                 tintEffect->Release();
@@ -454,7 +456,7 @@ namespace zcom
             else
             {
                 // Draw image normally
-                g.target->DrawBitmap(_image, destRect, _imageOpacity, D2D1_INTERPOLATION_MODE_CUBIC, srcRect);
+                g.target->DrawBitmap(_image, destRect, _imageOpacity, D2D1_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC, srcRect);
             }
         }
 
