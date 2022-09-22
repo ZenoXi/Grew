@@ -687,7 +687,7 @@ bool zcom::PlaybackController::_OnKeyDown(BYTE keyCode)
         _playback->Controller()->SetVolume(_volumeSlider->GetVolume());
         break;
     }
-    case VK_NUMPAD1: // Video stream 1
+    case VK_NUMPAD1: // Previous video Stream
     {
         if (_playback->Initializing())
             break;
@@ -695,10 +695,19 @@ bool zcom::PlaybackController::_OnKeyDown(BYTE keyCode)
         if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
             break;
 
-        _playback->Controller()->SetVideoStream(0);
+        auto streams = _playback->Controller()->GetAvailableVideoStreams();
+        if (streams.empty())
+            break;
+        int currentStream = _playback->Controller()->CurrentVideoStream();
+        if (currentStream == -1)
+            _playback->Controller()->SetVideoStream(streams.size() - 1);
+        else if (currentStream == 0)
+            _playback->Controller()->SetVideoStream(streams.size() - 1);
+        else
+            _playback->Controller()->SetVideoStream(currentStream - 1);
         break;
     }
-    case VK_NUMPAD2: // Video stream 2
+    case VK_NUMPAD2: // Next video stream
     {
         if (_playback->Initializing())
             break;
@@ -706,10 +715,19 @@ bool zcom::PlaybackController::_OnKeyDown(BYTE keyCode)
         if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
             break;
 
-        _playback->Controller()->SetVideoStream(1);
+        auto streams = _playback->Controller()->GetAvailableVideoStreams();
+        if (streams.empty())
+            break;
+        int currentStream = _playback->Controller()->CurrentVideoStream();
+        if (currentStream == -1)
+            _playback->Controller()->SetVideoStream(0);
+        else if (currentStream == streams.size() - 1)
+            _playback->Controller()->SetVideoStream(0);
+        else
+            _playback->Controller()->SetVideoStream(currentStream + 1);
         break;
     }
-    case VK_NUMPAD3: // Video stream 3
+    case VK_NUMPAD3: // Disable video stream
     {
         if (_playback->Initializing())
             break;
@@ -717,10 +735,10 @@ bool zcom::PlaybackController::_OnKeyDown(BYTE keyCode)
         if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
             break;
 
-        _playback->Controller()->SetVideoStream(2);
+        _playback->Controller()->SetVideoStream(-1);
         break;
     }
-    case VK_NUMPAD4: // Audio stream 1
+    case VK_NUMPAD4: // Previous audio stream
     {
         if (_playback->Initializing())
             break;
@@ -728,10 +746,19 @@ bool zcom::PlaybackController::_OnKeyDown(BYTE keyCode)
         if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
             break;
 
-        _playback->Controller()->SetAudioStream(0);
+        auto streams = _playback->Controller()->GetAvailableAudioStreams();
+        if (streams.empty())
+            break;
+        int currentStream = _playback->Controller()->CurrentAudioStream();
+        if (currentStream == -1)
+            _playback->Controller()->SetAudioStream(streams.size() - 1);
+        else if (currentStream == 0)
+            _playback->Controller()->SetAudioStream(streams.size() - 1);
+        else
+            _playback->Controller()->SetAudioStream(currentStream - 1);
         break;
     }
-    case VK_NUMPAD5: // Audio stream 2
+    case VK_NUMPAD5: // Next audio stream
     {
         if (_playback->Initializing())
             break;
@@ -739,10 +766,19 @@ bool zcom::PlaybackController::_OnKeyDown(BYTE keyCode)
         if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
             break;
 
-        _playback->Controller()->SetAudioStream(1);
+        auto streams = _playback->Controller()->GetAvailableAudioStreams();
+        if (streams.empty())
+            break;
+        int currentStream = _playback->Controller()->CurrentAudioStream();
+        if (currentStream == -1)
+            _playback->Controller()->SetAudioStream(0);
+        else if (currentStream == streams.size() - 1)
+            _playback->Controller()->SetAudioStream(0);
+        else
+            _playback->Controller()->SetAudioStream(currentStream + 1);
         break;
     }
-    case VK_NUMPAD6: // Audio stream 3
+    case VK_NUMPAD6: // Disable audio stream
     {
         if (_playback->Initializing())
             break;
@@ -750,10 +786,10 @@ bool zcom::PlaybackController::_OnKeyDown(BYTE keyCode)
         if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
             break;
 
-        _playback->Controller()->SetAudioStream(2);
+        _playback->Controller()->SetAudioStream(-1);
         break;
     }
-    case VK_NUMPAD7: // Subtitle stream 1
+    case VK_NUMPAD7: // Previous subtitle stream
     {
         if (_playback->Initializing())
             break;
@@ -761,10 +797,19 @@ bool zcom::PlaybackController::_OnKeyDown(BYTE keyCode)
         if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
             break;
 
-        _playback->Controller()->SetSubtitleStream(0);
+        auto streams = _playback->Controller()->GetAvailableSubtitleStreams();
+        if (streams.empty())
+            break;
+        int currentStream = _playback->Controller()->CurrentSubtitleStream();
+        if (currentStream == -1)
+            _playback->Controller()->SetSubtitleStream(streams.size() - 1);
+        else if (currentStream == 0)
+            _playback->Controller()->SetSubtitleStream(streams.size() - 1);
+        else
+            _playback->Controller()->SetSubtitleStream(currentStream - 1);
         break;
     }
-    case VK_NUMPAD8: // Subtitle stream 2
+    case VK_NUMPAD8: // Next subtitle stream
     {
         if (_playback->Initializing())
             break;
@@ -772,10 +817,19 @@ bool zcom::PlaybackController::_OnKeyDown(BYTE keyCode)
         if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
             break;
 
-        _playback->Controller()->SetSubtitleStream(1);
+        auto streams = _playback->Controller()->GetAvailableSubtitleStreams();
+        if (streams.empty())
+            break;
+        int currentStream = _playback->Controller()->CurrentSubtitleStream();
+        if (currentStream == -1)
+            _playback->Controller()->SetSubtitleStream(0);
+        else if (currentStream == streams.size() - 1)
+            _playback->Controller()->SetSubtitleStream(0);
+        else
+            _playback->Controller()->SetSubtitleStream(currentStream + 1);
         break;
     }
-    case VK_NUMPAD9: // Subtitle stream 3
+    case VK_NUMPAD9: // Disable subtitle stream
     {
         if (_playback->Initializing())
             break;
@@ -783,7 +837,7 @@ bool zcom::PlaybackController::_OnKeyDown(BYTE keyCode)
         if (user && !user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK))
             break;
 
-        _playback->Controller()->SetSubtitleStream(2);
+        _playback->Controller()->SetSubtitleStream(-1);
         break;
     }
     }
