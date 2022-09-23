@@ -1948,7 +1948,8 @@ void PlaybackOverlayScene::_ShowPlaylistContextMenu(int x, int y, int64_t itemId
     bool showClearSelfHostedItems = false;
     bool showSaveSelectedToPlaylist = true;
 
-    if (!_app->users.GetThisUser()->GetPermission(PERMISSION_MANAGE_ITEMS))
+    const User* thisUser = _app->users.GetThisUser();
+    if (thisUser && !thisUser->GetPermission(PERMISSION_MANAGE_ITEMS))
     {
         showClearAllItems = false;
         showClearSelectedItems = false;
