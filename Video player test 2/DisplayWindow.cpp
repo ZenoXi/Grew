@@ -367,7 +367,7 @@ LRESULT DisplayWindow::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
             {
                 _last2Moves[0] = _last2Moves[1];
                 GetWindowRect(_hwnd, &_last2Moves[1]);
-                //GetWindowRect(_hwnd, &_windowedRect);
+                GetWindowRect(_hwnd, &_windowedRect);
                 //_windowedRect.right = _windowedRect.left + w;
                 //_windowedRect.bottom = _windowedRect.top + h;
             }
@@ -633,14 +633,16 @@ void DisplayWindow::HandleFullscreenChange()
             GetWindowPlacement(_hwnd, &placement);
             _windowedMaximized = (placement.showCmd == SW_SHOWMAXIMIZED);
 
-            RECT desktop;
-            HWND deskwin = GetDesktopWindow();
-            GetWindowRect(deskwin, &desktop);
+            HMONITOR hMonitor = MonitorFromWindow(_hwnd, MONITOR_DEFAULTTONEAREST);
+            MONITORINFO info;
+            info.cbSize = sizeof(MONITORINFO);
+            GetMonitorInfo(hMonitor, &info);
+            RECT monitor = info.rcMonitor;
 
-            int w = desktop.right - desktop.left;
-            int h = desktop.bottom - desktop.top;
+            int w = monitor.right - monitor.left;
+            int h = monitor.bottom - monitor.top;
             SetWindowLongPtr(_hwnd, GWL_STYLE, /*WS_VISIBLE |*/ WS_POPUP);
-            SetWindowPos(_hwnd, HWND_TOP, 0, 0, w, h, SWP_FRAMECHANGED);
+            SetWindowPos(_hwnd, HWND_TOP, monitor.left, monitor.top, w, h, SWP_FRAMECHANGED);
 
             ShowWindow(_hwnd, SW_SHOW);
         }
