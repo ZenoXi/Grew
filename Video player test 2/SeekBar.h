@@ -312,11 +312,15 @@ namespace zcom
 
         EventTargets _OnLeftReleased(int x, int y)
         {
-            if (_duration == -1)
+            if (_duration == -1 || !_held)
                 return EventTargets().Add(this, x, y);
 
             int timeTextWidth = ceilf(_maxTimeWidth) + _margins * 2;
             int seekBarWidth = GetWidth() - timeTextWidth * 2;
+            if (_heldPosition < 0)
+                _heldPosition = 0;
+            if (_heldPosition > seekBarWidth)
+                _heldPosition = seekBarWidth;
             _selectedTime = _duration.GetTicks() * _heldPosition / (double)seekBarWidth;
             _held = false;
             return EventTargets().Add(this, x, y);
