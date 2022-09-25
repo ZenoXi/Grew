@@ -59,6 +59,15 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _nonControllerPanel = Create<zcom::Panel>();
     _nonControllerPanel->SetBaseHeight(-61);
     _nonControllerPanel->SetParentSizePercent(1.0f, 1.0f);
+    _nonControllerPanel->AddPostLeftPressed([&](zcom::Base* item, std::vector<zcom::EventTargets::Params> targets, int x, int y)
+    {
+        if (targets.size() == 2 && targets[0].target == _infoPanel.get())
+        {
+            if (_app->FindActiveScene(PlaybackScene::StaticName()))
+                //_app->MoveSceneToFront(PlaybackScene::StaticName());
+                _app->MoveSceneInFront(PlaybackScene::StaticName(), StaticName());
+        }
+    }, { this });
 
     _playbackControllerPanel = Create<zcom::Panel>();
     _playbackControllerPanel->SetBaseHeight(60);
