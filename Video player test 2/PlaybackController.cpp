@@ -241,15 +241,7 @@ void zcom::PlaybackController::Init()
 
     _streamMenuPanel->SetBaseWidth(150);
     _streamMenuPanel->SetZIndex(255);
-    auto videoStreamMenuItem = Create<zcom::MenuItem>(_videoStreamMenuPanel.get(), L"Video tracks");
-    auto audioStreamMenuItem = Create<zcom::MenuItem>(_audioStreamMenuPanel.get(), L"Audio tracks");
-    auto subtitleStreamMenuItem = Create<zcom::MenuItem>(_subtitleStreamMenuPanel.get(), L"Subtitle tracks");
-    videoStreamMenuItem->SetDisabled(true);
-    audioStreamMenuItem->SetDisabled(true);
-    subtitleStreamMenuItem->SetDisabled(true);
-    _streamMenuPanel->AddItem(std::move(videoStreamMenuItem));
-    _streamMenuPanel->AddItem(std::move(audioStreamMenuItem));
-    _streamMenuPanel->AddItem(std::move(subtitleStreamMenuItem));
+    _ResetStreamMenu();
 
     _fullscreenButton = Create<zcom::Button>(L"");
     _fullscreenButton->SetBaseSize(30, 30);
@@ -391,6 +383,9 @@ void zcom::PlaybackController::_OnUpdate()
         _seekBar->SetCurrentTime(0);
         _seekBar->SetChapters({});
 
+        // Reset stream menu
+        _ResetStreamMenu();
+
         // Set play button state
         _playButton->Clicked();
         _playButton->SetPaused(true);
@@ -519,6 +514,24 @@ void zcom::PlaybackController::_UpdatePermissions()
             item->SetDisabled(!allowStreamChanging);
         }
     }
+}
+
+void zcom::PlaybackController::_ResetStreamMenu()
+{
+    _streamMenuPanel->ClearItems();
+
+    _videoStreamMenuPanel->ClearItems();
+    _audioStreamMenuPanel->ClearItems();
+    _subtitleStreamMenuPanel->ClearItems();
+    auto videoStreamMenuItem = Create<zcom::MenuItem>(_videoStreamMenuPanel.get(), L"Video tracks");
+    auto audioStreamMenuItem = Create<zcom::MenuItem>(_audioStreamMenuPanel.get(), L"Audio tracks");
+    auto subtitleStreamMenuItem = Create<zcom::MenuItem>(_subtitleStreamMenuPanel.get(), L"Subtitle tracks");
+    videoStreamMenuItem->SetDisabled(true);
+    audioStreamMenuItem->SetDisabled(true);
+    subtitleStreamMenuItem->SetDisabled(true);
+    _streamMenuPanel->AddItem(std::move(videoStreamMenuItem));
+    _streamMenuPanel->AddItem(std::move(audioStreamMenuItem));
+    _streamMenuPanel->AddItem(std::move(subtitleStreamMenuItem));
 }
 
 void zcom::PlaybackController::_SetupStreamMenu()

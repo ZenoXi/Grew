@@ -85,6 +85,7 @@ namespace zcom
         void _UpdateButtonAppearances();
 
         void _UpdatePermissions();
+        void _ResetStreamMenu();
         void _SetupStreamMenu();
 
 #pragma region base_class
