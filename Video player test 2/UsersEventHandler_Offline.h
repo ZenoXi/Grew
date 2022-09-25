@@ -12,4 +12,5 @@ public:
     void Update() {}
 
     UsersEventHandler_Offline(Users_Internal* users);
+    ~UsersEventHandler_Offline();
 };
