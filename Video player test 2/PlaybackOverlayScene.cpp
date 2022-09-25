@@ -782,8 +782,7 @@ void PlaybackOverlayScene::_UpdateFileDropHandler()
     namespace fs = std::filesystem;
 
     // Update drop rect
-    auto user = _app->users.GetThisUser();
-    bool canDrop = user && user->GetPermission(PERMISSION_ADD_ITEMS);
+    bool canDrop = _app->users.GetThisUser()->GetPermission(PERMISSION_ADD_ITEMS);
     if (canDrop)
     {
         _playlistFileDropHandler->SetDropRect(
@@ -1957,8 +1956,7 @@ void PlaybackOverlayScene::_ShowPlaylistContextMenu(int x, int y, int64_t itemId
     bool showClearSelfHostedItems = false;
     bool showSaveSelectedToPlaylist = true;
 
-    const User* thisUser = _app->users.GetThisUser();
-    if (thisUser && !thisUser->GetPermission(PERMISSION_MANAGE_ITEMS))
+    if (!_app->users.GetThisUser()->GetPermission(PERMISSION_MANAGE_ITEMS))
     {
         showClearAllItems = false;
         showClearSelectedItems = false;
