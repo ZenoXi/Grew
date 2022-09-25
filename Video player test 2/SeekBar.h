@@ -54,22 +54,22 @@ namespace zcom
             if (!_viewedPartBrush)
             {
                 g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::DodgerBlue, 0.75f), &_viewedPartBrush);
-                g.refs->push_back((IUnknown**)&_viewedPartBrush);
+                g.refs->push_back({ (IUnknown**)&_viewedPartBrush, "Seekbar viewed part brush" });
             }
             if (!_seekbarMarkerBrush)
             {
                 g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::DodgerBlue), &_seekbarMarkerBrush);
-                g.refs->push_back((IUnknown**)&_seekbarMarkerBrush);
+                g.refs->push_back({ (IUnknown**)&_seekbarMarkerBrush, "Seekbar marker brush" });
             }
             if (!_bufferedPartBrush)
             {
                 g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::LightGray), &_bufferedPartBrush);
-                g.refs->push_back((IUnknown**)&_bufferedPartBrush);
+                g.refs->push_back({ (IUnknown**)&_bufferedPartBrush, "Seekbar buffered part brush" });
             }
             if (!_remainingPartBrush)
             {
                 g.target->CreateSolidColorBrush(D2D1::ColorF(0.6f, 0.6f, 0.6f), &_remainingPartBrush);
-                g.refs->push_back((IUnknown**)&_remainingPartBrush);
+                g.refs->push_back({ (IUnknown**)&_remainingPartBrush, "Seekbar remaining part brush" });
             }
 
             // Draw the seek bar

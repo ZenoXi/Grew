@@ -485,7 +485,7 @@ ID2D1Bitmap* PlaybackScene::_Draw(Graphics g)
             ),
             &_ccanvas
         );
-        g.refs->push_back((IUnknown**)&_ccanvas);
+        g.refs->push_back({ (IUnknown**)&_ccanvas, "Playback scene common canvas" });
     }
 
     ID2D1Image* stash;

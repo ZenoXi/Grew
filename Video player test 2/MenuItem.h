@@ -31,7 +31,7 @@ namespace zcom
                     ),
                     &_iconGrayscale
                 );
-                g.refs->push_back((IUnknown**)&_iconGrayscale);
+                g.refs->push_back({ (IUnknown**)&_iconGrayscale, std::string("Grayscale menu icon. Text: ") + wstring_to_string(_label->GetText()) });
 
                 ID2D1Effect* grayscaleEffect;
                 g.target->CreateEffect(CLSID_D2D1Grayscale, &grayscaleEffect);

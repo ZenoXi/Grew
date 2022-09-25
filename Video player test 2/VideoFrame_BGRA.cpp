@@ -27,7 +27,7 @@ void VideoFrame_BGRA::DrawFrame(Graphics g, ID2D1Bitmap1** targetBitmap)
             ),
             targetBitmap
         );
-        g.refs->push_back((IUnknown**)targetBitmap);
+        g.refs->push_back({ (IUnknown**)targetBitmap, "BGRA frame bitmap" });
     }
 
     // Copy data to new bitmap

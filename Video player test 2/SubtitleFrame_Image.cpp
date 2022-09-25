@@ -51,7 +51,7 @@ void SubtitleFrame_Image::DrawFrame(Graphics g, ID2D1Bitmap1** targetBitmap, Sub
             ),
             targetBitmap
         );
-        g.refs->push_back((IUnknown**)targetBitmap);
+        g.refs->push_back({ (IUnknown**)targetBitmap, "Sub frame image bitmap" });
     }
 
     // Copy rects to bitmap

@@ -16,7 +16,7 @@ struct Graphics
 {
     ID2D1DeviceContext* target = nullptr;
     ID2D1Factory1* factory = nullptr;
-    std::vector<IUnknown**>* refs = nullptr;
+    std::vector<std::pair<IUnknown**, std::string>>* refs = nullptr;
 };
 
 inline bool operator==(const D2D1_COLOR_F& cl, const D2D1_COLOR_F& cr)

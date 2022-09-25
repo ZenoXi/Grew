@@ -241,7 +241,7 @@ void SubtitleFrame_Text::DrawFrame(Graphics g, ID2D1Bitmap1** targetBitmap, Subt
             ),
             targetBitmap
         );
-        g.refs->push_back((IUnknown**)targetBitmap);
+        g.refs->push_back({ (IUnknown**)targetBitmap, "Sub frame text bitmap" });
     }
     bitmap = *targetBitmap;
 

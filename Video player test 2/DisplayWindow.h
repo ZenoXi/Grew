@@ -67,7 +67,7 @@ class WindowGraphics
     ComPtr<ID2D1DeviceContext> p_Target = NULL;
     ID2D1RenderTarget* p_RT = NULL;
     //ID2D1HwndRenderTarget* p_RT = NULL;
-    std::vector<IUnknown**> _references;
+    std::vector<std::pair<IUnknown**, std::string>> _references;
 
     ComPtr<IDXGISwapChain1> p_SwapChain = NULL;
     ComPtr<ID3D11Device> p_Device = NULL;

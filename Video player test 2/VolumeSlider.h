@@ -46,17 +46,17 @@ namespace zcom
                 // RGB(71, 161, 244) matches the color of DodgerBlue with 75% opacity over LightGray
                 // This is done to match the volume slider and time slider colors
                 g.target->CreateSolidColorBrush(D2D1::ColorF(RGB(244, 161, 71) /* R and B flipped */), &_selectedPartBrush);
-                g.refs->push_back((IUnknown**)&_selectedPartBrush);
+                g.refs->push_back({ (IUnknown**)&_selectedPartBrush, "Volume slider selected part brush" });
             }
             if (!_volumeBarMarkerBrush)
             {
                 g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::DodgerBlue), &_volumeBarMarkerBrush);
-                g.refs->push_back((IUnknown**)&_volumeBarMarkerBrush);
+                g.refs->push_back({ (IUnknown**)&_volumeBarMarkerBrush, "Volume slider marker brush" });
             }
             if (!_remainingPartBrush)
             {
                 g.target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::LightGray), &_remainingPartBrush);
-                g.refs->push_back((IUnknown**)&_remainingPartBrush);
+                g.refs->push_back({ (IUnknown**)&_remainingPartBrush, "Volume slider remaining part brush" });
             }
 
             // Update volume icon color

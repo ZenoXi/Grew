@@ -40,7 +40,7 @@ namespace zcom
             if (!_brush)
             {
                 g.target->CreateSolidColorBrush(D2D1::ColorF(0, 0.5f), &_brush);
-                g.refs->push_back((IUnknown**)&_brush);
+                g.refs->push_back({ (IUnknown**)&_brush, "Resume icon brush" });
             }
 
             auto size = g.target->GetSize();

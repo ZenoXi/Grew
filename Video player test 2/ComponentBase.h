@@ -1026,7 +1026,7 @@ namespace zcom
                     ),
                     &_canvas
                 );
-                g.refs->push_back((IUnknown**)&_canvas);
+                g.refs->push_back({ (IUnknown**)&_canvas, std::string("Base canvas: ") + GetName() });
             }
 
             // Stash current target

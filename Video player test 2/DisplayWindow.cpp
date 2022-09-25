@@ -1011,10 +1011,10 @@ void WindowGraphics::ResizeBuffers(int width, int height)
     // Release all references
     for (int i = 0; i < _references.size(); i++)
     {
-        if (*_references[i])
+        if (*_references[i].first)
         {
-            (*_references[i])->Release();
-            (*_references[i]) = nullptr;
+            (*_references[i].first)->Release();
+            (*_references[i].first) = nullptr;
         }
     }
     _references.clear();
@@ -1060,7 +1060,7 @@ void WindowGraphics::ReleaseResource(IUnknown** res)
     // Remove pointer from vector
     for (auto it = _references.begin(); it != _references.end(); it++)
     {
-        if (*it == res)
+        if ((*it).first == res)
         {
             _references.erase(it);
             break;

@@ -52,7 +52,7 @@ namespace zcom
             if (!_textBrush)
             {
                 g.target->CreateSolidColorBrush(_fontColor, &_textBrush);
-                g.refs->push_back((IUnknown**)&_textBrush);
+                g.refs->push_back({ (IUnknown**)&_textBrush, std::string("Label text brush. Text: ") + wstring_to_string(_text) });
             }
 
             // Get selected area

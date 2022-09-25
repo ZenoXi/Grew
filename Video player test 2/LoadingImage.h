@@ -22,7 +22,7 @@ namespace zcom
             if (!_brush)
             {
                 g.target->CreateSolidColorBrush(_dotColor, &_brush);
-                g.refs->push_back((IUnknown**)&_brush);
+                g.refs->push_back({ (IUnknown**)&_brush, "Loading image" });
             }
 
             float phase = fmod((ztime::Main() - _animationStart).GetDuration(MILLISECONDS) / 1000.0f, _animationDuration.GetDuration(MICROSECONDS) / 1000000.0f);
