@@ -108,6 +108,7 @@ namespace zcom
     public:
         ~OverlayPlaylistItem()
         {
+            _buttonPanel->ClearItems();
             ClearItems();
         }
         OverlayPlaylistItem(OverlayPlaylistItem&&) = delete;
