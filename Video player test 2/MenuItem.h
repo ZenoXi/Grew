@@ -187,7 +187,10 @@ namespace zcom
             _menuExpandImage->SetTintColor(D2D1::ColorF(0.5f, 0.5f, 0.5f));
         }
     public:
-        ~MenuItem() {}
+        ~MenuItem()
+        {
+            SafeFullRelease((IUnknown**)&_iconGrayscale);
+        }
         MenuItem(MenuItem&&) = delete;
         MenuItem& operator=(MenuItem&&) = delete;
         MenuItem(const MenuItem&) = delete;
