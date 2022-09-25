@@ -407,6 +407,7 @@ void zcom::PlaybackController::_OnUpdate()
 
     _UpdateFullscreenButton();
     _UpdateButtonAppearances();
+    _UpdatePermissions();
 
     Panel::_OnUpdate();
 }
@@ -494,24 +495,38 @@ void zcom::PlaybackController::_UpdateButtonAppearances()
 void zcom::PlaybackController::_UpdatePermissions()
 {
     auto user = _scene->GetApp()->users.GetThisUser();
-    if (!user)
-        return;
 
+    // This function only disables certain buttons, never enables
+    // This is because previously called functions can disable certain buttons
+    // which cannot be functionally active under any permission level
+
+    // Play button
     bool allowPlaybackManipulation = user->GetPermission(PERMISSION_MANIPULATE_PLAYBACK);
-    _playButton->SetActive(allowPlaybackManipulation);
+    if (!allowPlaybackManipulation)
+        _playButton->SetActive(false);
+
+    // Play next/previous
     bool allowPlaybackStartStop = user->GetPermission(PERMISSION_START_STOP_PLAYBACK);
-    _playNextButton->SetVisible(allowPlaybackStartStop);
-    _playPreviousButton->SetVisible(allowPlaybackStartStop);
-    bool allowStreamChanging = user->GetPermission(PERMISSION_CHANGE_STREAMS);
-    for (int i = 0; i < _streamMenuPanel->ItemCount(); i++)
+    if (!allowPlaybackStartStop)
     {
-        // Slightly janky way to disable the correct menu items
-        zcom::MenuItem* item = _streamMenuPanel->GetItem(i);
-        if (item->GetMenuPanel() == _videoStreamMenuPanel.get() ||
-            item->GetMenuPanel() == _audioStreamMenuPanel.get() ||
-            item->GetMenuPanel() == _subtitleStreamMenuPanel.get())
+        _playNextButton->SetVisible(false);
+        _playPreviousButton->SetVisible(false);
+    }
+
+    // Change streams
+    bool allowStreamChanging = user->GetPermission(PERMISSION_CHANGE_STREAMS);
+    if (!allowStreamChanging)
+    {
+        for (int i = 0; i < _streamMenuPanel->ItemCount(); i++)
         {
-            item->SetDisabled(!allowStreamChanging);
+            // Slightly janky way to disable the correct menu items
+            zcom::MenuItem* item = _streamMenuPanel->GetItem(i);
+            if (item->GetMenuPanel() == _videoStreamMenuPanel.get() ||
+                item->GetMenuPanel() == _audioStreamMenuPanel.get() ||
+                item->GetMenuPanel() == _subtitleStreamMenuPanel.get())
+            {
+                item->SetDisabled(true);
+            }
         }
     }
 }
