@@ -333,7 +333,7 @@ bool App::MoveSceneInFront(std::string name, std::string inFront)
     _activeScenes.erase(_activeScenes.begin() + sceneIndex);
     if (behindSceneIndex == _activeScenes.size() - 1)
     {
-        _activeScenes[behindSceneIndex]->Unfocus();
+        _activeScenes[behindSceneIndex - 1]->Unfocus();
         _activeScenes.back()->Focus();
     }
     _sceneChanged = true;
