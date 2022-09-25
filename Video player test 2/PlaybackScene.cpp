@@ -431,10 +431,17 @@ bool PlaybackScene::_HandleKeyDown(BYTE keyCode)
 {
     switch (keyCode)
     {
-    case VK_ESCAPE: // Fullscreen exit
+    case VK_ESCAPE: // Fullscreen exit / Playlist open
     {
         if (_app->Fullscreen())
             _app->Fullscreen(false);
+        else
+            _app->MoveSceneInFront(PlaybackOverlayScene::StaticName(), StaticName());
+        break;
+    }
+    case 'O':
+    {
+        _app->MoveSceneInFront(PlaybackOverlayScene::StaticName(), StaticName());
         break;
     }
     case VK_SPACE: // Pause toggle
