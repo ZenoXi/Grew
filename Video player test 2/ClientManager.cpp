@@ -134,7 +134,10 @@ void znet::ClientManager::_Connect(std::string ip, uint16_t port)
     }
     else
     {
-        App::Instance()->events.RaiseEvent(ConnectionFailEvent{ "" });
+        _connectFailed = true;
+        _failMessage = L"Failed to connect";
+        _failCode = -1;
+        App::Instance()->events.RaiseEvent(ConnectionFailEvent{ "Failed to connect" });
     }
 
     _connecting = false;
