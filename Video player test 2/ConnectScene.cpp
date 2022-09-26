@@ -508,7 +508,7 @@ void ConnectScene::_RearrangeRecentConnectionsPanel()
 {
     LastIpOptionAdapter optAdapter(Options::Instance()->GetValue(OPTIONS_RECENT_IPS));
     auto ipList = optAdapter.GetList();
-    ID2D1Bitmap* removeIcon = ResourceManager::GetImage("item_delete");
+    ID2D1Bitmap* removeIcon = ResourceManager::GetImage("delete_15x15");
     _recentConnectionsPanel->DeferLayoutUpdates();
     _recentConnectionsPanel->ClearItems();
     for (int i = 0; i < ipList.size(); i++)
@@ -516,8 +516,8 @@ void ConnectScene::_RearrangeRecentConnectionsPanel()
         std::wstring ip = ipList[i];
         auto ipButton = Create<zcom::Button>(ip);
         ipButton->SetParentWidthPercent(1.0f);
-        ipButton->SetBaseSize(-22, 22);
-        ipButton->SetVerticalOffsetPixels(i * 22);
+        ipButton->SetBaseSize(-23, 23);
+        ipButton->SetVerticalOffsetPixels(i * 23);
         ipButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
         ipButton->Text()->SetMargins({ 5.0f, 0.0f, 5.0f, 0.0f });
         ipButton->SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
@@ -529,11 +529,14 @@ void ConnectScene::_RearrangeRecentConnectionsPanel()
             _portInput->Text()->SetText(ipParts[1]);
         });
         auto removeButton = Create<zcom::Button>();
-        removeButton->SetBaseSize(22, 22);
-        removeButton->SetVerticalOffsetPixels(i * 22);
+        removeButton->SetBaseSize(23, 23);
+        removeButton->SetVerticalOffsetPixels(i * 23);
         removeButton->SetHorizontalAlignment(zcom::Alignment::END);
         removeButton->SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
-        removeButton->SetBackgroundImage(removeIcon);
+        removeButton->SetButtonImageAll(removeIcon);
+        removeButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::CENTER);
+        removeButton->ButtonImage()->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
+        removeButton->UseImageParamsForAll(removeButton->ButtonImage());
         removeButton->SetOnActivated([&, ip]()
         {
             LastIpOptionAdapter _optAdapter(Options::Instance()->GetValue(OPTIONS_RECENT_IPS));
