@@ -262,6 +262,10 @@ void MediaPlayer::Update(double timeLimit)
             }
         }
 
+        TimePoint currentTime = _playbackTimer.Now();
+        if (_targetSeekTime.GetTicks() != -1)
+            currentTime = _targetSeekTime;
+
         // Switch to new frames
         bool frameAdvanced = false;
         if (_videoData.nextFrame)
@@ -276,7 +280,7 @@ void MediaPlayer::Update(double timeLimit)
             else
             {
                 TimePoint nextFrameTimestamp = nextFrame->GetTimestamp();
-                if (nextFrameTimestamp <= _playbackTimer.Now())
+                if (nextFrameTimestamp <= currentTime)
                 {
                     _videoData.currentFrame.reset(_videoData.nextFrame.release());
                     if (!_recovering && TimerRunning()) // Prevent ugly fast forwarding after seeking
@@ -287,7 +291,7 @@ void MediaPlayer::Update(double timeLimit)
                     }
                     frameAdvanced = true;
                 }
-                if (nextFrameTimestamp >= _playbackTimer.Now())
+                if (nextFrameTimestamp >= currentTime)
                 {
                     if (_videoData.currentFrame)
                     {
@@ -309,20 +313,20 @@ void MediaPlayer::Update(double timeLimit)
             AudioFrame* nextFrame = (AudioFrame*)_audioData.nextFrame.get();
 
             // Audio frames are buffered for ~500ms
-            if (nextFrame->GetTimestamp() <= (_playbackTimer.Now() + Duration(100, MILLISECONDS)).GetTime())
+            if (nextFrame->GetTimestamp() <= (currentTime + Duration(100, MILLISECONDS)).GetTime())
             {
                 // Reset audio playback
                 if (nextFrame->First())
                 {
                     std::cout << "Audio reset" << std::endl;
                     _audioOutputAdapter->Reset(nextFrame->GetChannelCount(), nextFrame->GetSampleRate());
-                    _audioOutputAdapter->SetTime(_playbackTimer.Now().GetTime());
+                    _audioOutputAdapter->SetTime(currentTime.GetTime());
                 }
 
                 _audioData.currentFrame.reset(_audioData.nextFrame.release());
                 currentFrame = (AudioFrame*)_audioData.currentFrame.get();
                 // Skip late audio frames
-                if (currentFrame->GetTimestamp() + currentFrame->CalculateDuration().GetDuration() >= _playbackTimer.Now().GetTime())
+                if (currentFrame->GetTimestamp() + currentFrame->CalculateDuration().GetDuration() >= currentTime.GetTime())
                 {
                     _audioOutputAdapter->AddRawData(*currentFrame);
                 }
@@ -332,12 +336,12 @@ void MediaPlayer::Update(double timeLimit)
         if (_subtitleData.nextFrame)
         {
             ISubtitleFrame* nextFrame = (ISubtitleFrame*)_subtitleData.nextFrame.get();
-            if (nextFrame->GetTimestamp() <= _playbackTimer.Now())
+            if (nextFrame->GetTimestamp() <= currentTime)
             {
                 std::cout << "Frame changed at " << nextFrame->GetTimestamp().GetTime(MILLISECONDS) / 1000.0f << '\n';
 
                 // Notify decoder of significant lag
-                if (_playbackTimer.Now() - nextFrame->GetTimestamp() > Duration(1, SECONDS))
+                if (currentTime - nextFrame->GetTimestamp() > Duration(1, SECONDS))
                 {
                     ((SubtitleDecoder*)_subtitleData.decoder)->SkipForward(Duration(1, SECONDS));
                 }
@@ -376,6 +380,7 @@ void MediaPlayer::Update(double timeLimit)
             {
                 _recovering = false;
                 _recovered = true;
+                _targetSeekTime = -1;
                 std::cout << "Recovered\n";
             }
             break;
@@ -412,6 +417,11 @@ void MediaPlayer::SetTimerPosition(TimePoint time)
 {
     _playbackTimer.SetTime(time);
     _lastSubtitleRender = time;
+}
+
+void MediaPlayer::SetTargetSeekTime(TimePoint time)
+{
+    _targetSeekTime = time;
 }
 
 void MediaPlayer::WaitDiscontinuity()

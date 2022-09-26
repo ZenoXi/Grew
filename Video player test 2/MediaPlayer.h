@@ -50,6 +50,7 @@ class MediaPlayer
     //bool _expectingSubtitleStream = false;
 
     Clock _playbackTimer;
+    TimePoint _targetSeekTime = -1;
 
     bool _lagging = false;
     bool _buffering = false;
@@ -77,6 +78,10 @@ public:
     void StopTimer();
     bool TimerRunning() const;
     void SetTimerPosition(TimePoint time);
+    // While recovering, the player will use the specified time 
+    // for frame display/switching. This allows the player to seek
+    // to some time, while also showing a different current time
+    void SetTargetSeekTime(TimePoint time);
     void WaitDiscontinuity();
     TimePoint TimerPosition() const;
     void SetVolume(float volume);

@@ -167,6 +167,7 @@ void ReceiverPlaybackController::_CheckForInitiateSeek()
         _waitingForSeek = false;
         _waitingForResume = false;
         _player->SetTimerPosition(seekData.time);
+        _player->SetTargetSeekTime(seekData.time);
         _player->WaitDiscontinuity();
 
         //Scene* scene = App::Instance()->FindActiveScene(PlaybackScene::StaticName());
