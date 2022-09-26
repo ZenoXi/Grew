@@ -370,7 +370,8 @@ void HostPlaybackController::_CheckForPlaybackPosition()
 void HostPlaybackController::_CheckForSyncPause()
 {
     // TODO: check if this function should be here
-    return;
+    // Update much later: YES. Yes it should. If host is ahead it can pause itself through a SYNC_PAUSE packet here
+    //return;
     if (!_syncPauseReceiver)
         return;
 
