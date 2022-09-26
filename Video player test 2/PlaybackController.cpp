@@ -509,8 +509,8 @@ void zcom::PlaybackController::_UpdatePermissions()
     bool allowPlaybackStartStop = user->GetPermission(PERMISSION_START_STOP_PLAYBACK);
     if (!allowPlaybackStartStop)
     {
-        _playNextButton->SetVisible(false);
-        _playPreviousButton->SetVisible(false);
+        _playNextButton->SetActive(false);
+        _playPreviousButton->SetActive(false);
     }
 
     // Change streams
