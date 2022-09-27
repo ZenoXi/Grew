@@ -401,7 +401,8 @@ void PlaylistEventHandler_Server::_CheckForPlaybackFinish()
         int itemIndex = -1;
         for (int i = 0; i < _playlist->readyItems.size(); i++)
         {
-            if (_playlist->readyItems[i]->GetUserId() == userId)
+            if (_playlist->readyItems[i]->GetUserId() == userId &&
+                _playlist->readyItems[i]->GetItemId() == _playlist->currentlyPlaying)
             {
                 userIsHost = true;
                 itemIndex = i;
