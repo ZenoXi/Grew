@@ -2,6 +2,7 @@
 
 #include "TopMenuScene.h"
 #include "OverlayScene.h"
+#include "PopupScene.h"
 #include "SettingsScene.h"
 #include "EntryScene.h"
 #include "ConnectScene.h"
@@ -99,6 +100,7 @@ void App::Init(DisplayWindow& dw, std::string startScene)
     Instance()->_overlayScene->Focus();
 
     // Add scenes
+    Instance()->_scenes.push_back(new PopupScene(_instance));
     Instance()->_scenes.push_back(new SettingsScene(_instance));
     Instance()->_scenes.push_back(new EntryScene(_instance));
     Instance()->_scenes.push_back(new ConnectScene(_instance));
