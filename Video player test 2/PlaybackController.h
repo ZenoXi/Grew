@@ -40,10 +40,7 @@ namespace zcom
         PlaybackController(Scene* scene);
         void Init();
     public:
-        ~PlaybackController()
-        {
-
-        }
+        ~PlaybackController();
         PlaybackController(PlaybackController&&) = delete;
         PlaybackController& operator=(PlaybackController&&) = delete;
         PlaybackController(const PlaybackController&) = delete;

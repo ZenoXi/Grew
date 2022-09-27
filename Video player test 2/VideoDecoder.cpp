@@ -128,6 +128,22 @@ void VideoDecoder::_DecoderThread()
             continue;
         }
 
+        // If packet is last, immediatelly send it to frame queue
+        if (_packets.front().last)
+        {
+            _packets.pop();
+            _m_packets.unlock();
+
+            IMediaFrame* lastFrame = new IMediaFrame(-1);
+            lastFrame->last = true;
+            _m_frames.lock();
+            _frames.push(lastFrame);
+            _m_frames.unlock();
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            continue;
+        }
+
         int response = avcodec_send_packet(_codecContext, _packets.front().GetPacket());
         if (response != AVERROR(EAGAIN))
         {

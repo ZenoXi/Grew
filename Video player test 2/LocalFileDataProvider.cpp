@@ -610,10 +610,62 @@ void LocalFileDataProvider::_ReadPackets()
             else
             {
                 av_packet_free(&packet);
-                if (!eof)
+                if (result == AVERROR_EOF && !eof)
                 {
                     eof = true;
                     _packetThreadController.Set("eof", true);
+
+                    // Determine which streams this source provides packets to
+                    bool videoStream = false;
+                    bool audioStream = false;
+                    bool subtitleStream = false;
+                    for (int i = 0; i < _sources[index].LtoG_StreamIndex.size(); i++)
+                    {
+                        auto globalStreamData = _sources[index].LtoG_StreamIndex[i];
+                        int streamIndex = globalStreamData.first;
+                        auto streamType = globalStreamData.second;
+                        if (streamIndex == -1)
+                            continue;
+
+                        if (streamType == LocalMediaSource::VIDEO_STREAM && streamIndex == _videoData.currentStream)
+                        {
+                            videoStream = true;
+                            continue;
+                        }
+                        if (streamType == LocalMediaSource::AUDIO_STREAM && streamIndex == _audioData.currentStream)
+                        {
+                            audioStream = true;
+                            continue;
+                        }
+                        if (streamType == LocalMediaSource::SUBTITLE_STREAM && streamIndex == _subtitleData.currentStream)
+                        {
+                            subtitleStream = true;
+                            continue;
+                        }
+                    }
+
+                    // Add stream end packets to the streams
+                    if (videoStream)
+                    {
+                        MediaPacket eofPacket;
+                        eofPacket.last = true;
+                        _AddVideoPacket(std::move(eofPacket));
+                        std::cout << "EOF video packet added\n";
+                    }
+                    if (audioStream)
+                    {
+                        MediaPacket eofPacket;
+                        eofPacket.last = true;
+                        _AddAudioPacket(std::move(eofPacket));
+                        std::cout << "EOF audio packet added\n";
+                    }
+                    if (subtitleStream)
+                    {
+                        MediaPacket eofPacket;
+                        eofPacket.last = true;
+                        _AddSubtitlePacket(std::move(eofPacket));
+                        std::cout << "EOF subtitle packet added\n";
+                    }
                 }
             }
         }

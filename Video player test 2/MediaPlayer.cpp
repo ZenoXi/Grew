@@ -217,13 +217,9 @@ void MediaPlayer::Update(double timeLimit)
                     streamView->timeBase,
                     { 1, AV_TIME_BASE }
                 ), MICROSECONDS);
-                if (buffered < duration + startTime)
-                {
-                    if (buffered < _playbackTimer.Now().GetTicks())
-                    {
-                        lagging = true;
-                    }
-                }
+
+                if (buffered < _playbackTimer.Now().GetTicks())
+                    lagging = true;
             }
             // Audio
             if (_audioData.decoder && !_audioData.nextFrame)
@@ -239,19 +235,15 @@ void MediaPlayer::Update(double timeLimit)
                     streamView->timeBase,
                     { 1, AV_TIME_BASE }
                 ), MICROSECONDS);
-                if (buffered < duration + startTime)
-                {
-                    if (buffered < _playbackTimer.Now().GetTicks())
-                    {
-                        lagging = true;
-                    }
-                }
+
+                if (buffered < _playbackTimer.Now().GetTicks())
+                    lagging = true;
             }
         }
         _lagging = lagging;
 
         // Update subtitle decoder output dimensions
-        if (_subtitleData.decoder && _videoData.nextFrame)
+        if (_subtitleData.decoder && _videoData.nextFrame && !_videoData.nextFrame->last)
         {
             int outputWidth = ((SubtitleDecoder*)_subtitleData.decoder)->GetOutputWidth();
             int outputHeight = ((SubtitleDecoder*)_subtitleData.decoder)->GetOutputHeight();
@@ -267,8 +259,9 @@ void MediaPlayer::Update(double timeLimit)
             currentTime = _targetSeekTime;
 
         // Switch to new frames
+        // If the next frame is marked as last, do not switch to it
         bool frameAdvanced = false;
-        if (_videoData.nextFrame)
+        if (_videoData.nextFrame && !_videoData.nextFrame->last)
         {
             IVideoFrame* nextFrame = (IVideoFrame*)_videoData.nextFrame.get();
             if (nextFrame->GetTimestamp() == AV_NOPTS_VALUE)
@@ -307,7 +300,7 @@ void MediaPlayer::Update(double timeLimit)
                 //}
             }
         }
-        if (_audioData.nextFrame)
+        if (_audioData.nextFrame && !_audioData.nextFrame->last)
         {
             AudioFrame* currentFrame = (AudioFrame*)_audioData.currentFrame.get();
             AudioFrame* nextFrame = (AudioFrame*)_audioData.nextFrame.get();

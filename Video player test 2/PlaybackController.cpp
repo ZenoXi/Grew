@@ -280,6 +280,16 @@ void zcom::PlaybackController::Init()
     AddItem(_fullscreenButton.get());
 }
 
+zcom::PlaybackController::~PlaybackController()
+{
+    ClearItems();
+
+    _scene->GetApp()->Overlay()->RemoveItem(_timeHoverPanel.get());
+    _timeHoverPanel->ClearItems();
+
+    _ResetStreamMenu();
+}
+
 void zcom::PlaybackController::_OnUpdate()
 {
     if (!_playback->Initializing())

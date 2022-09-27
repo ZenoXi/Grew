@@ -21,4 +21,6 @@ public:
 
 protected:
     TimePoint _timestamp;
+public:
+    bool last = false;
 };

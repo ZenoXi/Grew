@@ -563,6 +563,11 @@ void IMediaDataProvider::_AddPacket(MediaData& mediaData, MediaPacket packet)
         }
         mediaData.totalMemoryUsed += packet.GetPacket()->size;
     }
+    else if (packet.last)
+    {
+        mediaData.lastPts = TimePoint::Max();
+        mediaData.lastDts = TimePoint::Max();
+    }
     mediaData.packets.push_back(std::move(packet));
 }
 

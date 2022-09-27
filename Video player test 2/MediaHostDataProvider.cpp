@@ -323,7 +323,7 @@ void MediaHostDataProvider::_ReadPackets()
 
         // Pass packets to receivers and data provider
         bool packetPassed = false;
-        if (videoPacket.Valid() || videoPacket.flush)
+        if (videoPacket.Valid() || videoPacket.flush || videoPacket.last)
         {
             if (!VideoMemoryExceeded())
             {
@@ -340,7 +340,7 @@ void MediaHostDataProvider::_ReadPackets()
             }
         }
 
-        if (audioPacket.Valid() || audioPacket.flush)
+        if (audioPacket.Valid() || audioPacket.flush || audioPacket.last)
         {
             if (!AudioMemoryExceeded())
             {
@@ -357,7 +357,7 @@ void MediaHostDataProvider::_ReadPackets()
             }
         }
 
-        if (subtitlePacket.Valid() || subtitlePacket.flush)
+        if (subtitlePacket.Valid() || subtitlePacket.flush || subtitlePacket.last)
         {
             if (!SubtitleMemoryExceeded())
             {
