@@ -3,6 +3,9 @@
 
 void zcom::MenuPanel::Show(Canvas* sceneCanvas, RECT parentRect, MenuPanel* parentPanel)
 {
+    if (GetVisible())
+        return;
+
     _sceneCanvas = sceneCanvas;
     _parentRect = parentRect;
     _parentPanel = parentPanel;
@@ -21,6 +24,9 @@ void zcom::MenuPanel::Show(Canvas* sceneCanvas, RECT parentRect, MenuPanel* pare
 
 void zcom::MenuPanel::Hide()
 {
+    if (!GetVisible())
+        return;
+
     _onHideEvent.InvokeAll();
     _sceneCanvas->RemoveComponent(this);
     _RemoveHandlerFromCanvas();
@@ -31,7 +37,10 @@ void zcom::MenuPanel::Hide()
         _openChildPanel = nullptr;
     }
     if (_hoveredItem)
+    {
         _hoveredItem->SetBackgroundColor(D2D1::ColorF(0, 0.0f));
+        _hoveredItem = nullptr;
+    }
     SetVisible(false);
 }
 

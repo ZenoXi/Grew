@@ -247,6 +247,7 @@ namespace zcom
 
         void ClearItems()
         {
+            Hide();
             Panel::ClearItems();
             _RearrangeMenuItems();
         }
