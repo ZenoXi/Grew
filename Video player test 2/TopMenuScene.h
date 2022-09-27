@@ -31,4 +31,6 @@ private:
     std::unique_ptr<zcom::TopMenuButton> _helpButton = nullptr;
 
     std::unique_ptr<zcom::MenuPanel> _menuPanel = nullptr;
+
+    bool _homePopupOpen = false;
 };

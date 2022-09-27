@@ -1,9 +1,15 @@
 #include "App.h" // App.h must be included first
 #include "TopMenuScene.h"
 
+#include "Network.h"
+#include "ClientManager.h"
+#include "ServerManager.h"
+#include "Network.h"
+
 #include "OverlayScene.h"
 #include "SettingsScene.h"
 #include "EntryScene.h"
+#include "PopupScene.h"
 
 TopMenuScene::TopMenuScene(App* app)
     : Scene(app)
@@ -26,6 +32,57 @@ void TopMenuScene::_Init(const SceneOptionsBase* options)
     offset += _homeButton->GetBaseWidth();
     _homeButton->SetOnActivated([&]()
     {
+        // If home page already open, ignore click
+        if (_app->FindActiveScene(EntryScene::StaticName()))
+            return;
+
+        // Check if server running/connected
+        auto clientManager = APP_NETWORK->GetManager<znet::ClientManager>();
+        if (clientManager)
+        {
+            PopupSceneOptions opt;
+            opt.popupImage = ResourceManager::GetImage("warning_32x32");
+            opt.popupImageTint = D2D1::ColorF(0.8f, 0.65f, 0.0f);
+            opt.popupText = L"You are connected to a server. Going to the home page will disconnect you from the server.\n\nContinue?";
+            opt.leftButtonText = L"Ok";
+            opt.rightButtonText = L"Cancel";
+            opt.rightButtonColor = D2D1::ColorF(0.5f, 0.2f, 0.2f);
+
+            _homePopupOpen = true;
+            _homeButton->SetActive(false);
+            _settingsButton->SetActive(false);
+            _toolsButton->SetActive(false);
+            _helpButton->SetActive(false);
+
+            _app->InitScene(PopupScene::StaticName(), &opt);
+            _app->MoveSceneToFront(PopupScene::StaticName());
+
+            return;
+        }
+
+        auto serverManager = APP_NETWORK->GetManager<znet::ServerManager>();
+        if (serverManager)
+        {
+            PopupSceneOptions opt;
+            opt.popupImage = ResourceManager::GetImage("warning_32x32");
+            opt.popupImageTint = D2D1::ColorF(0.8f, 0.65f, 0.0f);
+            opt.popupText = L"You are running a server. Going to the home page will close it.\n\nContinue?";
+            opt.leftButtonText = L"Ok";
+            opt.rightButtonText = L"Cancel";
+            opt.rightButtonColor = D2D1::ColorF(0.5f, 0.2f, 0.2f);
+
+            _homePopupOpen = true;
+            _homeButton->SetActive(false);
+            _settingsButton->SetActive(false);
+            _toolsButton->SetActive(false);
+            _helpButton->SetActive(false);
+
+            _app->InitScene(PopupScene::StaticName(), &opt);
+            _app->MoveSceneToFront(PopupScene::StaticName());
+
+            return;
+        }
+        
         _app->InitScene(EntryScene::StaticName(), nullptr);
         _app->MoveSceneToFront(EntryScene::StaticName());
     });
@@ -109,4 +166,25 @@ void TopMenuScene::_Focus()
 void TopMenuScene::_Update()
 {
     _canvas->Update();
+
+    if (_homePopupOpen)
+    {
+        PopupScene* scene = (PopupScene*)_app->FindActiveScene(PopupScene::StaticName());
+        if (scene && scene->CloseScene())
+        {
+            _app->UninitScene(PopupScene::StaticName());
+            _homePopupOpen = false;
+            _homeButton->SetActive(true);
+            _settingsButton->SetActive(true);
+            _toolsButton->SetActive(true);
+            _helpButton->SetActive(true);
+
+            if (scene->LeftClicked())
+            {
+                APP_NETWORK->CloseManager();
+                _app->InitScene(EntryScene::StaticName(), nullptr);
+                _app->MoveSceneToFront(EntryScene::StaticName());
+            }
+        }
+    }
 }
