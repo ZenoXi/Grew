@@ -630,29 +630,29 @@ void App::_HandleNetworkStateChanges()
 
         if (ev.newMode == znet::NetworkMode::OFFLINE)
         {
-            _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
-            playlist.SetEventHandler<PlaylistEventHandler_Offline>();
-
             usersServer.SetEventHandler<UsersEventHandler_Offline>();
             users.SetEventHandler<UsersEventHandler_Offline>();
+
+            _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
+            playlist.SetEventHandler<PlaylistEventHandler_Offline>();
         }
         else if (ev.newMode == znet::NetworkMode::CLIENT)
         {
-            _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
-            playlist.SetEventHandler<PlaylistEventHandler_Client>();
-
             usersServer.SetEventHandler<UsersEventHandler_Offline>();
             users.SetEventHandler<UsersEventHandler_Client>();
+
+            _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
+            playlist.SetEventHandler<PlaylistEventHandler_Client>();
         }
         else if (ev.newMode == znet::NetworkMode::SERVER)
         {
+            usersServer.SetEventHandler<UsersEventHandler_Server>();
+            users.SetEventHandler<UsersEventHandler_Client>();
+
             // _serverPlaylist should be created first, because client handler
             // constructor synchronously sends packets to the server playlist
             _serverPlaylist.SetEventHandler<PlaylistEventHandler_Server>();
             playlist.SetEventHandler<PlaylistEventHandler_Client>();
-
-            usersServer.SetEventHandler<UsersEventHandler_Server>();
-            users.SetEventHandler<UsersEventHandler_Client>();
         }
     }
 }
