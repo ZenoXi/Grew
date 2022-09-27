@@ -75,7 +75,10 @@ namespace zcom
             // Draw the seek bar
             float progress = _currentTime.GetTicks() / (double)_duration.GetTicks();
             float bufferProgress = _buffered.GetTicks() / (double)_duration.GetTicks();
-            if (progress > 1.0f) progress = 1.0f;
+            if (progress > 1.0f)
+                progress = 1.0f;
+            if (bufferProgress > 1.0f)
+                bufferProgress > 1.0f;
             int timeTextWidth = ceilf(_maxTimeWidth) + _margins * 2;
             int seekBarWidth = GetWidth() - timeTextWidth * 2;
             int viewedPartWidth = seekBarWidth * progress;
