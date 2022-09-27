@@ -3,6 +3,7 @@
 #include "App.h"
 #include "OverlayScene.h"
 #include "PlaybackOverlayScene.h"
+#include "Network.h"
 
 #include "Permissions.h"
 #include "Options.h"
@@ -610,10 +611,13 @@ void zcom::PlaybackController::_SetupStreamMenu()
     }
 
     // Create subtitle add option
-    auto addSubtitlesItem = Create<zcom::MenuItem>(L"Add subtitles from file", [&](bool) { _ShowSubtitleOpenDialog(); });
-    addSubtitlesItem->SetIcon(ResourceManager::GetImage("plus_13x13"));
-    _subtitleStreamMenuPanel->AddItem(std::move(addSubtitlesItem));
-    _subtitleStreamMenuPanel->AddItem(Create<zcom::MenuItem>());
+    if (!APP_NETWORK->GetManager<void>())
+    {
+        auto addSubtitlesItem = Create<zcom::MenuItem>(L"Add subtitles from file", [&](bool) { _ShowSubtitleOpenDialog(); });
+        addSubtitlesItem->SetIcon(ResourceManager::GetImage("plus_13x13"));
+        _subtitleStreamMenuPanel->AddItem(std::move(addSubtitlesItem));
+        _subtitleStreamMenuPanel->AddItem(Create<zcom::MenuItem>());
+    }
     // Create subtitle stream disable option
     auto noSubtitleStreamItem = Create<zcom::MenuItem>(L"None", [&](bool) { _playback->Controller()->SetSubtitleStream(-1); });
     noSubtitleStreamItem->SetCheckable(true);
