@@ -350,6 +350,7 @@ void EntryScene::_Update()
         {
             if (scene->CloseScene())
             {
+                _connectPanelOpen = false;
                 if (scene->ConnectionSuccessful())
                 {
                     App::Instance()->UninitScene(ConnectScene::StaticName());
@@ -359,7 +360,6 @@ void EntryScene::_Update()
                 else
                 {
                     App::Instance()->UninitScene(ConnectScene::StaticName());
-                    _connectPanelOpen = false;
                 }
             }
         }
@@ -377,6 +377,7 @@ void EntryScene::_Update()
         {
             if (scene->CloseScene())
             {
+                _startServerPanelOpen = false;
                 if (scene->StartSuccessful())
                 {
                     App::Instance()->UninitScene(StartServerScene::StaticName());
@@ -386,7 +387,6 @@ void EntryScene::_Update()
                 else
                 {
                     App::Instance()->UninitScene(StartServerScene::StaticName());
-                    _startServerPanelOpen = false;
                 }
             }
         }
