@@ -63,8 +63,8 @@ void SettingsScene::_Init(const SceneOptionsBase* options)
     _selectedTabSeparator->SetBaseSize(2, 30);
     _selectedTabSeparator->SetOffsetPixels(150 + 30 - 2, 70);
     _selectedTabSeparator->SetBorderVisibility(true);
-    _selectedTabSeparator->SetBorderColor(D2D1::ColorF(0.1176f * 0.7f, 0.5647f * 0.7f, 1.0f * 0.7f));
-    //_selectedTabSeparator->SetBorderColor(D2D1::ColorF(D2D1::ColorF::DodgerBlue));
+    //_selectedTabSeparator->SetBorderColor(D2D1::ColorF(0.1176f * 0.7f, 0.5647f * 0.7f, 1.0f * 0.7f));
+    _selectedTabSeparator->SetBorderColor(D2D1::ColorF(D2D1::ColorF::DodgerBlue));
     _selectedTabSeparator->SetZIndex(1);
 
     _sideMenuPanel = Create<zcom::DirectionalPanel>(zcom::PanelDirection::DOWN);
