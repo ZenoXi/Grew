@@ -27,6 +27,10 @@ void SavePlaylistScene::_Init(const SceneOptionsBase* options)
         _renaming = true;
         _playlistPath = opt.openedPlaylistPath;
     }
+    if (!opt.selectedItemPaths.empty())
+    {
+        _selectedItemPaths = opt.selectedItemPaths;
+    }
 
     zcom::PROP_Shadow shadowProps;
     shadowProps.blurStandardDeviation = 5.0f;
@@ -34,7 +38,10 @@ void SavePlaylistScene::_Init(const SceneOptionsBase* options)
 
     // Main selection
     _mainPanel = Create<zcom::Panel>();
-    _mainPanel->SetBaseSize(500, 280);
+    if (opt.showPartialSaveWarning)
+        _mainPanel->SetBaseSize(500, 310);
+    else
+        _mainPanel->SetBaseSize(500, 280);
     _mainPanel->SetAlignment(zcom::Alignment::CENTER, zcom::Alignment::CENTER);
     _mainPanel->SetBackgroundColor(D2D1::ColorF(0.2f, 0.2f, 0.2f));
     _mainPanel->SetCornerRounding(5.0f);
@@ -97,6 +104,29 @@ void SavePlaylistScene::_Init(const SceneOptionsBase* options)
     _overwriteExistingLabel->SetOffsetPixels(60, 159);
     _overwriteExistingLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
 
+    if (opt.showPartialSaveWarning)
+    {
+        _partialSaveWarningSeparator = Create<zcom::EmptyPanel>();
+        _partialSaveWarningSeparator->SetBaseSize(-60, 1);
+        _partialSaveWarningSeparator->SetParentWidthPercent(1.0f);
+        _partialSaveWarningSeparator->SetVerticalOffsetPixels(199);
+        _partialSaveWarningSeparator->SetHorizontalAlignment(zcom::Alignment::CENTER);
+        _partialSaveWarningSeparator->SetBorderVisibility(true);
+        _partialSaveWarningSeparator->SetBorderColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
+
+        _partialSaveWarningIcon = Create<zcom::Image>(ResourceManager::GetImage("warning_19x19"));
+        _partialSaveWarningIcon->SetBaseSize(19, 19);
+        _partialSaveWarningIcon->SetOffsetPixels(31, 205);
+        _partialSaveWarningIcon->SetTintColor(D2D1::ColorF(0.8f, 0.65f, 0.0f));
+
+        _partialSaveWarningLabel = Create<zcom::Label>(L"Items hosted by other users will not be saved");
+        _partialSaveWarningLabel->SetBaseSize(-88, 20);
+        _partialSaveWarningLabel->SetParentWidthPercent(1.0f);
+        _partialSaveWarningLabel->SetOffsetPixels(58, 204);
+        _partialSaveWarningLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
+        _partialSaveWarningLabel->SetFontStyle(DWRITE_FONT_STYLE_ITALIC);
+    }
+
     _bottomSeparator = Create<zcom::EmptyPanel>();
     _bottomSeparator->SetBaseSize(-60, 1);
     _bottomSeparator->SetParentWidthPercent(1.0f);
@@ -141,6 +171,12 @@ void SavePlaylistScene::_Init(const SceneOptionsBase* options)
     _mainPanel->AddItem(_playlistFilenameLabel.get());
     _mainPanel->AddItem(_overwriteExistingCheckbox.get());
     _mainPanel->AddItem(_overwriteExistingLabel.get());
+    if (opt.showPartialSaveWarning)
+    {
+        _mainPanel->AddItem(_partialSaveWarningSeparator.get());
+        _mainPanel->AddItem(_partialSaveWarningIcon.get());
+        _mainPanel->AddItem(_partialSaveWarningLabel.get());
+    }
     _mainPanel->AddItem(_bottomSeparator.get());
     _mainPanel->AddItem(_saveErrorLabel.get());
     _mainPanel->AddItem(_saveButton.get());
@@ -166,6 +202,9 @@ void SavePlaylistScene::_Uninit()
     _playlistFilenameLabel = nullptr;
     _overwriteExistingCheckbox = nullptr;
     _overwriteExistingLabel = nullptr;
+    _partialSaveWarningSeparator = nullptr;
+    _partialSaveWarningIcon = nullptr;
+    _partialSaveWarningLabel = nullptr;
     _bottomSeparator = nullptr;
     _saveButton = nullptr;
     _saveErrorLabel = nullptr;
@@ -276,6 +315,7 @@ void SavePlaylistScene::_SaveClicked()
                 continue;
 
             filename = filenamess.str();
+            break;
         }
     }
     else
@@ -349,12 +389,45 @@ void SavePlaylistScene::_SaveClicked()
     }
     else
     {
-        auto readyItems = _app->playlist.ReadyItems();
-        auto loadingItems = _app->playlist.LoadingItems();
-        for (int i = 0; i < readyItems.size(); i++)
-            outbuf << readyItems[i]->GetFilePath() << std::endl;
-        for (int i = 0; i < loadingItems.size(); i++)
-            outbuf << loadingItems[i]->GetFilePath() << std::endl;
+        if (_selectedItemPaths.empty())
+        {
+            auto readyItems = _app->playlist.ReadyItems();
+            auto loadingItems = _app->playlist.LoadingItems();
+
+            bool pathWritten = false;
+            // Write to out buf
+            for (int i = 0; i < readyItems.size(); i++)
+            {
+                std::wstring path = readyItems[i]->GetFilePath();
+                if (!path.empty())
+                {
+                    outbuf << path << std::endl;
+                    pathWritten = true;
+                }
+            }
+            for (int i = 0; i < loadingItems.size(); i++)
+            {
+                std::wstring path = loadingItems[i]->GetFilePath();
+                if (!path.empty())
+                {
+                    outbuf << path << std::endl;
+                    pathWritten = true;
+                }
+            }
+
+            // If nothing was written, show error message
+            if (!pathWritten)
+            {
+                _saveErrorLabel->SetText(L"The playlist has no items that can be saved");
+                _saveErrorLabel->SetVisible(true);
+                return;
+            }
+        }
+        else
+        {
+            for (int i = 0; i < _selectedItemPaths.size(); i++)
+                outbuf << _selectedItemPaths[i] << std::endl;
+        }
     }
 
     /////////////////////////////

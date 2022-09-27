@@ -264,6 +264,18 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
         _savePlaylistSceneOpen = true;
         SavePlaylistSceneOptions opt;
         opt.openedPlaylistName = _currentPlaylistName;
+
+        // Find atleast one non-local item
+        for (auto& item : _readyItems)
+        {
+            PlaylistItem* pitem = _app->playlist.GetItem(item->GetItemId());
+            if (pitem && pitem->GetUserId() != _app->users.GetThisUser()->id)
+            {
+                opt.showPartialSaveWarning = true;
+                break;
+            }
+        }
+
         App::Instance()->InitScene(SavePlaylistScene::StaticName(), &opt);
         App::Instance()->MoveSceneToFront(SavePlaylistScene::StaticName());
     });
@@ -773,6 +785,7 @@ void PlaybackOverlayScene::_Update()
     _RearrangePlaylistPanel();
     _RearrangeNetworkPanel();
     _UpdatePermissions();
+    _UpdateMisc();
 
     _UpdateItemAppearance();
 }
@@ -1601,6 +1614,16 @@ void PlaybackOverlayScene::_UpdatePermissions()
     _openPlaylistButton->SetActive(allowItemAdd);
 }
 
+void PlaybackOverlayScene::_UpdateMisc()
+{
+    // Gray out playlist save button if there are no items in playlist
+    if (_readyItems.empty() && _loadingItems.empty())
+        _savePlaylistButton->SetActive(false);
+    else
+        _savePlaylistButton->SetActive(true);
+
+}
+
 void PlaybackOverlayScene::_InvokePlaylistChange()
 {
     while (_playlistChangedReceiver->EventCount() > 0)
@@ -1970,6 +1993,23 @@ void PlaybackOverlayScene::_ShowPlaylistContextMenu(int x, int y, int64_t itemId
         showClearSelectedItems = false;
         showSaveSelectedToPlaylist = false;
     }
+    else
+    {
+        // Find atleast 1 item hosted by the local user
+        bool allNonLocal = true;
+        for (auto& itemId : _selectedItemIds)
+        {
+            PlaylistItem* pitem = _app->playlist.GetItem(itemId);
+            if (pitem && pitem->GetUserId() == _app->users.GetThisUser()->id)
+            {
+                allNonLocal = false;
+                break;
+            }
+        }
+        // Otherwise don't show playlist save option
+        if (allNonLocal)
+            showSaveSelectedToPlaylist = false;
+    }
     if (_loadingItems.empty())
     {
         showClearLoadingItems = false;
@@ -2071,9 +2111,41 @@ void PlaybackOverlayScene::_ShowPlaylistContextMenu(int x, int y, int64_t itemId
 
         auto menuItem = Create<zcom::MenuItem>(L"Save selected items to playlist", [&](bool)
         {
+            SavePlaylistSceneOptions opt;
 
+            // Iterate through ready items instead of using the _selectedItemIds directly
+            // to keep order the same as playlist
+            for (auto& item : _readyItems)
+            {
+                if (_selectedItemIds.find(item->GetItemId()) == _selectedItemIds.end())
+                    continue;
+
+                PlaylistItem* pitem = _app->playlist.GetItem(item->GetItemId());
+                if (pitem)
+                {
+                    if (pitem->GetUserId() == _app->users.GetThisUser()->id)
+                    {
+                        std::wstring path = pitem->GetFilePath();
+                        if (!path.empty())
+                            opt.selectedItemPaths.push_back(path);
+                    }
+                    else
+                    {
+                        opt.showPartialSaveWarning = true;
+                    }
+                }
+            }
+
+            // TODO: add feedback to the edge case where path vector is empty
+
+            // Open playlist save scene
+            if (!opt.selectedItemPaths.empty())
+            {
+                _savePlaylistSceneOpen = true;
+                App::Instance()->InitScene(SavePlaylistScene::StaticName(), &opt);
+                App::Instance()->MoveSceneToFront(SavePlaylistScene::StaticName());
+            }
         });
-        menuItem->SetDisabled(true);
         _itemContextMenu->AddItem(std::move(menuItem));
     }
 

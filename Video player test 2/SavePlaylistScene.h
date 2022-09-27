@@ -17,6 +17,14 @@ struct SavePlaylistSceneOptions : public SceneOptionsBase
     std::wstring openedPlaylistName;
     // If path is not empty, the playlist file will be renamed
     std::wstring openedPlaylistPath;
+
+    // If this vector is not empty, use the paths in it instead
+    // of fetching directly from the playlist
+    std::vector<std::wstring> selectedItemPaths;
+
+    // If true, a warning will be shown informing that some items
+    // will not be saved as they are hosted by others
+    bool showPartialSaveWarning = false;
 };
 
 class SavePlaylistScene : public Scene
@@ -40,6 +48,9 @@ private:
     std::unique_ptr<zcom::Label> _playlistFilenameLabel = nullptr;
     std::unique_ptr<zcom::Checkbox> _overwriteExistingCheckbox = nullptr;
     std::unique_ptr<zcom::Label> _overwriteExistingLabel = nullptr;
+    std::unique_ptr<zcom::EmptyPanel> _partialSaveWarningSeparator = nullptr;
+    std::unique_ptr<zcom::Image> _partialSaveWarningIcon = nullptr;
+    std::unique_ptr<zcom::Label> _partialSaveWarningLabel = nullptr;
     std::unique_ptr<zcom::EmptyPanel> _bottomSeparator = nullptr;
     std::unique_ptr<zcom::Button> _saveButton = nullptr;
     std::unique_ptr<zcom::Label> _saveErrorLabel = nullptr;
@@ -48,6 +59,8 @@ private:
     std::wstring _playlistName = L"";
     bool _renaming = false;
     std::wstring _playlistPath = L"";
+
+    std::vector<std::wstring> _selectedItemPaths;
 
 private:
     void _Init(const SceneOptionsBase* options);

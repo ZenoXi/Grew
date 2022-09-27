@@ -134,6 +134,7 @@ private:
     void _RearrangeNetworkPanel_Offline();
     void _RearrangeNetworkPanel_Online();
     void _UpdatePermissions();
+    void _UpdateMisc();
 
     int _ITEM_HEIGHT = 25;
 
