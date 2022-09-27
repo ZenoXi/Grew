@@ -152,7 +152,7 @@ void PlaylistEventHandler_Server::_CheckForItemAddRequest()
         reader.Get((wchar_t*)filename.data(), filename.length());
 
         // Check permissions
-        auto user = App::Instance()->users.GetUser(userId);
+        auto user = App::Instance()->usersServer.GetUser(userId);
         if (!user || !user->GetPermission(PERMISSION_ADD_ITEMS))
         {
             APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_ADD_DENIED).From(callbackId), { userId }, 1);
@@ -196,7 +196,7 @@ void PlaylistEventHandler_Server::_CheckForItemRemoveRequest()
         int64_t mediaId = reader.Get<int64_t>();
 
         // Check permissions
-        auto user = App::Instance()->users.GetUser(userId);
+        auto user = App::Instance()->usersServer.GetUser(userId);
         if (!user || !user->GetPermission(PERMISSION_MANAGE_ITEMS))
         {
             APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_REMOVE_DENIED), { userId }, 1);
@@ -247,7 +247,7 @@ void PlaylistEventHandler_Server::_CheckForStartRequest()
         int64_t mediaId = reader.Get<int64_t>();
 
         // Check permissions
-        auto user = App::Instance()->users.GetUser(userId);
+        auto user = App::Instance()->usersServer.GetUser(userId);
         if (!user || !user->GetPermission(PERMISSION_START_STOP_PLAYBACK))
         {
             APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_START_DENIED), { userId }, 1);
@@ -356,7 +356,7 @@ void PlaylistEventHandler_Server::_CheckForStopRequest()
         int64_t userId = packetPair.second;
 
         // Check permissions
-        auto user = App::Instance()->users.GetUser(userId);
+        auto user = App::Instance()->usersServer.GetUser(userId);
         if (!user || !user->GetPermission(PERMISSION_START_STOP_PLAYBACK))
         {
             APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYBACK_STOP_DENIED), { userId }, 1);
@@ -443,7 +443,7 @@ void PlaylistEventHandler_Server::_CheckForItemMoveRequest()
         reader.Get(mediaIds.data(), itemCount);
 
         // Check permissions
-        auto user = App::Instance()->users.GetUser(userId);
+        auto user = App::Instance()->usersServer.GetUser(userId);
         if (!user || !user->GetPermission(PERMISSION_MANAGE_ITEMS))
         {
             APP_NETWORK->Send(znet::Packet((int)znet::PacketType::PLAYLIST_ITEM_MOVE_DENIED).From(callbackId), { userId }, 1);
