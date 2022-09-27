@@ -313,7 +313,10 @@ void ManagePlaylistsScene::_RearrangeSavedPlaylists()
         renameButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
         renameButton->SetButtonHoverColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.2f));
         renameButton->SetButtonClickColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.4f));
-        renameButton->SetButtonImageAll(ResourceManager::GetImage("edit"));
+        renameButton->SetButtonImageAll(ResourceManager::GetImage("edit_15x15"));
+        renameButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::CENTER);
+        renameButton->UseImageParamsForAll(renameButton->ButtonImage());
+        renameButton->ButtonImage()->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
         renameButton->SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
         renameButton->SetActivation(zcom::ButtonActivation::RELEASE);
         renameButton->SetOnActivated([&, i]()
@@ -333,7 +336,10 @@ void ManagePlaylistsScene::_RearrangeSavedPlaylists()
         deleteButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
         deleteButton->SetButtonHoverColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.2f));
         deleteButton->SetButtonClickColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.4f));
-        deleteButton->SetButtonImageAll(ResourceManager::GetImage("delete"));
+        deleteButton->SetButtonImageAll(ResourceManager::GetImage("delete_15x15"));
+        deleteButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::CENTER);
+        deleteButton->UseImageParamsForAll(deleteButton->ButtonImage());
+        deleteButton->ButtonImage()->SetTintColor(D2D1::ColorF(0.8f, 0.8f, 0.8f));
         deleteButton->SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
         deleteButton->SetActivation(zcom::ButtonActivation::RELEASE);
         deleteButton->SetOnActivated([&, i]()
