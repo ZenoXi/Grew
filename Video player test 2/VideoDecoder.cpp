@@ -169,7 +169,7 @@ void VideoDecoder::_DecoderThread()
 
         int err = 0;
         AVPixelFormat outputFormat = _codecContext->pix_fmt;
-        while (_hwAccelerated)
+        while (_hwAccelerated && frame->hw_frames_ctx)
         {
             AVPixelFormat* pformats;
             err = av_hwframe_transfer_get_formats(frame->hw_frames_ctx, AV_HWFRAME_TRANSFER_DIRECTION_FROM, &pformats, 0);
