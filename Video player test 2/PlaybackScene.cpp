@@ -121,7 +121,10 @@ void PlaybackScene::_Init(const SceneOptionsBase* options)
     _canvas->AddOnLeftPressed([&](const zcom::EventTargets* targets)
     {
         // If the click didn't hit the playback controller, pause/resume
-        if (!targets->Contains(_playbackController.get()))
+        // Also check for a playback controller panel hit, to filter out
+        // hits in the top menu
+        if (!targets->Contains(_playbackController.get()) &&
+            targets->Contains(_playbackControllerPanel.get()))
         {
             if (_playback->Initializing())
                 return false;
