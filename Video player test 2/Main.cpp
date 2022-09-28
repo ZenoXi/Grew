@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS
+
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -20,8 +22,11 @@
 
 #pragma comment( lib,"Winmm.lib" )
 
-int WINAPI main(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
+int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
 {
+    AllocConsole();
+    freopen("CONOUT$", "w", stdout);
+
     // Initialize WSA 
     znet::WSAHolder holder = znet::WSAHolder();
 
