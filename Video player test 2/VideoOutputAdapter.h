@@ -6,6 +6,7 @@ class VideoOutputAdapter
 {
     std::unique_ptr<IVideoFrame> _frame;
     std::atomic<bool> _frameChanged{ false };
+    uint64_t _frameCounter = 0;
 
 public:
     VideoOutputAdapter() : _frame(nullptr) {}
@@ -15,6 +16,7 @@ public:
     {
         _frame = std::move(frame);
         _frameChanged.store(true);
+        _frameCounter++;
     }
 
     IVideoFrame* GetFrameData() const
@@ -25,5 +27,10 @@ public:
     bool FrameChanged()
     {
         return _frameChanged.exchange(false);
+    }
+
+    uint64_t FrameNumber() const
+    {
+        return _frameCounter;
     }
 };

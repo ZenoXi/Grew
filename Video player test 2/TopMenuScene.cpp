@@ -82,7 +82,7 @@ void TopMenuScene::_Init(const SceneOptionsBase* options)
 
             return;
         }
-        
+
         _app->InitScene(EntryScene::StaticName(), nullptr);
         _app->MoveSceneToFront(EntryScene::StaticName());
     });
