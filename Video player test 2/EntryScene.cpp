@@ -322,6 +322,8 @@ void EntryScene::_Uninit()
     _shareInfoLabel = nullptr;
     _fileInfoLabel = nullptr;
     _playlistInfoLabel = nullptr;
+
+    _popoutPlaybackView = nullptr;
 }
 
 void EntryScene::_Focus()
@@ -422,6 +424,40 @@ void EntryScene::_Update()
                 App::Instance()->UninitScene(GetName());
                 App::Instance()->MoveSceneToFront(PlaybackScene::StaticName());
             }
+        }
+    }
+
+    // Check for playback
+    if (!_app->playback.Initializing())
+    {
+        if (!_popoutPlaybackView)
+        {
+            _popoutPlaybackView = Create<zcom::PlaybackView>();
+            _popoutPlaybackView->SetBaseSize(320, 180);
+            _popoutPlaybackView->SetOffsetPixels(-30, -30);
+            _popoutPlaybackView->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
+            _popoutPlaybackView->SetBackgroundColor(D2D1::ColorF(0));
+            zcom::PROP_Shadow popoutShadow;
+            popoutShadow.blurStandardDeviation = 5.0f;
+            popoutShadow.color = D2D1::ColorF(0, 0.75f);
+            popoutShadow.offsetX = 2.0f;
+            popoutShadow.offsetY = 2.0f;
+            _popoutPlaybackView->SetProperty(popoutShadow);
+            _popoutPlaybackView->SetZIndex(1);
+            _popoutPlaybackView->SetDefaultCursor(CursorIcon::HAND);
+            _popoutPlaybackView->AddOnLeftPressed([&](zcom::Base*, int, int)
+            {
+                OnPlaylistSelected();
+            });
+            _canvas->AddComponent(_popoutPlaybackView.get());
+        }
+    }
+    else
+    {
+        if (_popoutPlaybackView)
+        {
+            _canvas->RemoveComponent(_popoutPlaybackView.get());
+            _popoutPlaybackView = nullptr;
         }
     }
 }

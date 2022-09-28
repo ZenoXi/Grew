@@ -9,6 +9,7 @@
 #include "TextInput.h"
 #include "Label.h"
 #include "LoadingImage.h"
+#include "PlaybackView.h"
 
 #include "FileDialog.h"
 
@@ -40,6 +41,8 @@ class EntryScene : public Scene
     std::unique_ptr<zcom::Label> _shareInfoLabel = nullptr;
     std::unique_ptr<zcom::Label> _fileInfoLabel = nullptr;
     std::unique_ptr<zcom::Label> _playlistInfoLabel = nullptr;
+
+    std::unique_ptr<zcom::PlaybackView> _popoutPlaybackView = nullptr;
     
     bool _connectPanelOpen = false;
     bool _startServerPanelOpen = false;
