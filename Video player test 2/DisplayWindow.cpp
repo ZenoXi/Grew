@@ -5,6 +5,7 @@
 #include "OptionNames.h"
 #include "BoolOptionAdapter.h"
 
+#include "resource.h"
 #include "TintEffect.h"
 
 #include <iostream>
@@ -31,17 +32,17 @@ DisplayWindow::DisplayWindow(HINSTANCE hInst, wchar_t* pArgs, LPCWSTR name) : _a
     _cursor = LoadCursor(NULL, IDC_ARROW);
     WNDCLASSEX wc = {
         sizeof(WNDCLASSEX),
-        CS_CLASSDC,
+        0/*CS_CLASSDC*/,
         _HandleMsgSetup,
         0,
         0,
         hInst,
-        nullptr,
+        LoadIcon(hInst, MAKEINTRESOURCE(GREW_ICON)),
         NULL,//_cursor,
         nullptr,
         nullptr,
         _wndClassName,
-        nullptr
+        NULL //LoadIcon(hInst, MAKEINTRESOURCE(GREW_ICON))
     };
     
     RegisterClassEx(&wc);
