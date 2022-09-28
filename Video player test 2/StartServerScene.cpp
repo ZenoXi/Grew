@@ -59,12 +59,6 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     _portInput->SetOffsetPixels(120, 90);
     _portInput->SetCornerRounding(5.0f);
     _portInput->SetTabIndex(0);
-    _portInput->Text()->SetFont(L"Monocraft");
-    _portInput->Text()->SetFontWeight(DWRITE_FONT_WEIGHT_MEDIUM);
-    //_portInput->Text()->SetFontStretch(DWRITE_FONT_STRETCH_UNDEFINED);
-    //_portInput->Text()->SetFont(L"Mongolian Baiti Regular");
-    //_portInput->SetTextAreaMargins({ 0, 0, 20 });
-    //_portInput->SetMultiline(true);
     _portInput->SetPattern(
         L"^[1-9]"
         "|[1-9][0-9]"
