@@ -24,6 +24,7 @@
 #include "EntryScene.h"
 #include "PlaybackScene.h"
 #include "PlaybackOverlayScene.h"
+#include "ConnectScene.h"
 
 #include "Event.h"
 
@@ -75,6 +76,20 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR cmdLine, INT)
         }
     }
 
+    // Find -c flag
+    std::wstring connectURL;
+    for (int i = 0; i < args.size(); i++)
+    {
+        if (args[i] == L"-c" && i + 1 < args.size())
+        {
+            if (args[i + 1].substr(0, 7) == L"grew://")
+                connectURL = args[i + 1].substr(7);
+            else if (args[i + 1].substr(0, 5) == L"grew:")
+                connectURL = args[i + 1].substr(5);
+            break;
+        }
+    }
+
     // Initialize WSA 
     znet::WSAHolder holder = znet::WSAHolder();
 
@@ -104,6 +119,15 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR cmdLine, INT)
         App::Instance()->playlist.Request_PlayItem(itemId);
 
         App::Instance()->InitScene(PlaybackScene::StaticName(), nullptr);
+        App::Instance()->InitScene(PlaybackOverlayScene::StaticName(), nullptr);
+    }
+    else if (!connectURL.empty())
+    {
+        ConnectSceneOptions opt;
+        opt.connectionString = connectURL;
+        opt.owned = false;
+
+        App::Instance()->InitScene(ConnectScene::StaticName(), &opt);
         App::Instance()->InitScene(PlaybackOverlayScene::StaticName(), nullptr);
     }
     else
