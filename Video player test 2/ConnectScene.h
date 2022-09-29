@@ -14,7 +14,10 @@
 
 struct ConnectSceneOptions : public SceneOptionsBase
 {
-
+    std::wstring connectionString;
+    // If owned is true, other code will close this scene on close click
+    // Otherwise, clicking the close button will close this scene immediatelly
+    bool owned = true;
 };
 
 class ConnectScene : public Scene
@@ -51,6 +54,7 @@ class ConnectScene : public Scene
     uint16_t _port;
     bool _connectionSuccessful = false;
     bool _closeScene = false;
+    bool _owned = false;
 
 public:
     ConnectScene(App* app);
@@ -72,13 +76,15 @@ public:
     bool CloseScene() const;
 
 private:
-    void _ConnectClicked();
+    void _ConnectClicked(std::wstring password = L"");
     void _CancelClicked();
     void _PwContinueClicked();
     void _PwCancelClicked();
 
     void _OpenPasswordInput();
     void _ClosePasswordInput();
+
+    void _ProcessConnectionString(std::wstring str);
 
 private:
     void _RearrangeRecentConnectionsPanel();

@@ -21,6 +21,7 @@ void ConnectScene::_Init(const SceneOptionsBase* options)
     {
         opt = *reinterpret_cast<const ConnectSceneOptions*>(options);
     }
+    _owned = opt.owned;
 
     zcom::PROP_Shadow mainPanelShadow;
     mainPanelShadow.blurStandardDeviation = 5.0f;
@@ -251,6 +252,9 @@ void ConnectScene::_Init(const SceneOptionsBase* options)
 
     _connectionSuccessful = false;
     _closeScene = false;
+
+    if (!opt.connectionString.empty())
+        _ProcessConnectionString(opt.connectionString);
 }
 
 void ConnectScene::_Uninit()
@@ -322,6 +326,9 @@ void ConnectScene::_Update()
 
                     // Save used username
                     Options::Instance()->SetValue(OPTIONS_LAST_USERNAME, _usernameInput->Text()->GetText());
+
+                    if (!_owned)
+                        _app->UninitScene(this->GetName());
                 }
                 else if (manager->PasswordRequired())
                 {
@@ -403,7 +410,7 @@ bool ConnectScene::CloseScene() const
     return _closeScene;
 }
 
-void ConnectScene::_ConnectClicked()
+void ConnectScene::_ConnectClicked(std::wstring password)
 {
     if (!_connecting)
     {
@@ -448,7 +455,7 @@ void ConnectScene::_ConnectClicked()
             _connectLoadingInfoLabel->SetVisible(false);
             _ip = wstring_to_string(ip);
             _port = str_to_int(wstring_to_string(port));
-            APP_NETWORK->SetManager(std::make_unique<znet::ClientManager>(_ip, _port));
+            APP_NETWORK->SetManager(std::make_unique<znet::ClientManager>(_ip, _port, wstring_to_string(password)));
 
             LastIpOptionAdapter optAdapter(Options::Instance()->GetValue(OPTIONS_RECENT_IPS));
             bool ipValid = optAdapter.AddIp(ip, port);
@@ -473,6 +480,9 @@ void ConnectScene::_CancelClicked()
     }
     _connectionSuccessful = false;
     _closeScene = true;
+
+    if (!_owned)
+        _app->UninitScene(this->GetName());
 }
 
 void ConnectScene::_PwContinueClicked()
@@ -502,6 +512,32 @@ void ConnectScene::_ClosePasswordInput()
 {
     _dimPanel->SetVisible(false);
     _passwordPanel->SetVisible(false);
+}
+
+void ConnectScene::_ProcessConnectionString(std::wstring str)
+{
+    std::vector<std::wstring> urlParts;
+    split_wstr(str, urlParts, L'/', true);
+
+    if (urlParts.empty())
+        return;
+    // Get ip:port
+    if (urlParts.size() >= 1)
+    {
+        std::array<std::wstring, 2> addrParts;
+        split_wstr(urlParts[0], addrParts, L':');
+
+        _ipInput->Text()->SetText(addrParts[0]);
+        _portInput->Text()->SetText(addrParts[1]);
+    }
+    // Get password
+    std::wstring password;
+    if (urlParts.size() >= 2)
+    {
+        password = urlParts[1];
+    }
+
+    _ConnectClicked(password);
 }
 
 void ConnectScene::_RearrangeRecentConnectionsPanel()
