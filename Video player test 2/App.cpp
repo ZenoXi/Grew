@@ -29,7 +29,7 @@
 
 App* App::_instance = nullptr;
 
-App::App(DisplayWindow& dw, std::string startScene)
+App::App(DisplayWindow& dw)
   : window(dw),
     _networkModeEventReceiver(&events)
 {
@@ -38,53 +38,13 @@ App::App(DisplayWindow& dw, std::string startScene)
     dw.AddKeyboardHandler(&keyboardManager);
 
     _serverPlaylist.SetEventHandler<PlaylistEventHandler_None>();
-
-    //// Start player
-    //std::cout << "Application mode ([s]erver/[c]lient/[o]ffline): ";
-    //std::string mode;
-    //std::cin >> mode;
-
-    //DisplayWindow::WINDOW_NAME = L"Offline mode";
-    //if (mode == "o" || mode == "offline")
-    //{
-    //    //player = new MediaPlayer("E:/aots4e5comp.m4v", 0);
-    //    player = new MediaPlayer(0, "E:/aots4e5.mkv");
-    //}
-    //else if (mode == "s" || mode == "server")
-    //{
-    //    std::cout << "Enter the port: ";
-    //    USHORT port;
-    //    std::cin >> port;
-    //    std::cout << "Filename: ";
-    //    std::string filename;
-    //    std::cin >> filename;
-    //    player = new MediaPlayer(filename, port);
-    //    //player = new MediaPlayer("E:/aots4e5comp.m4v", 54000);
-    //    //player = new MediaPlayer("E:/blet.mp4", 54000);
-    //    DisplayWindow::WINDOW_NAME = L"Server mode";
-    //}
-    //else if (mode == "c" || mode == "client")
-    //{
-    //    std::cout << "Enter the IP: ";
-    //    std::string ip;
-    //    std::cin >> ip;
-    //    std::cout << "Enter the port: ";
-    //    USHORT port;
-    //    std::cin >> port;
-    //    player = new MediaPlayer(ip, port);
-    //    //player = new MediaPlayer("127.0.0.1", 54000, 0);
-    //    DisplayWindow::WINDOW_NAME = L"Client mode";
-    //}
-
-    // Initialize layout
-    //layout.Create(window, player);
 }
 
-void App::Init(DisplayWindow& dw, std::string startScene)
+void App::Init(DisplayWindow& dw)
 {
     if (!_instance)
     {
-        _instance = new App(dw, startScene);
+        _instance = new App(dw);
     }
 
     // Top menu scene is always initialized
@@ -110,13 +70,6 @@ void App::Init(DisplayWindow& dw, std::string startScene)
     Instance()->_scenes.push_back(new OpenPlaylistScene(_instance));
     Instance()->_scenes.push_back(new SavePlaylistScene(_instance));
     Instance()->_scenes.push_back(new ManagePlaylistsScene(_instance));
-
-    // Init initial scenes
-    std::wstring optStr = Options::Instance()->GetValue(OPTIONS_START_IN_PLAYLIST);
-    bool startInPlaylist = BoolOptionAdapter(optStr).Value();
-    if (!startInPlaylist)
-        Instance()->InitScene(startScene, nullptr);
-    Instance()->InitScene(PlaybackOverlayScene::StaticName(), nullptr);
 
     // Start main loop
     Instance()->_mainThreadController.Add("stop", sizeof(true));

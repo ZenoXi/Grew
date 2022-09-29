@@ -36,10 +36,10 @@ public:
     AppEvents events;
 
 private: // Singleton interface
-    App(DisplayWindow& dw, std::string startScene);
+    App(DisplayWindow& dw);
     static App* _instance;
 public:
-    static void Init(DisplayWindow& dw, std::string startScene);
+    static void Init(DisplayWindow& dw);
     static App* Instance();
 
 private: // Scene control
