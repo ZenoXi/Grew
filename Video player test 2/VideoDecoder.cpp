@@ -70,14 +70,19 @@ void VideoDecoder::_DecoderThread()
 
     SwsContext* swsContext = NULL;
 
+    int currentWidth = 0;
+    int currentHeight = 0;
     uchar* data = nullptr;
     uchar* dest[4] = { NULL, NULL, NULL, NULL };
     int destLinesize[4] = { 0, 0, 0, 0 };
+    constexpr size_t PADDING = 64;
 
     // Codec context might have uninitialized width/height values at this point
     if (_codecContext->width != 0 && _codecContext->height != 0)
     {
-        data = new uchar[_codecContext->width * _codecContext->height * 4];
+        currentWidth = _codecContext->width;
+        currentHeight = _codecContext->height;
+        data = new uchar[currentWidth * currentHeight * 4 + PADDING];
         dest[0] = data;
         destLinesize[0] = _codecContext->width * 4;
     }
@@ -219,10 +224,27 @@ void VideoDecoder::_DecoderThread()
             continue;
         }
 
+        // Account for variable frame size video
+        if (currentWidth != _codecContext->width || currentHeight != _codecContext->height)
+        {
+            currentWidth = _codecContext->width;
+            currentHeight = _codecContext->height;
+            if (data)
+            {
+                delete[] data;
+                data = nullptr;
+            }
+            if (swsContext)
+            {
+                sws_freeContext(swsContext);
+                swsContext = nullptr;
+            }
+        }
+
         // Deferred destination buffer initialization
         if (data == nullptr)
         {
-            data = new uchar[_codecContext->width * _codecContext->height * 4];
+            data = new uchar[currentWidth * currentHeight * 4 + PADDING];
             dest[0] = data;
             destLinesize[0] = _codecContext->width * 4;
         }
@@ -252,9 +274,7 @@ void VideoDecoder::_DecoderThread()
         std::copy_n(data, frame->width * frame->height * 4, pData.get());
         VideoFrame_BGRA* videoFrame = new VideoFrame_BGRA(TimePoint(timestamp, MICROSECONDS), frame->width, frame->height, std::move(pData));
 
-        //VideoFrame* vf = new VideoFrame(frame->width, frame->height, timestamp, discontinuity);
         discontinuity = false;
-        //vf->SetBytes(data);
 
         _m_frames.lock();
         _frames.push((IMediaFrame*)videoFrame);
