@@ -9,20 +9,27 @@
 #include "ChiliWin.h"
 #include <Mmsystem.h>
 #include <bitset>
+#include <vector>
+#include <string>
+#include <memory>
 
 #include "Options.h"
+#include "OptionNames.h"
+#include "BoolOptionAdapter.h"
 #include "NetBase2.h"
 #include "ResourceManager.h"
 #include "DisplayWindow.h"
 #include "App.h"
 #include "Network.h"
 #include "EntryScene.h"
+#include "PlaybackScene.h"
+#include "PlaybackOverlayScene.h"
 
 #include "Event.h"
 
 #pragma comment( lib,"Winmm.lib" )
 
-int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
+int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR cmdLine, INT)
 {
     // Create console
     AllocConsole();
@@ -34,7 +41,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
     GetModuleFileName(NULL, dir.data(), MAX_PATH);
     auto pos = dir.find_last_of(L"\\/");
     std::wstring runDir = dir.substr(0, pos);
-    std::wcout << "Executable path:" << dir << '\n';
+    std::wcout << "Executable path: " << dir << '\n';
 
     if (!SetCurrentDirectory(runDir.data()))
     {
@@ -46,6 +53,28 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
     DWORD a = GetCurrentDirectory(MAX_PATH, path);
     std::wcout << "New working directory: " << path << '\n';
 
+    // Read arguments
+    std::vector<std::wstring> args;
+    int argCount;
+    LPWSTR* pArgs = CommandLineToArgvW(cmdLine, &argCount);
+    for (int i = 0; i < argCount; i++)
+    {
+        args.push_back(std::wstring(pArgs[i]));
+        std::wcout << args[i] << '\n';
+    }
+    LocalFree(pArgs);
+
+    // Find -o flag
+    std::wstring openFilePath;
+    for (int i = 0; i < args.size(); i++)
+    {
+        if (args[i] == L"-o" && i + 1 < args.size())
+        {
+            openFilePath = args[i + 1];
+            break;
+        }
+    }
+
     // Initialize WSA 
     znet::WSAHolder holder = znet::WSAHolder();
 
@@ -53,7 +82,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
     Options::Init();
 
     // Create window
-    DisplayWindow window(hInst, pArgs, L"class");
+    DisplayWindow window(hInst, cmdLine, L"class");
 
     // Load resources
     ResourceManager::Init("Resources/Images/resources.resc", window.gfx.GetDeviceContext());
@@ -62,7 +91,29 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
     znet::Network::Init();
 
     // Start app
-    App::Init(window, EntryScene::StaticName());
+    App::Init(window);
+
+    // Init appropriate scenes
+    if (!openFilePath.empty())
+    {
+        // Start playback
+        auto item = std::make_unique<PlaylistItem>(openFilePath);
+        int64_t itemId = item->GetItemId();
+        item->StartInitializing();
+        App::Instance()->playlist.Request_AddItem(std::move(item));
+        App::Instance()->playlist.Request_PlayItem(itemId);
+
+        App::Instance()->InitScene(PlaybackScene::StaticName(), nullptr);
+        App::Instance()->InitScene(PlaybackOverlayScene::StaticName(), nullptr);
+    }
+    else
+    {
+        std::wstring optStr = Options::Instance()->GetValue(OPTIONS_START_IN_PLAYLIST);
+        bool startInPlaylist = BoolOptionAdapter(optStr).Value();
+        if (!startInPlaylist)
+            App::Instance()->InitScene(EntryScene::StaticName(), nullptr);
+        App::Instance()->InitScene(PlaybackOverlayScene::StaticName(), nullptr);
+    }
 
     Clock msgTimer = Clock(0);
 
