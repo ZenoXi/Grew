@@ -24,8 +24,27 @@
 
 int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
 {
+    // Create console
     AllocConsole();
     freopen("CONOUT$", "w", stdout);
+
+    // Set working directory
+    std::wstring dir;
+    dir.resize(MAX_PATH);
+    GetModuleFileName(NULL, dir.data(), MAX_PATH);
+    auto pos = dir.find_last_of(L"\\/");
+    std::wstring runDir = dir.substr(0, pos);
+    std::wcout << "Executable path:" << dir << '\n';
+
+    if (!SetCurrentDirectory(runDir.data()))
+    {
+        std::cout << "Directory set failed\n";
+        return -1;
+    }
+
+    TCHAR path[MAX_PATH] = { 0 };
+    DWORD a = GetCurrentDirectory(MAX_PATH, path);
+    std::wcout << "New working directory: " << path << '\n';
 
     // Initialize WSA 
     znet::WSAHolder holder = znet::WSAHolder();
@@ -39,8 +58,10 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR pArgs, INT)
     // Load resources
     ResourceManager::Init("Resources/Images/resources.resc", window.gfx.GetDeviceContext());
 
-    // Initialize singleton objects
+    // Init network
     znet::Network::Init();
+
+    // Start app
     App::Init(window, EntryScene::StaticName());
 
     Clock msgTimer = Clock(0);
