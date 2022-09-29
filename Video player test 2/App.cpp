@@ -70,7 +70,10 @@ void App::Init(DisplayWindow& dw)
     Instance()->_scenes.push_back(new OpenPlaylistScene(_instance));
     Instance()->_scenes.push_back(new SavePlaylistScene(_instance));
     Instance()->_scenes.push_back(new ManagePlaylistsScene(_instance));
+}
 
+void App::Start()
+{
     // Start main loop
     Instance()->_mainThreadController.Add("stop", sizeof(true));
     Instance()->_mainThreadController.Set("stop", false);

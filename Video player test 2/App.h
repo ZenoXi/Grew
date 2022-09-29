@@ -41,6 +41,7 @@ private: // Singleton interface
 public:
     static void Init(DisplayWindow& dw);
     static App* Instance();
+    static void Start();
 
 private: // Scene control
     Scene* _overlayScene = nullptr;

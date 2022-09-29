@@ -105,7 +105,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR cmdLine, INT)
     // Init network
     znet::Network::Init();
 
-    // Start app
+    // Init app
     App::Init(window);
 
     // Init appropriate scenes
@@ -140,6 +140,9 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR cmdLine, INT)
     }
 
     Clock msgTimer = Clock(0);
+
+    // Start app thread
+    App::Start();
 
     // Main window loop
     while (true)
