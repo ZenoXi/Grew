@@ -313,7 +313,12 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _closeOverlayButton->SetButtonHoverColor(D2D1::ColorF(0.1f, 0.1f, 0.1f));
     _closeOverlayButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
     _closeOverlayButton->Text()->SetFontSize(16.0f);
-    _closeOverlayButton->Text()->SetMargins({ 10.0f });
+    _closeOverlayButton->Text()->SetMargins({ 40.0f });
+    _closeOverlayButton->SetButtonImageAll(ResourceManager::GetImage("remove_15x15"));
+    _closeOverlayButton->ButtonImage()->SetPlacement(zcom::ImagePlacement::CENTER);
+    _closeOverlayButton->ButtonImage()->SetTargetRect({ 5.0f, 0.0f, 35.0f, 30.0f });
+    _closeOverlayButton->ButtonImage()->SetPixelSnap(true);
+    _closeOverlayButton->UseImageParamsForAll(_closeOverlayButton->ButtonImage());
     _closeOverlayButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _closeOverlayButton->SetTabIndex(5);
     _closeOverlayButton->SetOnActivated([&]()
@@ -325,6 +330,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _infoPanel->SetBaseWidth(400);
     _infoPanel->SetParentHeightPercent(1.0f);
     _infoPanel->SetHorizontalAlignment(zcom::Alignment::END);
+    _infoPanel->SetTabIndex(-1);
 
     _toggleInfoPanelButton = Create<zcom::Button>();
     _toggleInfoPanelButton->SetParentHeightPercent(1.0f);
@@ -655,6 +661,7 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
     _playbackController->SetParentSizePercent(1.0f, 1.0f);
 
     _playbackControllerPanel->AddItem(_playbackController.get());
+    _playbackControllerPanel->SetTabIndex(-1);
 
     _canvas->AddComponent(_nonControllerPanel.get());
     _canvas->AddComponent(_playbackControllerPanel.get());
