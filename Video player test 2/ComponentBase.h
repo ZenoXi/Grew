@@ -213,6 +213,8 @@ namespace zcom
         bool _mouseRightClicked = false;
         int _mousePosX = 0;
         int _mousePosY = 0;
+
+    protected:
         // Pre default handling
         Event<void, Base*, int, int> _onMouseMove;
         Event<void, Base*> _onMouseEnter;
@@ -225,6 +227,8 @@ namespace zcom
         Event<void, Base*, int, int> _onRightReleased;
         Event<void, Base*, int, int> _onWheelUp;
         Event<void, Base*, int, int> _onWheelDown;
+        Event<void, Base*> _onSelected;
+        Event<void, Base*> _onDeselected;
         // Post default handling
         Event<void, Base*, std::vector<EventTargets::Params>, int, int> _postMouseMove;
         Event<void, Base*, std::vector<EventTargets::Params>, int, int> _postLeftPressed;
@@ -791,6 +795,7 @@ namespace zcom
 
             _selected = true;
             _redraw = true;
+            _onSelected.InvokeAll(this);
             _OnSelected();
         }
         void OnDeselected()
@@ -800,6 +805,7 @@ namespace zcom
 
             _selected = false;
             _redraw = true;
+            _onDeselected.InvokeAll(this);
             _OnDeselected();
         }
     protected:
@@ -867,6 +873,14 @@ namespace zcom
         void AddOnWheelDown(std::function<void(Base*, int, int)> handler, EventInfo info = { nullptr, "" })
         {
             _onWheelDown.Add(handler, info);
+        }
+        void AddOnSelected(std::function<void(Base*)> handler, EventInfo info = { nullptr, "" })
+        {
+            _onSelected.Add(handler, info);
+        }
+        void AddOnDeselected(std::function<void(Base*)> handler, EventInfo info = { nullptr, "" })
+        {
+            _onDeselected.Add(handler, info);
         }
 
         void AddPostMouseMove(std::function<void(Base*, std::vector<EventTargets::Params>, int, int)> handler, EventInfo info = { nullptr, "" })
@@ -941,6 +955,14 @@ namespace zcom
         void RemoveOnWheelDown(EventInfo info = { nullptr, "" })
         {
             _onWheelDown.Remove(info);
+        }
+        void RemoveOnSelected(EventInfo info = { nullptr, "" })
+        {
+            _onSelected.Remove(info);
+        }
+        void RemoveOnDeselected(EventInfo info = { nullptr, "" })
+        {
+            _onDeselected.Remove(info);
         }
 
         void RemovePostMouseMove(EventInfo info = { nullptr, "" })
