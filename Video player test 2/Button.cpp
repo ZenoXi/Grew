@@ -1,7 +1,7 @@
 #include "Button.h"
 #include "App.h"
 
-void zcom::Button::_OnSelected()
+void zcom::Button::_OnSelected(bool reverse)
 {
     App::Instance()->keyboardManager.SetExclusiveHandler(this);
 }

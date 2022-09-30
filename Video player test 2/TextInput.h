@@ -261,14 +261,14 @@ namespace zcom
             return EventTargets().Add(this, GetMousePosX(), GetMousePosY());
         }
 
-        void _OnSelected(); // Uses 'App'
+        void _OnSelected(bool reverse); // Uses 'App'
 
         void _OnDeselected(); // Uses 'App'
 
         // Override 'Panel' tab handling
-        Base* IterateTab()
+        Base* IterateTab(bool reverse)
         {
-            return Base::IterateTab();
+            return Base::IterateTab(reverse);
         }
 
         bool _OnHotkey(int id)
@@ -722,6 +722,17 @@ namespace zcom
                     return false;
                 }
             }
+            case VK_SHIFT:
+            {
+                if (_tabAllowed)
+                {
+                    break;
+                }
+                else
+                {
+                    return false;
+                }
+            }
             default:
                 break;
             }
@@ -885,6 +896,32 @@ namespace zcom
 
         bool _OnKeyUp(BYTE vkCode)
         {
+            switch (vkCode)
+            {
+            case VK_TAB:
+            {
+                if (_tabAllowed)
+                {
+                    break;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            case VK_SHIFT:
+            {
+                if (_tabAllowed)
+                {
+                    break;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            }
+
             return true;
         }
 

@@ -300,11 +300,11 @@ namespace zcom
             if (vkCode == VK_TAB)
             {
                 // Advance selected element
-                Base* item = _panel->IterateTab();
+                Base* item = _panel->IterateTab(KeyState(VK_SHIFT));
                 ClearSelection();
                 if (item != nullptr)
                 {
-                    item->OnSelected();
+                    item->OnSelected(KeyState(VK_SHIFT));
                 }
             }
             return false;

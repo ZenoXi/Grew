@@ -227,7 +227,7 @@ namespace zcom
         Event<void, Base*, int, int> _onRightReleased;
         Event<void, Base*, int, int> _onWheelUp;
         Event<void, Base*, int, int> _onWheelDown;
-        Event<void, Base*> _onSelected;
+        Event<void, Base*, bool> _onSelected;
         Event<void, Base*> _onDeselected;
         // Post default handling
         Event<void, Base*, std::vector<EventTargets::Params>, int, int> _postMouseMove;
@@ -788,15 +788,15 @@ namespace zcom
             _postWheelDown.InvokeAll(this, targets.GetTargets(), x, y);
             return targets;
         }
-        void OnSelected()
+        void OnSelected(bool reverse = false)
         {
             if (!_active) return;
             if (_selected) return;
 
             _selected = true;
             _redraw = true;
-            _onSelected.InvokeAll(this);
-            _OnSelected();
+            _onSelected.InvokeAll(this, reverse);
+            _OnSelected(reverse);
         }
         void OnDeselected()
         {
@@ -820,7 +820,7 @@ namespace zcom
         virtual EventTargets _OnRightReleased(int x = std::numeric_limits<int>::min(), int y = std::numeric_limits<int>::min()) { return EventTargets().Add(this, x, y); }
         virtual EventTargets _OnWheelUp(int x, int y) { return EventTargets(); }
         virtual EventTargets _OnWheelDown(int x, int y) { return EventTargets(); }
-        virtual void _OnSelected() {}
+        virtual void _OnSelected(bool reverse) {}
         virtual void _OnDeselected() {}
     public:
         bool GetMouseInside() const { return _mouseInside; }
@@ -874,7 +874,7 @@ namespace zcom
         {
             _onWheelDown.Add(handler, info);
         }
-        void AddOnSelected(std::function<void(Base*)> handler, EventInfo info = { nullptr, "" })
+        void AddOnSelected(std::function<void(Base*, bool)> handler, EventInfo info = { nullptr, "" })
         {
             _onSelected.Add(handler, info);
         }
@@ -1270,7 +1270,7 @@ namespace zcom
             return std::list<Base*>();
         }
 
-        virtual Base* IterateTab()
+        virtual Base* IterateTab(bool reverse = false)
         {
             if (!Selected())
                 return this;

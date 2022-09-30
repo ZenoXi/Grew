@@ -1,7 +1,7 @@
 #include "Label.h"
 #include "App.h"
 
-void zcom::Label::_OnSelected()
+void zcom::Label::_OnSelected(bool reverse)
 {
     _scene->GetApp()->keyboardManager.SetExclusiveHandler(this);
     GetKeyboardState(_keyStates);

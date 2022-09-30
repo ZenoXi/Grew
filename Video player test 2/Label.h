@@ -150,7 +150,7 @@ namespace zcom
             return EventTargets().Add(this, GetMousePosX(), GetMousePosY());
         }
 
-        void _OnSelected();
+        void _OnSelected(bool reverse);
 
         void _OnDeselected();
 

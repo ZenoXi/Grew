@@ -36,7 +36,7 @@ namespace zcom
     protected:
         void _OnDraw(Graphics g);
         EventTargets _OnLeftPressed(int x, int y);
-        void _OnSelected();
+        void _OnSelected(bool reverse);
         void _OnDeselected();
         bool _OnHotkey(int id) { return false; }
         bool _OnKeyDown(BYTE vkCode);

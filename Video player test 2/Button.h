@@ -134,7 +134,7 @@ namespace zcom
             return EventTargets().Add(this, x, y);
         }
 
-        void _OnSelected();
+        void _OnSelected(bool reverse);
 
         void _OnDeselected();
 

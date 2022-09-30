@@ -842,15 +842,17 @@ namespace zcom
             return EventTargets();
         }
 
-        void _OnSelected()
+        void _OnSelected(bool reverse)
         {
-            for (int i = 0; i < _selectableItems.size(); i++)
+            for (int i = reverse ? _selectableItems.size() - 1 : 0;
+                         reverse ? i >= 0                      : i < _selectableItems.size();
+                         reverse ? i--                         : i++)
             {
                 if (!_selectableItems[i]->GetVisible() || !_selectableItems[i]->GetActive())
                     continue;
 
                 OnDeselected();
-                _selectableItems[i]->OnSelected();
+                _selectableItems[i]->OnSelected(reverse);
                 break;
             }
         }
@@ -881,7 +883,7 @@ namespace zcom
             return children;
         }
 
-        Base* IterateTab()
+        Base* IterateTab(bool reverse)
         {
             if (_selectableItems.empty())
             {
@@ -896,13 +898,15 @@ namespace zcom
             // available item is found return null to signal end of tab selection.
             // 'Available' means visible, active, can be selected (returns !nullptr).
             bool searching = false;
-
-            for (int i = 0; i < _selectableItems.size(); i++)
+            
+            for (int i = reverse ? _selectableItems.size() - 1 : 0;
+                         reverse ? i >= 0                      : i < _selectableItems.size();
+                         reverse ? i--                         : i++)
             {
                 if (!_selectableItems[i]->GetVisible() || !_selectableItems[i]->GetActive())
                     continue;
 
-                Base* item = _selectableItems[i]->IterateTab();
+                Base* item = _selectableItems[i]->IterateTab(reverse);
                 if (item == nullptr)
                 {
                     if (!searching)
@@ -1114,10 +1118,10 @@ namespace zcom
             }, { this, "" });
 
             // Add selection handler for scrolling
-            item->AddOnSelected([&](zcom::Base* srcItem)
+            item->AddOnSelected([&](zcom::Base* srcItem, bool reverse)
             {
                 // Propagate up, to allow scrolling to nested items
-                _onSelected.InvokeAll(this);
+                _onSelected.InvokeAll(this, reverse);
 
                 ScrollToItem(srcItem);
             }, { this, "" });

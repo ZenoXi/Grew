@@ -1,7 +1,7 @@
 #include "TextInput.h"
 #include "App.h"
 
-void zcom::TextInput::_OnSelected()
+void zcom::TextInput::_OnSelected(bool reverse)
 {
     _scene->GetApp()->keyboardManager.SetExclusiveHandler(this);
     GetKeyboardState(_keyStates);

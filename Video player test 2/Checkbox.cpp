@@ -94,7 +94,7 @@ bool zcom::Checkbox::_OnKeyDown(BYTE vkCode)
     return false;
 }
 
-void zcom::Checkbox::_OnSelected()
+void zcom::Checkbox::_OnSelected(bool reverse)
 {
     App::Instance()->keyboardManager.SetExclusiveHandler(this);
 }
