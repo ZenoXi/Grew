@@ -844,11 +844,11 @@ namespace zcom
 
         void _OnSelected()
         {
-            //if (!_selectableItems.empty())
-            //{
-            //    OnDeselected();
-            //    _selectableItems[0]->OnSelected();
-            //}
+            if (!_selectableItems.empty())
+            {
+                OnDeselected();
+                _selectableItems[0]->OnSelected();
+            }
         }
 
     public:
@@ -906,10 +906,6 @@ namespace zcom
                         searching = true;
                         continue;
                     }
-                    //if (_selectableItems.size() > i + 1)
-                    //    return _selectableItems[i + 1];
-                    //else
-                    //    return nullptr;
                 }
                 else if (item != _selectableItems[i])
                 {
@@ -924,7 +920,7 @@ namespace zcom
             if (searching)
                 return nullptr;
 
-            return _selectableItems[0];
+            return this;
         }
 
         const char* GetName() const { return Name(); }
