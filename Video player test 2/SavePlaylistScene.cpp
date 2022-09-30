@@ -66,6 +66,7 @@ void SavePlaylistScene::_Init(const SceneOptionsBase* options)
     _cancelButton->SetBackgroundImage(ResourceManager::GetImage("close_100x100"));
     _cancelButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _cancelButton->SetOnActivated([&]() { _CancelClicked(); });
+    _cancelButton->SetTabIndex(1000);
 
     _titleSeparator = Create<zcom::EmptyPanel>();
     _titleSeparator->SetBaseSize(-60, 1);
@@ -82,6 +83,7 @@ void SavePlaylistScene::_Init(const SceneOptionsBase* options)
     _playlistNameInput->PlaceholderText()->SetText(L"Playlist name");
     _playlistNameInput->Text()->SetText(opt.openedPlaylistName);
     _playlistNameInput->SetCornerRounding(5.0f);
+    _playlistNameInput->SetTabIndex(0);
     //_playlistNameInput->SetPattern(L"[^/\\:\*\?\"<>\|]*");
 
     _playlistFilenameLabel = Create<zcom::Label>();
@@ -98,6 +100,7 @@ void SavePlaylistScene::_Init(const SceneOptionsBase* options)
     _overwriteExistingCheckbox = Create<zcom::Checkbox>(opt.openedPlaylistName.empty() ? false : true);
     _overwriteExistingCheckbox->SetBaseSize(20, 20);
     _overwriteExistingCheckbox->SetOffsetPixels(30, 160);
+    _overwriteExistingCheckbox->SetTabIndex(1);
 
     _overwriteExistingLabel = Create<zcom::Label>(L"Overwrite existing file");
     _overwriteExistingLabel->SetBaseSize(200, 20);
@@ -142,7 +145,7 @@ void SavePlaylistScene::_Init(const SceneOptionsBase* options)
     _saveButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
     _saveButton->Text()->SetFontSize(18.0f);
     _saveButton->SetBackgroundColor(D2D1::ColorF(0.25f, 0.25f, 0.3f));
-    _saveButton->SetTabIndex(3);
+    _saveButton->SetTabIndex(2);
     _saveButton->SetCornerRounding(5.0f);
     zcom::PROP_Shadow buttonShadow;
     buttonShadow.offsetX = 2.0f;

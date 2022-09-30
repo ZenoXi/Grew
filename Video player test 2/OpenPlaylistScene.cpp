@@ -48,6 +48,7 @@ void OpenPlaylistScene::_Init(const SceneOptionsBase* options)
     _cancelButton->SetBackgroundImage(ResourceManager::GetImage("close_100x100"));
     _cancelButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _cancelButton->SetOnActivated([&]() { _CancelClicked(); });
+    _cancelButton->SetTabIndex(1000);
 
     _titleSeparator = Create<zcom::EmptyPanel>();
     _titleSeparator->SetBaseSize(440, 1);
@@ -72,12 +73,11 @@ void OpenPlaylistScene::_Init(const SceneOptionsBase* options)
 
         auto itemButton = Create<zcom::Button>();
         itemButton->SetParentWidthPercent(1.0f);
-        itemButton->SetBaseHeight(30);
+        itemButton->SetBaseHeight(25);
         itemButton->SetZIndex(0);
         itemButton->SetPreset(zcom::ButtonPreset::NO_EFFECTS);
         itemButton->SetButtonHoverColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.1f));
         itemButton->SetButtonClickColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.2f));
-        itemButton->SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
         itemButton->SetActivation(zcom::ButtonActivation::RELEASE);
         _Playlist playlist = _savedPlaylists[i];
         itemButton->SetOnActivated([&, playlist]()
@@ -86,6 +86,7 @@ void OpenPlaylistScene::_Init(const SceneOptionsBase* options)
             _closeScene = true;
             _playlistName = playlist.name;
         });
+        itemButton->SetTabIndex(i);
 
         auto itemNameLabel = Create<zcom::Label>(_savedPlaylists[i].name);
         itemNameLabel->SetParentWidthPercent(1.0f);

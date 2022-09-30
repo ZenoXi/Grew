@@ -106,6 +106,7 @@ public:
     bool CloseScene() const;
 
 private:
+    void _UpdateTabIndices();
     void _StartClicked();
     void _CancelClicked();
 };

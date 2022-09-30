@@ -116,7 +116,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _connectMarker->SetBackgroundColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
         _connectInfoLabel->SetVisible(false);
     });
-    _connectButton->SetTabIndex(0);
+    _connectButton->SetTabIndex(1);
 
     _connectMarker = Create<zcom::EmptyPanel>();
     _connectMarker->SetBaseSize(3, 40);
@@ -147,7 +147,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _shareMarker->SetBackgroundColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
         _shareInfoLabel->SetVisible(false);
     });
-    _shareButton->SetTabIndex(0);
+    _shareButton->SetTabIndex(1);
 
     _shareMarker = Create<zcom::EmptyPanel>();
     _shareMarker->SetBaseSize(3, 40);
@@ -178,7 +178,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _fileMarker->SetBackgroundColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
         _fileInfoLabel->SetVisible(false);
     });
-    _fileButton->SetTabIndex(0);
+    _fileButton->SetTabIndex(2);
 
     _fileMarker = Create<zcom::EmptyPanel>();
     _fileMarker->SetBaseSize(3, 40);
@@ -209,7 +209,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
         _playlistMarker->SetBackgroundColor(D2D1::ColorF(0.3f, 0.3f, 0.3f));
         _playlistInfoLabel->SetVisible(false);
     });
-    _playlistButton->SetTabIndex(0);
+    _playlistButton->SetTabIndex(3);
 
     _playlistMarker = Create<zcom::EmptyPanel>();
     _playlistMarker->SetBaseSize(3, 40);
@@ -234,6 +234,7 @@ void EntryScene::_Init(const SceneOptionsBase* options)
     _sidePanel->SetParentSizePercent(1.0f, 1.0f);
     _sidePanel->SetBaseWidth(-500);
     _sidePanel->SetHorizontalAlignment(zcom::Alignment::END);
+    _sidePanel->SetTabIndex(-1);
 
     _creditsLabel = Create<zcom::Label>(L"v0.0.0 \x00A9 Zenox");
     _creditsLabel->SetBaseSize(200, 30);

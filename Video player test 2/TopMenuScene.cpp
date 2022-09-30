@@ -30,6 +30,7 @@ void TopMenuScene::_Init(const SceneOptionsBase* options)
     _homeButton->SetBaseSize((int)_homeButton->Text()->GetTextWidth() + 20, _app->MenuHeight());
     _homeButton->SetHorizontalOffsetPixels(offset);
     offset += _homeButton->GetBaseWidth();
+    _homeButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _homeButton->SetOnActivated([&]()
     {
         // If home page already open, ignore click
@@ -96,6 +97,7 @@ void TopMenuScene::_Init(const SceneOptionsBase* options)
     _settingsButton->SetBaseSize((int)_settingsButton->Text()->GetTextWidth() + 20, _app->MenuHeight());
     _settingsButton->SetHorizontalOffsetPixels(offset);
     offset += _settingsButton->GetBaseWidth();
+    _settingsButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _settingsButton->SetOnActivated([&]()
     {
         _app->InitScene(SettingsScene::StaticName(), nullptr);

@@ -52,6 +52,7 @@ void ManagePlaylistsScene::_Init(const SceneOptionsBase* options)
     _cancelButton->SetBackgroundImage(ResourceManager::GetImage("close_100x100"));
     _cancelButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _cancelButton->SetOnActivated([&]() { _CancelClicked(); });
+    _cancelButton->SetTabIndex(1000);
 
     _titleSeparator = Create<zcom::EmptyPanel>();
     _titleSeparator->SetBaseSize(-60, 1);
@@ -67,6 +68,7 @@ void ManagePlaylistsScene::_Init(const SceneOptionsBase* options)
     _savedPlaylistPanel->SetParentWidthPercent(1.0f);
     _savedPlaylistPanel->SetOffsetPixels(30, 80);
     _savedPlaylistPanel->Scrollable(zcom::Scrollbar::VERTICAL, true);
+    _savedPlaylistPanel->SetTabIndex(-1);
 
     _LoadSavedPlaylists();
     _RearrangeSavedPlaylists();
@@ -96,7 +98,7 @@ void ManagePlaylistsScene::_Init(const SceneOptionsBase* options)
     _browseFilesButton->SetVerticalAlignment(zcom::Alignment::END);
     _browseFilesButton->Text()->SetFontSize(18.0f);
     _browseFilesButton->SetBackgroundColor(D2D1::ColorF(0.25f, 0.25f, 0.25f));
-    _browseFilesButton->SetTabIndex(3);
+    _browseFilesButton->SetTabIndex(0);
     _browseFilesButton->SetCornerRounding(5.0f);
     zcom::PROP_Shadow buttonShadow;
     buttonShadow.offsetX = 2.0f;

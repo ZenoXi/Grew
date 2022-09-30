@@ -42,6 +42,7 @@ void SettingsScene::_Init(const SceneOptionsBase* options)
     _cancelButton->SetBackgroundImage(ResourceManager::GetImage("close_100x100"));
     _cancelButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _cancelButton->SetOnActivated([&]() { _CancelClicked(); });
+    _cancelButton->SetTabIndex(1000);
 
     _separatorTitle = Create<zcom::EmptyPanel>();
     _separatorTitle->SetBaseSize(-60, 1);
@@ -71,6 +72,7 @@ void SettingsScene::_Init(const SceneOptionsBase* options)
     _sideMenuPanel->SetBaseSize(150, -70 -80);
     _sideMenuPanel->SetParentHeightPercent(1.0f);
     _sideMenuPanel->SetOffsetPixels(30, 70);
+    _sideMenuPanel->SetTabIndex(-1);
     //_sideMenuPanel->SetBackgroundColor(D2D1::ColorF(0.17f, 0.17f, 0.17f));
 
     _mainSettingsButton = Create<zcom::Button>(L"Main");
@@ -169,6 +171,7 @@ void SettingsScene::_Init(const SceneOptionsBase* options)
     _settingsPanel->SetParentSizePercent(1.0f, 1.0f);
     _settingsPanel->SetOffsetPixels(150 + 30, 70);
     _settingsPanel->Scrollable(zcom::Scrollbar::VERTICAL, true);
+    _settingsPanel->SetTabIndex(-1);
     //_settingsPanel->SetBackgroundColor(D2D1::ColorF(0.17f, 0.17f, 0.17f));
 
     _separatorBottom = Create<zcom::EmptyPanel>();
@@ -187,7 +190,7 @@ void SettingsScene::_Init(const SceneOptionsBase* options)
     _saveButton->SetAlignment(zcom::Alignment::END, zcom::Alignment::END);
     _saveButton->Text()->SetFontSize(18.0f);
     _saveButton->SetBackgroundColor(D2D1::ColorF(0.25f, 0.25f, 0.3f));
-    _saveButton->SetTabIndex(3);
+    _saveButton->SetTabIndex(0);
     _saveButton->SetCornerRounding(5.0f);
     zcom::PROP_Shadow buttonShadow;
     buttonShadow.offsetX = 2.0f;

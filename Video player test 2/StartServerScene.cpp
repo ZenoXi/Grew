@@ -70,6 +70,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         "|655[0-2][0-9]"
         "|6553[0-5]$"
     );
+    _portInput->OnSelected();
 
     // Get recent/default port
     std::wstring defaultPort = Options::Instance()->GetValue(OPTIONS_DEFAULT_PORT);
@@ -118,7 +119,6 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     _usernameInput->SetOffsetPixels(120, 140);
     _usernameInput->SetCornerRounding(5.0f);
     _usernameInput->PlaceholderText()->SetText(L"(Optional)");
-    _usernameInput->SetTabIndex(1);
 
     _advancedOptionsPanel = Create<zcom::DirectionalPanel>(zcom::PanelDirection::DOWN);
     _advancedOptionsPanel->SetBaseSize(-60, -212);
@@ -126,6 +126,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     _advancedOptionsPanel->SetOffsetPixels(30, 131);
     _advancedOptionsPanel->Scrollable(zcom::Scrollbar::VERTICAL, true);
     _advancedOptionsPanel->ScrollBackgroundColor(D2D1::ColorF(0, 0.25f));
+    _advancedOptionsPanel->SetTabIndex(1);
     //_advancedOptionsPanel->ScrollbarHangDuration(zcom::Scrollbar::VERTICAL, 0);
 
     _advancedOptionsLabel = Create<zcom::Label>(L"Advanced options:");
@@ -160,7 +161,6 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _generalOptionsButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
         _generalOptionsButton->Text()->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _generalOptionsButton->Text()->SetMargins({ 25.0f });
-        _generalOptionsButton->SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
         _generalOptionsButton->SetActivation(zcom::ButtonActivation::PRESS);
         _generalOptionsButton->SetOnActivated([&]()
         {
@@ -176,7 +176,9 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
                 _generalOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_arrow_right_7x7"));
                 _generalOptionsOpen = false;
             }
+            _UpdateTabIndices();
         });
+        _generalOptionsButton->SetTabIndex(0);
 
         float textWidth = _generalOptionsButton->Text()->GetTextWidth();
         _generalOptionsOpenSeparator = Create<zcom::EmptyPanel>();
@@ -197,14 +199,11 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _passwordLabel->SetFontSize(16.0f);
         _passwordLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _passwordLabel->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
-        //_passwordLabel->SetActive(false);
 
         _passwordInput = Create<zcom::TextInput>();
         _passwordInput->SetBaseSize(200, 26);
         _passwordInput->SetOffsetPixels(15, 68);
         _passwordInput->SetCornerRounding(5.0f);
-        _passwordInput->SetTabIndex(1);
-        //_passwordInput->SetActive(false);
 
         _maxUsersLabel = Create<zcom::Label>(L"Max users:");
         _maxUsersLabel->SetBaseSize(100, 30);
@@ -212,14 +211,11 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _maxUsersLabel->SetFontSize(16.0f);
         _maxUsersLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _maxUsersLabel->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
-        //_maxUsersLabel->SetActive(false);
 
         _maxUsersInput = Create<zcom::TextInput>();
         _maxUsersInput->SetBaseSize(50, 26);
         _maxUsersInput->SetOffsetPixels(15, 128);
         _maxUsersInput->SetCornerRounding(5.0f);
-        _maxUsersInput->SetTabIndex(2);
-        //_maxUsersInput->SetActive(false);
 
         _chatEnabledCheckbox = Create<zcom::Checkbox>();
         _chatEnabledCheckbox->SetBaseSize(20, 20);
@@ -268,7 +264,6 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _playlistOptionsButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
         _playlistOptionsButton->Text()->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _playlistOptionsButton->Text()->SetMargins({ 25.0f });
-        _playlistOptionsButton->SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
         _playlistOptionsButton->SetActivation(zcom::ButtonActivation::PRESS);
         _playlistOptionsButton->SetOnActivated([&]()
         {
@@ -284,7 +279,9 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
                 _playlistOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_arrow_right_7x7"));
                 _playlistOptionsOpen = false;
             }
+            _UpdateTabIndices();
         });
+        _playlistOptionsButton->SetTabIndex(0);
 
         float textWidth = _playlistOptionsButton->Text()->GetTextWidth();
         _playlistOptionsOpenSeparator = Create<zcom::EmptyPanel>();
@@ -310,7 +307,6 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _allowItemAddingCheckbox->SetBaseSize(20, 20);
         _allowItemAddingCheckbox->SetOffsetPixels(15, 75);
         _allowItemAddingCheckbox->Checked(true);
-        //_allowItemAddingCheckbox->SetActive(false);
 
         _allowItemAddingLabel = Create<zcom::Label>(L"Add media");
         _allowItemAddingLabel->SetBaseSize(100, 30);
@@ -318,13 +314,11 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _allowItemAddingLabel->SetFontSize(16.0f);
         _allowItemAddingLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _allowItemAddingLabel->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
-        //_allowItemAddingLabel->SetActive(false);
 
         _allowItemManagingCheckbox = Create<zcom::Checkbox>();
         _allowItemManagingCheckbox->SetBaseSize(20, 20);
         _allowItemManagingCheckbox->SetOffsetPixels(15, 105);
         _allowItemManagingCheckbox->Checked(true);
-        //_allowItemManagingCheckbox->SetActive(false);
 
         _allowItemManagingLabel = Create<zcom::Label>(L"Manage (remove/reorder) media");
         _allowItemManagingLabel->SetBaseSize(250, 30);
@@ -332,13 +326,11 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _allowItemManagingLabel->SetFontSize(16.0f);
         _allowItemManagingLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _allowItemManagingLabel->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
-        //_allowItemManagingLabel->SetActive(false);
 
         _allowPlaybackStartStopCheckbox = Create<zcom::Checkbox>();
         _allowPlaybackStartStopCheckbox->SetBaseSize(20, 20);
         _allowPlaybackStartStopCheckbox->SetOffsetPixels(15, 135);
         _allowPlaybackStartStopCheckbox->Checked(true);
-        //_allowPlaybackStartStopCheckbox->SetActive(false);
 
         _allowPlaybackStartStopLabel = Create<zcom::Label>(L"Start/stop playback");
         _allowPlaybackStartStopLabel->SetBaseSize(200, 30);
@@ -346,7 +338,6 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _allowPlaybackStartStopLabel->SetFontSize(16.0f);
         _allowPlaybackStartStopLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _allowPlaybackStartStopLabel->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
-        //_allowPlaybackStartStopLabel->SetActive(false);
 
         _playlistOptionsPanel->AddItem(_playlistUserPermissionsLabel.get());
         _playlistOptionsPanel->AddItem(_allowItemAddingCheckbox.get());
@@ -382,7 +373,6 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _playbackOptionsButton->Text()->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
         _playbackOptionsButton->Text()->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _playbackOptionsButton->Text()->SetMargins({ 25.0f });
-        _playbackOptionsButton->SetSelectedBorderColor(D2D1::ColorF(0, 0.0f));
         _playbackOptionsButton->SetActivation(zcom::ButtonActivation::PRESS);
         _playbackOptionsButton->SetOnActivated([&]()
         {
@@ -398,7 +388,9 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
                 _playbackOptionsArrowImage->SetImage(ResourceManager::GetImage("menu_arrow_right_7x7"));
                 _playbackOptionsOpen = false;
             }
+            _UpdateTabIndices();
         });
+        _playbackOptionsButton->SetTabIndex(0);
 
         float textWidth = _playbackOptionsButton->Text()->GetTextWidth();
         _playbackOptionsOpenSeparator = Create<zcom::EmptyPanel>();
@@ -424,7 +416,6 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _allowPlaybackManipulationCheckbox->SetBaseSize(20, 20);
         _allowPlaybackManipulationCheckbox->SetOffsetPixels(15, 75);
         _allowPlaybackManipulationCheckbox->Checked(true);
-        //_allowPlaybackManipulationCheckbox->SetActive(false);
 
         _allowPlaybackManipulationLabel = Create<zcom::Label>(L"Manipulate playback (pause/resume/seek)");
         _allowPlaybackManipulationLabel->SetBaseSize(300, 30);
@@ -432,13 +423,11 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _allowPlaybackManipulationLabel->SetFontSize(16.0f);
         _allowPlaybackManipulationLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _allowPlaybackManipulationLabel->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
-        //_allowPlaybackManipulationLabel->SetActive(false);
 
         _allowStreamChangingCheckbox = Create<zcom::Checkbox>();
         _allowStreamChangingCheckbox->SetBaseSize(20, 20);
         _allowStreamChangingCheckbox->SetOffsetPixels(15, 105);
         _allowStreamChangingCheckbox->Checked(true);
-        //_allowStreamChangingCheckbox->SetActive(false);
 
         _allowStreamChangingLabel = Create<zcom::Label>(L"Change tracks");
         _allowStreamChangingLabel->SetBaseSize(250, 30);
@@ -446,13 +435,12 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _allowStreamChangingLabel->SetFontSize(16.0f);
         _allowStreamChangingLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _allowStreamChangingLabel->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
-        //_allowStreamChangingLabel->SetActive(false);
 
         _allowDrawingCheckbox = Create<zcom::Checkbox>();
         _allowDrawingCheckbox->SetBaseSize(20, 20);
         _allowDrawingCheckbox->SetOffsetPixels(15, 135);
         _allowDrawingCheckbox->Checked(true);
-        //_allowDrawingCheckbox->SetActive(false);
+        _allowDrawingCheckbox->SetActive(false);
 
         _allowDrawingLabel = Create<zcom::Label>(L"Draw");
         _allowDrawingLabel->SetBaseSize(200, 30);
@@ -460,7 +448,6 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _allowDrawingLabel->SetFontSize(16.0f);
         _allowDrawingLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _allowDrawingLabel->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
-        //_allowDrawingLabel->SetActive(false);
 
         _playbackOptionsPanel->AddItem(_playbackUserPermissionsLabel.get());
         _playbackOptionsPanel->AddItem(_allowPlaybackManipulationCheckbox.get());
@@ -497,6 +484,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     _startButton->SetProperty(buttonShadow);
     _startButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _startButton->SetOnActivated([&]() { _StartClicked(); });
+    _startButton->SetTabIndex(2);
 
     _cancelButton = Create<zcom::Button>();
     _cancelButton->SetBaseSize(30, 30);
@@ -505,6 +493,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
     _cancelButton->SetBackgroundImage(ResourceManager::GetImage("close_100x100"));
     _cancelButton->SetActivation(zcom::ButtonActivation::RELEASE);
     _cancelButton->SetOnActivated([&]() { _CancelClicked(); });
+    _cancelButton->SetTabIndex(1000);
 
     _startLoadingInfoLabel = Create<zcom::Label>(L"");
     _startLoadingInfoLabel->SetBaseSize(300, 30);
@@ -532,6 +521,8 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
 
     _canvas->AddComponent(_mainPanel.get());
     _canvas->SetBackgroundColor(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.2f));
+
+    _UpdateTabIndices();
 
     _starting = false;
     _startSuccessful = false;
@@ -718,6 +709,56 @@ bool StartServerScene::StartSuccessful() const
 bool StartServerScene::CloseScene() const
 {
     return _closeScene;
+}
+
+void StartServerScene::_UpdateTabIndices()
+{
+    // General
+    if (_generalOptionsOpen)
+    {
+        _passwordInput->SetTabIndex(1);
+        _maxUsersInput->SetTabIndex(2);
+        _chatEnabledCheckbox->SetTabIndex(3);
+    }
+    else
+    {
+        _passwordInput->SetTabIndex(-1);
+        _maxUsersInput->SetTabIndex(-1);
+        _chatEnabledCheckbox->SetTabIndex(-1);
+    }
+
+    // Playlist
+    if (_playlistOptionsOpen)
+    {
+        _allowItemAddingCheckbox->SetTabIndex(1);
+        _allowItemManagingCheckbox->SetTabIndex(2);
+        _allowPlaybackStartStopCheckbox->SetTabIndex(3);
+    }
+    else
+    {
+        _allowItemAddingCheckbox->SetTabIndex(-1);
+        _allowItemManagingCheckbox->SetTabIndex(-1);
+        _allowPlaybackStartStopCheckbox->SetTabIndex(-1);
+    }
+
+    // Playback
+    if (_playbackOptionsOpen)
+    {
+        _allowPlaybackManipulationCheckbox->SetTabIndex(1);
+        _allowStreamChangingCheckbox->SetTabIndex(2);
+        _allowDrawingCheckbox->SetTabIndex(3);
+    }
+    else
+    {
+        _allowPlaybackManipulationCheckbox->SetTabIndex(-1);
+        _allowStreamChangingCheckbox->SetTabIndex(-1);
+        _allowDrawingCheckbox->SetTabIndex(-1);
+    }
+
+    _advancedOptionsPanel->ReindexTabOrder();
+    _generalOptionsPanel->ReindexTabOrder();
+    _playlistOptionsPanel->ReindexTabOrder();
+    _playbackOptionsPanel->ReindexTabOrder();
 }
 
 void StartServerScene::_StartClicked()

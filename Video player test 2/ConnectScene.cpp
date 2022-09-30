@@ -63,6 +63,7 @@ void ConnectScene::_Init(const SceneOptionsBase* options)
     _ipInput->SetOffsetPixels(120, 100);
     _ipInput->SetCornerRounding(5.0f);
     _ipInput->SetTabIndex(0);
+    _ipInput->OnSelected();
 
     _portLabel = Create<zcom::Label>(L"Port:");
     _portLabel->SetBaseSize(40, 30);
@@ -156,6 +157,7 @@ void ConnectScene::_Init(const SceneOptionsBase* options)
     _cancelButton->SetHorizontalAlignment(zcom::Alignment::END);
     _cancelButton->SetBackgroundImage(ResourceManager::GetImage("close_100x100"));
     _cancelButton->SetOnActivated([&]() { _CancelClicked(); });
+    _cancelButton->SetTabIndex(1000);
 
     _connectLoadingImage = Create<zcom::LoadingImage>();
     _connectLoadingImage->SetBaseSize(30, 30);
