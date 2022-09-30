@@ -1635,6 +1635,11 @@ void PlaybackOverlayScene::_UpdateMisc()
     else
         _savePlaylistButton->SetActive(true);
 
+    // Gray out overlay close button if no playback is in progress
+    if (!_app->FindActiveScene(PlaybackScene::StaticName()))
+        _closeOverlayButton->SetActive(false);
+    else
+        _closeOverlayButton->SetActive(true);
 }
 
 void PlaybackOverlayScene::_InvokePlaylistChange()
