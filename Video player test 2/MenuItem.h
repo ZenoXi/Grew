@@ -57,18 +57,18 @@ namespace zcom
             {
                 ID2D1SolidColorBrush* brush = nullptr;
                 g.target->CreateSolidColorBrush(D2D1::ColorF(0.2f, 0.2f, 0.2f), &brush);
-                g.target->FillRectangle(D2D1::RectF(25.0f, 1.0f, g.target->GetSize().width - 5.0f, 2.0f), brush);
+                g.target->FillRectangle(D2D1::RectF(30.0f, 1.0f, g.target->GetSize().width - 5.0f, 2.0f), brush);
                 brush->Release();
             }
             else if (_label)
             {
                 auto size = g.target->GetSize();
-                if (size.width <= 50)
-                    size.width = 51;
+                if (size.width <= 55)
+                    size.width = 56;
 
                 g.target->DrawBitmap(
                     _label->Draw(g),
-                    D2D1::RectF(25, 0, size.width - 25, size.height)
+                    D2D1::RectF(30, 0, size.width - 25, size.height)
                 );
             }
 
@@ -80,7 +80,7 @@ namespace zcom
                 else
                     _iconImage->SetImage(_iconGrayscale);
                 _iconImage->Draw(g);
-                g.target->DrawBitmap(_iconImage->Base::Image(), D2D1::RectF(0.0f, 0.0f, 25.0f, 25.0f));
+                g.target->DrawBitmap(_iconImage->Base::Image(), D2D1::RectF(2.0f, 0.0f, 27.0f, 25.0f));
             }
             if (_checkmarkIcon && _checked)
             {
@@ -106,7 +106,7 @@ namespace zcom
         void _OnResize(int width, int height)
         {
             if (_label)
-                _label->Resize(width - 50, height);
+                _label->Resize(width - 55, height);
         }
 
         //EventTargets _OnLeftPressed(int x, int y)
@@ -214,7 +214,7 @@ namespace zcom
             if (!_label) return 0;
 
             _label->SetCutoff(L"");
-            int totalWidth = ceilf(_label->GetTextWidth()) + 50;
+            int totalWidth = ceilf(_label->GetTextWidth()) + 55;
             _label->SetCutoff(L"...");
             return totalWidth;
         }
