@@ -2050,6 +2050,7 @@ void PlaybackOverlayScene::_ShowPlaylistContextMenu(int x, int y, int64_t itemId
                 _app->playlist.Request_DeleteItem(item->GetItemId());
             }
         });
+        menuItem->SetIcon(ResourceManager::GetImage("remove_all_19x19"));
         _itemContextMenu->AddItem(std::move(menuItem));
     }
     if (showClearSelectedItems)
@@ -2061,6 +2062,7 @@ void PlaybackOverlayScene::_ShowPlaylistContextMenu(int x, int y, int64_t itemId
                 _app->playlist.Request_DeleteItem(id);
             }
         });
+        menuItem->SetIcon(ResourceManager::GetImage("remove_selected_23x23"));
         _itemContextMenu->AddItem(std::move(menuItem));
     }
     if (showClearFailedItems)
@@ -2073,6 +2075,7 @@ void PlaybackOverlayScene::_ShowPlaylistContextMenu(int x, int y, int64_t itemId
                 _app->playlist.Request_DeleteItem(item->GetItemId());
             }
         });
+        menuItem->SetIcon(ResourceManager::GetImage("remove_failed_23x23"));
         _itemContextMenu->AddItem(std::move(menuItem));
     }
     if (showClearLoadingItems)
@@ -2085,6 +2088,7 @@ void PlaybackOverlayScene::_ShowPlaylistContextMenu(int x, int y, int64_t itemId
                 _app->playlist.Request_DeleteItem(item->GetItemId());
             }
         });
+        menuItem->SetIcon(ResourceManager::GetImage("remove_loading_23x23"));
         _itemContextMenu->AddItem(std::move(menuItem));
     }
     if (showClearSelfHostedItems)
@@ -2101,6 +2105,7 @@ void PlaybackOverlayScene::_ShowPlaylistContextMenu(int x, int y, int64_t itemId
                 }
             }
         });
+        menuItem->SetIcon(ResourceManager::GetImage("remove_self_hosted_23x23"));
         _itemContextMenu->AddItem(std::move(menuItem));
     }
     if (showSaveSelectedToPlaylist)
@@ -2146,6 +2151,7 @@ void PlaybackOverlayScene::_ShowPlaylistContextMenu(int x, int y, int64_t itemId
                 App::Instance()->MoveSceneToFront(SavePlaylistScene::StaticName());
             }
         });
+        menuItem->SetIcon(ResourceManager::GetImage("save_selected_23x23"));
         _itemContextMenu->AddItem(std::move(menuItem));
     }
 
