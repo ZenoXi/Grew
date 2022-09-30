@@ -84,6 +84,7 @@ void SavePlaylistScene::_Init(const SceneOptionsBase* options)
     _playlistNameInput->Text()->SetText(opt.openedPlaylistName);
     _playlistNameInput->SetCornerRounding(5.0f);
     _playlistNameInput->SetTabIndex(0);
+    _playlistNameInput->OnSelected();
     //_playlistNameInput->SetPattern(L"[^/\\:\*\?\"<>\|]*");
 
     _playlistFilenameLabel = Create<zcom::Label>();
