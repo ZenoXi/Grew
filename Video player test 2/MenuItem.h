@@ -39,8 +39,8 @@ namespace zcom
                 ID2D1Effect* brightnessEffect;
                 g.target->CreateEffect(CLSID_D2D1Brightness, &brightnessEffect);
                 brightnessEffect->SetInputEffect(0, grayscaleEffect);
-                brightnessEffect->SetValue(D2D1_BRIGHTNESS_PROP_WHITE_POINT, D2D1::Vector2F(1.0f, 0.5f));
-                brightnessEffect->SetValue(D2D1_BRIGHTNESS_PROP_BLACK_POINT, D2D1::Vector2F(1.0f, 0.5f));
+                brightnessEffect->SetValue(D2D1_BRIGHTNESS_PROP_WHITE_POINT, D2D1::Vector2F(1.0f, 0.6f));
+                brightnessEffect->SetValue(D2D1_BRIGHTNESS_PROP_BLACK_POINT, D2D1::Vector2F(1.0f, 0.6f));
 
                 g.target->GetTarget(&stash);
                 g.target->SetTarget(_iconGrayscale);
