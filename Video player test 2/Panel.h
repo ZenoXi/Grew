@@ -1099,6 +1099,8 @@ namespace zcom
         void AddItem(Base* item, bool transferOwnership = false)
         {
             _items.push_back({ item, transferOwnership, false });
+
+            // Add layout change handler
             item->AddOnLayoutChanged([&, item]()
             {
                 if (_deferUpdates)
@@ -1109,6 +1111,15 @@ namespace zcom
                 _RecalculateLayout(GetWidth(), GetHeight());
                 if (GetMouseInside())
                     OnMouseMove(GetMousePosX(), GetMousePosY());
+            }, { this, "" });
+
+            // Add selection handler for scrolling
+            item->AddOnSelected([&](zcom::Base* srcItem)
+            {
+                // Propagate up, to allow scrolling to nested items
+                _onSelected.InvokeAll(this);
+
+                ScrollToItem(srcItem);
             }, { this, "" });
 
             ReindexTabOrder();
@@ -1129,6 +1140,7 @@ namespace zcom
                 if (_items[i].item == item)
                 {
                     _items[i].item->RemoveOnLayoutChanged({ this, "" });
+                    _items[i].item->RemoveOnSelected({ this, "" });
                     if (_items[i].owned)
                         delete _items[i].item;
                     _items.erase(_items.begin() + i);
@@ -1149,6 +1161,7 @@ namespace zcom
         void RemoveItem(int index)
         {
             _items[index].item->RemoveOnLayoutChanged({ this, "" });
+            _items[index].item->RemoveOnSelected({ this, "" });
             if (_items[index].owned)
                 delete _items[index].item;
             _items.erase(_items.begin() + index);
@@ -1178,6 +1191,7 @@ namespace zcom
             for (int i = 0; i < _items.size(); i++)
             {
                 _items[i].item->RemoveOnLayoutChanged({ this, "" });
+                _items[i].item->RemoveOnSelected({ this, "" });
                 if (_items[i].owned)
                 {
                     delete _items[i].item;
@@ -1549,6 +1563,30 @@ namespace zcom
                     _horizontalScrollbar.visible = true;
                     _horizontalScrollbar.showTime = ztime::Main();
                 }
+            }
+        }
+
+        // Scrolls to the specified item.
+        // If 'force' == true, scrolling is done even if item is already fully visible (currently unimplemented)
+        void ScrollToItem(zcom::Base* item, bool force = false)
+        {
+            // TODO: add 'force' == true functionality
+
+            // Vertically
+            if (_verticalScrollbar.scrollable)
+            {
+                if (item->GetY() < _verticalScrollbar.scrollAmount)
+                    Scroll(zcom::Scrollbar::VERTICAL, item->GetY());
+                else if (item->GetY() + item->GetHeight() > _verticalScrollbar.scrollAmount + GetHeight())
+                    Scroll(zcom::Scrollbar::VERTICAL, item->GetY() + item->GetHeight() - GetHeight());
+            }
+            // Horizontally
+            if (_horizontalScrollbar.scrollable)
+            {
+                if (item->GetX() < _horizontalScrollbar.scrollAmount)
+                    Scroll(zcom::Scrollbar::HORIZONTAL, item->GetX());
+                else if (item->GetX() + item->GetWidth() > _horizontalScrollbar.scrollAmount + GetWidth())
+                    Scroll(zcom::Scrollbar::HORIZONTAL, item->GetX() + item->GetWidth() - GetWidth());
             }
         }
 
