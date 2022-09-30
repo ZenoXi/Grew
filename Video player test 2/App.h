@@ -38,10 +38,12 @@ public:
 private: // Singleton interface
     App(DisplayWindow& dw);
     static App* _instance;
+    static bool _exited;
 public:
     static void Init(DisplayWindow& dw);
     static App* Instance();
     static void Start();
+    static bool Exited();
 
 private: // Scene control
     Scene* _overlayScene = nullptr;

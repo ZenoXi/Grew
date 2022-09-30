@@ -675,7 +675,73 @@ void PlaybackOverlayScene::_Init(const SceneOptionsBase* options)
 
 void PlaybackOverlayScene::_Uninit()
 {
+    _canvas->ClearComponents();
+    _nonControllerPanel->ClearItems();
+    _playbackControllerPanel->ClearItems();
+    _sideMenuPanel->ClearItems();
+    _playlistPanel->ClearItems();
+    _readyItemPanel->ClearItems();
+    _infoPanel->ClearItems();
+    _networkBannerPanel->ClearItems();
+    _connectedUsersPanel->ClearItems();
+    // Currently not initialized
+    //_chatPanel->ClearItems();
+    _fileDropOverlay->ClearItems();
+    _itemContextMenu->ClearItems();
+    _userContextMenu->ClearItems();
+
+    _playlistItems.clear();
+
+    _nonControllerPanel = nullptr;
+    _playbackControllerPanel = nullptr;
+    _playbackControllerSeparator = nullptr;
+
+    _sideMenuPanel = nullptr;
     _playlistPanel = nullptr;
+    _readyItemPanel = nullptr;
+    _playlistLabel = nullptr;
+    _playlistEmptyLabel = nullptr;
+    _itemContextMenu = nullptr;
+
+    _addFileButton = nullptr;
+    _addFolderButton = nullptr;
+    _fileDialog = nullptr;
+    _openPlaylistButton = nullptr;
+    _savePlaylistButton = nullptr;
+    _manageSavedPlaylistsButton = nullptr;
+    _closeOverlayButton = nullptr;
+
+    _toggleInfoPanelButton = nullptr;
+    _infoPanel = nullptr;
+
+    _networkBannerPanel = nullptr;
+    _networkStatusLabel = nullptr;
+    _closeNetworkButton = nullptr;
+    _toggleChatButton = nullptr;
+    _usernameButton = nullptr;
+    _usernameInput = nullptr;
+    _toggleUserListButton = nullptr;
+    _connectedUserCountLabel = nullptr;
+    _networkLatencyLabel = nullptr;
+    _downloadSpeedImage = nullptr;
+    _downloadSpeedLabel = nullptr;
+    _uploadSpeedImage = nullptr;
+    _uploadSpeedLabel = nullptr;
+    _connectedUsersPanel = nullptr;
+    _userContextMenu = nullptr;
+
+    _chatPanel = nullptr;
+
+    _offlineLabel = nullptr;
+    _connectButton = nullptr;
+    _startServerButton = nullptr;
+
+    _playbackController = nullptr;
+
+    _shortcutHandler = nullptr;
+    _playlistFileDropHandler = nullptr;
+    _fileDropOverlay = nullptr;
+    _fileDropLabel = nullptr;
 }
 
 void PlaybackOverlayScene::_Focus()

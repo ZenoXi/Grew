@@ -264,6 +264,7 @@ void ConnectScene::_Uninit()
     _canvas->ClearComponents();
     _mainPanel->ClearItems();
     _passwordPanel->ClearItems();
+    _recentConnectionsPanel->ClearItems();
 
     _mainPanel = nullptr;
     _titleLabel = nullptr;

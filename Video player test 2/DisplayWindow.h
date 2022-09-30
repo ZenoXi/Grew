@@ -62,11 +62,8 @@ class WindowGraphics
     bool _initialized = false;
 
     ComPtr<ID2D1Factory1> p_D2DFactory = NULL;
-    ComPtr<ID2D1Device> p_D2DDevice;
-    ComPtr<ID2D1DeviceContext> p_D2DDeviceContext = NULL;
+    ComPtr<ID2D1Device> p_D2DDevice =  NULL;
     ComPtr<ID2D1DeviceContext> p_Target = NULL;
-    ID2D1RenderTarget* p_RT = NULL;
-    //ID2D1HwndRenderTarget* p_RT = NULL;
     std::vector<std::pair<IUnknown**, std::string>> _references;
 
     ComPtr<IDXGISwapChain1> p_SwapChain = NULL;
@@ -74,19 +71,12 @@ class WindowGraphics
     ComPtr<IDXGIDevice> p_DXGIDevice = NULL;
     ComPtr<IDXGIAdapter> p_DXGIAdapter = NULL;
     ComPtr<IDXGIFactory2> p_DXGIFactory = NULL;
-    ComPtr<ID3D11DeviceContext> p_DeviceContext = NULL;
-    ID3D11RenderTargetView* p_BackBuffer = NULL;
 
     ComPtr<IDXGISurface> p_Surface;
     ComPtr<ID2D1Bitmap1> p_Bitmap;
 
     IDWriteFactory* p_DWriteFactory = NULL;
     IDWriteTextFormat* p_DebugTextFormat = NULL;
-
-    ID2D1RadialGradientBrush* pBrush = NULL;
-    
-    // Pregenerated brushes
-    ID2D1SolidColorBrush* pWaterBrush = NULL;
 public:
     RECT _windowRect;
 

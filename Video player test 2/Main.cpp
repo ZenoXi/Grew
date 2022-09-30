@@ -147,11 +147,12 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR cmdLine, INT)
     // Main window loop
     while (true)
     {
+        // Check for app exit
+        if (App::Exited())
+            break;
+
         // Messages
         bool msgProcessed = window.ProcessMessages();
-        WindowMessage wm = window.GetExitResult();
-        if (!wm.handled)
-            exit(0);
 
         window.HandleFullscreenChange();
         window.HandleCursorVisibility();

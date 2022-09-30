@@ -42,7 +42,7 @@ DisplayWindow::DisplayWindow(HINSTANCE hInst, wchar_t* pArgs, LPCWSTR name) : _a
         nullptr,
         nullptr,
         _wndClassName,
-        NULL //LoadIcon(hInst, MAKEINTRESOURCE(GREW_ICON))
+        LoadIcon(hInst, MAKEINTRESOURCE(GREW_ICON))
     };
     
     RegisterClassEx(&wc);
@@ -100,6 +100,7 @@ DisplayWindow::~DisplayWindow()
     gfx.Close();
 
     RevokeDragDrop(_hwnd);
+    CloseWindow(_hwnd);
     // unregister window class
     UnregisterClass(_wndClassName, _hInst);
 }
@@ -975,10 +976,41 @@ void WindowGraphics::Close()
 {
     p_SwapChain->SetFullscreenState(FALSE, NULL);
 
-    p_SwapChain->Release();
-    p_Device->Release();
-    p_DeviceContext->Release();
-    p_BackBuffer->Release();
+    // Release all references
+    for (int i = 0; i < _references.size(); i++)
+    {
+        if (*_references[i].first)
+        {
+            (*_references[i].first)->Release();
+            (*_references[i].first) = nullptr;
+        }
+    }
+    _references.clear();
+
+    // Release all objects
+    p_Bitmap.Reset();
+    p_Bitmap.Reset();
+    p_Surface.Reset();
+    p_Target.Reset();
+    p_D2DDevice.Reset();
+    p_SwapChain.Reset();
+    p_DXGIAdapter.Reset();
+    p_DXGIDevice.Reset();
+    p_Device.Reset();
+    p_D2DFactory.Reset();
+
+    //p_Bitmap->Release();
+    //p_Surface->Release();
+    //p_Target->Release();
+    //p_D2DDevice->Release();
+    //p_SwapChain->Release();
+    //p_DXGIAdapter->Release();
+    //p_DXGIDevice->Release();
+    //p_Device->Release();
+    //p_D2DFactory->Release();
+
+    p_DebugTextFormat->Release();
+    p_DWriteFactory->Release();
 }
 
 void WindowGraphics::BeginFrame()
@@ -1219,14 +1251,14 @@ void WindowGraphics::FillEllipse(Pos2D<float> cpos, FLOAT width, FLOAT height, B
         );
         */
 
-        pBrush->SetCenter(D2D1::Point2F(cpos.x, cpos.y));
+        //pBrush->SetCenter(D2D1::Point2F(cpos.x, cpos.y));
 
-        p_Target->FillEllipse(
-            ellipse,
-            pBrush
-        );
+        //p_Target->FillEllipse(
+        //    ellipse,
+        //    pBrush
+        //);
 
-        pBrush->Release();
+        //pBrush->Release();
 
         //pBrush->Release();
         //pGradientStops->Release();

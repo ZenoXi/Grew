@@ -22,12 +22,14 @@
 #include "UsersEventHandler_Client.h"
 #include "UsersEventHandler_Server.h"
 
+#include "Network.h"
 #include "ClientManager.h"
 #include "ServerManager.h"
 
 #include "BoolOptionAdapter.h"
 
 App* App::_instance = nullptr;
+bool App::_exited = false;
 
 App::App(DisplayWindow& dw)
   : window(dw),
@@ -74,10 +76,17 @@ void App::Init(DisplayWindow& dw)
 
 void App::Start()
 {
+    _exited = false;
+
     // Start main loop
     Instance()->_mainThreadController.Add("stop", sizeof(true));
     Instance()->_mainThreadController.Set("stop", false);
     Instance()->_mainThread = std::thread(&App::LoopThread, Instance());
+}
+
+bool App::Exited()
+{
+    return _exited;
 }
 
 App* App::Instance()
@@ -366,7 +375,15 @@ void App::LoopThread()
         // Check for exit message
         if (!wmExit.handled)
         {
-            exit(0); // ############ VERY BAD ########## ADD PROPER EXITING ###########
+            // Uninit all scenes
+            for (auto& scene : _activeScenes)
+                scene->Uninit();
+
+            // Close network
+            APP_NETWORK->CloseManager();
+
+            _exited = true;
+            break;
         }
 
         ztime::clock[CLOCK_GAME].Update();
