@@ -844,10 +844,14 @@ namespace zcom
 
         void _OnSelected()
         {
-            if (!_selectableItems.empty())
+            for (int i = 0; i < _selectableItems.size(); i++)
             {
+                if (!_selectableItems[i]->GetVisible() || !_selectableItems[i]->GetActive())
+                    continue;
+
                 OnDeselected();
-                _selectableItems[0]->OnSelected();
+                _selectableItems[i]->OnSelected();
+                break;
             }
         }
 
