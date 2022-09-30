@@ -448,6 +448,7 @@ void StartServerScene::_Init(const SceneOptionsBase* options)
         _allowDrawingLabel->SetFontSize(16.0f);
         _allowDrawingLabel->SetVerticalTextAlignment(zcom::Alignment::CENTER);
         _allowDrawingLabel->SetHorizontalTextAlignment(zcom::TextAlignment::LEADING);
+        _allowDrawingLabel->SetActive(false);
 
         _playbackOptionsPanel->AddItem(_playbackUserPermissionsLabel.get());
         _playbackOptionsPanel->AddItem(_allowPlaybackManipulationCheckbox.get());
